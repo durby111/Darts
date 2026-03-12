@@ -91,6 +91,8 @@ function updateCricketGrid() {
             buttonsHtml += `<button class="cricket-num-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="1">${displayNum}</button>`;
             if (target !== 'Bull') {
                 buttonsHtml += `<button class="cricket-dt-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="3">T</button>`;
+            } else {
+                buttonsHtml += `<span class="cricket-dt-btn${compactBtnClass} fake-spacer" aria-hidden="true"></span>`;
             }
         }
 
@@ -315,13 +317,6 @@ export function hitTarget(target, multiplier) {
             document.dispatchEvent(event);
         } else {
             game.pendingDarts.push({ target, multiplier: 1 });
-
-            // Bed uses all 3 darts — auto-confirm immediately
-            if (target === 'Bed') {
-                updateCricketDisplay();
-                cricketConfirm();
-                return;
-            }
         }
     } else {
         game.pendingDarts.push({ target, multiplier });

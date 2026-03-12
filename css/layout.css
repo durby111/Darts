@@ -225,6 +225,24 @@ body {
     scrollbar-color: #444 var(--color-surface);
 }
 
+/* Minnesota: stretch grid to fill available height */
+.cricket-main.minnesota-layout {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+}
+
+.cricket-main.minnesota-layout #cricketGrid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.cricket-main.minnesota-layout .cricket-row {
+    flex: 1;
+    min-height: 0;
+}
+
 /* === X01 Main Area === */
 .x01-main {
     flex: 1;

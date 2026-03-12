@@ -25,7 +25,9 @@ function updateDisplay() {
     const isCricket = ['cricket', 'spanish', 'minnesota'].includes(effectiveType);
 
     // Show/hide game areas
-    document.getElementById('cricketMain').classList.toggle('hidden', !isCricket);
+    const cricketMain = document.getElementById('cricketMain');
+    cricketMain.classList.toggle('hidden', !isCricket);
+    cricketMain.classList.toggle('minnesota-layout', effectiveType === 'minnesota');
     document.getElementById('x01Main').classList.toggle('hidden', isCricket);
     document.getElementById('cricketControls').classList.toggle('hidden', !isCricket);
     document.getElementById('x01Controls').classList.toggle('hidden', isCricket);

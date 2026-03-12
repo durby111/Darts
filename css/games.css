@@ -29,10 +29,14 @@
     grid-template-columns: 1fr 1fr clamp(130px, 28vw, 220px) 1fr 1fr;
 }
 
-/* Spanish/Minnesota rows — fill available space */
-.cricket-row.spanish,
-.cricket-row.minnesota {
+/* Spanish rows — compact */
+.cricket-row.spanish {
     min-height: clamp(36px, 5.5dvh, 65px);
+}
+
+/* Minnesota rows — use full screen height */
+.cricket-row.minnesota {
+    min-height: clamp(40px, 7dvh, 80px);
 }
 
 /* === Mark Symbols === */
@@ -141,6 +145,14 @@
 .cricket-dt-btn.dimmed {
     background: #444;
     color: var(--color-text-dim);
+}
+
+/* Fake spacer for Bull row — same size as T button but invisible */
+.cricket-dt-btn.fake-spacer {
+    background: transparent;
+    border: none;
+    pointer-events: none;
+    visibility: hidden;
 }
 
 /* Spanish/Minnesota compact buttons */
