@@ -47,7 +47,8 @@ function calculatePendingScore() {
                 });
 
                 if (!allOpponentsClosed) {
-                    const pointValue = target === 'Bull' ? 25 : parseInt(target);
+                    const numVal = parseInt(target);
+                    const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
                     score += pointMarks * pointValue;
                 }
             }
@@ -80,15 +81,16 @@ function updateCricketGrid() {
 
         // Build buttons
         let buttonsHtml = '';
+        const compactBtnClass = isCompact ? (isMinnesota ? ' minnesota' : ' spanish') : '';
         if (isSpecial) {
             const btnLabel = target === 'Triples' ? 'T' : target === 'Doubles' ? 'D' : 'BED';
-            buttonsHtml = `<button class="cricket-num-btn${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="1">${btnLabel}</button>`;
+            buttonsHtml = `<button class="cricket-num-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="1">${btnLabel}</button>`;
         } else {
             const displayNum = target === 'Bull' ? 'B' : target;
-            buttonsHtml = `<button class="cricket-dt-btn${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="2">D</button>`;
-            buttonsHtml += `<button class="cricket-num-btn${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="1">${displayNum}</button>`;
+            buttonsHtml = `<button class="cricket-dt-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="2">D</button>`;
+            buttonsHtml += `<button class="cricket-num-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="1">${displayNum}</button>`;
             if (target !== 'Bull') {
-                buttonsHtml += `<button class="cricket-dt-btn${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="3">T</button>`;
+                buttonsHtml += `<button class="cricket-dt-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="3">T</button>`;
             }
         }
 
@@ -152,10 +154,11 @@ function updateCricketGrid() {
             html += playerCells[1];
             html += `</div>`;
         } else if (numPlayers === 3) {
+            // Layout: P1 | P2 | Buttons | P3 (matches header: 1 | 2 | center | 3)
             html += `<div class="${rowClass}">`;
             html += playerCells[0];
-            html += `<div class="buttons-container"><div class="cricket-buttons">${buttonsHtml}</div></div>`;
             html += playerCells[1];
+            html += `<div class="buttons-container"><div class="cricket-buttons">${buttonsHtml}</div></div>`;
             html += playerCells[2];
             html += `</div>`;
         } else if (numPlayers === 4) {
@@ -260,11 +263,10 @@ export function updateCricketDisplay() {
             scoreEl.textContent = displayScore;
         }
 
-        // Calculate and display MPR
-        const mpr = player.throws > 0 ? (player.totalMarks / player.throws).toFixed(1) : '0.0';
+        // Hide MPR displays (not needed)
         mprIds[i].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.textContent = mpr;
+            if (el) el.style.display = 'none';
         });
     });
 
@@ -357,7 +359,8 @@ export function cricketConfirm() {
                     });
 
                     if (!allOpponentsClosed) {
-                        const pointValue = target === 'Bull' ? 25 : parseInt(target);
+                        const numVal = parseInt(target);
+                    const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
                         player.score += pointMarks * pointValue;
                     }
                 }

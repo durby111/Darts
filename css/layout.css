@@ -220,7 +220,7 @@ body {
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: var(--space-xs) 0;
+    padding: var(--space-xs) 0 var(--space-lg) 0;
     scrollbar-width: thin;
     scrollbar-color: #444 var(--color-surface);
 }

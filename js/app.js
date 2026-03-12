@@ -202,6 +202,43 @@ function registerServiceWorker() {
     }
 }
 
+function initUpdateButton() {
+    const btn = document.getElementById('updateAppBtn');
+    const status = document.getElementById('updateStatus');
+    if (!btn) return;
+
+    btn.addEventListener('click', async () => {
+        status.textContent = 'Checking for updates...';
+        btn.disabled = true;
+
+        try {
+            if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.getRegistration();
+                if (reg) {
+                    await reg.update();
+                    if (reg.waiting) {
+                        reg.waiting.postMessage('skipWaiting');
+                        status.textContent = 'Update found! Reloading...';
+                        setTimeout(() => window.location.reload(true), 500);
+                        return;
+                    }
+                }
+            }
+            // Force reload from network regardless
+            status.textContent = 'Reloading with latest version...';
+            // Clear all caches then reload
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            }
+            setTimeout(() => window.location.reload(true), 300);
+        } catch (e) {
+            status.textContent = 'Update failed. Try refreshing the page.';
+            btn.disabled = false;
+        }
+    });
+}
+
 // --- Init ---
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -216,4 +253,5 @@ document.addEventListener('DOMContentLoaded', () => {
     initGame121Events();
     initGlobalUndoRedo();
     registerServiceWorker();
+    initUpdateButton();
 });

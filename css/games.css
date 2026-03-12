@@ -22,7 +22,7 @@
 }
 
 .cricket-row.three-player {
-    grid-template-columns: minmax(45px, 1fr) auto minmax(45px, 1fr) minmax(45px, 1fr);
+    grid-template-columns: minmax(45px, 1fr) minmax(45px, 1fr) auto minmax(45px, 1fr);
 }
 
 .cricket-row.four-player {
@@ -70,6 +70,7 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
+    min-width: clamp(120px, 25vw, 200px);
 }
 
 /* Player mark containers */

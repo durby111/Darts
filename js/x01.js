@@ -406,6 +406,13 @@ function updateX01Display() {
     if (numPlayers >= 3) document.getElementById('player3Score').textContent = game.players[2].score;
     if (numPlayers >= 4) document.getElementById('player4Score').textContent = game.players[3].score;
 
+    // Hide MPR displays in X01 (not relevant)
+    const mprIds = ['homeMPR', 'homeMPR2', 'awayMPR', 'awayMPR2', 'player3MPR', 'player3MPR2', 'player4MPR', 'player4MPR2'];
+    mprIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+
     // Update round badge
     updateRoundBadge();
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-v1';
+const CACHE_NAME = 'blakeout-v2';
 const ASSETS = [
     './',
     './index.html',
@@ -37,17 +37,22 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
     event.respondWith(
-        caches.match(event.request).then((cached) => {
-            // Cache-first, fall back to network
-            if (cached) return cached;
-            return fetch(event.request).then((response) => {
-                // Cache successful GET responses
-                if (response.ok && event.request.method === 'GET') {
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-                }
-                return response;
-            });
+        // Network-first: try network, fall back to cache for offline
+        fetch(event.request).then((response) => {
+            if (response.ok && event.request.method === 'GET') {
+                const clone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            }
+            return response;
+        }).catch(() => {
+            return caches.match(event.request);
         })
     );
+});
+
+// Listen for update messages from the app
+self.addEventListener('message', (event) => {
+    if (event.data === 'skipWaiting') {
+        self.skipWaiting();
+    }
 });
