@@ -35,7 +35,8 @@
     --color-prev-turn: #888888;
     --color-score-bg: #ffffff;
     --color-score-text: #000000;
-    --color-bust: #ff4444;
+    --color-bust: #cc6633;
+    --color-miss: #555566;
 
     /* === Spacing === */
     --space-xs: 4px;

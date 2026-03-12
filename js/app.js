@@ -133,6 +133,29 @@ function initGameMenuControls() {
         hideModal('gameMenuModal');
         showSetup();
     });
+
+    document.getElementById('gameMenuUpdateBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('gameMenuUpdateBtn');
+        btn.textContent = 'Updating...';
+        btn.disabled = true;
+        try {
+            if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(k => caches.delete(k)));
+            }
+            if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.getRegistration();
+                if (reg) {
+                    await reg.update();
+                    if (reg.waiting) reg.waiting.postMessage('skipWaiting');
+                }
+            }
+            setTimeout(() => window.location.reload(true), 300);
+        } catch (e) {
+            btn.textContent = 'Update failed';
+            btn.disabled = false;
+        }
+    });
 }
 
 // --- Winner Modal ---

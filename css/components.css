@@ -101,6 +101,16 @@
     color: var(--color-text);
 }
 
+.btn--miss {
+    background: var(--color-miss);
+    color: var(--color-text);
+}
+
+.btn--bust {
+    background: var(--color-bust);
+    color: var(--color-text);
+}
+
 .btn--warning {
     background: var(--color-warning);
     color: var(--color-text-dark);

@@ -460,7 +460,6 @@ function initX01Controls() {
     });
 
     // Control buttons
-    document.getElementById('x01ClearBtn').addEventListener('click', clearInput);
     document.getElementById('x01EnterBtn').addEventListener('click', submitScore);
     document.getElementById('x01MissBtn').addEventListener('click', x01Miss);
     document.getElementById('x01BustBtn').addEventListener('click', x01Bust);

@@ -29,10 +29,10 @@
     grid-template-columns: minmax(35px, 1fr) minmax(35px, 1fr) auto minmax(35px, 1fr) minmax(35px, 1fr);
 }
 
-/* Spanish/Minnesota compact rows */
+/* Spanish/Minnesota rows — fill available space */
 .cricket-row.spanish,
 .cricket-row.minnesota {
-    min-height: clamp(32px, 4.5dvh, 55px);
+    min-height: clamp(36px, 5.5dvh, 65px);
 }
 
 /* === Mark Symbols === */
@@ -257,7 +257,7 @@
 }
 
 .score-history-entry {
-    font-size: var(--font-xl);
+    font-size: clamp(1.4rem, 5dvh, 2.2rem);
     font-weight: bold;
     padding: var(--space-xs) var(--space-sm);
     min-height: clamp(32px, 5dvh, 48px);
@@ -272,7 +272,7 @@
 }
 
 .score-history-entry.bust {
-    color: var(--color-bust);
+    color: #ff4444;
     text-decoration: line-through;
 }
 
@@ -296,7 +296,7 @@
     min-height: clamp(20px, 3dvh, 30px);
 }
 
-/* Input row: Undo | [Redo] | Display | CLR */
+/* Input row: Undo | [Redo] | Display */
 .x01-input-row {
     display: flex;
     gap: var(--space-sm);
@@ -369,8 +369,8 @@
     touch-action: manipulation;
     background: var(--color-primary-dark);
     color: var(--color-text);
-    font-size: var(--font-lg);
-    padding: clamp(8px, 1.5dvh, 16px) var(--space-md);
+    font-size: clamp(0.85rem, 2.2dvh, 1.4rem);
+    padding: clamp(6px, 1.2dvh, 14px) var(--space-sm);
     flex: 1;
 }
 

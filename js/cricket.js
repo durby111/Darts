@@ -91,6 +91,9 @@ function updateCricketGrid() {
             buttonsHtml += `<button class="cricket-num-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="1">${displayNum}</button>`;
             if (target !== 'Bull') {
                 buttonsHtml += `<button class="cricket-dt-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="3">T</button>`;
+            } else {
+                // Invisible spacer to match width of T button
+                buttonsHtml += `<span class="cricket-dt-btn${compactBtnClass}" style="visibility:hidden;">T</span>`;
             }
         }
 
@@ -283,12 +286,12 @@ export function hitTarget(target, multiplier) {
     const specialTargets = ['Triples', 'Doubles', 'Bed'];
     const isSpecial = specialTargets.includes(target);
 
-    // Minnesota Beds rule
-    if (target === 'Bed' && game.pendingDarts.length > 0 && game.pendingDarts.some(d => d.target !== 'Bed')) {
-        return;
+    // Minnesota Beds rule: Bed uses all 3 darts
+    if (target === 'Bed' && game.pendingDarts.length > 0) {
+        return; // Can't add Bed if other darts pending
     }
     if (target !== 'Bed' && game.pendingDarts.length > 0 && game.pendingDarts.some(d => d.target === 'Bed')) {
-        return;
+        return; // Can't add non-Bed if Bed is pending
     }
 
     // Save state before each dart for individual undo
@@ -315,6 +318,13 @@ export function hitTarget(target, multiplier) {
             document.dispatchEvent(event);
         } else {
             game.pendingDarts.push({ target, multiplier: 1 });
+
+            // Bed uses all 3 darts — auto-confirm immediately
+            if (target === 'Bed') {
+                updateCricketDisplay();
+                cricketConfirm();
+                return;
+            }
         }
     } else {
         game.pendingDarts.push({ target, multiplier });
@@ -326,6 +336,16 @@ export function hitTarget(target, multiplier) {
 
 export function cricketConfirm() {
     if (game.pendingDarts.length === 0) return;
+
+    // 1.5s cooldown — disable both ENTER and MISS
+    const enterBtn = document.getElementById('enterBtn');
+    const missBtn = document.getElementById('missBtn');
+    if (enterBtn) enterBtn.disabled = true;
+    if (missBtn) missBtn.disabled = true;
+    setTimeout(() => {
+        if (enterBtn) enterBtn.disabled = false;
+        if (missBtn) missBtn.disabled = false;
+    }, 1500);
 
     const player = game.players[game.currentPlayer];
     const lastTurnMarks = {};
@@ -439,13 +459,16 @@ export function cricketConfirm() {
 }
 
 export function cricketMiss() {
-    // 2-second cooldown on miss button
+    // 1.5s cooldown — disable both MISS and ENTER
     const missBtn = document.getElementById('missBtn');
+    const enterBtn = document.getElementById('enterBtn');
     if (missBtn && missBtn.disabled) return;
-    if (missBtn) {
-        missBtn.disabled = true;
-        setTimeout(() => { missBtn.disabled = false; }, 2000);
-    }
+    if (missBtn) missBtn.disabled = true;
+    if (enterBtn) enterBtn.disabled = true;
+    setTimeout(() => {
+        if (missBtn) missBtn.disabled = false;
+        if (enterBtn) enterBtn.disabled = false;
+    }, 1500);
 
     saveGameState();
 
