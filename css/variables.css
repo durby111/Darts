@@ -1,0 +1,80 @@
+/* ============================================
+   BlakeOut Design Tokens
+   All shared values — colors, spacing, radii,
+   typography, z-index. No raw values elsewhere.
+   ============================================ */
+
+:root {
+    /* === Colors: Primary === */
+    --color-primary: #0066cc;
+    --color-primary-dark: #0052a3;
+    --color-primary-light: #00aaff;
+
+    /* === Colors: Semantic === */
+    --color-success: #00aa00;
+    --color-success-dark: #006600;
+    --color-danger: #cc0000;
+    --color-warning: #cc9900;
+    --color-undo: #cc6600;
+
+    /* === Colors: Neutrals === */
+    --color-bg: #000000;
+    --color-surface: #1a1a1a;
+    --color-surface-alt: #111111;
+    --color-border: #333333;
+    --color-border-light: #666666;
+    --color-text: #ffffff;
+    --color-text-dark: #000000;
+    --color-text-muted: #999999;
+    --color-text-dim: #666666;
+
+    /* === Colors: Game-specific === */
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #666666;
+    --color-pending: #00ff00;
+    --color-prev-turn: #888888;
+    --color-score-bg: #ffffff;
+    --color-score-text: #000000;
+    --color-bust: #ff4444;
+
+    /* === Spacing === */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 20px;
+    --space-2xl: 24px;
+    --space-3xl: 32px;
+
+    /* === Border Radius (standardized) === */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    /* === Typography === */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+    /* Font sizes — clamp(min, preferred, max) tuned for 720-1366px height */
+    --font-xs: clamp(0.6rem, 1.5vw, 0.75rem);
+    --font-sm: clamp(0.75rem, 2vw, 0.95rem);
+    --font-md: clamp(0.9rem, 2.5vw, 1.15rem);
+    --font-lg: clamp(1.1rem, 3vw, 1.4rem);
+    --font-xl: clamp(1.4rem, 4vw, 1.8rem);
+    --font-2xl: clamp(1.8rem, 5vw, 2.5rem);
+    --font-score: clamp(2rem, 6vw, 3.5rem);
+
+    /* === Button Sizes === */
+    --btn-padding-sm: var(--space-sm) var(--space-md);
+    --btn-padding-md: var(--space-md) var(--space-xl);
+    --btn-padding-lg: var(--space-lg) var(--space-2xl);
+
+    /* === Z-Index Scale === */
+    --z-base: 1;
+    --z-header: 10;
+    --z-overlay: 100;
+    --z-modal: 1000;
+
+    /* === Transitions === */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.3s ease;
+}

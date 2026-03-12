@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <title>BlakeOut</title>
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/games.css">
+</head>
+<body>
+    <!-- Setup Screen -->
+    <div class="setup-screen" id="setupScreen">
+        <div class="setup-card card">
+            <div class="setup-logo">
+                <img src="assets/logo.png" alt="BlakeOut" onerror="this.style.display='none'">
+            </div>
+            <h1>BLAKE OUT</h1>
+
+            <div class="form-group">
+                <label>Game Type</label>
+                <select id="gameType">
+                    <option value="301">301</option>
+                    <option value="501" selected>501</option>
+                    <option value="701">701</option>
+                    <option value="801">801</option>
+                    <option value="cricket">Cricket</option>
+                    <option value="spanish">Spanish (20-10)</option>
+                    <option value="minnesota">Minnesota Cricket</option>
+                    <option value="chicago">Chicago (Best of 3)</option>
+                    <option value="121">121 Game</option>
+                </select>
+            </div>
+
+            <div class="form-group hidden" id="game121Options">
+                <label>Darts Per Leg</label>
+                <select id="dartsPerLeg">
+                    <option value="9">9 Darts</option>
+                    <option value="12" selected>12 Darts</option>
+                    <option value="15">15 Darts</option>
+                </select>
+                <label style="margin-top:10px;">Total Legs</label>
+                <select id="totalLegs121">
+                    <option value="3">3 Legs</option>
+                    <option value="5" selected>5 Legs</option>
+                    <option value="7">7 Legs</option>
+                    <option value="9">9 Legs</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="finishTypeOptions">
+                <label>Finish Type</label>
+                <select id="finishType">
+                    <option value="open">Open Out</option>
+                    <option value="double-out" selected>Double Out</option>
+                    <option value="double-in-out">Double In/Double Out</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Number of Players</label>
+                <select id="numPlayers">
+                    <option value="1">1 Player</option>
+                    <option value="2" selected>2 Players</option>
+                    <option value="3">3 Players</option>
+                    <option value="4">4 Players</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Home Player</label>
+                <input type="text" id="player1" value="Home">
+            </div>
+
+            <div class="form-group" id="player2Group">
+                <label>Away Player</label>
+                <input type="text" id="player2" value="Away">
+            </div>
+
+            <div class="form-group hidden" id="player3Group">
+                <label>Player 3</label>
+                <input type="text" id="player3" value="Player 3">
+            </div>
+
+            <div class="form-group hidden" id="player4Group">
+                <label>Player 4</label>
+                <input type="text" id="player4" value="Player 4">
+            </div>
+
+            <div class="form-group hidden" id="cricketOptions">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="cricketPoints" checked>
+                    <span>Enable Points</span>
+                </label>
+                <label class="checkbox-label hidden" id="spanishBullsOption" style="margin-top:10px;">
+                    <input type="checkbox" id="spanishBulls">
+                    <span>Include Bulls (20-10 + Bull)</span>
+                </label>
+            </div>
+
+            <button class="btn btn--lg btn--primary btn--block" id="startGameBtn">Start Game</button>
+
+            <div style="margin-top:var(--space-xl);display:flex;gap:var(--space-md);">
+                <button class="btn btn--md btn--success-dark" style="flex:1;" id="saveConfigBtn">Save Config</button>
+                <button class="btn btn--md btn--neutral" style="flex:1;" id="loadLastBtn" disabled>Load Last</button>
+            </div>
+
+            <div id="savedConfigsList" style="margin-top:var(--space-lg);"></div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div class="game-screen" id="gameScreen">
+        <!-- Header -->
+        <div class="score-header" id="scoreHeader">
+            <div class="player-header home" id="homeHeader">
+                <div class="player-name" id="homeName">Home</div>
+                <div class="score-display-header">
+                    <span class="avg-small" id="homeMPR">0.0</span>
+                    <span class="score-big" id="homeScore">0</span>
+                    <span class="avg-small" id="homeMPR2">0.0</span>
+                </div>
+            </div>
+
+            <div class="center-logo">
+                <button class="end-game-btn" id="menuBtn">Menu</button>
+                <div class="round-badge" id="roundBadge">1</div>
+                <div class="version-text">BLAKE OUT</div>
+            </div>
+
+            <div class="player-header away" id="awayHeader">
+                <div class="player-name" id="awayName">Away</div>
+                <div class="score-display-header">
+                    <span class="avg-small" id="awayMPR">0.0</span>
+                    <span class="score-big" id="awayScore">0</span>
+                    <span class="avg-small" id="awayMPR2">0.0</span>
+                </div>
+            </div>
+
+            <div class="player-header player3" id="player3Header" style="display:none;">
+                <div class="player-name" id="player3Name">Player 3</div>
+                <div class="score-display-header">
+                    <span class="avg-small" id="player3MPR">0.0</span>
+                    <span class="score-big" id="player3Score">0</span>
+                    <span class="avg-small" id="player3MPR2">0.0</span>
+                </div>
+            </div>
+
+            <div class="player-header player4" id="player4Header" style="display:none;">
+                <div class="player-name" id="player4Name">Player 4</div>
+                <div class="score-display-header">
+                    <span class="avg-small" id="player4MPR">0.0</span>
+                    <span class="score-big" id="player4Score">0</span>
+                    <span class="avg-small" id="player4MPR2">0.0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cricket Main -->
+        <div class="cricket-main hidden" id="cricketMain">
+            <div id="cricketGrid"></div>
+        </div>
+
+        <!-- X01 Main -->
+        <div class="x01-main hidden" id="x01Main">
+            <div class="score-history-col left" id="p1HistoryCol"></div>
+            <div class="score-history-col left" id="p2HistoryCol" style="display:none;"></div>
+            <div class="round-numbers-col" id="roundNumCol"></div>
+            <div class="score-history-col right" id="p3HistoryCol" style="display:none;"></div>
+            <div class="score-history-col right" id="p4HistoryCol" style="display:none;"></div>
+        </div>
+
+        <!-- Bottom Controls (Cricket) -->
+        <div class="bottom-controls hidden" id="cricketControls">
+            <div style="display:flex;flex-direction:column;gap:var(--space-xs);">
+                <button class="btn btn--md btn--warning" id="cricketBackBtn">BACK</button>
+                <div style="display:flex;gap:var(--space-xs);">
+                    <button class="btn btn--sm btn--undo" id="undoBtn" disabled>UNDO</button>
+                    <button class="btn btn--sm btn--primary" id="redoBtn" disabled style="display:none;">REDO</button>
+                </div>
+            </div>
+            <div class="center-area">
+                <div class="pending-text" id="pendingText">Tap number or D/T for that number</div>
+                <div class="score-diff-indicator" id="scoreDiffIndicator"></div>
+                <button class="btn btn--md btn--danger btn--block" id="missBtn">MISS</button>
+            </div>
+            <button class="btn btn--lg btn--success" id="enterBtn" disabled>ENTER</button>
+        </div>
+
+        <!-- Bottom Controls (X01) -->
+        <div class="controls-area hidden" id="x01Controls">
+            <div class="checkout-suggestion" id="checkoutSuggestion" style="display:none;"></div>
+            <div class="finish-indicator" id="finishIndicator"></div>
+
+            <div class="top-controls">
+                <button class="btn btn--md btn--warning" id="x01BackBtn">BACK</button>
+                <div class="input-display" id="inputDisplay">0</div>
+                <button class="btn btn--md btn--success" id="x01EnterBtn">ENTER</button>
+            </div>
+
+            <div class="number-pad">
+                <div class="quick-col">
+                    <button class="x01-quick-btn" data-quick="26">26</button>
+                    <button class="x01-quick-btn" data-quick="40">40</button>
+                    <button class="x01-quick-btn" data-quick="41">41</button>
+                    <button class="x01-quick-btn" data-quick="43">43</button>
+                </div>
+
+                <div class="pad-center">
+                    <button class="x01-num-btn" data-digit="1">1</button>
+                    <button class="x01-num-btn" data-digit="2">2</button>
+                    <button class="x01-num-btn" data-digit="3">3</button>
+                    <button class="x01-num-btn" data-digit="4">4</button>
+                    <button class="x01-num-btn" data-digit="5">5</button>
+                    <button class="x01-num-btn" data-digit="6">6</button>
+                    <button class="x01-num-btn" data-digit="7">7</button>
+                    <button class="x01-num-btn" data-digit="8">8</button>
+                    <button class="x01-num-btn" data-digit="9">9</button>
+                    <button class="x01-special-btn green" data-quick="100" id="btn100">100</button>
+                    <button class="x01-num-btn" data-digit="0" id="zeroBtn">0</button>
+                    <button class="x01-special-btn blue" data-quick="180">180</button>
+                </div>
+
+                <div class="quick-col">
+                    <button class="x01-quick-btn" data-quick="45">45</button>
+                    <button class="x01-quick-btn" data-quick="60">60</button>
+                    <button class="x01-quick-btn" data-quick="81">81</button>
+                    <button class="x01-quick-btn" data-quick="85">85</button>
+                </div>
+            </div>
+
+            <div class="calc-row">
+                <button class="x01-calc-btn" id="calcDBtn" data-calc="D">D</button>
+                <button class="x01-calc-btn" id="calcTBtn" data-calc="T">T</button>
+                <button class="x01-calc-btn" data-calc="+">+</button>
+                <button class="x01-preset-btn" data-preset="T20">T20</button>
+                <button class="x01-preset-btn" data-preset="T19">T19</button>
+                <button class="x01-preset-btn" data-preset="D20">D20</button>
+                <button class="x01-preset-btn" data-preset="D16">D16</button>
+            </div>
+
+            <div class="x01-bottom-row">
+                <button class="btn btn--md btn--danger" id="x01MissBtn" style="flex:1;">MISS</button>
+                <button class="btn btn--md btn--undo" id="undoBtnX01" disabled style="flex:1;">UNDO</button>
+                <button class="btn btn--md btn--primary" id="redoBtnX01" disabled style="display:none;flex:1;">REDO</button>
+                <button class="btn btn--md btn--danger-light" id="x01BustBtn" style="flex:1;">BUST</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Winner Modal -->
+    <div class="modal" id="winnerModal">
+        <div class="modal-content">
+            <h2>WINNER</h2>
+            <div class="winner-name" id="winnerName"></div>
+            <div class="blakeout-message" id="blakeoutMessage" style="display:none;">
+                BLAKEOUT!<br>
+                <span>Closed with a Double Bull!</span>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn--md btn--neutral" id="winnerCancelBtn">Cancel</button>
+                <button class="btn btn--md btn--success" id="playAgainBtn">Play Again</button>
+                <button class="btn btn--md btn--primary" id="newGameBtn">New Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Menu Modal -->
+    <div class="modal" id="gameMenuModal" style="display:none;">
+        <div class="modal-content" style="max-width:350px;">
+            <h2>Game Menu</h2>
+            <div style="display:flex;flex-direction:column;gap:var(--space-md);margin-top:var(--space-xl);">
+                <button class="btn btn--lg btn--undo btn--block" id="gameMenuUndoBtn">UNDO Last Action</button>
+                <button class="btn btn--lg btn--primary btn--block" id="gameMenuRedoBtn" style="display:none;">REDO</button>
+                <button class="btn btn--lg btn--neutral btn--block" id="gameMenuResumeBtn">Resume Game</button>
+                <hr style="border-color:var(--color-border);margin:var(--space-xs) 0;">
+                <button class="btn btn--lg btn--success-dark btn--block" id="gameMenuNewGameBtn">New Game (Same Players)</button>
+                <button class="btn btn--lg btn--danger btn--block" id="gameMenuExitBtn">Exit to Setup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Keypad Modal for Minnesota Cricket -->
+    <div class="modal" id="scoreKeypadModal" style="display:none;">
+        <div class="modal-content" style="max-width:400px;">
+            <h2 id="scoreKeypadTitle">Enter Score</h2>
+            <div class="keypad-display" id="keypadDisplay">0</div>
+            <div class="keypad-grid">
+                <button class="x01-num-btn" data-keypad="1">1</button>
+                <button class="x01-num-btn" data-keypad="2">2</button>
+                <button class="x01-num-btn" data-keypad="3">3</button>
+                <button class="x01-num-btn" data-keypad="4">4</button>
+                <button class="x01-num-btn" data-keypad="5">5</button>
+                <button class="x01-num-btn" data-keypad="6">6</button>
+                <button class="x01-num-btn" data-keypad="7">7</button>
+                <button class="x01-num-btn" data-keypad="8">8</button>
+                <button class="x01-num-btn" data-keypad="9">9</button>
+                <button class="btn btn--md btn--danger" data-keypad="CLR">CLR</button>
+                <button class="x01-num-btn" data-keypad="0">0</button>
+                <button class="btn btn--md btn--success" data-keypad="OK">OK</button>
+            </div>
+            <button class="btn btn--md btn--neutral btn--block" id="keypadCancelBtn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Chicago Game Selection Modal -->
+    <div class="modal" id="chicagoGameModal" style="display:none;">
+        <div class="modal-content" style="max-width:400px;">
+            <h2 id="chicagoGameTitle">Choose Game</h2>
+            <p id="chicagoPlayerPicking" style="color:var(--color-text-muted);margin-bottom:var(--space-xl);"></p>
+            <div style="display:flex;flex-direction:column;gap:var(--space-lg);">
+                <button class="btn btn--lg btn--primary btn--block" id="chicagoCricketBtn" data-chicago="cricket">Cricket</button>
+                <button class="btn btn--lg btn--primary btn--block" id="chicago301Btn" data-chicago="301">301</button>
+                <button class="btn btn--lg btn--primary btn--block" id="chicago501Btn" data-chicago="501">501</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chicago Leg Winner Modal -->
+    <div class="modal" id="chicagoLegModal" style="display:none;">
+        <div class="modal-content">
+            <h2 id="chicagoLegTitle">Leg Complete!</h2>
+            <div class="winner-name" id="chicagoLegWinner"></div>
+            <div id="chicagoMatchScore" style="font-size:var(--font-xl);color:var(--color-primary);margin-bottom:var(--space-xl);"></div>
+            <button class="btn btn--lg btn--success" id="chicagoContinueBtn">Continue</button>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
