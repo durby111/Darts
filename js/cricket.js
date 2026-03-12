@@ -91,9 +91,6 @@ function updateCricketGrid() {
             buttonsHtml += `<button class="cricket-num-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="1">${displayNum}</button>`;
             if (target !== 'Bull') {
                 buttonsHtml += `<button class="cricket-dt-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="3">T</button>`;
-            } else {
-                // Invisible spacer to match width of T button
-                buttonsHtml += `<span class="cricket-dt-btn${compactBtnClass}" style="visibility:hidden;">T</span>`;
             }
         }
 

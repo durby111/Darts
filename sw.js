@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-v3';
+const CACHE_NAME = 'blakeout-v4';
 const ASSETS = [
     './',
     './index.html',
@@ -23,21 +23,22 @@ self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
     );
+    // Activate immediately — don't wait for old SW to release
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+    // Delete ALL old caches
     event.waitUntil(
         caches.keys().then((keys) =>
             Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-        )
+        ).then(() => self.clients.claim())
     );
-    self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
+    // Network-first: always try network, fall back to cache offline
     event.respondWith(
-        // Network-first: try network, fall back to cache for offline
         fetch(event.request).then((response) => {
             if (response.ok && event.request.method === 'GET') {
                 const clone = response.clone();
@@ -50,7 +51,6 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// Listen for update messages from the app
 self.addEventListener('message', (event) => {
     if (event.data === 'skipWaiting') {
         self.skipWaiting();

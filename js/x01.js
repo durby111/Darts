@@ -125,8 +125,8 @@ function updateMissEnterVisibility() {
     const missBtn = document.getElementById('x01MissBtn');
     const enterBtn = document.getElementById('x01EnterBtn');
     const hasInput = expressionStr.length > 0;
-    missBtn.style.display = hasInput ? 'none' : '';
-    enterBtn.style.display = hasInput ? '' : 'none';
+    if (missBtn) missBtn.style.display = hasInput ? 'none' : '';
+    if (enterBtn) enterBtn.style.display = hasInput ? '' : 'none';
 }
 
 function quickScore(score) {
@@ -443,6 +443,12 @@ function updateX01Display() {
 
 // --- Event Listener Setup ---
 
+// Safe element event binding
+function onEl(id, event, handler) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(event, handler);
+}
+
 function initX01Controls() {
     // Digit buttons
     document.querySelectorAll('[data-digit]').forEach(btn => {
@@ -460,17 +466,15 @@ function initX01Controls() {
     });
 
     // Control buttons
-    document.getElementById('x01EnterBtn').addEventListener('click', submitScore);
-    document.getElementById('x01MissBtn').addEventListener('click', x01Miss);
-    document.getElementById('x01BustBtn').addEventListener('click', x01Bust);
+    onEl('x01EnterBtn', 'click', submitScore);
+    onEl('x01MissBtn', 'click', x01Miss);
+    onEl('x01BustBtn', 'click', x01Bust);
 
     // Undo/Redo (Undo also acts as Back — clears input first, then undoes last action)
-    document.getElementById('undoBtnX01').addEventListener('click', () => {
+    onEl('undoBtnX01', 'click', () => {
         if (expressionStr.length > 0) {
-            // Back behavior: clear current input
             clearInput();
         } else {
-            // Undo behavior: undo last game action
             undoWithCooldown(() => {
                 updateX01Display();
                 updateUndoRedoButtons();
@@ -479,7 +483,7 @@ function initX01Controls() {
         }
     });
 
-    document.getElementById('redoBtnX01').addEventListener('click', () => {
+    onEl('redoBtnX01', 'click', () => {
         redoWithCooldown(() => {
             updateX01Display();
             updateUndoRedoButtons();

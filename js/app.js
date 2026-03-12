@@ -10,6 +10,14 @@ import { updateX01Display, initX01Controls, clearInput } from './x01.js';
 import { initChicagoControls } from './chicago.js';
 import { initSetupControls, setGameStartCallback, showSetup, playAgain } from './setup.js';
 
+// --- Safe element helper ---
+function on(id, event, handler) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.addEventListener(event, handler);
+    }
+}
+
 // --- Master Display Updater ---
 
 function updateDisplay() {
@@ -44,7 +52,6 @@ let keypadInput = '';
 let keypadTarget = '';
 
 function initKeypadControls() {
-    // Listen for showScoreKeypad events from cricket.js
     document.addEventListener('showScoreKeypad', (e) => {
         keypadTarget = e.detail.target;
         keypadInput = '';
@@ -53,7 +60,6 @@ function initKeypadControls() {
         showModal('scoreKeypadModal');
     });
 
-    // Keypad buttons
     document.querySelectorAll('[data-keypad]').forEach(btn => {
         btn.addEventListener('click', () => {
             const val = btn.dataset.keypad;
@@ -82,7 +88,7 @@ function initKeypadControls() {
         });
     });
 
-    document.getElementById('keypadCancelBtn').addEventListener('click', () => {
+    on('keypadCancelBtn', 'click', () => {
         hideModal('scoreKeypadModal');
         keypadInput = '';
         keypadTarget = '';
@@ -92,27 +98,26 @@ function initKeypadControls() {
 // --- Game Menu ---
 
 function initGameMenuControls() {
-    document.getElementById('menuBtn').addEventListener('click', () => {
-        // Update redo button visibility
+    on('menuBtn', 'click', () => {
         const redoBtn = document.getElementById('gameMenuRedoBtn');
-        redoBtn.style.display = game.redoHistory && game.redoHistory.length > 0 ? 'block' : 'none';
+        if (redoBtn) redoBtn.style.display = game.redoHistory && game.redoHistory.length > 0 ? 'block' : 'none';
         showModal('gameMenuModal');
     });
 
-    document.getElementById('gameMenuUndoBtn').addEventListener('click', () => {
+    on('gameMenuUndoBtn', 'click', () => {
         hideModal('gameMenuModal');
         undoWithCooldown(() => {
             updateDisplay();
             updateUndoRedoButtons();
-            // Update X01 input if needed
             const effectiveType = game.chicago ? game.chicago.currentGameType : game.type;
             if (!['cricket', 'spanish', 'minnesota'].includes(effectiveType)) {
-                document.getElementById('inputDisplay').textContent = game.currentInput || '0';
+                const inputEl = document.getElementById('inputDisplay');
+                if (inputEl) inputEl.textContent = game.currentInput || '0';
             }
         });
     });
 
-    document.getElementById('gameMenuRedoBtn').addEventListener('click', () => {
+    on('gameMenuRedoBtn', 'click', () => {
         hideModal('gameMenuModal');
         redoWithCooldown(() => {
             updateDisplay();
@@ -120,24 +125,26 @@ function initGameMenuControls() {
         });
     });
 
-    document.getElementById('gameMenuResumeBtn').addEventListener('click', () => {
+    on('gameMenuResumeBtn', 'click', () => {
         hideModal('gameMenuModal');
     });
 
-    document.getElementById('gameMenuNewGameBtn').addEventListener('click', () => {
+    on('gameMenuNewGameBtn', 'click', () => {
         hideModal('gameMenuModal');
         playAgain();
     });
 
-    document.getElementById('gameMenuExitBtn').addEventListener('click', () => {
+    on('gameMenuExitBtn', 'click', () => {
         hideModal('gameMenuModal');
         showSetup();
     });
 
-    document.getElementById('gameMenuUpdateBtn').addEventListener('click', async () => {
+    on('gameMenuUpdateBtn', 'click', async () => {
         const btn = document.getElementById('gameMenuUpdateBtn');
-        btn.textContent = 'Updating...';
-        btn.disabled = true;
+        if (btn) {
+            btn.textContent = 'Updating...';
+            btn.disabled = true;
+        }
         try {
             if ('caches' in window) {
                 const keys = await caches.keys();
@@ -152,8 +159,10 @@ function initGameMenuControls() {
             }
             setTimeout(() => window.location.reload(true), 300);
         } catch (e) {
-            btn.textContent = 'Update failed';
-            btn.disabled = false;
+            if (btn) {
+                btn.textContent = 'Update failed';
+                btn.disabled = false;
+            }
         }
     });
 }
@@ -161,20 +170,19 @@ function initGameMenuControls() {
 // --- Winner Modal ---
 
 function initWinnerModalControls() {
-    document.getElementById('winnerCancelBtn').addEventListener('click', () => {
+    on('winnerCancelBtn', 'click', () => {
         hideModal('winnerModal');
-        // Undo the winning action instead of leaving corrupted state
         undoWithCooldown(() => {
             updateDisplay();
             updateUndoRedoButtons();
         });
     });
 
-    document.getElementById('playAgainBtn').addEventListener('click', () => {
+    on('playAgainBtn', 'click', () => {
         playAgain();
     });
 
-    document.getElementById('newGameBtn').addEventListener('click', () => {
+    on('newGameBtn', 'click', () => {
         showSetup();
     });
 }
@@ -200,14 +208,14 @@ function initGame121Events() {
 // --- Undo/Redo for Cricket (global buttons) ---
 
 function initGlobalUndoRedo() {
-    document.getElementById('undoBtn').addEventListener('click', () => {
+    on('undoBtn', 'click', () => {
         undoWithCooldown(() => {
             updateDisplay();
             updateUndoRedoButtons();
         });
     });
 
-    document.getElementById('redoBtn').addEventListener('click', () => {
+    on('redoBtn', 'click', () => {
         redoWithCooldown(() => {
             updateDisplay();
             updateUndoRedoButtons();
@@ -219,9 +227,25 @@ function initGlobalUndoRedo() {
 
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').catch(() => {
-            // Service worker registration failed — app still works without it
-        });
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            // Force update check on every page load
+            reg.update().catch(() => {});
+            // If a new SW is waiting, activate it immediately
+            if (reg.waiting) {
+                reg.waiting.postMessage('skipWaiting');
+            }
+            reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (newWorker) {
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'activated') {
+                            // New SW activated — reload to get fresh files
+                            window.location.reload();
+                        }
+                    });
+                }
+            });
+        }).catch(() => {});
     }
 }
 
@@ -231,50 +255,52 @@ function initUpdateButton() {
     if (!btn) return;
 
     btn.addEventListener('click', async () => {
-        status.textContent = 'Checking for updates...';
+        if (status) status.textContent = 'Checking for updates...';
         btn.disabled = true;
 
         try {
+            // Unregister service worker entirely for clean slate
             if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.getRegistration();
-                if (reg) {
-                    await reg.update();
-                    if (reg.waiting) {
-                        reg.waiting.postMessage('skipWaiting');
-                        status.textContent = 'Update found! Reloading...';
-                        setTimeout(() => window.location.reload(true), 500);
-                        return;
-                    }
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const reg of registrations) {
+                    await reg.unregister();
                 }
             }
-            // Force reload from network regardless
-            status.textContent = 'Reloading with latest version...';
-            // Clear all caches then reload
+            // Clear all caches
             if ('caches' in window) {
                 const keys = await caches.keys();
                 await Promise.all(keys.map(k => caches.delete(k)));
             }
+            if (status) status.textContent = 'Reloading with latest version...';
             setTimeout(() => window.location.reload(true), 300);
         } catch (e) {
-            status.textContent = 'Update failed. Try refreshing the page.';
+            if (status) status.textContent = 'Update failed. Try refreshing the page.';
             btn.disabled = false;
         }
     });
 }
 
-// --- Init ---
+// --- Init with error isolation ---
+
+function safeInit(name, fn) {
+    try {
+        fn();
+    } catch (e) {
+        console.error(`[BlakeOut] ${name} failed:`, e);
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-    initSetupControls();
-    initCricketControls();
-    initX01Controls();
-    initChicagoControls();
-    initKeypadControls();
-    initGameMenuControls();
-    initWinnerModalControls();
-    initChicagoEvents();
-    initGame121Events();
-    initGlobalUndoRedo();
-    registerServiceWorker();
-    initUpdateButton();
+    safeInit('setup', initSetupControls);
+    safeInit('cricket', initCricketControls);
+    safeInit('x01', initX01Controls);
+    safeInit('chicago', initChicagoControls);
+    safeInit('keypad', initKeypadControls);
+    safeInit('gameMenu', initGameMenuControls);
+    safeInit('winnerModal', initWinnerModalControls);
+    safeInit('chicagoEvents', initChicagoEvents);
+    safeInit('game121Events', initGame121Events);
+    safeInit('undoRedo', initGlobalUndoRedo);
+    safeInit('serviceWorker', registerServiceWorker);
+    safeInit('updateButton', initUpdateButton);
 });
