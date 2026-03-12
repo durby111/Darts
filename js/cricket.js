@@ -68,7 +68,7 @@ function updateCricketGrid() {
     const isSpanish = game.type === 'spanish';
     const isMinnesota = game.type === 'minnesota';
     const isCompact = isSpanish || isMinnesota;
-    const specialTargets = ['Triples', 'Doubles', 'Beds'];
+    const specialTargets = ['Triples', 'Doubles', 'Bed'];
 
     let html = '';
 
@@ -81,7 +81,7 @@ function updateCricketGrid() {
         // Build buttons
         let buttonsHtml = '';
         if (isSpecial) {
-            const btnLabel = target === 'Triples' ? 'T' : target === 'Doubles' ? 'D' : 'Beds';
+            const btnLabel = target === 'Triples' ? 'T' : target === 'Doubles' ? 'D' : 'BED';
             buttonsHtml = `<button class="cricket-num-btn${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="1">${btnLabel}</button>`;
         } else {
             const displayNum = target === 'Bull' ? 'B' : target;
@@ -100,29 +100,30 @@ function updateCricketGrid() {
             const marks = cricketData.marks;
             const closedInOneTurn = cricketData.closedInOneTurn;
 
-            let cellHtml = getMarkSymbol(marks, 0, closedInOneTurn, isCompact, target);
+            let cellHtml;
 
-            // Pending indicators for current player
             if (i === game.currentPlayer) {
+                // Calculate pending marks for this target
                 let pendingMarks = 0;
                 for (const dart of game.pendingDarts) {
                     if (dart.target === target) {
                         pendingMarks += dart.specialScore !== undefined ? 1 : dart.multiplier;
                     }
                 }
-                if (pendingMarks > 0) {
-                    cellHtml += `<span class="pending-indicator" style="color: green;">+${pendingMarks}</span>`;
-                }
+                // Show marks with pending in green using getMarkSymbol's pending feature
+                cellHtml = getMarkSymbol(marks, pendingMarks, closedInOneTurn, isCompact, target);
             } else {
+                cellHtml = getMarkSymbol(marks, 0, closedInOneTurn, isCompact, target);
+
                 // Grey previous turn indicators
                 if (p.lastTurnMarks && p.lastTurnMarks[target] !== undefined) {
                     if (targetIndex === 0 && p.lastTurnMarks['MISS'] !== undefined) {
-                        cellHtml += `<span class="pending-indicator" style="color: grey;">MISS</span>`;
+                        cellHtml += `<span class="last-turn-indicator prev-turn-indicator">MISS</span>`;
                     } else if (p.lastTurnMarks[target] > 0) {
-                        cellHtml += `<span class="pending-indicator" style="color: grey;">+${p.lastTurnMarks[target]}</span>`;
+                        cellHtml += `<span class="last-turn-indicator prev-turn-indicator">+${p.lastTurnMarks[target]}</span>`;
                     }
                 } else if (targetIndex === 0 && p.lastTurnMarks && p.lastTurnMarks['MISS'] !== undefined) {
-                    cellHtml += `<span class="pending-indicator" style="color: grey;">MISS</span>`;
+                    cellHtml += `<span class="last-turn-indicator prev-turn-indicator">MISS</span>`;
                 }
             }
 
@@ -277,14 +278,14 @@ export function hitTarget(target, multiplier) {
     // Max 3 pending darts
     if (game.pendingDarts.length >= 3) return;
 
-    const specialTargets = ['Triples', 'Doubles', 'Beds'];
+    const specialTargets = ['Triples', 'Doubles', 'Bed'];
     const isSpecial = specialTargets.includes(target);
 
     // Minnesota Beds rule
-    if (target === 'Beds' && game.pendingDarts.length > 0 && game.pendingDarts.some(d => d.target !== 'Beds')) {
+    if (target === 'Bed' && game.pendingDarts.length > 0 && game.pendingDarts.some(d => d.target !== 'Bed')) {
         return;
     }
-    if (target !== 'Beds' && game.pendingDarts.length > 0 && game.pendingDarts.some(d => d.target === 'Beds')) {
+    if (target !== 'Bed' && game.pendingDarts.length > 0 && game.pendingDarts.some(d => d.target === 'Bed')) {
         return;
     }
 
@@ -476,17 +477,6 @@ export function cricketMiss() {
 }
 
 export function initCricketControls() {
-    // Back/Undo button
-    const backBtn = document.getElementById('cricketBackBtn');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            undoWithCooldown(() => {
-                updateCricketDisplay();
-                updateUndoRedoButtons();
-            });
-        });
-    }
-
     // Miss button
     const missBtn = document.getElementById('missBtn');
     if (missBtn) {

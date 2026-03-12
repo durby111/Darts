@@ -7,7 +7,7 @@
 .cricket-row {
     display: grid;
     align-items: center;
-    min-height: clamp(40px, 6dvh, 70px);
+    min-height: clamp(50px, 8dvh, 90px);
     border-bottom: 1px solid var(--color-border);
     padding: 0 var(--space-xs);
 }
@@ -40,8 +40,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: clamp(30px, 5dvh, 55px);
-    height: clamp(30px, 5dvh, 55px);
+    width: clamp(40px, 7dvh, 70px);
+    height: clamp(40px, 7dvh, 70px);
 }
 
 .mark svg {
@@ -53,6 +53,23 @@
 .mark.minnesota {
     width: clamp(22px, 3.5dvh, 40px);
     height: clamp(22px, 3.5dvh, 40px);
+}
+
+/* Cricket cell — centers marks and scores */
+.cricket-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 100%;
+}
+
+/* Cricket buttons column */
+.cricket-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
 }
 
 /* Player mark containers */
@@ -87,9 +104,9 @@
     touch-action: manipulation;
     background: var(--color-primary);
     color: var(--color-text);
-    font-size: clamp(1.2rem, 3dvh, 2rem);
-    padding: clamp(6px, 1.5dvh, 14px) clamp(12px, 3vw, 24px);
-    min-width: clamp(45px, 10vw, 80px);
+    font-size: clamp(1.4rem, 3.5dvh, 2.4rem);
+    padding: clamp(8px, 2dvh, 18px) clamp(14px, 3.5vw, 28px);
+    min-width: clamp(50px, 12vw, 90px);
 }
 
 .cricket-num-btn:active {
@@ -159,6 +176,17 @@
 }
 
 /* === Cricket Bottom Controls === */
+.cricket-controls-left,
+.cricket-controls-right {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.cricket-controls-right {
+    align-items: flex-end;
+}
+
 .center-area {
     flex: 1;
     display: flex;
@@ -170,7 +198,7 @@
 
 .pending-text {
     color: var(--color-primary-light);
-    font-size: var(--font-sm);
+    font-size: var(--font-md);
     text-align: center;
     min-height: 1.5em;
 }
@@ -178,7 +206,7 @@
 .score-diff-indicator {
     text-align: center;
     font-weight: bold;
-    font-size: var(--font-lg);
+    font-size: var(--font-xl);
     min-height: 1.5em;
 }
 
@@ -187,18 +215,18 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    padding: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
     scrollbar-width: thin;
     scrollbar-color: #444 var(--color-surface);
 }
 
 .score-history-col.left {
-    text-align: right;
+    text-align: center;
     border-right: 1px solid var(--color-border);
 }
 
 .score-history-col.right {
-    text-align: left;
+    text-align: center;
     border-left: 1px solid var(--color-border);
 }
 
@@ -209,14 +237,14 @@
     padding: var(--space-xs);
     overflow-y: auto;
     scrollbar-width: none;
-    min-width: 30px;
+    min-width: 35px;
 }
 
 .round-number {
-    font-size: var(--font-sm);
+    font-size: var(--font-md);
     color: var(--color-text-dim);
     padding: var(--space-xs) var(--space-sm);
-    min-height: clamp(28px, 4dvh, 40px);
+    min-height: clamp(32px, 5dvh, 48px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -228,12 +256,13 @@
 }
 
 .score-history-entry {
-    font-size: var(--font-md);
+    font-size: var(--font-xl);
+    font-weight: bold;
     padding: var(--space-xs) var(--space-sm);
-    min-height: clamp(28px, 4dvh, 40px);
+    min-height: clamp(32px, 5dvh, 48px);
     display: flex;
     align-items: center;
-    justify-content: inherit;
+    justify-content: center;
 }
 
 .score-history-entry.current {
@@ -248,25 +277,26 @@
 
 /* === X01 Controls Area === */
 .checkout-suggestion {
-    background: rgba(0, 102, 204, 0.2);
+    background: rgba(0, 102, 204, 0.25);
     color: var(--color-primary-light);
     text-align: center;
-    padding: var(--space-sm);
-    font-size: var(--font-md);
+    padding: var(--space-md);
+    font-size: var(--font-xl);
     font-weight: bold;
     border-radius: var(--radius-md);
-    margin-bottom: var(--space-sm);
+    margin-bottom: var(--space-xs);
 }
 
 .finish-indicator {
     text-align: center;
     font-weight: bold;
-    font-size: var(--font-md);
+    font-size: var(--font-lg);
     padding: var(--space-xs);
     min-height: clamp(20px, 3dvh, 30px);
 }
 
-.top-controls {
+/* Input row: Undo | [Redo] | Display | CLR */
+.x01-input-row {
     display: flex;
     gap: var(--space-sm);
     margin-bottom: var(--space-sm);
@@ -279,11 +309,11 @@
     border: 2px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: var(--space-sm) var(--space-md);
-    font-size: var(--font-xl);
+    font-size: var(--font-lg);
     font-weight: bold;
     text-align: center;
     color: var(--color-text);
-    min-height: clamp(40px, 6dvh, 60px);
+    min-height: clamp(40px, 5dvh, 56px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -301,17 +331,16 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
-    flex: 0 0 auto;
+    flex: 1;
 }
 
 .pad-center {
-    flex: 1;
+    flex: 2;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-xs);
 }
 
-/* X01 keypad buttons use the standard btn system */
 .x01-num-btn {
     border: none;
     border-radius: var(--radius-md);
@@ -322,8 +351,8 @@
     background: #ccc;
     color: var(--color-text-dark);
     border: 2px solid #999;
-    font-size: clamp(1.2rem, 3dvh, 2rem);
-    padding: clamp(10px, 2dvh, 20px);
+    font-size: clamp(1rem, 2.5dvh, 1.6rem);
+    padding: clamp(6px, 1.2dvh, 14px);
 }
 
 .x01-num-btn:active {
@@ -337,90 +366,26 @@
     font-weight: bold;
     cursor: pointer;
     touch-action: manipulation;
-    background: var(--color-border);
-    color: var(--color-text-muted);
-    font-size: var(--font-sm);
-    padding: clamp(8px, 1.5dvh, 16px) var(--space-sm);
+    background: var(--color-primary-dark);
+    color: var(--color-text);
+    font-size: var(--font-lg);
+    padding: clamp(8px, 1.5dvh, 16px) var(--space-md);
+    flex: 1;
 }
 
 .x01-quick-btn:active {
     opacity: 0.8;
 }
 
-.x01-special-btn {
-    border: none;
-    border-radius: var(--radius-md);
-    font-family: var(--font-family);
-    font-weight: bold;
-    cursor: pointer;
-    touch-action: manipulation;
-    color: var(--color-text);
-    font-size: clamp(1rem, 2.5dvh, 1.6rem);
-    padding: clamp(10px, 2dvh, 20px);
-}
-
-.x01-special-btn.green {
-    background: var(--color-success);
-}
-
-.x01-special-btn.blue {
-    background: var(--color-primary);
-}
-
-/* Calculator buttons row */
-.calc-row {
-    display: flex;
-    gap: var(--space-sm);
-    margin-top: var(--space-sm);
-}
-
-.x01-calc-btn {
-    border: none;
-    border-radius: var(--radius-md);
-    font-family: var(--font-family);
-    font-weight: bold;
-    cursor: pointer;
-    touch-action: manipulation;
-    background: var(--color-border);
-    color: var(--color-text-muted);
-    font-size: var(--font-md);
-    padding: var(--space-sm) var(--space-md);
-    flex: 1;
-}
-
-.x01-calc-btn:active {
-    opacity: 0.8;
-}
-
-.x01-calc-btn.active {
-    background: var(--color-primary);
-    color: var(--color-text);
-}
-
-.x01-preset-btn {
-    border: none;
-    border-radius: var(--radius-md);
-    font-family: var(--font-family);
-    font-weight: bold;
-    cursor: pointer;
-    touch-action: manipulation;
-    background: var(--color-primary);
-    color: var(--color-text);
-    font-size: var(--font-sm);
-    padding: var(--space-sm) var(--space-md);
-    flex: 1;
-}
-
-.x01-preset-btn:active {
-    opacity: 0.8;
-}
-
-/* X01 bottom row */
+/* X01 bottom row: MISS | BUST | ENTER */
 .x01-bottom-row {
     display: flex;
-    justify-content: space-between;
     gap: var(--space-sm);
     margin-top: var(--space-sm);
+}
+
+.x01-bottom-row .btn {
+    flex: 1;
 }
 
 /* === Blakeout Message === */

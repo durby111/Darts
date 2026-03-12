@@ -220,7 +220,7 @@
 }
 
 .modal-content h2 {
-    font-size: var(--font-xl);
+    font-size: var(--font-2xl);
     margin-bottom: var(--space-lg);
 }
 
@@ -233,9 +233,29 @@
 }
 
 .winner-name {
-    font-size: var(--font-2xl);
+    font-size: clamp(2.5rem, 8vw, 4rem);
     font-weight: bold;
-    margin: var(--space-xl) 0;
+    margin: var(--space-2xl) 0;
+    text-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+}
+
+/* === Winner Modal === */
+.winner-modal-content {
+    background: linear-gradient(180deg, #1a1a1a 0%, #0a1a0a 100%);
+    border: 2px solid var(--color-pending);
+    box-shadow: 0 0 60px rgba(0, 255, 0, 0.3);
+}
+
+.winner-trophy {
+    font-size: clamp(4rem, 12vw, 8rem);
+    line-height: 1;
+    margin-bottom: var(--space-md);
+    animation: trophy-bounce 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes trophy-bounce {
+    from { transform: scale(1); }
+    to { transform: scale(1.1); }
 }
 
 /* === Saved Configs List === */

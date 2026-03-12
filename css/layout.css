@@ -84,19 +84,30 @@ body {
     min-height: 0;
 }
 
+/* 1-player: player on left, center, empty right (away hidden) */
 .score-header.one-player {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto 1fr;
 }
 
 .score-header.two-player {
     grid-template-columns: 1fr auto 1fr;
 }
 
+/* 3-player: 1 | 2 | Round | 3 */
+.score-header.three-player {
+    grid-template-columns: 1fr 1fr auto 1fr;
+}
+
+.score-header.three-player .player-header.home { order: 1; }
+.score-header.three-player .player-header.away { order: 2; }
+.score-header.three-player .center-logo { order: 3; }
+.score-header.three-player .player-header.player3 { order: 4; }
+
+/* 4-player: 1 | 2 | Round | 3 | 4 */
 .score-header.four-player {
     grid-template-columns: 1fr 1fr auto 1fr 1fr;
 }
 
-/* 4-player ordering */
 .score-header.four-player .player-header.home { order: 1; }
 .score-header.four-player .player-header.away { order: 2; }
 .score-header.four-player .center-logo { order: 3; }
@@ -130,9 +141,10 @@ body {
 
 .score-display-header {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: var(--space-xs);
+    gap: 0;
 }
 
 .score-big {
@@ -140,16 +152,21 @@ body {
     font-weight: bold;
     background: var(--color-score-bg);
     color: var(--color-score-text);
-    padding: 0 var(--space-sm);
-    border-radius: var(--radius-sm);
-    min-width: clamp(40px, 8vw, 70px);
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-md);
+    min-width: clamp(60px, 12vw, 120px);
     text-align: center;
     line-height: 1.1;
 }
 
 .avg-small {
-    font-size: var(--font-xs);
+    font-size: var(--font-sm);
     color: var(--color-text-muted);
+}
+
+/* Hide duplicate MPR (second copy was for side-by-side layout, now stacked) */
+.score-display-header .avg-small:last-child {
+    display: none;
 }
 
 /* === Center Logo / Round Badge === */
@@ -165,13 +182,17 @@ body {
 
 .end-game-btn {
     background: none;
-    border: 1px solid var(--color-border-light);
+    border: 2px solid var(--color-border-light);
     color: var(--color-text);
-    font-size: var(--font-xs);
-    padding: 2px var(--space-sm);
-    border-radius: var(--radius-sm);
+    font-size: var(--font-md);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-md);
     cursor: pointer;
     margin-bottom: var(--space-xs);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-width: 60px;
+    min-height: 36px;
 }
 
 .round-badge {
@@ -214,7 +235,7 @@ body {
 }
 
 .x01-main.three-player {
-    grid-template-columns: 1fr auto 1fr 1fr;
+    grid-template-columns: 1fr 1fr auto 1fr;
 }
 
 .x01-main.four-player {
@@ -257,7 +278,7 @@ body {
 /* Large tablets portrait (iPad Pro 12.9": 1024x1366) */
 @media (min-height: 1200px) {
     .score-big {
-        font-size: clamp(2.5rem, 7vw, 4rem);
+        font-size: clamp(3.5rem, 9vw, 6rem);
     }
 
     .player-name {

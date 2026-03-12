@@ -14,17 +14,9 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     const cssClass = isPending ? 'mark pending' : 'mark';
     const compactClass = isCompact ? (game.type === 'minnesota' ? ' minnesota' : ' spanish') : '';
 
-    // Beds only needs 1 mark to close
-    if (target === 'Beds') {
-        if (totalMarks === 0) {
-            return `<span class="${cssClass}${compactClass}"></span>`;
-        } else {
-            return `<span class="${cssClass}${compactClass}">
-                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="30" cy="30" r="22" stroke="${color}" stroke-width="4" fill="none"/>
-                </svg>
-            </span>`;
-        }
+    // Beds uses same slash/X/circle progression as standard targets
+    if (target === 'Bed') {
+        // Fall through to standard mark logic below
     }
 
     if (totalMarks === 0) {
@@ -82,7 +74,8 @@ export function updateUndoRedoButtons() {
         redoBtn.disabled = !hasRedo;
         redoBtn.style.display = hasRedo ? 'inline-block' : 'none';
     }
-    if (undoBtnX01) undoBtnX01.disabled = !hasUndo;
+    // X01 undo button doubles as Back (clear input), so never fully disable
+    if (undoBtnX01) undoBtnX01.disabled = false;
     if (redoBtnX01) {
         redoBtnX01.disabled = !hasRedo;
         redoBtnX01.style.display = hasRedo ? 'inline-flex' : 'none';
@@ -162,16 +155,17 @@ export function updatePlayerHeaders() {
 
     // Set header layout class
     scoreHeader.className = numPlayers === 4 ? 'score-header four-player' :
-                            numPlayers === 3 ? 'score-header' :
+                            numPlayers === 3 ? 'score-header three-player' :
                             numPlayers === 2 ? 'score-header two-player' : 'score-header one-player';
 
-    // Show/hide player 3 and 4 headers
-    document.getElementById('player3Header').style.display = numPlayers >= 3 ? 'block' : 'none';
-    document.getElementById('player4Header').style.display = numPlayers >= 4 ? 'block' : 'none';
+    // Show/hide player headers based on count
+    document.getElementById('awayHeader').style.display = numPlayers >= 2 ? '' : 'none';
+    document.getElementById('player3Header').style.display = numPlayers >= 3 ? '' : 'none';
+    document.getElementById('player4Header').style.display = numPlayers >= 4 ? '' : 'none';
 
     // Update names
     document.getElementById('homeName').textContent = game.players[0].name;
-    document.getElementById('awayName').textContent = numPlayers >= 2 ? game.players[1].name : 'Away';
+    if (numPlayers >= 2) document.getElementById('awayName').textContent = game.players[1].name;
     if (numPlayers >= 3) document.getElementById('player3Name').textContent = game.players[2].name;
     if (numPlayers >= 4) document.getElementById('player4Name').textContent = game.players[3].name;
 
@@ -179,9 +173,7 @@ export function updatePlayerHeaders() {
     document.getElementById('homeHeader').className = 'player-header home ' +
         (game.currentPlayer === 0 ? 'active' : 'inactive');
 
-    if (numPlayers === 1) {
-        document.getElementById('awayHeader').className = 'player-header away inactive';
-    } else {
+    if (numPlayers >= 2) {
         document.getElementById('awayHeader').className = 'player-header away ' +
             (game.currentPlayer === 1 ? 'active' : 'inactive');
     }

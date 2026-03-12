@@ -128,7 +128,7 @@ export function initCricket(type, includeBulls = false) {
             : ['20', '19', '18', '17', '16', '15', '14', '13', '12', '11', '10'];
     } else {
         // Minnesota
-        targets = ['20', '19', '18', '17', '16', '15', 'Bull', 'Triples', 'Doubles', 'Beds'];
+        targets = ['20', '19', '18', '17', '16', '15', 'Bull', 'Triples', 'Doubles', 'Bed'];
     }
 
     game.cricketTargets = targets;
@@ -139,7 +139,7 @@ export function initCricket(type, includeBulls = false) {
             marks: 0,
             closed: false,
             closedInOneTurn: false,
-            maxMarks: t === 'Beds' ? 1 : 3
+            maxMarks: 3
         };
     });
     return data;

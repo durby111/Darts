@@ -178,19 +178,18 @@
 
         <!-- Bottom Controls (Cricket) -->
         <div class="bottom-controls hidden" id="cricketControls">
-            <div style="display:flex;flex-direction:column;gap:var(--space-xs);">
-                <button class="btn btn--md btn--warning" id="cricketBackBtn">BACK</button>
-                <div style="display:flex;gap:var(--space-xs);">
-                    <button class="btn btn--sm btn--undo" id="undoBtn" disabled>UNDO</button>
-                    <button class="btn btn--sm btn--primary" id="redoBtn" disabled style="display:none;">REDO</button>
-                </div>
+            <div class="cricket-controls-left">
+                <button class="btn btn--lg btn--undo" id="undoBtn" disabled>UNDO</button>
+                <button class="btn btn--md btn--primary" id="redoBtn" disabled style="display:none;">REDO</button>
             </div>
             <div class="center-area">
-                <div class="pending-text" id="pendingText">Tap number or D/T for that number</div>
+                <div class="pending-text" id="pendingText"></div>
                 <div class="score-diff-indicator" id="scoreDiffIndicator"></div>
-                <button class="btn btn--md btn--danger btn--block" id="missBtn">MISS</button>
             </div>
-            <button class="btn btn--lg btn--success" id="enterBtn" disabled>ENTER</button>
+            <div class="cricket-controls-right">
+                <button class="btn btn--lg btn--danger" id="missBtn">MISS</button>
+                <button class="btn btn--lg btn--success" id="enterBtn" disabled>ENTER</button>
+            </div>
         </div>
 
         <!-- Bottom Controls (X01) -->
@@ -198,10 +197,11 @@
             <div class="checkout-suggestion" id="checkoutSuggestion" style="display:none;"></div>
             <div class="finish-indicator" id="finishIndicator"></div>
 
-            <div class="top-controls">
-                <button class="btn btn--md btn--warning" id="x01BackBtn">BACK</button>
+            <div class="x01-input-row">
+                <button class="btn btn--md btn--undo" id="undoBtnX01" disabled>UNDO</button>
+                <button class="btn btn--md btn--primary" id="redoBtnX01" disabled style="display:none;">REDO</button>
                 <div class="input-display" id="inputDisplay">0</div>
-                <button class="btn btn--md btn--success" id="x01EnterBtn">ENTER</button>
+                <button class="btn btn--md btn--neutral" id="x01ClearBtn">CLR</button>
             </div>
 
             <div class="number-pad">
@@ -209,7 +209,8 @@
                     <button class="x01-quick-btn" data-quick="26">26</button>
                     <button class="x01-quick-btn" data-quick="40">40</button>
                     <button class="x01-quick-btn" data-quick="41">41</button>
-                    <button class="x01-quick-btn" data-quick="43">43</button>
+                    <button class="x01-quick-btn" data-quick="45">45</button>
+                    <button class="x01-quick-btn" data-quick="60">60</button>
                 </div>
 
                 <div class="pad-center">
@@ -222,51 +223,42 @@
                     <button class="x01-num-btn" data-digit="7">7</button>
                     <button class="x01-num-btn" data-digit="8">8</button>
                     <button class="x01-num-btn" data-digit="9">9</button>
-                    <button class="x01-special-btn green" data-quick="100" id="btn100">100</button>
-                    <button class="x01-num-btn" data-digit="0" id="zeroBtn">0</button>
-                    <button class="x01-special-btn blue" data-quick="180">180</button>
+                    <button class="x01-num-btn" data-op="*">×</button>
+                    <button class="x01-num-btn" data-digit="0">0</button>
+                    <button class="x01-num-btn" data-op="+">+</button>
                 </div>
 
                 <div class="quick-col">
-                    <button class="x01-quick-btn" data-quick="45">45</button>
-                    <button class="x01-quick-btn" data-quick="60">60</button>
                     <button class="x01-quick-btn" data-quick="81">81</button>
                     <button class="x01-quick-btn" data-quick="85">85</button>
+                    <button class="x01-quick-btn" data-quick="100">100</button>
+                    <button class="x01-quick-btn" data-quick="140">140</button>
+                    <button class="x01-quick-btn" data-quick="180">180</button>
                 </div>
             </div>
 
-            <div class="calc-row">
-                <button class="x01-calc-btn" id="calcDBtn" data-calc="D">D</button>
-                <button class="x01-calc-btn" id="calcTBtn" data-calc="T">T</button>
-                <button class="x01-calc-btn" data-calc="+">+</button>
-                <button class="x01-preset-btn" data-preset="T20">T20</button>
-                <button class="x01-preset-btn" data-preset="T19">T19</button>
-                <button class="x01-preset-btn" data-preset="D20">D20</button>
-                <button class="x01-preset-btn" data-preset="D16">D16</button>
-            </div>
-
             <div class="x01-bottom-row">
-                <button class="btn btn--md btn--danger" id="x01MissBtn" style="flex:1;">MISS</button>
-                <button class="btn btn--md btn--undo" id="undoBtnX01" disabled style="flex:1;">UNDO</button>
-                <button class="btn btn--md btn--primary" id="redoBtnX01" disabled style="display:none;flex:1;">REDO</button>
-                <button class="btn btn--md btn--danger-light" id="x01BustBtn" style="flex:1;">BUST</button>
+                <button class="btn btn--lg btn--danger" id="x01MissBtn">MISS</button>
+                <button class="btn btn--lg btn--danger-light" id="x01BustBtn">BUST</button>
+                <button class="btn btn--lg btn--success" id="x01EnterBtn" style="display:none;">ENTER</button>
             </div>
         </div>
     </div>
 
     <!-- Winner Modal -->
     <div class="modal" id="winnerModal">
-        <div class="modal-content">
-            <h2>WINNER</h2>
+        <div class="modal-content winner-modal-content">
+            <div class="winner-trophy">&#127942;</div>
+            <h2>WINNER!</h2>
             <div class="winner-name" id="winnerName"></div>
             <div class="blakeout-message" id="blakeoutMessage" style="display:none;">
                 BLAKEOUT!<br>
                 <span>Closed with a Double Bull!</span>
             </div>
             <div class="modal-buttons">
-                <button class="btn btn--md btn--neutral" id="winnerCancelBtn">Cancel</button>
-                <button class="btn btn--md btn--success" id="playAgainBtn">Play Again</button>
-                <button class="btn btn--md btn--primary" id="newGameBtn">New Game</button>
+                <button class="btn btn--lg btn--neutral" id="winnerCancelBtn">Cancel</button>
+                <button class="btn btn--lg btn--success" id="playAgainBtn">Play Again</button>
+                <button class="btn btn--lg btn--primary" id="newGameBtn">New Game</button>
             </div>
         </div>
     </div>

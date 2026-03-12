@@ -65,95 +65,86 @@ const checkoutChart = {
     4: 'D2', 3: '1 D1', 2: 'D1'
 };
 
-// --- Calculator Mode ---
-let calcExpression = [];
-let calcNextMultiplier = 1;
+// --- Expression-Based Input ---
+// Supports expressions like: 3*19+6+2*7 = 77
+let expressionStr = '';
 
 function addDigit(digit) {
-    game.currentInput = (game.currentInput || '') + digit;
-    updateCalcDisplay();
+    expressionStr += digit;
+    updateInputDisplay();
+}
+
+function addOperator(op) {
+    // Only add operator if expression is non-empty and doesn't end with operator
+    if (expressionStr.length === 0) return;
+    const last = expressionStr[expressionStr.length - 1];
+    if (last === '+' || last === '*') return;
+    expressionStr += op;
+    updateInputDisplay();
+}
+
+function evaluateExpression(str) {
+    if (!str || str.length === 0) return 0;
+    // Clean trailing operators
+    str = str.replace(/[+*]+$/, '');
+    if (!str) return 0;
+    // Split by + then evaluate each term (which may contain *)
+    const terms = str.split('+');
+    let total = 0;
+    for (const term of terms) {
+        const factors = term.split('*');
+        let product = 1;
+        for (const f of factors) {
+            const n = parseInt(f);
+            if (isNaN(n)) return 0;
+            product *= n;
+        }
+        total += product;
+    }
+    return total;
+}
+
+function updateInputDisplay() {
+    const display = document.getElementById('inputDisplay');
+    if (!expressionStr) {
+        display.textContent = '0';
+    } else {
+        const total = evaluateExpression(expressionStr);
+        // Show expression and result
+        const displayExpr = expressionStr.replace(/\*/g, '×');
+        if (expressionStr.includes('+') || expressionStr.includes('*')) {
+            display.textContent = `${displayExpr} = ${total}`;
+        } else {
+            display.textContent = displayExpr;
+        }
+    }
+    updateMissEnterVisibility();
+}
+
+function updateMissEnterVisibility() {
+    const missBtn = document.getElementById('x01MissBtn');
+    const enterBtn = document.getElementById('x01EnterBtn');
+    const hasInput = expressionStr.length > 0;
+    missBtn.style.display = hasInput ? 'none' : '';
+    enterBtn.style.display = hasInput ? '' : 'none';
 }
 
 function quickScore(score) {
-    calcExpression = [];
-    calcNextMultiplier = 1;
-    resetCalcButtons();
+    expressionStr = '';
     game.currentInput = String(score);
     document.getElementById('inputDisplay').textContent = game.currentInput;
     submitScore();
 }
 
-function calcMode(mode) {
-    if (mode === '+') {
-        if (game.currentInput && game.currentInput !== '0' && game.currentInput !== '') {
-            const val = parseInt(game.currentInput) * calcNextMultiplier;
-            calcExpression.push(val);
-            calcNextMultiplier = 1;
-            game.currentInput = '';
-            updateCalcDisplay();
-        }
-    } else if (mode === 'D') {
-        calcNextMultiplier = 2;
-        document.getElementById('calcDBtn').classList.add('active');
-        document.getElementById('calcTBtn').classList.remove('active');
-    } else if (mode === 'T') {
-        calcNextMultiplier = 3;
-        document.getElementById('calcTBtn').classList.add('active');
-        document.getElementById('calcDBtn').classList.remove('active');
-    }
-}
-
-function calcPreset(preset) {
-    const presetValues = { 'T20': 60, 'T19': 57, 'D20': 40, 'D16': 32, 'D10': 20 };
-    const value = presetValues[preset];
-    if (value === undefined) return;
-
-    // If there's current input, add to expression first
-    if (game.currentInput && game.currentInput !== '0' && game.currentInput !== '') {
-        const val = parseInt(game.currentInput) * calcNextMultiplier;
-        calcExpression.push(val);
-    }
-    calcExpression.push(value);
-    calcNextMultiplier = 1;
-    game.currentInput = '';
-    updateCalcDisplay();
-    resetCalcButtons();
-}
-
-function updateCalcDisplay() {
-    const display = document.getElementById('inputDisplay');
-    if (calcExpression.length === 0 && !game.currentInput) {
-        display.textContent = '0';
-    } else {
-        const total = calcExpression.reduce((a, b) => a + b, 0);
-        const current = game.currentInput ? parseInt(game.currentInput) * calcNextMultiplier : 0;
-        const prefix = calcNextMultiplier === 2 ? 'D' : (calcNextMultiplier === 3 ? 'T' : '');
-
-        if (calcExpression.length > 0) {
-            display.textContent = `${total}${game.currentInput ? '+' + prefix + game.currentInput : ''} = ${total + current}`;
-        } else if (game.currentInput) {
-            display.textContent = prefix + game.currentInput;
-        }
-    }
-}
-
-function resetCalcButtons() {
-    document.getElementById('calcDBtn').classList.remove('active');
-    document.getElementById('calcTBtn').classList.remove('active');
-}
-
 function clearInput() {
     game.currentInput = '';
-    calcExpression = [];
-    calcNextMultiplier = 1;
-    resetCalcButtons();
+    expressionStr = '';
     document.getElementById('inputDisplay').textContent = '0';
+    updateMissEnterVisibility();
 }
 
 function x01Miss() {
-    calcExpression = [];
-    calcNextMultiplier = 1;
-    resetCalcButtons();
+    expressionStr = '';
     game.currentInput = '0';
     document.getElementById('inputDisplay').textContent = '0';
     submitScore();
@@ -164,10 +155,10 @@ function x01Bust() {
     const player = game.players[game.currentPlayer];
     player.history.push({ score: 0, bust: true });
     game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
-    clearInput();
     if (game.currentPlayer === 0) {
         game.completedRounds++;
     }
+    clearInput();
     updateX01Display();
     updateUndoRedoButtons();
 }
@@ -175,15 +166,14 @@ function x01Bust() {
 // --- Core Score Submission (with bug fixes) ---
 
 function submitScore() {
-    // Calculate total from calculator expression
-    let expressionTotal = calcExpression.reduce((a, b) => a + b, 0);
-    const currentVal = game.currentInput ? parseInt(game.currentInput) * calcNextMultiplier : 0;
-    const score = expressionTotal + currentVal;
-
-    // Reset calculator state
-    calcExpression = [];
-    calcNextMultiplier = 1;
-    resetCalcButtons();
+    // Calculate total from expression or direct input
+    let score;
+    if (expressionStr) {
+        score = evaluateExpression(expressionStr);
+    } else {
+        score = game.currentInput ? parseInt(game.currentInput) : 0;
+    }
+    expressionStr = '';
 
     if (score < 0 || score > 180) {
         const indicator = document.getElementById('finishIndicator');
@@ -282,22 +272,25 @@ function renderX01ScoreHistory() {
     const p4Col = document.getElementById('p4HistoryCol');
 
     // Column visibility based on player count
-    if (numPlayers === 2) {
+    // Layout: 1 | Round | 2  (2-player)
+    //          1 | 2 | Round | 3  (3-player)
+    //          1 | 2 | Round | 3 | 4  (4-player)
+    if (numPlayers === 1) {
+        p2Col.style.display = 'none';
+        p3Col.style.display = 'none';
+        p4Col.style.display = 'none';
+    } else if (numPlayers === 2) {
         p2Col.style.display = 'none';
         p3Col.style.display = 'flex';
         p4Col.style.display = 'none';
     } else if (numPlayers === 3) {
-        p2Col.style.display = 'none';
+        p2Col.style.display = 'flex';
         p3Col.style.display = 'flex';
-        p4Col.style.display = 'flex';
+        p4Col.style.display = 'none';
     } else if (numPlayers === 4) {
         p2Col.style.display = 'flex';
         p3Col.style.display = 'flex';
         p4Col.style.display = 'flex';
-    } else {
-        p2Col.style.display = 'none';
-        p3Col.style.display = 'none';
-        p4Col.style.display = 'none';
     }
 
     // Find max rounds
@@ -345,12 +338,13 @@ function renderX01ScoreHistory() {
     };
 
     // Assign columns based on player count
+    // Layout matches header: 1 | [2] | Round | 3 | [4]
     p1Col.innerHTML = buildPlayerColumn(0, true);
     if (numPlayers === 2) {
         p3Col.innerHTML = buildPlayerColumn(1, false);
     } else if (numPlayers === 3) {
-        p3Col.innerHTML = buildPlayerColumn(1, false);
-        p4Col.innerHTML = buildPlayerColumn(2, false);
+        p2Col.innerHTML = buildPlayerColumn(1, true);
+        p3Col.innerHTML = buildPlayerColumn(2, false);
     } else if (numPlayers === 4) {
         p2Col.innerHTML = buildPlayerColumn(1, true);
         p3Col.innerHTML = buildPlayerColumn(2, false);
@@ -448,43 +442,47 @@ function initX01Controls() {
         btn.addEventListener('click', () => addDigit(btn.dataset.digit));
     });
 
+    // Operator buttons (× and +)
+    document.querySelectorAll('[data-op]').forEach(btn => {
+        btn.addEventListener('click', () => addOperator(btn.dataset.op));
+    });
+
     // Quick score buttons
     document.querySelectorAll('[data-quick]').forEach(btn => {
         btn.addEventListener('click', () => quickScore(parseInt(btn.dataset.quick)));
     });
 
-    // Calculator buttons
-    document.querySelectorAll('[data-calc]').forEach(btn => {
-        btn.addEventListener('click', () => calcMode(btn.dataset.calc));
-    });
-
-    // Preset buttons
-    document.querySelectorAll('[data-preset]').forEach(btn => {
-        btn.addEventListener('click', () => calcPreset(btn.dataset.preset));
-    });
-
     // Control buttons
-    document.getElementById('x01BackBtn').addEventListener('click', clearInput);
+    document.getElementById('x01ClearBtn').addEventListener('click', clearInput);
     document.getElementById('x01EnterBtn').addEventListener('click', submitScore);
     document.getElementById('x01MissBtn').addEventListener('click', x01Miss);
     document.getElementById('x01BustBtn').addEventListener('click', x01Bust);
 
-    // Undo/Redo
+    // Undo/Redo (Undo also acts as Back — clears input first, then undoes last action)
     document.getElementById('undoBtnX01').addEventListener('click', () => {
-        undoWithCooldown(() => {
-            updateX01Display();
-            updateUndoRedoButtons();
-            document.getElementById('inputDisplay').textContent = game.currentInput || '0';
-        });
+        if (expressionStr.length > 0) {
+            // Back behavior: clear current input
+            clearInput();
+        } else {
+            // Undo behavior: undo last game action
+            undoWithCooldown(() => {
+                updateX01Display();
+                updateUndoRedoButtons();
+                clearInput();
+            });
+        }
     });
 
     document.getElementById('redoBtnX01').addEventListener('click', () => {
         redoWithCooldown(() => {
             updateX01Display();
             updateUndoRedoButtons();
-            document.getElementById('inputDisplay').textContent = game.currentInput || '0';
+            clearInput();
         });
     });
+
+    // Initialize Miss/Enter visibility
+    updateMissEnterVisibility();
 }
 
 export { updateX01Display, initX01Controls, submitScore, clearInput };
