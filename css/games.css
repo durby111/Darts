@@ -109,9 +109,9 @@
     touch-action: manipulation;
     background: var(--color-primary);
     color: var(--color-text);
-    font-size: clamp(1.4rem, 3.5dvh, 2.4rem);
-    padding: clamp(8px, 2dvh, 18px) clamp(14px, 3.5vw, 28px);
-    min-width: clamp(50px, 12vw, 90px);
+    font-size: clamp(1.4rem, 4.5dvh, 3rem);
+    padding: clamp(8px, 2.5dvh, 22px) clamp(14px, 4vw, 32px);
+    min-width: clamp(50px, 12vw, 100px);
 }
 
 .cricket-num-btn:active {
@@ -133,8 +133,8 @@
     touch-action: manipulation;
     background: var(--color-primary-dark);
     color: var(--color-text);
-    font-size: clamp(0.7rem, 2dvh, 1.2rem);
-    padding: clamp(4px, 1dvh, 10px) clamp(6px, 1.5vw, 14px);
+    font-size: clamp(0.8rem, 2.5dvh, 1.5rem);
+    padding: clamp(4px, 1.5dvh, 14px) clamp(6px, 1.5vw, 14px);
     min-width: clamp(28px, 6vw, 50px);
 }
 
@@ -321,12 +321,12 @@
     background: var(--color-surface-alt);
     border: 2px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: var(--space-sm) var(--space-md);
-    font-size: var(--font-lg);
+    padding: var(--space-md) var(--space-lg);
+    font-size: clamp(1.8rem, 5dvh, 3rem);
     font-weight: bold;
     text-align: center;
     color: var(--color-text);
-    min-height: clamp(40px, 5dvh, 56px);
+    min-height: clamp(48px, 7dvh, 72px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -344,11 +344,12 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
-    flex: 1;
+    flex: 0 0 auto;
+    width: clamp(42px, 10vw, 65px);
 }
 
 .pad-center {
-    flex: 2;
+    flex: 1;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: var(--space-xs);
@@ -381,8 +382,8 @@
     touch-action: manipulation;
     background: var(--color-primary-dark);
     color: var(--color-text);
-    font-size: clamp(0.85rem, 2.2dvh, 1.4rem);
-    padding: clamp(6px, 1.2dvh, 14px) var(--space-sm);
+    font-size: clamp(0.75rem, 1.8dvh, 1.1rem);
+    padding: clamp(6px, 1.2dvh, 14px) clamp(2px, 0.5vw, 6px);
     flex: 1;
 }
 
