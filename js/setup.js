@@ -3,7 +3,7 @@
    Form handling, config save/load
    ============================================ */
 
-import { game, initCricket, getConfigs, saveConfigs, getCurrentConfig, applyConfig } from './state.js';
+import { game, initCricket, getConfigs, saveConfigs, getCurrentConfig, applyConfig, saveActiveGame, loadActiveGame, clearActiveGame, restoreActiveGame } from './state.js';
 import { showChicagoGameSelection } from './chicago.js';
 
 let onGameStart = null;
@@ -52,12 +52,65 @@ export function initSetupControls() {
         });
     }
 
+    // Resume game button
+    const resumeBtn = document.getElementById('resumeGameBtn');
+    if (resumeBtn) {
+        resumeBtn.addEventListener('click', resumeGame);
+    }
+
     // Load saved configs on init
     updateSavedConfigsList();
     const configs = getConfigs();
     if (configs.lastConfig) {
         applyConfig(configs.lastConfig);
     }
+
+    // Show resume button if there's a saved game
+    updateResumeButton();
+}
+
+function updateResumeButton() {
+    const resumeBtn = document.getElementById('resumeGameBtn');
+    if (!resumeBtn) return;
+    const saved = loadActiveGame();
+    if (saved && saved.players && saved.players.length > 0) {
+        const gameLabel = saved.type.toUpperCase();
+        const players = saved.players.map(p => p.name).join(' vs ');
+        resumeBtn.textContent = `Resume ${gameLabel} (${players})`;
+        resumeBtn.classList.remove('hidden');
+    } else {
+        resumeBtn.classList.add('hidden');
+    }
+}
+
+function resumeGame() {
+    const saved = loadActiveGame();
+    if (!saved) return;
+
+    restoreActiveGame(saved);
+
+    // Apply game-type scale override
+    applyGameTypeScale(saved.type);
+
+    // Switch screens
+    document.getElementById('setupScreen').style.display = 'none';
+    document.getElementById('gameScreen').style.display = 'flex';
+
+    if (onGameStart) onGameStart();
+}
+
+function applyGameTypeScale(gameType) {
+    const userScale = parseFloat(document.getElementById('uiScale')?.value || '1.0');
+    let effectiveScale = userScale;
+
+    // Game-type multipliers applied on top of user scale
+    if (gameType === 'minnesota') {
+        effectiveScale = Math.max(userScale, 1.5);
+    } else if (['cricket', 'spanish'].includes(gameType)) {
+        effectiveScale = Math.max(userScale, 1.2);
+    }
+
+    document.documentElement.style.setProperty('--ui-scale', effectiveScale);
 }
 
 function startGame() {
@@ -133,6 +186,10 @@ function startGame() {
         game.players.push(player);
     }
 
+    // Clear any previous saved game and apply game-type scale
+    clearActiveGame();
+    applyGameTypeScale(gameType);
+
     // Switch screens
     document.getElementById('setupScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'flex';
@@ -145,14 +202,20 @@ function startGame() {
 }
 
 export function showSetup() {
+    // Save active game before leaving
+    if (game.players.length > 0) {
+        saveActiveGame();
+    }
     document.getElementById('winnerModal').style.display = 'none';
     document.getElementById('gameMenuModal').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'none';
     document.getElementById('setupScreen').style.display = 'flex';
     updateSavedConfigsList();
+    updateResumeButton();
 }
 
 export function playAgain() {
+    clearActiveGame();
     const currentGameType = game.type;
     const currentPlayers = game.players.map(p => p.name);
     const currentCricketPoints = game.cricketPoints;

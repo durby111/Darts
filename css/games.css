@@ -112,6 +112,10 @@
     font-size: calc(clamp(1.4rem, 4.5dvh, 3rem) * var(--ui-scale));
     padding: calc(clamp(8px, 2.5dvh, 22px) * var(--ui-scale)) calc(clamp(14px, 4vw, 32px) * var(--ui-scale));
     min-width: clamp(50px, 12vw, 100px);
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .cricket-num-btn:active {
@@ -136,6 +140,10 @@
     font-size: calc(clamp(0.8rem, 2.5dvh, 1.5rem) * var(--ui-scale));
     padding: calc(clamp(4px, 1.5dvh, 14px) * var(--ui-scale)) calc(clamp(6px, 1.5vw, 14px) * var(--ui-scale));
     min-width: clamp(28px, 6vw, 50px);
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .cricket-dt-btn:active {
@@ -276,10 +284,10 @@
 }
 
 .score-history-entry {
-    font-size: clamp(1.4rem, 5dvh, 2.2rem);
+    font-size: calc(clamp(1.4rem, 5dvh, 2.2rem) * var(--ui-scale));
     font-weight: bold;
     padding: var(--space-xs) var(--space-sm);
-    min-height: clamp(32px, 5dvh, 48px);
+    min-height: calc(clamp(32px, 5dvh, 48px) * var(--ui-scale));
     display: flex;
     align-items: center;
     justify-content: center;

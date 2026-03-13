@@ -46,6 +46,9 @@ export function saveGameState() {
     };
     game.undoHistory.push(state);
     game.redoHistory = [];
+
+    // Persist live game to localStorage
+    saveActiveGame();
 }
 
 export function undoLastAction(onAfterRestore) {
@@ -143,6 +146,58 @@ export function initCricket(type, includeBulls = false) {
         };
     });
     return data;
+}
+
+// --- Live Game Save/Restore (survives page reload, exit to setup, updates) ---
+
+export function saveActiveGame() {
+    const snapshot = {
+        type: game.type,
+        players: deepClone(game.players),
+        currentPlayer: game.currentPlayer,
+        currentInput: game.currentInput,
+        cricketPoints: game.cricketPoints,
+        cricketTargets: game.cricketTargets,
+        finishType: game.finishType,
+        pendingDarts: deepClone(game.pendingDarts),
+        completedRounds: game.completedRounds,
+        chicago: game.chicago ? deepClone(game.chicago) : null,
+        game121: game.game121 ? deepClone(game.game121) : null,
+        timestamp: Date.now()
+    };
+    localStorage.setItem('blakeout_active_game', JSON.stringify(snapshot));
+}
+
+export function loadActiveGame() {
+    const stored = localStorage.getItem('blakeout_active_game');
+    if (!stored) return null;
+    try {
+        return JSON.parse(stored);
+    } catch {
+        return null;
+    }
+}
+
+export function clearActiveGame() {
+    localStorage.removeItem('blakeout_active_game');
+}
+
+export function restoreActiveGame(snapshot) {
+    Object.assign(game, {
+        type: snapshot.type,
+        players: snapshot.players,
+        currentPlayer: snapshot.currentPlayer,
+        currentInput: snapshot.currentInput || '',
+        cricketPoints: snapshot.cricketPoints,
+        cricketTargets: snapshot.cricketTargets || [],
+        finishType: snapshot.finishType,
+        pendingDarts: snapshot.pendingDarts || [],
+        completedRounds: snapshot.completedRounds || 0,
+        undoHistory: [],
+        redoHistory: [],
+        chicago: snapshot.chicago || null,
+        game121: snapshot.game121 || null
+    });
 }
 
 // --- localStorage Config Management ---

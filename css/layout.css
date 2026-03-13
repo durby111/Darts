@@ -148,7 +148,7 @@ body {
 }
 
 .score-big {
-    font-size: var(--font-score);
+    font-size: calc(var(--font-score) * var(--ui-scale));
     font-weight: bold;
     background: var(--color-score-bg);
     color: var(--color-score-text);

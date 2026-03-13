@@ -3,7 +3,7 @@
    Screen routing, display dispatcher, PWA
    ============================================ */
 
-import { game, undoWithCooldown, redoWithCooldown } from './state.js';
+import { game, undoWithCooldown, redoWithCooldown, saveActiveGame } from './state.js';
 import { updateUndoRedoButtons, updatePlayerHeaders, showModal, hideModal } from './ui.js';
 import { updateCricketDisplay, initCricketControls } from './cricket.js';
 import { updateX01Display, initX01Controls, clearInput } from './x01.js';
@@ -305,4 +305,11 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('undoRedo', initGlobalUndoRedo);
     safeInit('serviceWorker', registerServiceWorker);
     safeInit('updateButton', initUpdateButton);
+});
+
+// Save game on page unload (refresh, close, update)
+window.addEventListener('beforeunload', () => {
+    if (game.players.length > 0) {
+        saveActiveGame();
+    }
 });
