@@ -169,6 +169,7 @@ export function getCurrentConfig() {
         spanishBulls: document.getElementById('spanishBulls').checked,
         dartsPerLeg: document.getElementById('dartsPerLeg').value,
         totalLegs121: document.getElementById('totalLegs121').value,
+        uiScale: document.getElementById('uiScale')?.value || '1.0',
         timestamp: Date.now()
     };
 }
@@ -185,6 +186,14 @@ export function applyConfig(config) {
     document.getElementById('spanishBulls').checked = config.spanishBulls || false;
     if (config.dartsPerLeg) document.getElementById('dartsPerLeg').value = config.dartsPerLeg;
     if (config.totalLegs121) document.getElementById('totalLegs121').value = config.totalLegs121;
+
+    // UI Scale
+    const scale = config.uiScale || '1.0';
+    const scaleSlider = document.getElementById('uiScale');
+    const scaleLabel = document.getElementById('uiScaleValue');
+    if (scaleSlider) scaleSlider.value = scale;
+    if (scaleLabel) scaleLabel.textContent = parseFloat(scale).toFixed(1) + 'x';
+    document.documentElement.style.setProperty('--ui-scale', scale);
 
     // Trigger change events to update visibility
     document.getElementById('numPlayers').dispatchEvent(new Event('change'));

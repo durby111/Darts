@@ -41,6 +41,17 @@ export function initSetupControls() {
     document.getElementById('saveConfigBtn').addEventListener('click', saveCurrentConfig);
     document.getElementById('loadLastBtn').addEventListener('click', loadLastConfig);
 
+    // UI Scale slider
+    const uiScaleSlider = document.getElementById('uiScale');
+    const uiScaleLabel = document.getElementById('uiScaleValue');
+    if (uiScaleSlider) {
+        uiScaleSlider.addEventListener('input', function () {
+            const val = parseFloat(this.value);
+            if (uiScaleLabel) uiScaleLabel.textContent = val.toFixed(1) + 'x';
+            document.documentElement.style.setProperty('--ui-scale', val);
+        });
+    }
+
     // Load saved configs on init
     updateSavedConfigsList();
     const configs = getConfigs();

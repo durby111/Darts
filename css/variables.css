@@ -75,6 +75,9 @@
     --z-overlay: 100;
     --z-modal: 1000;
 
+    /* === UI Scale (user-adjustable) === */
+    --ui-scale: 1;
+
     /* === Transitions === */
     --transition-fast: 0.15s ease;
     --transition-normal: 0.3s ease;

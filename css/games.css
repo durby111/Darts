@@ -44,8 +44,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: clamp(40px, 7dvh, 70px);
-    height: clamp(40px, 7dvh, 70px);
+    width: calc(clamp(40px, 7dvh, 70px) * var(--ui-scale));
+    height: calc(clamp(40px, 7dvh, 70px) * var(--ui-scale));
 }
 
 .mark svg {
@@ -55,8 +55,8 @@
 
 .mark.spanish,
 .mark.minnesota {
-    width: clamp(22px, 3.5dvh, 40px);
-    height: clamp(22px, 3.5dvh, 40px);
+    width: calc(clamp(22px, 3.5dvh, 40px) * var(--ui-scale));
+    height: calc(clamp(22px, 3.5dvh, 40px) * var(--ui-scale));
 }
 
 /* Cricket cell — centers marks and scores */
@@ -109,8 +109,8 @@
     touch-action: manipulation;
     background: var(--color-primary);
     color: var(--color-text);
-    font-size: clamp(1.4rem, 4.5dvh, 3rem);
-    padding: clamp(8px, 2.5dvh, 22px) clamp(14px, 4vw, 32px);
+    font-size: calc(clamp(1.4rem, 4.5dvh, 3rem) * var(--ui-scale));
+    padding: calc(clamp(8px, 2.5dvh, 22px) * var(--ui-scale)) calc(clamp(14px, 4vw, 32px) * var(--ui-scale));
     min-width: clamp(50px, 12vw, 100px);
 }
 
@@ -133,8 +133,8 @@
     touch-action: manipulation;
     background: var(--color-primary-dark);
     color: var(--color-text);
-    font-size: clamp(0.8rem, 2.5dvh, 1.5rem);
-    padding: clamp(4px, 1.5dvh, 14px) clamp(6px, 1.5vw, 14px);
+    font-size: calc(clamp(0.8rem, 2.5dvh, 1.5rem) * var(--ui-scale));
+    padding: calc(clamp(4px, 1.5dvh, 14px) * var(--ui-scale)) calc(clamp(6px, 1.5vw, 14px) * var(--ui-scale));
     min-width: clamp(28px, 6vw, 50px);
 }
 
@@ -158,15 +158,15 @@
 /* Spanish/Minnesota compact buttons */
 .cricket-num-btn.spanish,
 .cricket-num-btn.minnesota {
-    font-size: clamp(0.9rem, 2.5dvh, 1.5rem);
-    padding: clamp(4px, 1dvh, 10px) clamp(8px, 2vw, 18px);
+    font-size: calc(clamp(0.9rem, 2.5dvh, 1.5rem) * var(--ui-scale));
+    padding: calc(clamp(4px, 1dvh, 10px) * var(--ui-scale)) calc(clamp(8px, 2vw, 18px) * var(--ui-scale));
     min-width: clamp(35px, 8vw, 65px);
 }
 
 .cricket-dt-btn.spanish,
 .cricket-dt-btn.minnesota {
-    font-size: clamp(0.6rem, 1.5dvh, 1rem);
-    padding: clamp(3px, 0.8dvh, 8px) clamp(4px, 1vw, 10px);
+    font-size: calc(clamp(0.6rem, 1.5dvh, 1rem) * var(--ui-scale));
+    padding: calc(clamp(3px, 0.8dvh, 8px) * var(--ui-scale)) calc(clamp(4px, 1vw, 10px) * var(--ui-scale));
     min-width: clamp(22px, 5vw, 40px);
 }
 
@@ -198,6 +198,13 @@
 
 .cricket-controls-right {
     align-items: flex-end;
+}
+
+/* Bigger ENTER and MISS buttons in cricket */
+#enterBtn, #missBtn {
+    font-size: calc(clamp(1.2rem, 3dvh, 1.8rem) * var(--ui-scale));
+    padding: calc(clamp(12px, 2.5dvh, 24px) * var(--ui-scale)) calc(clamp(20px, 4vw, 40px) * var(--ui-scale));
+    min-height: calc(clamp(48px, 7dvh, 72px) * var(--ui-scale));
 }
 
 .center-area {
@@ -322,11 +329,11 @@
     border: 2px solid var(--color-border);
     border-radius: var(--radius-md);
     padding: var(--space-md) var(--space-lg);
-    font-size: clamp(1.8rem, 5dvh, 3rem);
+    font-size: calc(clamp(1.8rem, 5dvh, 3rem) * var(--ui-scale));
     font-weight: bold;
     text-align: center;
     color: var(--color-text);
-    min-height: clamp(48px, 7dvh, 72px);
+    min-height: calc(clamp(48px, 7dvh, 72px) * var(--ui-scale));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -365,8 +372,8 @@
     background: #ccc;
     color: var(--color-text-dark);
     border: 2px solid #999;
-    font-size: clamp(1rem, 2.5dvh, 1.6rem);
-    padding: clamp(6px, 1.2dvh, 14px);
+    font-size: calc(clamp(1rem, 2.5dvh, 1.6rem) * var(--ui-scale));
+    padding: calc(clamp(6px, 1.2dvh, 14px) * var(--ui-scale));
 }
 
 .x01-num-btn:active {
@@ -382,8 +389,8 @@
     touch-action: manipulation;
     background: var(--color-primary-dark);
     color: var(--color-text);
-    font-size: clamp(0.75rem, 1.8dvh, 1.1rem);
-    padding: clamp(6px, 1.2dvh, 14px) clamp(2px, 0.5vw, 6px);
+    font-size: calc(clamp(0.75rem, 1.8dvh, 1.1rem) * var(--ui-scale));
+    padding: calc(clamp(6px, 1.2dvh, 14px) * var(--ui-scale)) clamp(2px, 0.5vw, 6px);
     flex: 1;
 }
 

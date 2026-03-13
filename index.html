@@ -93,6 +93,14 @@
                 <input type="text" id="player4" value="Player 4">
             </div>
 
+            <div class="form-group">
+                <label>UI Scale</label>
+                <div style="display:flex;align-items:center;gap:var(--space-md);">
+                    <input type="range" id="uiScale" min="0.7" max="1.5" step="0.1" value="1.0" style="flex:1;">
+                    <span id="uiScaleValue">1.0x</span>
+                </div>
+            </div>
+
             <div class="form-group hidden" id="cricketOptions">
                 <label class="checkbox-label">
                     <input type="checkbox" id="cricketPoints" checked>
@@ -134,7 +142,7 @@
             <div class="center-logo">
                 <button class="end-game-btn" id="menuBtn">Menu</button>
                 <div class="round-badge" id="roundBadge">1</div>
-                <div class="version-text">v1.6</div>
+                <div class="version-text">v1.7</div>
             </div>
 
             <div class="player-header away" id="awayHeader">
