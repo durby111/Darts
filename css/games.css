@@ -53,10 +53,14 @@
     height: 100%;
 }
 
-.mark.spanish,
-.mark.minnesota {
+.mark.spanish {
     width: calc(clamp(22px, 3.5dvh, 40px) * var(--ui-scale));
     height: calc(clamp(22px, 3.5dvh, 40px) * var(--ui-scale));
+}
+
+.mark.minnesota {
+    width: calc(clamp(33px, 5.25dvh, 60px) * var(--ui-scale));
+    height: calc(clamp(33px, 5.25dvh, 60px) * var(--ui-scale));
 }
 
 /* Cricket cell — centers marks and scores */
@@ -163,19 +167,30 @@
     visibility: hidden;
 }
 
-/* Spanish/Minnesota compact buttons */
-.cricket-num-btn.spanish,
-.cricket-num-btn.minnesota {
+/* Spanish compact buttons */
+.cricket-num-btn.spanish {
     font-size: calc(clamp(0.9rem, 2.5dvh, 1.5rem) * var(--ui-scale));
     padding: calc(clamp(4px, 1dvh, 10px) * var(--ui-scale)) calc(clamp(8px, 2vw, 18px) * var(--ui-scale));
     min-width: clamp(35px, 8vw, 65px);
 }
 
-.cricket-dt-btn.spanish,
-.cricket-dt-btn.minnesota {
+.cricket-dt-btn.spanish {
     font-size: calc(clamp(0.6rem, 1.5dvh, 1rem) * var(--ui-scale));
     padding: calc(clamp(3px, 0.8dvh, 8px) * var(--ui-scale)) calc(clamp(4px, 1vw, 10px) * var(--ui-scale));
     min-width: clamp(22px, 5vw, 40px);
+}
+
+/* Minnesota buttons — inherently larger (1.5x baked in) */
+.cricket-num-btn.minnesota {
+    font-size: calc(clamp(1.35rem, 3.75dvh, 2.25rem) * var(--ui-scale));
+    padding: calc(clamp(6px, 1.5dvh, 15px) * var(--ui-scale)) calc(clamp(12px, 3vw, 27px) * var(--ui-scale));
+    min-width: clamp(50px, 12vw, 95px);
+}
+
+.cricket-dt-btn.minnesota {
+    font-size: calc(clamp(0.9rem, 2.25dvh, 1.5rem) * var(--ui-scale));
+    padding: calc(clamp(4px, 1.2dvh, 12px) * var(--ui-scale)) calc(clamp(6px, 1.5vw, 15px) * var(--ui-scale));
+    min-width: clamp(33px, 7.5vw, 60px);
 }
 
 /* === Last Turn Indicators === */
@@ -284,10 +299,10 @@
 }
 
 .score-history-entry {
-    font-size: calc(clamp(1.4rem, 5dvh, 2.2rem) * var(--ui-scale));
+    font-size: calc(clamp(1.8rem, 6dvh, 2.8rem) * var(--ui-scale));
     font-weight: bold;
     padding: var(--space-xs) var(--space-sm);
-    min-height: calc(clamp(32px, 5dvh, 48px) * var(--ui-scale));
+    min-height: calc(clamp(36px, 6dvh, 56px) * var(--ui-scale));
     display: flex;
     align-items: center;
     justify-content: center;

@@ -3,7 +3,7 @@
    Screen routing, display dispatcher, PWA
    ============================================ */
 
-import { game, undoWithCooldown, redoWithCooldown, saveActiveGame } from './state.js';
+import { game, undoWithCooldown, redoWithCooldown, saveActiveGame, clearActiveGame } from './state.js';
 import { updateUndoRedoButtons, updatePlayerHeaders, showModal, hideModal } from './ui.js';
 import { updateCricketDisplay, initCricketControls } from './cricket.js';
 import { updateX01Display, initX01Controls, clearInput } from './x01.js';
@@ -136,8 +136,16 @@ function initGameMenuControls() {
         playAgain();
     });
 
+    on('gameMenuSettingsBtn', 'click', () => {
+        hideModal('gameMenuModal');
+        // Save game and show setup as overlay — game stays alive underneath
+        saveActiveGame();
+        document.getElementById('setupScreen').style.display = 'flex';
+    });
+
     on('gameMenuExitBtn', 'click', () => {
         hideModal('gameMenuModal');
+        clearActiveGame();
         showSetup();
     });
 

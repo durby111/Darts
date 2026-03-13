@@ -224,10 +224,15 @@ function updateScoreDiffIndicator() {
 function updatePending() {
     const pendingText = document.getElementById('pendingText');
     const enterBtn = document.getElementById('enterBtn');
+    const missBtn = document.getElementById('missBtn');
+    const hasPending = game.pendingDarts.length > 0;
 
-    if (game.pendingDarts.length === 0) {
+    // Swap MISS/ENTER — only one visible at a time
+    if (missBtn) missBtn.style.display = hasPending ? 'none' : '';
+    if (enterBtn) enterBtn.style.display = hasPending ? '' : 'none';
+
+    if (!hasPending) {
         if (pendingText) pendingText.textContent = '';
-        if (enterBtn) enterBtn.disabled = true;
         if (game.cricketPoints) updateScoreDiffIndicator();
         return;
     }
@@ -242,7 +247,6 @@ function updatePending() {
     });
 
     if (pendingText) pendingText.textContent = parts.join(' \u2022 ');
-    if (enterBtn) enterBtn.disabled = false;
 
     if (game.cricketPoints) updateScoreDiffIndicator();
 }

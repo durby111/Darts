@@ -99,18 +99,10 @@ function resumeGame() {
     if (onGameStart) onGameStart();
 }
 
-function applyGameTypeScale(gameType) {
+function applyGameTypeScale() {
+    // Apply user's scale setting — game-type sizes are baked into CSS
     const userScale = parseFloat(document.getElementById('uiScale')?.value || '1.0');
-    let effectiveScale = userScale;
-
-    // Game-type multipliers applied on top of user scale
-    if (gameType === 'minnesota') {
-        effectiveScale = Math.max(userScale, 1.5);
-    } else if (['cricket', 'spanish'].includes(gameType)) {
-        effectiveScale = Math.max(userScale, 1.2);
-    }
-
-    document.documentElement.style.setProperty('--ui-scale', effectiveScale);
+    document.documentElement.style.setProperty('--ui-scale', userScale);
 }
 
 function startGame() {
