@@ -22,37 +22,37 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     if (totalMarks === 0) {
         return `<span class="${cssClass}${compactClass}"></span>`;
     } else if (totalMarks === 1) {
-        // Single slash — hand-drawn curved stroke
+        // Single slash — thick hand-drawn curved stroke
         return `<span class="${cssClass}${compactClass}">
-            <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14,50 C18,38 24,26 30,20 C36,14 42,11 46,9" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
+            <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18,70 C24,54 30,42 40,30 C46,24 54,16 62,10" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round"/>
             </svg>
         </span>`;
     } else if (totalMarks === 2) {
-        // X — two hand-drawn curved strokes
+        // X — two thick hand-drawn curved strokes with wobble
         return `<span class="${cssClass}${compactClass}">
-            <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11,11 C18,17 24,25 30,31 C36,37 43,44 49,49" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
-                <path d="M49,11 C43,17 36,25 30,31 C24,37 18,44 11,49" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
+            <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12,12 C22,20 32,34 42,44 C52,54 62,62 68,68" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round"/>
+                <path d="M68,12 C58,22 48,34 38,44 C28,54 18,62 12,68" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round"/>
             </svg>
         </span>`;
     } else {
-        // Closed — hand-drawn circle (with or without X inside)
-        const circlePath = 'M30,7 C46,7 54,17 53,30 C52,43 44,53 30,53 C16,53 7,43 8,30 C9,17 16,7 30,7 Z';
+        // Closed — thick hand-drawn circle (with or without X inside)
+        const circlePath = 'M40,8 C58,6 72,20 73,40 C74,58 60,74 40,73 C20,72 6,58 8,40 C10,20 22,10 40,8 Z';
         if (!closedInOneTurn && totalMarks >= 3) {
             // Circle with X inside
             return `<span class="${cssClass}${compactClass}">
-                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-                    <path d="${circlePath}" stroke="${color}" stroke-width="5" fill="none"/>
-                    <path d="M19,19 C24,24 28,29 31,32 C34,35 38,40 41,42" stroke="${color}" stroke-width="5" fill="none" stroke-linecap="round"/>
-                    <path d="M41,19 C36,24 32,29 29,32 C26,35 22,40 19,42" stroke="${color}" stroke-width="5" fill="none" stroke-linecap="round"/>
+                <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                    <path d="${circlePath}" stroke="${color}" stroke-width="8" fill="none"/>
+                    <path d="M25,25 C31,32 36,38 41,43 C46,48 51,54 55,57" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
+                    <path d="M55,25 C49,32 44,38 39,43 C34,48 29,54 25,57" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
                 </svg>
             </span>`;
         } else {
             // Just circle — closed in one turn
             return `<span class="${cssClass}${compactClass}">
-                <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
-                    <path d="${circlePath}" stroke="${color}" stroke-width="5" fill="none"/>
+                <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                    <path d="${circlePath}" stroke="${color}" stroke-width="8" fill="none"/>
                 </svg>
             </span>`;
         }

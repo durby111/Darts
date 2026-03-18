@@ -78,6 +78,9 @@
     /* === UI Scale (user-adjustable) === */
     --ui-scale: 1;
 
+    /* === Cricket Grid Center Column === */
+    --cricket-center-col: clamp(130px, 28vw, 220px);
+
     /* === Transitions === */
     --transition-fast: 0.15s ease;
     --transition-normal: 0.3s ease;

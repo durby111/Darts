@@ -93,9 +93,9 @@ body {
     grid-template-columns: 1fr auto 1fr;
 }
 
-/* 3-player: 1 | 2 | Round | 3 */
+/* 3-player: 1 | 2 | Round | 3 (P3 wider since alone on right) */
 .score-header.three-player {
-    grid-template-columns: 1fr 1fr auto 1fr;
+    grid-template-columns: 1fr 1fr auto 2fr;
 }
 
 .score-header.three-player .player-header.home { order: 1; }
@@ -253,7 +253,7 @@ body {
 }
 
 .x01-main.three-player {
-    grid-template-columns: 1fr 1fr auto 1fr;
+    grid-template-columns: 1fr 1fr auto 2fr;
 }
 
 .x01-main.four-player {

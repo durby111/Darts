@@ -8,7 +8,7 @@ import { updateUndoRedoButtons, updatePlayerHeaders, showModal, hideModal } from
 import { updateCricketDisplay, initCricketControls } from './cricket.js';
 import { updateX01Display, initX01Controls, clearInput } from './x01.js';
 import { initChicagoControls } from './chicago.js';
-import { initSetupControls, setGameStartCallback, showSetup, playAgain } from './setup.js';
+import { initSetupControls, setGameStartCallback, showSetup, showSetupAsOverlay, playAgain } from './setup.js';
 
 // --- Safe element helper ---
 function on(id, event, handler) {
@@ -140,7 +140,7 @@ function initGameMenuControls() {
         hideModal('gameMenuModal');
         // Save game and show setup as overlay — game stays alive underneath
         saveActiveGame();
-        document.getElementById('setupScreen').style.display = 'flex';
+        showSetupAsOverlay();
     });
 
     on('gameMenuExitBtn', 'click', () => {

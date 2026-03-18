@@ -7,6 +7,7 @@ import { game, initCricket, getConfigs, saveConfigs, getCurrentConfig, applyConf
 import { showChicagoGameSelection } from './chicago.js';
 
 let onGameStart = null;
+let overlayMode = false;
 
 export function setGameStartCallback(callback) {
     onGameStart = callback;
@@ -58,6 +59,18 @@ export function initSetupControls() {
         resumeBtn.addEventListener('click', resumeGame);
     }
 
+    // Back to Game button (shown when settings opened from active game)
+    const backToGameBtn = document.getElementById('backToGameBtn');
+    if (backToGameBtn) {
+        backToGameBtn.addEventListener('click', () => {
+            overlayMode = false;
+            backToGameBtn.classList.add('hidden');
+            // Apply any scale changes the user made
+            applyGameTypeScale();
+            resumeGame();
+        });
+    }
+
     // Load saved configs on init
     updateSavedConfigsList();
     const configs = getConfigs();
@@ -106,6 +119,14 @@ function applyGameTypeScale() {
 }
 
 function startGame() {
+    // Warn if there's an active game being overlaid
+    if (overlayMode) {
+        if (!confirm('Starting a new game will end your current game. Continue?')) return;
+        overlayMode = false;
+        const backBtn = document.getElementById('backToGameBtn');
+        if (backBtn) backBtn.classList.add('hidden');
+    }
+
     const gameType = document.getElementById('gameType').value;
     const numPlayers = parseInt(document.getElementById('numPlayers').value);
     const cricketPoints = document.getElementById('cricketPoints').checked;
@@ -194,6 +215,11 @@ function startGame() {
 }
 
 export function showSetup() {
+    // Reset overlay mode
+    overlayMode = false;
+    const backBtn = document.getElementById('backToGameBtn');
+    if (backBtn) backBtn.classList.add('hidden');
+
     // Save active game before leaving
     if (game.players.length > 0) {
         saveActiveGame();
@@ -203,6 +229,14 @@ export function showSetup() {
     document.getElementById('gameScreen').style.display = 'none';
     document.getElementById('setupScreen').style.display = 'flex';
     updateSavedConfigsList();
+    updateResumeButton();
+}
+
+export function showSetupAsOverlay() {
+    overlayMode = true;
+    const backBtn = document.getElementById('backToGameBtn');
+    if (backBtn) backBtn.classList.remove('hidden');
+    document.getElementById('setupScreen').style.display = 'flex';
     updateResumeButton();
 }
 

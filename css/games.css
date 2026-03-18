@@ -14,29 +14,29 @@
 
 /* Player count layouts — fixed center column so Bull aligns with others */
 .cricket-row.one-player {
-    grid-template-columns: 1fr clamp(130px, 28vw, 220px) 1fr;
+    grid-template-columns: 1fr var(--cricket-center-col) 1fr;
 }
 
 .cricket-row.two-player {
-    grid-template-columns: 1fr clamp(130px, 28vw, 220px) 1fr;
+    grid-template-columns: 1fr var(--cricket-center-col) 1fr;
 }
 
 .cricket-row.three-player {
-    grid-template-columns: 1fr 1fr clamp(130px, 28vw, 220px) 1fr;
+    grid-template-columns: 1fr 1fr var(--cricket-center-col) 2fr;
 }
 
 .cricket-row.four-player {
-    grid-template-columns: 1fr 1fr clamp(130px, 28vw, 220px) 1fr 1fr;
+    grid-template-columns: 1fr 1fr var(--cricket-center-col) 1fr 1fr;
 }
 
-/* Spanish rows — compact */
+/* Spanish rows — slightly compact */
 .cricket-row.spanish {
-    min-height: clamp(36px, 5.5dvh, 65px);
+    min-height: clamp(42px, 6.5dvh, 75px);
 }
 
-/* Minnesota rows — use full screen height */
+/* Minnesota rows — use full screen height (1.95x baked in) */
 .cricket-row.minnesota {
-    min-height: clamp(40px, 7dvh, 80px);
+    min-height: clamp(52px, 9dvh, 104px);
 }
 
 /* === Mark Symbols === */
@@ -44,8 +44,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: calc(clamp(40px, 7dvh, 70px) * var(--ui-scale));
-    height: calc(clamp(40px, 7dvh, 70px) * var(--ui-scale));
+    width: calc(clamp(48px, 8.5dvh, 84px) * var(--ui-scale));
+    height: calc(clamp(48px, 8.5dvh, 84px) * var(--ui-scale));
 }
 
 .mark svg {
@@ -54,13 +54,13 @@
 }
 
 .mark.spanish {
-    width: calc(clamp(22px, 3.5dvh, 40px) * var(--ui-scale));
-    height: calc(clamp(22px, 3.5dvh, 40px) * var(--ui-scale));
+    width: calc(clamp(28px, 4.5dvh, 50px) * var(--ui-scale));
+    height: calc(clamp(28px, 4.5dvh, 50px) * var(--ui-scale));
 }
 
 .mark.minnesota {
-    width: calc(clamp(33px, 5.25dvh, 60px) * var(--ui-scale));
-    height: calc(clamp(33px, 5.25dvh, 60px) * var(--ui-scale));
+    width: calc(clamp(42px, 6.8dvh, 78px) * var(--ui-scale));
+    height: calc(clamp(42px, 6.8dvh, 78px) * var(--ui-scale));
 }
 
 /* Cricket cell — centers marks and scores */
@@ -70,6 +70,36 @@
     justify-content: center;
     position: relative;
     min-height: 100%;
+}
+
+/* Active player column highlight */
+.cricket-cell.active {
+    background: rgba(0, 102, 204, 0.12);
+}
+
+/* === Player Column Separators === */
+.cricket-row.two-player > .cricket-buttons {
+    border-left: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+}
+
+.cricket-row.three-player > .cricket-cell:nth-child(1) {
+    border-right: 1px solid var(--color-border);
+}
+.cricket-row.three-player > .buttons-container {
+    border-left: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+}
+
+.cricket-row.four-player > .cricket-cell:nth-child(1) {
+    border-right: 1px solid var(--color-border);
+}
+.cricket-row.four-player > .buttons-container {
+    border-left: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+}
+.cricket-row.four-player > :last-child {
+    border-left: 1px solid var(--color-border);
 }
 
 /* Cricket buttons column */
@@ -167,30 +197,30 @@
     visibility: hidden;
 }
 
-/* Spanish compact buttons */
+/* Spanish buttons — ~80% of standard */
 .cricket-num-btn.spanish {
-    font-size: calc(clamp(0.9rem, 2.5dvh, 1.5rem) * var(--ui-scale));
-    padding: calc(clamp(4px, 1dvh, 10px) * var(--ui-scale)) calc(clamp(8px, 2vw, 18px) * var(--ui-scale));
-    min-width: clamp(35px, 8vw, 65px);
+    font-size: calc(clamp(1.1rem, 3.6dvh, 2.4rem) * var(--ui-scale));
+    padding: calc(clamp(6px, 2dvh, 18px) * var(--ui-scale)) calc(clamp(11px, 3.2vw, 26px) * var(--ui-scale));
+    min-width: clamp(40px, 10vw, 80px);
 }
 
 .cricket-dt-btn.spanish {
-    font-size: calc(clamp(0.6rem, 1.5dvh, 1rem) * var(--ui-scale));
-    padding: calc(clamp(3px, 0.8dvh, 8px) * var(--ui-scale)) calc(clamp(4px, 1vw, 10px) * var(--ui-scale));
+    font-size: calc(clamp(0.65rem, 2dvh, 1.2rem) * var(--ui-scale));
+    padding: calc(clamp(3px, 1.2dvh, 11px) * var(--ui-scale)) calc(clamp(5px, 1.2vw, 11px) * var(--ui-scale));
     min-width: clamp(22px, 5vw, 40px);
 }
 
-/* Minnesota buttons — inherently larger (1.5x baked in) */
+/* Minnesota buttons — inherently larger (1.95x baked in: 1.5 * 1.3) */
 .cricket-num-btn.minnesota {
-    font-size: calc(clamp(1.35rem, 3.75dvh, 2.25rem) * var(--ui-scale));
-    padding: calc(clamp(6px, 1.5dvh, 15px) * var(--ui-scale)) calc(clamp(12px, 3vw, 27px) * var(--ui-scale));
-    min-width: clamp(50px, 12vw, 95px);
+    font-size: calc(clamp(1.75rem, 4.9dvh, 2.9rem) * var(--ui-scale));
+    padding: calc(clamp(8px, 2dvh, 20px) * var(--ui-scale)) calc(clamp(16px, 3.9vw, 35px) * var(--ui-scale));
+    min-width: clamp(65px, 15vw, 120px);
 }
 
 .cricket-dt-btn.minnesota {
-    font-size: calc(clamp(0.9rem, 2.25dvh, 1.5rem) * var(--ui-scale));
-    padding: calc(clamp(4px, 1.2dvh, 12px) * var(--ui-scale)) calc(clamp(6px, 1.5vw, 15px) * var(--ui-scale));
-    min-width: clamp(33px, 7.5vw, 60px);
+    font-size: calc(clamp(1.15rem, 2.9dvh, 1.95rem) * var(--ui-scale));
+    padding: calc(clamp(5px, 1.6dvh, 16px) * var(--ui-scale)) calc(clamp(8px, 2vw, 20px) * var(--ui-scale));
+    min-width: clamp(43px, 10vw, 78px);
 }
 
 /* === Last Turn Indicators === */
@@ -221,6 +251,16 @@
 
 .cricket-controls-right {
     align-items: flex-end;
+}
+
+/* MISS/ENTER slot — both buttons occupy the same cell */
+.miss-enter-slot {
+    display: grid;
+}
+
+.miss-enter-slot > button {
+    grid-row: 1;
+    grid-column: 1;
 }
 
 /* Bigger ENTER and MISS buttons in cricket */
@@ -466,8 +506,8 @@
     }
 
     .mark {
-        width: clamp(22px, 4dvh, 38px);
-        height: clamp(22px, 4dvh, 38px);
+        width: clamp(26px, 5dvh, 46px);
+        height: clamp(26px, 5dvh, 46px);
     }
 
     .cricket-num-btn {
@@ -494,8 +534,8 @@
 
     .mark.spanish,
     .mark.minnesota {
-        width: clamp(18px, 3dvh, 30px);
-        height: clamp(18px, 3dvh, 30px);
+        width: clamp(22px, 3.5dvh, 36px);
+        height: clamp(22px, 3.5dvh, 36px);
     }
 }
 
@@ -506,7 +546,7 @@
     }
 
     .mark {
-        width: clamp(40px, 6dvh, 65px);
-        height: clamp(40px, 6dvh, 65px);
+        width: clamp(48px, 7.5dvh, 78px);
+        height: clamp(48px, 7.5dvh, 78px);
     }
 }

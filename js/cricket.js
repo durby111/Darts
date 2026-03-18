@@ -8,31 +8,50 @@ import { getMarkSymbol, updateUndoRedoButtons, updatePlayerHeaders, updateRoundB
 
 // --- Internal Helpers ---
 
+// Cooldown for MISS/ENTER buttons — cleared when a new dart is added
+let cooldownTimer = null;
+let controlsInitialized = false;
+
+function startCooldown() {
+    const enterBtn = document.getElementById('enterBtn');
+    const missBtn = document.getElementById('missBtn');
+    if (enterBtn) enterBtn.disabled = true;
+    if (missBtn) missBtn.disabled = true;
+    cooldownTimer = setTimeout(() => clearCooldown(), 1000);
+}
+
+function clearCooldown() {
+    if (cooldownTimer) { clearTimeout(cooldownTimer); cooldownTimer = null; }
+    const enterBtn = document.getElementById('enterBtn');
+    const missBtn = document.getElementById('missBtn');
+    if (enterBtn) enterBtn.disabled = false;
+    if (missBtn) missBtn.disabled = false;
+}
+
 function calculatePendingScore() {
     const player = game.players[game.currentPlayer];
     let score = 0;
 
-    // Snapshot original marks
-    const originalMarks = {};
+    // Track marks locally without mutating game state
+    const localMarks = {};
     game.cricketTargets.forEach(t => {
-        originalMarks[t] = player.cricketData[t].marks;
+        localMarks[t] = player.cricketData[t].marks;
     });
 
     for (const dart of game.pendingDarts) {
         const target = dart.target;
         const multiplier = dart.multiplier;
-        const data = player.cricketData[target];
-        const maxMarks = data.maxMarks;
+        const maxMarks = player.cricketData[target].maxMarks;
 
         if (dart.specialScore !== undefined) {
             score += dart.specialScore;
-            data.marks = Math.min(data.marks + 1, maxMarks);
+            localMarks[target] = Math.min(localMarks[target] + 1, maxMarks);
             continue;
         }
 
-        const marksBefore = data.marks;
+        const marksBefore = localMarks[target];
         const newMarks = marksBefore + multiplier;
-        data.marks = Math.min(newMarks, maxMarks);
+        localMarks[target] = Math.min(newMarks, maxMarks);
 
         if (game.cricketPoints) {
             const excessBefore = Math.max(0, marksBefore - maxMarks);
@@ -40,7 +59,6 @@ function calculatePendingScore() {
             const pointMarks = excessAfter - excessBefore;
 
             if (pointMarks > 0) {
-                // Check if all opponents have closed this target
                 const allOpponentsClosed = game.players.every((p, i) => {
                     if (i === game.currentPlayer) return true;
                     return p.cricketData[target].closed;
@@ -54,11 +72,6 @@ function calculatePendingScore() {
             }
         }
     }
-
-    // Restore original marks
-    game.cricketTargets.forEach(t => {
-        player.cricketData[t].marks = originalMarks[t];
-    });
 
     return score;
 }
@@ -131,7 +144,8 @@ function updateCricketGrid() {
                 }
             }
 
-            playerCells.push(`<div class="cricket-cell">${cellHtml}</div>`);
+            const activeClass = i === game.currentPlayer ? ' active' : '';
+            playerCells.push(`<div class="cricket-cell${activeClass}">${cellHtml}</div>`);
         }
 
         // Layout class
@@ -326,6 +340,9 @@ export function hitTarget(target, multiplier) {
         game.pendingDarts.push({ target, multiplier });
     }
 
+    // Clear any active cooldown so ENTER is immediately available
+    clearCooldown();
+
     updateCricketDisplay();
     updateUndoRedoButtons();
 }
@@ -333,15 +350,7 @@ export function hitTarget(target, multiplier) {
 export function cricketConfirm() {
     if (game.pendingDarts.length === 0) return;
 
-    // 1.5s cooldown — disable both ENTER and MISS
-    const enterBtn = document.getElementById('enterBtn');
-    const missBtn = document.getElementById('missBtn');
-    if (enterBtn) enterBtn.disabled = true;
-    if (missBtn) missBtn.disabled = true;
-    setTimeout(() => {
-        if (enterBtn) enterBtn.disabled = false;
-        if (missBtn) missBtn.disabled = false;
-    }, 1500);
+    startCooldown();
 
     const player = game.players[game.currentPlayer];
     const lastTurnMarks = {};
@@ -455,17 +464,10 @@ export function cricketConfirm() {
 }
 
 export function cricketMiss() {
-    // 1.5s cooldown — disable both MISS and ENTER
     const missBtn = document.getElementById('missBtn');
-    const enterBtn = document.getElementById('enterBtn');
     if (missBtn && missBtn.disabled) return;
-    if (missBtn) missBtn.disabled = true;
-    if (enterBtn) enterBtn.disabled = true;
-    setTimeout(() => {
-        if (missBtn) missBtn.disabled = false;
-        if (enterBtn) enterBtn.disabled = false;
-    }, 1500);
 
+    startCooldown();
     saveGameState();
 
     const player = game.players[game.currentPlayer];
@@ -499,6 +501,9 @@ export function cricketMiss() {
 }
 
 export function initCricketControls() {
+    if (controlsInitialized) return;
+    controlsInitialized = true;
+
     // Miss button
     const missBtn = document.getElementById('missBtn');
     if (missBtn) {

@@ -165,7 +165,11 @@ export function saveActiveGame() {
         game121: game.game121 ? deepClone(game.game121) : null,
         timestamp: Date.now()
     };
-    localStorage.setItem('blakeout_active_game', JSON.stringify(snapshot));
+    try {
+        localStorage.setItem('blakeout_active_game', JSON.stringify(snapshot));
+    } catch (e) {
+        console.warn('[BlakeOut] Failed to save game:', e);
+    }
 }
 
 export function loadActiveGame() {
@@ -208,7 +212,11 @@ export function getConfigs() {
 }
 
 export function saveConfigs(configs) {
-    localStorage.setItem('blakeout_configs', JSON.stringify(configs));
+    try {
+        localStorage.setItem('blakeout_configs', JSON.stringify(configs));
+    } catch (e) {
+        console.warn('[BlakeOut] Failed to save configs:', e);
+    }
 }
 
 export function getCurrentConfig() {
