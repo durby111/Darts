@@ -80,6 +80,8 @@
 
     /* === Cricket Grid Center Column === */
     --cricket-center-col: clamp(130px, 28vw, 220px);
+    /* Minnesota: wider center for D+num+T at 1.95x baked-in size + gaps + padding */
+    --minnesota-center-col: clamp(145px, calc(29vw + 16px), 250px);
 
     /* === Transitions === */
     --transition-fast: 0.15s ease;

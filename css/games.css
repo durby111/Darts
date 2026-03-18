@@ -38,19 +38,19 @@
     min-height: clamp(52px, 9dvh, 104px);
 }
 
-/* Minnesota buttons are larger — let center column auto-size to fit D/num/T */
+/* Minnesota buttons are larger — fixed center column sized for D+num+T+gaps+padding */
 .cricket-row.minnesota.one-player,
 .cricket-row.minnesota.two-player {
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1fr var(--minnesota-center-col) 1fr;
 }
 .cricket-row.minnesota.three-player {
-    grid-template-columns: 1fr 1fr auto 2fr;
+    grid-template-columns: 1fr 1fr var(--minnesota-center-col) 2fr;
 }
 .cricket-row.minnesota.four-player {
-    grid-template-columns: 1fr 1fr auto 1fr 1fr;
+    grid-template-columns: 1fr 1fr var(--minnesota-center-col) 1fr 1fr;
 }
 
-/* Add horizontal padding so Minnesota buttons sit inside the separator lines */
+/* Pad buttons so they sit inside the separator lines */
 .cricket-row.minnesota .cricket-buttons {
     padding: 0 4px;
 }
