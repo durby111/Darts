@@ -6,9 +6,7 @@
 import { game, canUndo, canRedo } from './state.js';
 
 // --- SVG Mark Symbols ---
-
-// SVG filter for chalk grain texture — shared across all marks
-const CHALK_FILTER = `<defs><filter id="chalk" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G"/></filter></defs>`;
+// Chalk filter is defined once in index.html as a global <svg> with id="chalk"
 
 export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, isCompact = false, target = '', showBoobie = false, playerIndex = -1) {
     const totalMarks = marks + pendingMarks;
@@ -16,60 +14,51 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     const color = isPending ? 'var(--color-pending)' : 'var(--color-primary)';
     const cssClass = isPending ? 'mark pending' : 'mark';
     const compactClass = isCompact ? (game.type === 'minnesota' ? ' minnesota' : ' spanish') : '';
-    const f = ' filter="url(#chalk)"';
-
-    // Beds uses same slash/X/circle progression as standard targets
-    if (target === 'Bed') {
-        // Fall through to standard mark logic below
-    }
 
     if (totalMarks === 0) {
         return `<span class="${cssClass}${compactClass}"></span>`;
     } else if (totalMarks === 1) {
-        // Single slash — rough chalk with triple overlapping strokes
+        // Single slash — heavy chalk stroke with rough edges
         return `<span class="${cssClass}${compactClass}">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                ${CHALK_FILTER}
-                <g${f}>
-                    <path d="M14,74 C19,60 24,50 32,38 C38,30 46,21 54,14 C58,11 61,8 64,6" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.35"/>
-                    <path d="M16,72 C21,57 27,46 35,34 C41,26 49,17 57,10 C60,8 63,6 66,5" stroke="${color}" stroke-width="9" fill="none" stroke-linecap="round" opacity="0.6"/>
-                    <path d="M18,70 C23,55 30,43 38,32 C44,24 52,16 59,9" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
+                <g filter="url(#chalk)">
+                    <path d="M12,76 C16,65 20,56 26,46 C32,36 40,26 48,18 C54,12 60,7 66,3" stroke="${color}" stroke-width="13" fill="none" stroke-linecap="round" opacity="0.3"/>
+                    <path d="M14,74 C18,62 23,52 29,42 C35,32 42,23 50,16 C55,11 61,7 67,4" stroke="${color}" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.5"/>
+                    <path d="M16,72 C20,60 25,50 31,40 C37,30 44,22 52,14 C57,10 62,6 68,3" stroke="${color}" stroke-width="9" fill="none" stroke-linecap="round"/>
                 </g>
             </svg>
         </span>`;
     } else if (totalMarks === 2) {
-        // X — rough chalk with triple overlapping strokes per arm
+        // X — heavy chalk crossed strokes
         return `<span class="${cssClass}${compactClass}">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                ${CHALK_FILTER}
-                <g${f}>
-                    <path d="M10,12 C20,18 30,30 40,42 C50,54 60,64 72,72" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.3"/>
-                    <path d="M12,10 C22,17 32,29 42,41 C52,53 62,63 70,70" stroke="${color}" stroke-width="9" fill="none" stroke-linecap="round" opacity="0.55"/>
-                    <path d="M14,9 C24,16 34,28 44,40 C54,52 63,62 69,68" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
-                    <path d="M70,12 C60,18 50,30 40,42 C30,54 20,64 8,72" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round" opacity="0.3"/>
-                    <path d="M68,10 C58,17 48,29 38,41 C28,53 18,63 10,70" stroke="${color}" stroke-width="9" fill="none" stroke-linecap="round" opacity="0.55"/>
-                    <path d="M66,9 C56,16 46,28 36,40 C26,52 17,62 11,68" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
+                <g filter="url(#chalk)">
+                    <path d="M8,10 C16,16 24,26 34,38 C44,50 54,60 68,72" stroke="${color}" stroke-width="13" fill="none" stroke-linecap="round" opacity="0.3"/>
+                    <path d="M10,8 C18,15 26,25 36,37 C46,49 56,60 70,71" stroke="${color}" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.5"/>
+                    <path d="M12,7 C20,14 28,24 38,36 C48,48 58,59 71,69" stroke="${color}" stroke-width="9" fill="none" stroke-linecap="round"/>
+                    <path d="M72,10 C64,16 56,26 46,38 C36,50 26,60 12,72" stroke="${color}" stroke-width="13" fill="none" stroke-linecap="round" opacity="0.3"/>
+                    <path d="M70,8 C62,15 54,25 44,37 C34,49 24,60 10,71" stroke="${color}" stroke-width="11" fill="none" stroke-linecap="round" opacity="0.5"/>
+                    <path d="M69,7 C61,14 53,24 43,36 C33,48 23,59 9,69" stroke="${color}" stroke-width="9" fill="none" stroke-linecap="round"/>
                 </g>
             </svg>
         </span>`;
     } else {
-        // Closed — rough chalk circle with heavy strokes
-        const circle1 = 'M40,5 C62,3 78,16 79,40 C80,64 64,79 40,78 C16,77 2,62 4,40 C6,16 18,7 40,5 Z';
-        const circle2 = 'M40,8 C59,6 74,19 75,40 C76,61 62,75 40,74 C18,73 5,59 7,40 C9,19 21,10 40,8 Z';
-        const circle3 = 'M40,11 C56,10 70,22 71,40 C72,58 59,71 40,70 C21,69 9,56 10,40 C11,22 24,13 40,11 Z';
+        // Closed — heavy chalk circle
+        const c1 = 'M40,3 C64,1 79,15 80,40 C81,66 65,80 40,79 C15,78 1,64 3,40 C5,15 17,5 40,3 Z';
+        const c2 = 'M40,7 C60,5 75,18 76,40 C77,62 63,76 40,75 C17,74 4,60 6,40 C8,18 20,9 40,7 Z';
+        const c3 = 'M40,11 C57,10 71,21 72,40 C73,59 60,72 40,71 C20,70 8,57 9,40 C10,21 23,12 40,11 Z';
         if (!closedInOneTurn && totalMarks >= 3) {
             // Circle with X inside
             return `<span class="${cssClass}${compactClass}">
                 <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                    ${CHALK_FILTER}
-                    <g${f}>
-                        <path d="${circle1}" stroke="${color}" stroke-width="7" fill="none" opacity="0.3"/>
-                        <path d="${circle2}" stroke="${color}" stroke-width="6" fill="none" opacity="0.55"/>
-                        <path d="${circle3}" stroke="${color}" stroke-width="5" fill="none"/>
-                        <path d="M24,24 C30,30 35,36 40,42 C45,48 50,54 58,60" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.35"/>
-                        <path d="M26,22 C32,29 37,35 42,41 C47,47 52,53 57,58" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="round"/>
-                        <path d="M58,24 C52,30 47,36 42,42 C37,48 32,54 24,60" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round" opacity="0.35"/>
-                        <path d="M56,22 C50,29 45,35 40,41 C35,47 30,53 26,58" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="round"/>
+                    <g filter="url(#chalk)">
+                        <path d="${c1}" stroke="${color}" stroke-width="8" fill="none" opacity="0.25"/>
+                        <path d="${c2}" stroke="${color}" stroke-width="7" fill="none" opacity="0.5"/>
+                        <path d="${c3}" stroke="${color}" stroke-width="5.5" fill="none"/>
+                        <path d="M22,22 C28,28 34,34 40,40 C46,46 52,52 60,60" stroke="${color}" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.3"/>
+                        <path d="M24,20 C30,27 36,33 42,40 C48,46 54,53 58,58" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
+                        <path d="M60,22 C54,28 48,34 42,40 C36,46 30,52 22,60" stroke="${color}" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.3"/>
+                        <path d="M58,20 C52,27 46,33 40,40 C34,46 28,53 24,58" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
                     </g>
                 </svg>
             </span>`;
@@ -78,14 +67,13 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
             const dotClass = showBoobie ? ' show-dot' : '';
             return `<span class="${cssClass}${compactClass}${dotClass}" data-boobie="true" data-boobie-player="${playerIndex}" data-boobie-target="${target}">
                 <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                    ${CHALK_FILTER}
-                    <g${f}>
-                        <path d="${circle1}" stroke="${color}" stroke-width="7" fill="none" opacity="0.3"/>
-                        <path d="${circle2}" stroke="${color}" stroke-width="6" fill="none" opacity="0.55"/>
-                        <path d="${circle3}" stroke="${color}" stroke-width="5" fill="none"/>
-                        <circle class="boobie-dot" cx="40" cy="40" r="6" fill="${color}" opacity="0"/>
-                        <circle class="boobie-ring" cx="40" cy="40" r="11" stroke="${color}" stroke-width="2.5" fill="none" opacity="0"/>
+                    <g filter="url(#chalk)">
+                        <path d="${c1}" stroke="${color}" stroke-width="8" fill="none" opacity="0.25"/>
+                        <path d="${c2}" stroke="${color}" stroke-width="7" fill="none" opacity="0.5"/>
+                        <path d="${c3}" stroke="${color}" stroke-width="5.5" fill="none"/>
                     </g>
+                    <circle class="boobie-dot" cx="40" cy="40" r="7" fill="${color}" opacity="0"/>
+                    <circle class="boobie-ring" cx="40" cy="40" r="12" stroke="${color}" stroke-width="2.5" fill="none" opacity="0"/>
                 </svg>
             </span>`;
         }
@@ -187,10 +175,12 @@ export function updatePlayerHeaders() {
     const numPlayers = game.players.length;
     const scoreHeader = document.getElementById('scoreHeader');
 
-    // Set header layout class
-    scoreHeader.className = numPlayers === 4 ? 'score-header four-player' :
-                            numPlayers === 3 ? 'score-header three-player' :
-                            numPlayers === 2 ? 'score-header two-player' : 'score-header one-player';
+    // Set header layout class (include game type for Minnesota auto-sizing)
+    let headerClass = numPlayers === 4 ? 'score-header four-player' :
+                      numPlayers === 3 ? 'score-header three-player' :
+                      numPlayers === 2 ? 'score-header two-player' : 'score-header one-player';
+    if (game.type === 'minnesota') headerClass += ' minnesota';
+    scoreHeader.className = headerClass;
 
     // Show/hide player headers based on count
     document.getElementById('awayHeader').style.display = numPlayers >= 2 ? '' : 'none';

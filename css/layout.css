@@ -114,6 +114,18 @@ body {
 .score-header.four-player .player-header.player3 { order: 4; }
 .score-header.four-player .player-header.player4 { order: 5; }
 
+/* Minnesota header — auto-size center column to match wider button grid */
+.score-header.minnesota.one-player,
+.score-header.minnesota.two-player {
+    grid-template-columns: 1fr auto 1fr;
+}
+.score-header.minnesota.three-player {
+    grid-template-columns: 1fr 1fr auto 2fr;
+}
+.score-header.minnesota.four-player {
+    grid-template-columns: 1fr 1fr auto 1fr 1fr;
+}
+
 /* === Player Header === */
 .player-header {
     padding: var(--space-sm) var(--space-md);

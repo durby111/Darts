@@ -15,6 +15,16 @@
     <link rel="stylesheet" href="css/games.css">
 </head>
 <body>
+    <!-- Shared SVG chalk texture filter — referenced by all mark symbols -->
+    <svg style="position:absolute;width:0;height:0" aria-hidden="true">
+        <defs>
+            <filter id="chalk" x="-8%" y="-8%" width="116%" height="116%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="4" seed="2" result="noise"/>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="4.5" xChannelSelector="R" yChannelSelector="G"/>
+            </filter>
+        </defs>
+    </svg>
+
     <!-- Setup Screen -->
     <div class="setup-screen" id="setupScreen">
         <div class="setup-card card">
