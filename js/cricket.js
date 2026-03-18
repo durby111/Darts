@@ -128,9 +128,9 @@ function updateCricketGrid() {
                     }
                 }
                 // Show marks with pending in green using getMarkSymbol's pending feature
-                cellHtml = getMarkSymbol(marks, pendingMarks, closedInOneTurn, isCompact, target);
+                cellHtml = getMarkSymbol(marks, pendingMarks, closedInOneTurn, isCompact, target, cricketData.showBoobie, i);
             } else {
-                cellHtml = getMarkSymbol(marks, 0, closedInOneTurn, isCompact, target);
+                cellHtml = getMarkSymbol(marks, 0, closedInOneTurn, isCompact, target, cricketData.showBoobie, i);
 
                 // Grey previous turn indicators
                 if (p.lastTurnMarks && p.lastTurnMarks[target] !== undefined) {
@@ -524,6 +524,19 @@ export function initCricketControls() {
     const cricketGrid = document.getElementById('cricketGrid');
     if (cricketGrid) {
         cricketGrid.addEventListener('click', (e) => {
+            // Handle boobie dot toggle
+            const boobieEl = e.target.closest('[data-boobie="true"]');
+            if (boobieEl) {
+                const playerIdx = parseInt(boobieEl.getAttribute('data-boobie-player'));
+                const target = boobieEl.getAttribute('data-boobie-target');
+                if (!isNaN(playerIdx) && target && game.players[playerIdx]) {
+                    const cd = game.players[playerIdx].cricketData[target];
+                    cd.showBoobie = !cd.showBoobie;
+                    boobieEl.classList.toggle('show-dot', cd.showBoobie);
+                }
+                return;
+            }
+
             const btn = e.target.closest('.cricket-num-btn, .cricket-dt-btn');
             if (!btn) return;
 

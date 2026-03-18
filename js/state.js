@@ -142,6 +142,7 @@ export function initCricket(type, includeBulls = false) {
             marks: 0,
             closed: false,
             closedInOneTurn: false,
+            showBoobie: false,
             maxMarks: 3
         };
     });
