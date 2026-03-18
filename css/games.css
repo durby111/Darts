@@ -96,28 +96,40 @@
     background: rgba(0, 102, 204, 0.25);
 }
 
-/* === Player Column Separators === */
-.cricket-row.two-player > .cricket-buttons {
-    border-left: 1px solid var(--color-border);
+/* === Player Column Separators ===
+   Borders go on player cells (fixed 1fr columns), NOT on the button
+   container, so they align perfectly even when center column is auto-sized. */
+
+/* 2-player: [P1 | buttons | P2] */
+.cricket-row.two-player > .cricket-cell:first-child {
     border-right: 1px solid var(--color-border);
 }
+.cricket-row.two-player > .cricket-cell:last-child {
+    border-left: 1px solid var(--color-border);
+}
 
+/* 3-player: [P1 | P2 | buttons | P3] */
 .cricket-row.three-player > .cricket-cell:nth-child(1) {
     border-right: 1px solid var(--color-border);
 }
-.cricket-row.three-player > .buttons-container {
-    border-left: 1px solid var(--color-border);
+.cricket-row.three-player > .cricket-cell:nth-child(2) {
     border-right: 1px solid var(--color-border);
 }
+.cricket-row.three-player > .cricket-cell:last-child {
+    border-left: 1px solid var(--color-border);
+}
 
+/* 4-player: [P1 | P2 | buttons | P3 | P4] */
 .cricket-row.four-player > .cricket-cell:nth-child(1) {
     border-right: 1px solid var(--color-border);
 }
-.cricket-row.four-player > .buttons-container {
-    border-left: 1px solid var(--color-border);
+.cricket-row.four-player > .cricket-cell:nth-child(2) {
     border-right: 1px solid var(--color-border);
 }
-.cricket-row.four-player > :last-child {
+.cricket-row.four-player > .cricket-cell:nth-child(4) {
+    border-left: 1px solid var(--color-border);
+}
+.cricket-row.four-player > .cricket-cell:last-child {
     border-left: 1px solid var(--color-border);
 }
 
