@@ -77,7 +77,7 @@ body {
 /* === Score Header === */
 .score-header {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1fr var(--cricket-center-col) 1fr;
     align-items: stretch;
     background: var(--color-bg);
     flex-shrink: 0;
@@ -86,16 +86,16 @@ body {
 
 /* 1-player: player on left, center, empty right (away hidden) */
 .score-header.one-player {
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1fr var(--cricket-center-col) 1fr;
 }
 
 .score-header.two-player {
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: 1fr var(--cricket-center-col) 1fr;
 }
 
 /* 3-player: 1 | 2 | Round | 3 (P3 wider since alone on right) */
 .score-header.three-player {
-    grid-template-columns: 1fr 1fr auto 2fr;
+    grid-template-columns: 1fr 1fr var(--cricket-center-col) 2fr;
 }
 
 .score-header.three-player .player-header.home { order: 1; }
@@ -105,7 +105,7 @@ body {
 
 /* 4-player: 1 | 2 | Round | 3 | 4 */
 .score-header.four-player {
-    grid-template-columns: 1fr 1fr auto 1fr 1fr;
+    grid-template-columns: 1fr 1fr var(--cricket-center-col) 1fr 1fr;
 }
 
 .score-header.four-player .player-header.home { order: 1; }
@@ -276,6 +276,7 @@ body {
     padding: var(--space-sm);
     background: var(--color-bg);
     flex-shrink: 0;
+    min-height: 40dvh;
 }
 
 /* === Bottom Bar (Chicago) === */

@@ -22,37 +22,47 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     if (totalMarks === 0) {
         return `<span class="${cssClass}${compactClass}"></span>`;
     } else if (totalMarks === 1) {
-        // Single slash — thick hand-drawn curved stroke
+        // Single slash — chalk-drawn with double stroke for texture
         return `<span class="${cssClass}${compactClass}">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18,70 C24,54 30,42 40,30 C46,24 54,16 62,10" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round"/>
+                <path d="M16,72 C22,56 28,44 38,32 C44,25 52,17 60,10" stroke="${color}" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.5"/>
+                <path d="M18,70 C24,53 31,40 40,30 C47,22 55,15 62,8" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
             </svg>
         </span>`;
     } else if (totalMarks === 2) {
-        // X — two thick hand-drawn curved strokes with wobble
+        // X — chalk-drawn with double strokes for gritty texture
         return `<span class="${cssClass}${compactClass}">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12,12 C22,20 32,34 42,44 C52,54 62,62 68,68" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round"/>
-                <path d="M68,12 C58,22 48,34 38,44 C28,54 18,62 12,68" stroke="${color}" stroke-width="10" fill="none" stroke-linecap="round"/>
+                <path d="M13,14 C24,22 34,35 43,46 C52,56 61,64 69,70" stroke="${color}" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.5"/>
+                <path d="M15,12 C25,20 35,33 44,44 C53,54 62,63 68,68" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
+                <path d="M67,14 C58,22 48,35 38,46 C28,56 19,64 11,70" stroke="${color}" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.5"/>
+                <path d="M69,12 C59,21 49,33 39,44 C29,54 19,63 13,68" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
             </svg>
         </span>`;
     } else {
-        // Closed — thick hand-drawn circle (with or without X inside)
-        const circlePath = 'M40,8 C58,6 72,20 73,40 C74,58 60,74 40,73 C20,72 6,58 8,40 C10,20 22,10 40,8 Z';
+        // Closed — chalk-drawn circle with rough double-stroke
+        const circle1 = 'M40,7 C60,5 74,18 75,40 C76,62 62,76 40,75 C18,74 4,60 6,40 C8,18 20,9 40,7 Z';
+        const circle2 = 'M40,9 C58,8 72,21 73,40 C74,59 60,73 40,73 C20,73 7,59 8,40 C9,21 22,10 40,9 Z';
         if (!closedInOneTurn && totalMarks >= 3) {
             // Circle with X inside
             return `<span class="${cssClass}${compactClass}">
                 <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                    <path d="${circlePath}" stroke="${color}" stroke-width="8" fill="none"/>
-                    <path d="M25,25 C31,32 36,38 41,43 C46,48 51,54 55,57" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
-                    <path d="M55,25 C49,32 44,38 39,43 C34,48 29,54 25,57" stroke="${color}" stroke-width="7" fill="none" stroke-linecap="round"/>
+                    <path d="${circle1}" stroke="${color}" stroke-width="6" fill="none" opacity="0.45"/>
+                    <path d="${circle2}" stroke="${color}" stroke-width="5" fill="none"/>
+                    <path d="M26,26 C32,33 37,39 42,44 C47,49 52,55 56,58" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.5"/>
+                    <path d="M27,24 C33,31 38,38 43,43 C48,48 53,54 57,57" stroke="${color}" stroke-width="5" fill="none" stroke-linecap="round"/>
+                    <path d="M56,26 C50,33 45,39 40,44 C35,49 30,55 26,58" stroke="${color}" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.5"/>
+                    <path d="M57,24 C51,31 46,38 41,43 C36,48 31,54 27,57" stroke="${color}" stroke-width="5" fill="none" stroke-linecap="round"/>
                 </svg>
             </span>`;
         } else {
-            // Just circle — closed in one turn
-            return `<span class="${cssClass}${compactClass}">
+            // Just circle — closed in one turn (tappable for boobie dot)
+            return `<span class="${cssClass}${compactClass}" data-boobie="true" onclick="this.classList.toggle('show-dot')">
                 <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                    <path d="${circlePath}" stroke="${color}" stroke-width="8" fill="none"/>
+                    <path d="${circle1}" stroke="${color}" stroke-width="6" fill="none" opacity="0.45"/>
+                    <path d="${circle2}" stroke="${color}" stroke-width="5" fill="none"/>
+                    <circle class="boobie-dot" cx="40" cy="40" r="5" fill="${color}" opacity="0"/>
+                    <circle class="boobie-ring" cx="40" cy="40" r="9" stroke="${color}" stroke-width="2" fill="none" opacity="0"/>
                 </svg>
             </span>`;
         }

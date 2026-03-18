@@ -8,7 +8,6 @@
     display: grid;
     align-items: center;
     min-height: clamp(50px, 8dvh, 90px);
-    border-bottom: 1px solid var(--color-border);
     padding: 0 var(--space-xs);
 }
 
@@ -53,6 +52,14 @@
     height: 100%;
 }
 
+/* Hidden boobie dot — revealed on tap */
+.mark.show-dot .boobie-dot {
+    opacity: 1;
+}
+.mark.show-dot .boobie-ring {
+    opacity: 0.7;
+}
+
 .mark.spanish {
     width: calc(clamp(28px, 4.5dvh, 50px) * var(--ui-scale));
     height: calc(clamp(28px, 4.5dvh, 50px) * var(--ui-scale));
@@ -72,9 +79,9 @@
     min-height: 100%;
 }
 
-/* Active player column highlight */
+/* Active player column highlight — bold stripe */
 .cricket-cell.active {
-    background: rgba(0, 102, 204, 0.12);
+    background: rgba(0, 102, 204, 0.25);
 }
 
 /* === Player Column Separators === */
@@ -108,7 +115,7 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    min-width: clamp(120px, 25vw, 200px);
+    overflow: hidden;
 }
 
 /* Player mark containers */
@@ -130,7 +137,7 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    min-width: clamp(120px, 25vw, 200px);
+    overflow: hidden;
 }
 
 .cricket-num-btn {
@@ -141,7 +148,7 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    background: var(--color-primary);
+    background: linear-gradient(to bottom, #1a7ae6, var(--color-primary) 40%, #004da6);
     color: var(--color-text);
     font-size: calc(clamp(1.4rem, 4.5dvh, 3rem) * var(--ui-scale));
     padding: calc(clamp(8px, 2.5dvh, 22px) * var(--ui-scale)) calc(clamp(14px, 4vw, 32px) * var(--ui-scale));
@@ -150,10 +157,15 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 
 .cricket-num-btn:active {
-    opacity: 0.8;
+    transform: translateY(2px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+    background: linear-gradient(to bottom, #0060cc, #004da6 40%, #003380);
 }
 
 .cricket-num-btn.dimmed {
@@ -169,7 +181,7 @@
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    background: var(--color-primary-dark);
+    background: linear-gradient(to bottom, #0068c0, var(--color-primary-dark) 40%, #003d7a);
     color: var(--color-text);
     font-size: calc(clamp(0.8rem, 2.5dvh, 1.5rem) * var(--ui-scale));
     padding: calc(clamp(4px, 1.5dvh, 14px) * var(--ui-scale)) calc(clamp(6px, 1.5vw, 14px) * var(--ui-scale));
@@ -178,10 +190,15 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
 }
 
 .cricket-dt-btn:active {
-    opacity: 0.8;
+    transform: translateY(2px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    background: linear-gradient(to bottom, #004da6, #003d7a 40%, #002d5c);
 }
 
 .cricket-dt-btn.dimmed {
@@ -408,6 +425,7 @@
 .number-pad {
     display: flex;
     gap: var(--space-sm);
+    flex: 1;
 }
 
 .quick-col {
@@ -435,8 +453,8 @@
     background: #ccc;
     color: var(--color-text-dark);
     border: 2px solid #999;
-    font-size: calc(clamp(1rem, 2.5dvh, 1.6rem) * var(--ui-scale));
-    padding: calc(clamp(6px, 1.2dvh, 14px) * var(--ui-scale));
+    font-size: calc(clamp(1.1rem, 3dvh, 1.8rem) * var(--ui-scale));
+    padding: calc(clamp(8px, 1.5dvh, 18px) * var(--ui-scale));
 }
 
 .x01-num-btn:active {

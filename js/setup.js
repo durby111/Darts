@@ -199,9 +199,13 @@ function startGame() {
         game.players.push(player);
     }
 
-    // Clear any previous saved game and apply game-type scale
+    // Clear any previous saved game; reset scale to 1.0 for new game
     clearActiveGame();
-    applyGameTypeScale(gameType);
+    const scaleSlider = document.getElementById('uiScale');
+    const scaleLabel = document.getElementById('uiScaleValue');
+    if (scaleSlider) scaleSlider.value = '1.0';
+    if (scaleLabel) scaleLabel.textContent = '1.0x';
+    document.documentElement.style.setProperty('--ui-scale', 1);
 
     // Switch screens
     document.getElementById('setupScreen').style.display = 'none';
