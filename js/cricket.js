@@ -97,7 +97,10 @@ function updateCricketGrid() {
         const compactBtnClass = isCompact ? (isMinnesota ? ' minnesota' : ' spanish') : '';
         if (isSpecial) {
             const btnLabel = target === 'Triples' ? 'T' : target === 'Doubles' ? 'D' : 'BED';
-            buttonsHtml = `<button class="cricket-num-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="1">${btnLabel}</button>`;
+            // Add invisible spacers so special rows match the D/num/T 3-button layout
+            buttonsHtml = `<span class="cricket-dt-btn${compactBtnClass} fake-spacer" aria-hidden="true"></span>`;
+            buttonsHtml += `<button class="cricket-num-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="1">${btnLabel}</button>`;
+            buttonsHtml += `<span class="cricket-dt-btn${compactBtnClass} fake-spacer" aria-hidden="true"></span>`;
         } else {
             const displayNum = target === 'Bull' ? 'B' : target;
             buttonsHtml = `<button class="cricket-dt-btn${compactBtnClass}${allClosed ? ' dimmed' : ''}" data-target="${target}" data-multiplier="2">D</button>`;
