@@ -50,6 +50,11 @@
     grid-template-columns: 1fr 1fr auto 1fr 1fr;
 }
 
+/* Add horizontal padding so Minnesota buttons sit inside the separator lines */
+.cricket-row.minnesota .cricket-buttons {
+    padding: 0 4px;
+}
+
 /* === Mark Symbols === */
 .mark {
     display: inline-flex;
@@ -258,8 +263,8 @@
 
 .cricket-dt-btn.minnesota {
     font-size: calc(clamp(1.15rem, 2.9dvh, 1.95rem) * var(--ui-scale));
-    padding: calc(clamp(5px, 1.6dvh, 16px) * var(--ui-scale)) calc(clamp(8px, 2vw, 20px) * var(--ui-scale));
-    min-width: clamp(43px, 10vw, 78px);
+    padding: calc(clamp(5px, 1.6dvh, 16px) * var(--ui-scale)) calc(clamp(4px, 1.2vw, 12px) * var(--ui-scale));
+    min-width: clamp(32px, 7vw, 55px);
 }
 
 /* === Last Turn Indicators === */
