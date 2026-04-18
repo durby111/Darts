@@ -1,0 +1,22 @@
+{
+    "name": "BlakeOut Dev",
+    "short_name": "BlakeOut Dev",
+    "description": "Darts scorekeeper — development build",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#000000",
+    "theme_color": "#cc6600",
+    "icons": [
+        {
+            "src": "assets/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

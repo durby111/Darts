@@ -1,0 +1,597 @@
+/* ============================================
+   Game-Specific Styles
+   Cricket grid, X01 history, keypad, controls
+   ============================================ */
+
+/* === Cricket Grid Rows === */
+.cricket-row {
+    display: grid;
+    align-items: center;
+    min-height: clamp(50px, 8dvh, 90px);
+    padding: 0 var(--space-xs);
+}
+
+/* Player count layouts — fixed center column so Bull aligns with others */
+.cricket-row.one-player {
+    grid-template-columns: 1fr var(--cricket-center-col) 1fr;
+}
+
+.cricket-row.two-player {
+    grid-template-columns: 1fr var(--cricket-center-col) 1fr;
+}
+
+.cricket-row.three-player {
+    grid-template-columns: 1fr 1fr var(--cricket-center-col) 2fr;
+}
+
+.cricket-row.four-player {
+    grid-template-columns: 1fr 1fr var(--cricket-center-col) 1fr 1fr;
+}
+
+/* Spanish rows — slightly compact */
+.cricket-row.spanish {
+    min-height: clamp(42px, 6.5dvh, 75px);
+}
+
+/* Minnesota rows — use full screen height (1.95x baked in) */
+.cricket-row.minnesota {
+    min-height: clamp(52px, 9dvh, 104px);
+}
+
+/* Minnesota buttons are larger — fixed center column sized for D+num+T+gaps+padding */
+.cricket-row.minnesota.one-player,
+.cricket-row.minnesota.two-player {
+    grid-template-columns: 1fr var(--minnesota-center-col) 1fr;
+}
+.cricket-row.minnesota.three-player {
+    grid-template-columns: 1fr 1fr var(--minnesota-center-col) 2fr;
+}
+.cricket-row.minnesota.four-player {
+    grid-template-columns: 1fr 1fr var(--minnesota-center-col) 1fr 1fr;
+}
+
+/* Pad buttons so they sit inside the separator lines */
+.cricket-row.minnesota .cricket-buttons {
+    padding: 0 4px;
+}
+
+/* === Mark Symbols === */
+.mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(clamp(48px, 8.5dvh, 84px) * var(--ui-scale));
+    height: calc(clamp(48px, 8.5dvh, 84px) * var(--ui-scale));
+}
+
+.mark svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Hidden boobie dot — revealed on tap */
+.mark.show-dot .boobie-dot {
+    opacity: 1;
+}
+.mark.show-dot .boobie-ring {
+    opacity: 0.7;
+}
+
+.mark.spanish {
+    width: calc(clamp(28px, 4.5dvh, 50px) * var(--ui-scale));
+    height: calc(clamp(28px, 4.5dvh, 50px) * var(--ui-scale));
+}
+
+.mark.minnesota {
+    width: calc(clamp(42px, 6.8dvh, 78px) * var(--ui-scale));
+    height: calc(clamp(42px, 6.8dvh, 78px) * var(--ui-scale));
+}
+
+/* Cricket cell — centers marks and scores */
+.cricket-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 100%;
+}
+
+/* Active player column highlight — bold stripe */
+.cricket-cell.active {
+    background: rgba(0, 102, 204, 0.25);
+}
+
+/* === Player Column Separators ===
+   Borders go on player cells (fixed 1fr columns), NOT on the button
+   container, so they align perfectly even when center column is auto-sized. */
+
+/* 2-player: [P1 | buttons | P2] */
+.cricket-row.two-player > .cricket-cell:first-child {
+    border-right: 1px solid var(--color-border);
+}
+.cricket-row.two-player > .cricket-cell:last-child {
+    border-left: 1px solid var(--color-border);
+}
+
+/* 3-player: [P1 | P2 | buttons | P3] */
+.cricket-row.three-player > .cricket-cell:nth-child(1) {
+    border-right: 1px solid var(--color-border);
+}
+.cricket-row.three-player > .cricket-cell:nth-child(2) {
+    border-right: 1px solid var(--color-border);
+}
+.cricket-row.three-player > .cricket-cell:last-child {
+    border-left: 1px solid var(--color-border);
+}
+
+/* 4-player: [P1 | P2 | buttons | P3 | P4] */
+.cricket-row.four-player > .cricket-cell:nth-child(1) {
+    border-right: 1px solid var(--color-border);
+}
+.cricket-row.four-player > .cricket-cell:nth-child(2) {
+    border-right: 1px solid var(--color-border);
+}
+.cricket-row.four-player > .cricket-cell:nth-child(4) {
+    border-left: 1px solid var(--color-border);
+}
+.cricket-row.four-player > .cricket-cell:last-child {
+    border-left: 1px solid var(--color-border);
+}
+
+/* Cricket buttons column */
+.cricket-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+/* Player mark containers */
+.home-marks,
+.away-marks,
+.player3-marks,
+.player4-marks {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    position: relative;
+    min-height: 100%;
+}
+
+/* === Cricket Buttons (D / Number / T) === */
+.buttons-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.cricket-num-btn {
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-weight: bold;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    background: linear-gradient(to bottom, #1a7ae6, var(--color-primary) 40%, #004da6);
+    color: var(--color-text);
+    font-size: calc(clamp(1.4rem, 4.5dvh, 3rem) * var(--ui-scale));
+    padding: calc(clamp(8px, 2.5dvh, 22px) * var(--ui-scale)) calc(clamp(14px, 4vw, 32px) * var(--ui-scale));
+    min-width: clamp(50px, 12vw, 100px);
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.cricket-num-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+    background: linear-gradient(to bottom, #0060cc, #004da6 40%, #003380);
+}
+
+.cricket-num-btn.dimmed {
+    background: #444;
+    color: var(--color-text-dim);
+}
+
+.cricket-dt-btn {
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-weight: bold;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    background: linear-gradient(to bottom, #0068c0, var(--color-primary-dark) 40%, #003d7a);
+    color: var(--color-text);
+    font-size: calc(clamp(0.8rem, 2.5dvh, 1.5rem) * var(--ui-scale));
+    padding: calc(clamp(4px, 1.5dvh, 14px) * var(--ui-scale)) calc(clamp(6px, 1.5vw, 14px) * var(--ui-scale));
+    min-width: clamp(28px, 6vw, 50px);
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+.cricket-dt-btn:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    background: linear-gradient(to bottom, #004da6, #003d7a 40%, #002d5c);
+}
+
+.cricket-dt-btn.dimmed {
+    background: #444;
+    color: var(--color-text-dim);
+}
+
+/* Fake spacer for Bull row — same size as T button but invisible */
+.cricket-dt-btn.fake-spacer {
+    background: transparent;
+    border: none;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+/* Spanish buttons — ~80% of standard */
+.cricket-num-btn.spanish {
+    font-size: calc(clamp(1.1rem, 3.6dvh, 2.4rem) * var(--ui-scale));
+    padding: calc(clamp(6px, 2dvh, 18px) * var(--ui-scale)) calc(clamp(11px, 3.2vw, 26px) * var(--ui-scale));
+    min-width: clamp(40px, 10vw, 80px);
+}
+
+.cricket-dt-btn.spanish {
+    font-size: calc(clamp(0.65rem, 2dvh, 1.2rem) * var(--ui-scale));
+    padding: calc(clamp(3px, 1.2dvh, 11px) * var(--ui-scale)) calc(clamp(5px, 1.2vw, 11px) * var(--ui-scale));
+    min-width: clamp(22px, 5vw, 40px);
+}
+
+/* Minnesota buttons — inherently larger (1.95x baked in: 1.5 * 1.3) */
+.cricket-num-btn.minnesota {
+    font-size: calc(clamp(1.75rem, 4.9dvh, 2.9rem) * var(--ui-scale));
+    padding: calc(clamp(8px, 2dvh, 20px) * var(--ui-scale)) calc(clamp(16px, 3.9vw, 35px) * var(--ui-scale));
+    min-width: clamp(65px, 15vw, 120px);
+}
+
+.cricket-dt-btn.minnesota {
+    font-size: calc(clamp(1.15rem, 2.9dvh, 1.95rem) * var(--ui-scale));
+    padding: calc(clamp(5px, 1.6dvh, 16px) * var(--ui-scale)) calc(clamp(4px, 1.2vw, 12px) * var(--ui-scale));
+    min-width: clamp(32px, 7vw, 55px);
+}
+
+/* === Last Turn Indicators === */
+.last-turn-indicator {
+    font-weight: bold;
+    font-size: clamp(0.6rem, 1.5dvh, 0.9rem);
+    position: absolute;
+    right: 2px;
+    top: 2px;
+}
+
+.last-turn-indicator.pending-indicator {
+    color: var(--color-pending);
+}
+
+.last-turn-indicator.prev-turn-indicator {
+    color: var(--color-prev-turn);
+    font-size: clamp(0.5rem, 1.2dvh, 0.75rem);
+}
+
+/* === Cricket Bottom Controls === */
+.cricket-controls-left,
+.cricket-controls-right {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.cricket-controls-right {
+    align-items: flex-end;
+}
+
+/* MISS/ENTER slot — both buttons occupy the same cell */
+.miss-enter-slot {
+    display: grid;
+}
+
+.miss-enter-slot > button {
+    grid-row: 1;
+    grid-column: 1;
+}
+
+/* Bigger ENTER and MISS buttons in cricket */
+#enterBtn, #missBtn {
+    font-size: calc(clamp(1.2rem, 3dvh, 1.8rem) * var(--ui-scale));
+    padding: calc(clamp(12px, 2.5dvh, 24px) * var(--ui-scale)) calc(clamp(20px, 4vw, 40px) * var(--ui-scale));
+    min-height: calc(clamp(48px, 7dvh, 72px) * var(--ui-scale));
+}
+
+.center-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-xs);
+}
+
+.pending-text {
+    color: var(--color-primary-light);
+    font-size: var(--font-md);
+    text-align: center;
+    min-height: 1.5em;
+}
+
+.score-diff-indicator {
+    text-align: center;
+    font-weight: bold;
+    font-size: var(--font-xl);
+    min-height: 1.5em;
+}
+
+/* === X01 Score History === */
+.score-history-col {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: var(--space-xs) var(--space-sm);
+    scrollbar-width: thin;
+    scrollbar-color: #444 var(--color-surface);
+}
+
+.score-history-col.left {
+    text-align: center;
+    border-right: 1px solid var(--color-border);
+}
+
+.score-history-col.right {
+    text-align: center;
+    border-left: 1px solid var(--color-border);
+}
+
+.round-numbers-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--space-xs);
+    overflow-y: auto;
+    scrollbar-width: none;
+    min-width: 35px;
+}
+
+.round-number {
+    font-size: var(--font-md);
+    color: var(--color-text-dim);
+    padding: var(--space-xs) var(--space-sm);
+    min-height: clamp(32px, 5dvh, 48px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.round-number.current {
+    color: var(--color-primary-light);
+    font-weight: bold;
+}
+
+.score-history-entry {
+    font-size: calc(clamp(1.8rem, 6dvh, 2.8rem) * var(--ui-scale));
+    font-weight: bold;
+    padding: var(--space-xs) var(--space-sm);
+    min-height: calc(clamp(36px, 6dvh, 56px) * var(--ui-scale));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.score-history-entry.current {
+    color: var(--color-primary-light);
+    font-weight: bold;
+}
+
+.score-history-entry.bust {
+    color: #ff4444;
+    text-decoration: line-through;
+}
+
+/* === X01 Controls Area === */
+.checkout-suggestion {
+    background: rgba(0, 102, 204, 0.25);
+    color: var(--color-primary-light);
+    text-align: center;
+    padding: var(--space-md);
+    font-size: var(--font-xl);
+    font-weight: bold;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-xs);
+}
+
+.finish-indicator {
+    text-align: center;
+    font-weight: bold;
+    font-size: var(--font-lg);
+    padding: var(--space-xs);
+    min-height: clamp(20px, 3dvh, 30px);
+}
+
+/* Input row: Undo | [Redo] | Display */
+.x01-input-row {
+    display: flex;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+    align-items: center;
+}
+
+.input-display {
+    flex: 1;
+    background: var(--color-surface-alt);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) var(--space-lg);
+    font-size: calc(clamp(1.8rem, 5dvh, 3rem) * var(--ui-scale));
+    font-weight: bold;
+    text-align: center;
+    color: var(--color-text);
+    min-height: calc(clamp(48px, 7dvh, 72px) * var(--ui-scale));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+/* === Number Pad === */
+.number-pad {
+    display: flex;
+    gap: var(--space-sm);
+    flex: 1;
+}
+
+.quick-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    flex: 0 0 auto;
+    width: clamp(42px, 10vw, 65px);
+}
+
+.pad-center {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-xs);
+}
+
+.x01-num-btn {
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-weight: bold;
+    cursor: pointer;
+    touch-action: manipulation;
+    background: #ccc;
+    color: var(--color-text-dark);
+    border: 2px solid #999;
+    font-size: calc(clamp(1.1rem, 3dvh, 1.8rem) * var(--ui-scale));
+    padding: calc(clamp(8px, 1.5dvh, 18px) * var(--ui-scale));
+}
+
+.x01-num-btn:active {
+    opacity: 0.8;
+}
+
+.x01-quick-btn {
+    border: none;
+    border-radius: var(--radius-md);
+    font-family: var(--font-family);
+    font-weight: bold;
+    cursor: pointer;
+    touch-action: manipulation;
+    background: var(--color-primary-dark);
+    color: var(--color-text);
+    font-size: calc(clamp(0.75rem, 1.8dvh, 1.1rem) * var(--ui-scale));
+    padding: calc(clamp(6px, 1.2dvh, 14px) * var(--ui-scale)) clamp(2px, 0.5vw, 6px);
+    flex: 1;
+}
+
+.x01-quick-btn:active {
+    opacity: 0.8;
+}
+
+/* X01 bottom row: MISS | BUST | ENTER */
+.x01-bottom-row {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+}
+
+.x01-bottom-row .btn {
+    flex: 1;
+}
+
+/* === Blakeout Message === */
+.blakeout-message {
+    font-size: var(--font-xl);
+    color: var(--color-pending);
+    font-weight: bold;
+    margin: var(--space-lg) 0;
+}
+
+.blakeout-message span {
+    font-size: var(--font-md);
+}
+
+/* === Keypad Modal (Minnesota scoring) === */
+.keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+}
+
+.keypad-display {
+    font-size: var(--font-2xl);
+    text-align: center;
+    margin: var(--space-xl) 0;
+    min-height: 60px;
+}
+
+/* === Landscape adaptations === */
+@media (orientation: landscape) {
+    .cricket-row {
+        min-height: clamp(28px, 5dvh, 45px);
+    }
+
+    .mark {
+        width: clamp(26px, 5dvh, 46px);
+        height: clamp(26px, 5dvh, 46px);
+    }
+
+    .cricket-num-btn {
+        font-size: clamp(0.9rem, 2.5dvh, 1.5rem);
+        padding: clamp(4px, 1dvh, 10px) clamp(8px, 2vw, 16px);
+    }
+
+    .cricket-dt-btn {
+        font-size: clamp(0.6rem, 1.5dvh, 1rem);
+        padding: clamp(3px, 0.8dvh, 6px) clamp(4px, 1vw, 10px);
+    }
+
+    .x01-num-btn {
+        padding: clamp(6px, 1.5dvh, 14px);
+        font-size: clamp(1rem, 2.5dvh, 1.5rem);
+    }
+}
+
+@media (orientation: landscape) and (max-height: 800px) {
+    .cricket-row.spanish,
+    .cricket-row.minnesota {
+        min-height: clamp(24px, 4dvh, 36px);
+    }
+
+    .mark.spanish,
+    .mark.minnesota {
+        width: clamp(22px, 3.5dvh, 36px);
+        height: clamp(22px, 3.5dvh, 36px);
+    }
+}
+
+/* Large tablets — more breathing room */
+@media (min-height: 1200px) {
+    .cricket-row {
+        min-height: clamp(50px, 7dvh, 85px);
+    }
+
+    .mark {
+        width: clamp(48px, 7.5dvh, 78px);
+        height: clamp(48px, 7.5dvh, 78px);
+    }
+}

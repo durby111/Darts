@@ -1,0 +1,37 @@
+/* ============================================
+   Dev-build visual markers.
+   Only applied when <body class="dev-build">.
+   ============================================ */
+
+.dev-build .round-badge {
+    background: #cc6600;
+}
+
+.dev-build .version-text {
+    color: #ff9944;
+    font-weight: bold;
+}
+
+.dev-build .setup-card h1::after {
+    content: ' DEV';
+    color: #cc6600;
+    font-size: 0.6em;
+    vertical-align: super;
+    letter-spacing: 0.1em;
+}
+
+.dev-build::before {
+    content: 'DEV';
+    position: fixed;
+    top: 6px;
+    right: 8px;
+    background: #cc6600;
+    color: #fff;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    z-index: 9999;
+    pointer-events: none;
+}
