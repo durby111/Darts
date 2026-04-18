@@ -2,50 +2,59 @@
    Firebase wrapper — roster sync via Firestore.
    Offline-first: the SDK queues writes locally and
    replays them when the device comes back online.
+
+   All Firebase imports are loaded dynamically inside
+   initFirebase() so a missing firebase-config.js
+   (gitignored, may not exist in every deploy) cannot
+   break the module graph for the rest of the app.
    ============================================ */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
-import {
-    getAuth, signInAnonymously, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
-import {
-    getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot,
-    serverTimestamp, enableIndexedDbPersistence
-} from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
-import { firebaseConfig } from "./firebase-config.js";
+const SDK_BASE = "https://www.gstatic.com/firebasejs/10.13.2";
 
 let app, db, auth;
+let sdk = null;              // resolved Firestore SDK fns after init
 let rosterCache = [];
 let rosterListeners = [];
 let initState = 'pending';   // pending | ready | error
 let initError = null;
 
-/**
- * Initialize Firebase, sign in anonymously, attach a live roster listener.
- * Safe to call once at app start. Failures are non-fatal — the rest of the
- * app still works, the roster section just shows an error.
- */
 export async function initFirebase() {
     try {
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-        auth = getAuth(app);
+        // Dynamic imports — failures here are caught and logged, not thrown
+        // up the module graph, so setup.js etc. are unaffected.
+        const cfgMod = await import('./firebase-config.js');
+        const appMod = await import(`${SDK_BASE}/firebase-app.js`);
+        const authMod = await import(`${SDK_BASE}/firebase-auth.js`);
+        const fsMod = await import(`${SDK_BASE}/firebase-firestore.js`);
+
+        sdk = {
+            collection: fsMod.collection,
+            doc: fsMod.doc,
+            setDoc: fsMod.setDoc,
+            deleteDoc: fsMod.deleteDoc,
+            onSnapshot: fsMod.onSnapshot,
+            serverTimestamp: fsMod.serverTimestamp,
+        };
+
+        app = appMod.initializeApp(cfgMod.firebaseConfig);
+        db = fsMod.getFirestore(app);
+        auth = authMod.getAuth(app);
 
         // IndexedDB persistence — must be enabled BEFORE any other Firestore call.
         // Fails silently in browsers that don't support it (Safari private mode,
         // multiple tabs, etc). The app still works in those cases.
         try {
-            await enableIndexedDbPersistence(db);
+            await fsMod.enableIndexedDbPersistence(db);
         } catch (err) {
             console.warn('[Firebase] offline persistence unavailable:', err.code);
         }
 
-        await signInAnonymously(auth);
+        await authMod.signInAnonymously(auth);
 
         // Live roster snapshot. Re-fires on every remote change AND on local
         // writes from this device, so the UI always reflects current state.
-        onSnapshot(
-            collection(db, 'roster'),
+        sdk.onSnapshot(
+            sdk.collection(db, 'roster'),
             (snap) => {
                 rosterCache = snap.docs
                     .map(d => d.data())
@@ -62,10 +71,11 @@ export async function initFirebase() {
             }
         );
     } catch (err) {
-        console.error('[Firebase] init failed:', err);
+        console.warn('[Firebase] init skipped/failed:', err?.message || err);
         initState = 'error';
         initError = err;
-        throw err;
+        // Notify listeners so the UI can show "(offline)".
+        rosterListeners.forEach(fn => { try { fn(rosterCache); } catch (e) { console.error(e); } });
     }
 }
 
@@ -98,20 +108,20 @@ export async function upsertPlayer({ email, name }) {
     const cleanName = (name || '').trim();
     if (!id) throw new Error('email required');
     if (!cleanName) throw new Error('name required');
-    if (!db) throw new Error('Firebase not initialized');
+    if (!db || !sdk) throw new Error('Roster is offline. Check your connection and refresh.');
 
-    const ref = doc(db, 'roster', id);
-    await setDoc(ref, {
+    const ref = sdk.doc(db, 'roster', id);
+    await sdk.setDoc(ref, {
         email: id,
         name: cleanName,
-        updatedAt: serverTimestamp()
+        updatedAt: sdk.serverTimestamp()
     }, { merge: true });
 }
 
 export async function deletePlayer(email) {
     const id = normalizeEmail(email);
-    if (!id || !db) return;
-    await deleteDoc(doc(db, 'roster', id));
+    if (!id || !db || !sdk) return;
+    await sdk.deleteDoc(sdk.doc(db, 'roster', id));
 }
 
 export function findPlayerByName(name) {
