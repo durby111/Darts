@@ -323,8 +323,16 @@ export function hitTarget(target, multiplier) {
         const cricketData = player.cricketData[target];
         const maxMarks = cricketData.maxMarks;
 
-        // Check if player already closed it AND opponents haven't all closed
-        const playerClosed = cricketData.marks >= maxMarks;
+        // Count pending darts already placed on this target *this turn*,
+        // so a dart that closes the target in-turn correctly triggers the
+        // keypad on subsequent taps (matches how numbers/bulls behave).
+        let pendingOnTarget = 0;
+        for (const d of game.pendingDarts) {
+            if (d.target === target) pendingOnTarget++;
+        }
+        const effectiveMarks = cricketData.marks + pendingOnTarget;
+
+        const playerClosed = effectiveMarks >= maxMarks;
         const allOpponentsClosed = game.players.every((p, i) => {
             if (i === game.currentPlayer) return true;
             return p.cricketData[target].closed;

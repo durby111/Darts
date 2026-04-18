@@ -144,11 +144,12 @@ body {
 }
 
 .player-name {
-    font-size: var(--font-sm);
+    font-size: calc(var(--font-lg) * var(--ui-scale));
     font-weight: bold;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: 0.02em;
 }
 
 .score-display-header {
@@ -210,10 +211,10 @@ body {
 .round-badge {
     background: var(--color-primary);
     color: var(--color-text);
-    font-size: var(--font-lg);
+    font-size: calc(var(--font-2xl) * var(--ui-scale));
     font-weight: bold;
-    width: clamp(30px, 5vw, 45px);
-    height: clamp(30px, 5vw, 45px);
+    width: calc(clamp(50px, 8vw, 75px) * var(--ui-scale));
+    height: calc(clamp(50px, 8vw, 75px) * var(--ui-scale));
     display: flex;
     align-items: center;
     justify-content: center;

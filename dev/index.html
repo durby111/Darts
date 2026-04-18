@@ -16,12 +16,13 @@
     <link rel="stylesheet" href="css/dev.css">
 </head>
 <body class="dev-build">
-    <!-- Shared SVG chalk texture filter — referenced by all mark symbols -->
+    <!-- Shared SVG filter — subtle texture only; shapes carry the hand-drawn
+         feel via their paths, not via noise. Keeps marks crisp. -->
     <svg style="position:absolute;width:0;height:0" aria-hidden="true">
         <defs>
-            <filter id="chalk" x="-8%" y="-8%" width="116%" height="116%">
-                <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="4" seed="2" result="noise"/>
-                <feDisplacementMap in="SourceGraphic" in2="noise" scale="4.5" xChannelSelector="R" yChannelSelector="G"/>
+            <filter id="chalk" x="-4%" y="-4%" width="108%" height="108%">
+                <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="2" result="noise"/>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.9" xChannelSelector="R" yChannelSelector="G"/>
             </filter>
         </defs>
     </svg>
