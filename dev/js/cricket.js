@@ -513,10 +513,12 @@ export function initCricketControls() {
     if (controlsInitialized) return;
     controlsInitialized = true;
 
-    // Miss button
+    // Miss button — pointerdown fires on finger-press, bypassing the
+    // scroll-disambiguation delay that click incurs over a scrollable ancestor.
     const missBtn = document.getElementById('missBtn');
     if (missBtn) {
-        missBtn.addEventListener('click', () => {
+        missBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
             cricketMiss();
         });
     }
@@ -524,7 +526,8 @@ export function initCricketControls() {
     // Enter/Confirm button
     const enterBtn = document.getElementById('enterBtn');
     if (enterBtn) {
-        enterBtn.addEventListener('click', () => {
+        enterBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
             cricketConfirm();
         });
     }
@@ -532,7 +535,7 @@ export function initCricketControls() {
     // Event delegation for cricket grid buttons
     const cricketGrid = document.getElementById('cricketGrid');
     if (cricketGrid) {
-        cricketGrid.addEventListener('click', (e) => {
+        cricketGrid.addEventListener('pointerdown', (e) => {
             // Handle boobie dot toggle
             const boobieEl = e.target.closest('[data-boobie="true"]');
             if (boobieEl) {
@@ -548,6 +551,7 @@ export function initCricketControls() {
 
             const btn = e.target.closest('.cricket-num-btn, .cricket-dt-btn');
             if (!btn) return;
+            e.preventDefault();
 
             const target = btn.getAttribute('data-target');
             const multiplier = parseInt(btn.getAttribute('data-multiplier'));

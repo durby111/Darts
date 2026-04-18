@@ -496,25 +496,34 @@ function onEl(id, event, handler) {
 }
 
 function initX01Controls() {
+    // Scoring buttons use pointerdown so they fire the instant the finger
+    // lands — bypasses click's scroll-disambiguation delay.
+    const bindDown = (btn, fn) => {
+        btn.addEventListener('pointerdown', (e) => { e.preventDefault(); fn(); });
+    };
+
     // Digit buttons
     document.querySelectorAll('[data-digit]').forEach(btn => {
-        btn.addEventListener('click', () => addDigit(btn.dataset.digit));
+        bindDown(btn, () => addDigit(btn.dataset.digit));
     });
 
     // Operator buttons (× and +)
     document.querySelectorAll('[data-op]').forEach(btn => {
-        btn.addEventListener('click', () => addOperator(btn.dataset.op));
+        bindDown(btn, () => addOperator(btn.dataset.op));
     });
 
     // Quick score buttons
     document.querySelectorAll('[data-quick]').forEach(btn => {
-        btn.addEventListener('click', () => quickScore(parseInt(btn.dataset.quick)));
+        bindDown(btn, () => quickScore(parseInt(btn.dataset.quick)));
     });
 
     // Control buttons
-    onEl('x01EnterBtn', 'click', submitScore);
-    onEl('x01MissBtn', 'click', x01Miss);
-    onEl('x01BustBtn', 'click', x01Bust);
+    const enterEl = document.getElementById('x01EnterBtn');
+    if (enterEl) bindDown(enterEl, submitScore);
+    const missEl = document.getElementById('x01MissBtn');
+    if (missEl) bindDown(missEl, x01Miss);
+    const bustEl = document.getElementById('x01BustBtn');
+    if (bustEl) bindDown(bustEl, x01Bust);
 
     // Undo/Redo (Undo also acts as Back — clears input first, then undoes last action)
     onEl('undoBtnX01', 'click', () => {

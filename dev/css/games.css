@@ -174,7 +174,8 @@
     font-weight: bold;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    touch-action: none;
+    user-select: none;
     background: linear-gradient(to bottom, #1a7ae6, var(--color-primary) 40%, #004da6);
     color: var(--color-text);
     font-size: calc(clamp(1.4rem, 4.5dvh, 3rem) * var(--ui-scale));
@@ -207,7 +208,8 @@
     font-weight: bold;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    touch-action: none;
+    user-select: none;
     background: linear-gradient(to bottom, #0068c0, var(--color-primary-dark) 40%, #003d7a);
     color: var(--color-text);
     font-size: calc(clamp(0.8rem, 2.5dvh, 1.5rem) * var(--ui-scale));
@@ -312,6 +314,15 @@
     font-size: calc(clamp(1.2rem, 3dvh, 1.8rem) * var(--ui-scale));
     padding: calc(clamp(12px, 2.5dvh, 24px) * var(--ui-scale)) calc(clamp(20px, 4vw, 40px) * var(--ui-scale));
     min-height: calc(clamp(48px, 7dvh, 72px) * var(--ui-scale));
+}
+
+/* Scoring action buttons: block scroll-gesture capture so taps never
+   get reinterpreted as a drag. Combined with pointerdown handlers,
+   these fire the instant the finger lands. */
+#enterBtn, #missBtn,
+#x01EnterBtn, #x01MissBtn, #x01BustBtn {
+    touch-action: none;
+    user-select: none;
 }
 
 .center-area {
@@ -477,7 +488,8 @@
     font-family: var(--font-family);
     font-weight: bold;
     cursor: pointer;
-    touch-action: manipulation;
+    touch-action: none;
+    user-select: none;
     background: #ccc;
     color: var(--color-text-dark);
     border: 2px solid #999;
@@ -495,7 +507,8 @@
     font-family: var(--font-family);
     font-weight: bold;
     cursor: pointer;
-    touch-action: manipulation;
+    touch-action: none;
+    user-select: none;
     background: var(--color-primary-dark);
     color: var(--color-text);
     font-size: calc(clamp(0.75rem, 1.8dvh, 1.1rem) * var(--ui-scale));
