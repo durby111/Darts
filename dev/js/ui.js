@@ -62,37 +62,30 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     }
 
     // Closed (3+ marks). Two variants:
-    //  • closed-not-in-one-turn → circle with an X drawn through it
-    //  • closed-in-one-turn     → bullseye (concentric rings + center dot),
-    //    tappable to add/remove the boobie ring highlight on top.
+    //  • closed-not-in-one-turn → clean chalk circle (just an O)
+    //  • closed-in-one-turn     → circle + center dot, tappable for boobie
     if (!closedInOneTurn && totalMarks >= 3) {
         return `<span class="${cssClass}${compactClass}">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
                 <g filter="url(#chalk)">
-                    <path d="${CIRCLE_PATH}" ${stroke} stroke-width="9" opacity="0.3"/>
-                    <path d="${CIRCLE_PATH}" ${stroke} stroke-width="6"/>
-                    <path d="${X_PATH_A}" ${stroke} stroke-width="9" opacity="0.3"/>
-                    <path d="${X_PATH_B}" ${stroke} stroke-width="9" opacity="0.3"/>
-                    <path d="${X_PATH_A}" ${stroke} stroke-width="5.5"/>
-                    <path d="${X_PATH_B}" ${stroke} stroke-width="5.5"/>
+                    <path d="${CIRCLE_PATH}" ${stroke} stroke-width="11" opacity="0.3"/>
+                    <path d="${CIRCLE_PATH}" ${stroke} stroke-width="7"/>
                 </g>
             </svg>
         </span>`;
     }
 
-    // Bullseye — concentric chalk rings + filled center. Always visible
-    // (this is the visual reward for closing in one turn). Tap still
-    // toggles the boobie highlight ring on top.
+    // Closed in one turn — circle + filled center dot (boobie).
+    // Tap toggles the outer highlight ring.
     const dotClass = showBoobie ? ' show-dot' : '';
     return `<span class="${cssClass}${compactClass}${dotClass}" data-boobie="true" data-boobie-player="${playerIndex}" data-boobie-target="${target}">
         <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
             <g filter="url(#chalk)">
-                <path d="${CIRCLE_PATH}" ${stroke} stroke-width="9" opacity="0.3"/>
-                <path d="${CIRCLE_PATH}" ${stroke} stroke-width="6"/>
-                <circle cx="40" cy="40" r="20" ${stroke} stroke-width="4.5" opacity="0.85"/>
-                <circle cx="40" cy="40" r="9" fill="${color}"/>
+                <path d="${CIRCLE_PATH}" ${stroke} stroke-width="11" opacity="0.3"/>
+                <path d="${CIRCLE_PATH}" ${stroke} stroke-width="7"/>
+                <circle cx="40" cy="40" r="11" fill="${color}"/>
             </g>
-            <circle class="boobie-ring" cx="40" cy="40" r="28" stroke="${color}" stroke-width="3" fill="none" opacity="0"/>
+            <circle class="boobie-ring" cx="40" cy="40" r="30" stroke="${color}" stroke-width="3.5" fill="none" opacity="0"/>
         </svg>
     </span>`;
 }

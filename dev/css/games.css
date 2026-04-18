@@ -63,8 +63,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: calc(clamp(48px, 8.5dvh, 84px) * var(--ui-scale));
-    height: calc(clamp(48px, 8.5dvh, 84px) * var(--ui-scale));
+    width: calc(clamp(58px, 10.5dvh, 100px) * var(--ui-scale));
+    height: calc(clamp(58px, 10.5dvh, 100px) * var(--ui-scale));
 }
 
 .mark svg {
@@ -78,13 +78,13 @@
 }
 
 .mark.spanish {
-    width: calc(clamp(28px, 4.5dvh, 50px) * var(--ui-scale));
-    height: calc(clamp(28px, 4.5dvh, 50px) * var(--ui-scale));
+    width: calc(clamp(34px, 5.4dvh, 62px) * var(--ui-scale));
+    height: calc(clamp(34px, 5.4dvh, 62px) * var(--ui-scale));
 }
 
 .mark.minnesota {
-    width: calc(clamp(30px, 4.6dvh, 56px) * var(--ui-scale));
-    height: calc(clamp(30px, 4.6dvh, 56px) * var(--ui-scale));
+    width: calc(clamp(36px, 5.6dvh, 68px) * var(--ui-scale));
+    height: calc(clamp(36px, 5.6dvh, 68px) * var(--ui-scale));
 }
 
 /* Cricket cell — centers marks and scores */
@@ -97,8 +97,20 @@
 }
 
 /* Active player column highlight — bold stripe */
+/* Active player column — bold primary-color stripes down both sides of
+   each cell plus a faint wash. Reads clearly across the room and ties
+   visually to the active player header at the top. */
 .cricket-cell.active {
-    background: rgba(0, 102, 204, 0.25);
+    background: linear-gradient(
+        to right,
+        rgba(0, 102, 204, 0.28) 0%,
+        rgba(0, 102, 204, 0.08) 18%,
+        rgba(0, 102, 204, 0.08) 82%,
+        rgba(0, 102, 204, 0.28) 100%
+    );
+    box-shadow:
+        inset 6px 0 0 var(--color-primary-light),
+        inset -6px 0 0 var(--color-primary-light);
 }
 
 /* === Player Column Separators ===

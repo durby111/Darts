@@ -162,14 +162,17 @@ body {
 
 .score-big {
     font-size: calc(var(--font-score) * var(--ui-scale));
-    font-weight: bold;
+    font-weight: 900;
     background: var(--color-score-bg);
     color: var(--color-score-text);
     padding: var(--space-xs) var(--space-md);
     border-radius: var(--radius-md);
-    min-width: clamp(60px, 12vw, 120px);
+    min-width: clamp(80px, 16vw, 170px);
     text-align: center;
-    line-height: 1.1;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.35);
+    font-variant-numeric: tabular-nums;
 }
 
 .avg-small {
@@ -311,11 +314,7 @@ body {
 /* Large tablets portrait (iPad Pro 12.9": 1024x1366) */
 @media (min-height: 1200px) {
     .score-big {
-        font-size: clamp(3.5rem, 9vw, 6rem);
-    }
-
-    .player-name {
-        font-size: var(--font-md);
+        font-size: clamp(5rem, 13vw, 9rem);
     }
 
     .round-badge {
@@ -325,10 +324,11 @@ body {
     }
 }
 
-/* Landscape mode */
+/* Landscape mode — scores still need to read at 10-15 feet.
+   Prefer dvh so the number tracks screen height. */
 @media (orientation: landscape) {
     .score-big {
-        font-size: clamp(1.5rem, 5dvh, 2.5rem);
+        font-size: clamp(2.8rem, 11dvh, 5.5rem);
     }
 
     .player-header {
@@ -345,7 +345,7 @@ body {
 /* Small tablet landscape (iPad Mini landscape: 1133x744) */
 @media (orientation: landscape) and (max-height: 800px) {
     .score-big {
-        font-size: clamp(1.2rem, 4dvh, 2rem);
+        font-size: clamp(2.4rem, 10dvh, 4.5rem);
     }
 
     .bottom-controls,
