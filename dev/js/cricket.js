@@ -119,6 +119,7 @@ function updateCricketGrid() {
             const cricketData = p.cricketData[target];
             const marks = cricketData.marks;
             const closedInOneTurn = cricketData.closedInOneTurn;
+            const marksBeforeClose = cricketData.marksBeforeClose || 0;
 
             let cellHtml;
 
@@ -131,9 +132,9 @@ function updateCricketGrid() {
                     }
                 }
                 // Show marks with pending in green using getMarkSymbol's pending feature
-                cellHtml = getMarkSymbol(marks, pendingMarks, closedInOneTurn, isCompact, target, cricketData.showBoobie, i);
+                cellHtml = getMarkSymbol(marks, pendingMarks, closedInOneTurn, isCompact, target, cricketData.showBoobie, i, marksBeforeClose);
             } else {
-                cellHtml = getMarkSymbol(marks, 0, closedInOneTurn, isCompact, target, cricketData.showBoobie, i);
+                cellHtml = getMarkSymbol(marks, 0, closedInOneTurn, isCompact, target, cricketData.showBoobie, i, marksBeforeClose);
 
                 // Grey previous turn indicators
                 if (p.lastTurnMarks && p.lastTurnMarks[target] !== undefined) {
@@ -417,9 +418,11 @@ export function cricketConfirm() {
         // Track closure
         if (cricketData.marks >= maxMarks && !cricketData.closed) {
             cricketData.closed = true;
-            // closedInOneTurn: the target had 0 marks at turn START
-            // (preTurnMarks), not just before this individual dart.
-            cricketData.closedInOneTurn = preTurnMarks[target] === 0;
+            // Snapshot of marks at the START of the closing turn (preTurnMarks),
+            // not just before this individual dart. Drives the rendering of
+            // closed cells: 0 → empty O, 1 → O with slash, 2 → O with X.
+            cricketData.marksBeforeClose = preTurnMarks[target] || 0;
+            cricketData.closedInOneTurn = cricketData.marksBeforeClose === 0;
         }
 
         // Track marks for grey indicators

@@ -23,7 +23,7 @@ const CIRCLE_PATH =
     'M 42 8 C 60 9, 73 22, 73 40 C 73 58, 59 72, 40 72 ' +
     'C 21 72, 8 58, 8 40 C 8 22, 22 8, 42 8 Z';
 
-export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, isCompact = false, target = '', showBoobie = false, playerIndex = -1) {
+export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, isCompact = false, target = '', showBoobie = false, playerIndex = -1, marksBeforeClose = 0) {
     const totalMarks = marks + pendingMarks;
     const isPending = pendingMarks > 0;
     const color = isPending ? 'var(--color-pending)' : 'var(--color-primary)';
@@ -61,31 +61,54 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
         </span>`;
     }
 
-    // Closed (3+ marks). Two variants:
-    //  • closed-not-in-one-turn → clean chalk circle (just an O)
-    //  • closed-in-one-turn     → circle + center dot, tappable for boobie
-    if (!closedInOneTurn && totalMarks >= 3) {
+    // Closed (3+ marks). Three variants based on what was on the cell at the
+    // START of the turn that closed it (marksBeforeClose):
+    //   0 → closed in one turn → empty O, tappable to toggle a center dot
+    //   1 → had a slash before → O with slash inside
+    //   2 → had an X before    → O with X inside
+    const circleLayer = `
+        <path d="${CIRCLE_PATH}" ${stroke} stroke-width="11" opacity="0.3"/>
+        <path d="${CIRCLE_PATH}" ${stroke} stroke-width="7"/>`;
+
+    if (!closedInOneTurn && marksBeforeClose === 1) {
+        // Inner slash drawn smaller so it sits cleanly inside the circle.
         return `<span class="${cssClass}${compactClass}">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
                 <g filter="url(#chalk)">
-                    <path d="${CIRCLE_PATH}" ${stroke} stroke-width="11" opacity="0.3"/>
-                    <path d="${CIRCLE_PATH}" ${stroke} stroke-width="7"/>
+                    ${circleLayer}
+                    <g transform="translate(40 40) scale(0.55) translate(-40 -40)">
+                        <path d="${SLASH_PATH}" ${stroke} stroke-width="11" opacity="0.35"/>
+                        <path d="${SLASH_PATH}" ${stroke} stroke-width="9"/>
+                    </g>
                 </g>
             </svg>
         </span>`;
     }
 
-    // Closed in one turn — circle + filled center dot (boobie).
-    // Tap toggles the outer highlight ring.
+    if (!closedInOneTurn && marksBeforeClose === 2) {
+        return `<span class="${cssClass}${compactClass}">
+            <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+                <g filter="url(#chalk)">
+                    ${circleLayer}
+                    <g transform="translate(40 40) scale(0.55) translate(-40 -40)">
+                        <path d="${X_PATH_A}" ${stroke} stroke-width="11" opacity="0.35"/>
+                        <path d="${X_PATH_B}" ${stroke} stroke-width="11" opacity="0.35"/>
+                        <path d="${X_PATH_A}" ${stroke} stroke-width="9"/>
+                        <path d="${X_PATH_B}" ${stroke} stroke-width="9"/>
+                    </g>
+                </g>
+            </svg>
+        </span>`;
+    }
+
+    // Closed in one turn — empty O. Tap toggles a filled center dot (boobie).
     const dotClass = showBoobie ? ' show-dot' : '';
     return `<span class="${cssClass}${compactClass}${dotClass}" data-boobie="true" data-boobie-player="${playerIndex}" data-boobie-target="${target}">
         <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
             <g filter="url(#chalk)">
-                <path d="${CIRCLE_PATH}" ${stroke} stroke-width="11" opacity="0.3"/>
-                <path d="${CIRCLE_PATH}" ${stroke} stroke-width="7"/>
-                <circle cx="40" cy="40" r="11" fill="${color}"/>
+                ${circleLayer}
+                <circle class="boobie-dot" cx="40" cy="40" r="11" fill="${color}" opacity="0"/>
             </g>
-            <circle class="boobie-ring" cx="40" cy="40" r="30" stroke="${color}" stroke-width="3.5" fill="none" opacity="0"/>
         </svg>
     </span>`;
 }

@@ -72,9 +72,9 @@
     height: 100%;
 }
 
-/* Boobie highlight ring — revealed on tap to flag a closed-in-one-turn. */
-.mark.show-dot .boobie-ring {
-    opacity: 0.85;
+/* Boobie center dot — revealed on tap to flag a closed-in-one-turn. */
+.mark.show-dot .boobie-dot {
+    opacity: 1;
 }
 
 .mark.spanish {

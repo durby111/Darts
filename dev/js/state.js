@@ -142,6 +142,10 @@ export function initCricket(type, includeBulls = false) {
             marks: 0,
             closed: false,
             closedInOneTurn: false,
+            // marks already on the target at the START of the turn that closed it
+            // (0 = closed in one turn, 1 = had a slash, 2 = had an X). Drives the
+            // closed-cell rendering: empty O / O-with-slash / O-with-X.
+            marksBeforeClose: 0,
             showBoobie: false,
             maxMarks: 3
         };
