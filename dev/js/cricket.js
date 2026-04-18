@@ -3,7 +3,7 @@
    Standard Cricket, Spanish Cricket, Minnesota Cricket
    ============================================ */
 
-import { game, saveGameState, undoWithCooldown } from './state.js';
+import { game, saveGameState, saveActiveGame, undoWithCooldown } from './state.js';
 import { getMarkSymbol, updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner } from './ui.js';
 
 // --- Internal Helpers ---
@@ -461,7 +461,7 @@ export function cricketConfirm() {
     game.currentPlayer = nextPlayer;
     game.pendingDarts = [];
 
-    saveGameState();
+    saveActiveGame();
     updateCricketDisplay();
     updateUndoRedoButtons();
 }
@@ -498,7 +498,7 @@ export function cricketMiss() {
     game.currentPlayer = nextPlayer;
     game.pendingDarts = [];
 
-    saveGameState();
+    saveActiveGame();
     updateCricketDisplay();
     updateUndoRedoButtons();
 }
