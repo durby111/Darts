@@ -408,10 +408,11 @@
     color: var(--color-primary-light);
     text-align: center;
     padding: var(--space-md);
-    font-size: var(--font-xl);
+    font-size: calc(var(--font-2xl) * var(--ui-scale));
     font-weight: bold;
     border-radius: var(--radius-md);
     margin-bottom: var(--space-xs);
+    line-height: 1.1;
 }
 
 .finish-indicator {

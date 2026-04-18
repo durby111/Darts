@@ -107,11 +107,13 @@ export function updateUndoRedoButtons() {
 // --- Modals ---
 
 export function showModal(modalId) {
-    document.getElementById(modalId).style.display = 'flex';
+    const el = document.getElementById(modalId);
+    if (el) el.style.display = 'flex';
 }
 
 export function hideModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const el = document.getElementById(modalId);
+    if (el) el.style.display = 'none';
 }
 
 export function showWinner(name, isBlakeout = false, isChicagoMatchWin = false) {

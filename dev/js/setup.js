@@ -199,13 +199,12 @@ function startGame() {
         game.players.push(player);
     }
 
-    // Clear any previous saved game; reset scale to 1.0 for new game
+    // Clear any previous saved game. Keep the user's UI scale —
+    // it persists with their saved config so they don't have to re-set it.
     clearActiveGame();
     const scaleSlider = document.getElementById('uiScale');
-    const scaleLabel = document.getElementById('uiScaleValue');
-    if (scaleSlider) scaleSlider.value = '1.0';
-    if (scaleLabel) scaleLabel.textContent = '1.0x';
-    document.documentElement.style.setProperty('--ui-scale', 1);
+    const scale = parseFloat(scaleSlider?.value || '1.0');
+    document.documentElement.style.setProperty('--ui-scale', scale);
 
     // Switch screens
     document.getElementById('setupScreen').style.display = 'none';

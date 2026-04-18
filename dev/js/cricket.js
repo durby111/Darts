@@ -359,6 +359,15 @@ export function cricketConfirm() {
     const lastTurnMarks = {};
     let isBlakeout = false;
 
+    // Snapshot marks BEFORE this turn, per target — needed so the
+    // closed-in-one-turn flag reflects turn start, not per-dart state.
+    const preTurnMarks = {};
+    for (const dart of game.pendingDarts) {
+        if (preTurnMarks[dart.target] === undefined) {
+            preTurnMarks[dart.target] = player.cricketData[dart.target].marks;
+        }
+    }
+
     // Process all pending darts
     for (const dart of game.pendingDarts) {
         const target = dart.target;
@@ -388,7 +397,7 @@ export function cricketConfirm() {
 
                     if (!allOpponentsClosed) {
                         const numVal = parseInt(target);
-                    const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
+                        const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
                         player.score += pointMarks * pointValue;
                     }
                 }
@@ -400,12 +409,9 @@ export function cricketConfirm() {
         // Track closure
         if (cricketData.marks >= maxMarks && !cricketData.closed) {
             cricketData.closed = true;
-            // Track closedInOneTurn: marks went from 0 to maxMarks in one turn
-            if (marksBefore === 0 && cricketData.marks >= maxMarks) {
-                cricketData.closedInOneTurn = true;
-            } else {
-                cricketData.closedInOneTurn = false;
-            }
+            // closedInOneTurn: the target had 0 marks at turn START
+            // (preTurnMarks), not just before this individual dart.
+            cricketData.closedInOneTurn = preTurnMarks[target] === 0;
         }
 
         // Track marks for grey indicators

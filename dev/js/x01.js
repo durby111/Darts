@@ -130,7 +130,17 @@ function updateMissEnterVisibility() {
 }
 
 function quickScore(score) {
-    expressionStr = '';
+    // If the user is mid-expression, don't silently drop their typed value.
+    // Require them to clear or submit first.
+    if (expressionStr.length > 0) {
+        const indicator = document.getElementById('finishIndicator');
+        if (indicator) {
+            indicator.textContent = 'Clear input first (UNDO) or press ENTER';
+            indicator.style.color = 'var(--color-warning)';
+            setTimeout(() => { indicator.textContent = ''; updateX01Display(); }, 2000);
+        }
+        return;
+    }
     game.currentInput = String(score);
     document.getElementById('inputDisplay').textContent = game.currentInput;
     submitScore();
@@ -154,6 +164,16 @@ function x01Bust() {
     saveGameState();
     const player = game.players[game.currentPlayer];
     player.history.push({ score: 0, bust: true });
+
+    // 121 mode: a busted turn still consumes 3 darts from the player's allotment.
+    if (game.game121) {
+        game.game121.dartsThrown += 3;
+        if (game.game121.dartsThrown >= game.game121.dartsPerLeg) {
+            handle121LegEnd(false);
+            return;
+        }
+    }
+
     game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
     if (game.currentPlayer === 0) {
         game.completedRounds++;
@@ -204,14 +224,31 @@ function submitScore() {
         }
     }
 
-    // Bust check: below 0 or left on 1 (can't finish with double from 1)
-    if (newScore < 0 || newScore === 1) {
+    // Bust check. In double-out modes, 1 is also a bust because you can't
+    // finish with a double from 1. In open-finish, 1 is a legal remainder.
+    const isDoubleOut = finishType === 'double-out' || finishType === 'double-in-out';
+    const bustBelowZero = newScore < 0;
+    const bustOnOne = isDoubleOut && newScore === 1;
+    if (bustBelowZero || bustOnOne) {
         player.history.push({ score: score, bust: true });
 
         const indicator = document.getElementById('finishIndicator');
-        indicator.textContent = 'BUST!';
+        if (bustBelowZero) {
+            indicator.textContent = `BUST! ${score} > ${player.score} remaining`;
+        } else {
+            indicator.textContent = 'BUST! Cannot finish on 1';
+        }
         indicator.style.color = 'var(--color-danger)';
-        setTimeout(() => { indicator.textContent = ''; }, 2000);
+        setTimeout(() => { indicator.textContent = ''; updateX01Display(); }, 2500);
+
+        // 121: a bust still consumes 3 darts from the player's allotment.
+        if (game.game121) {
+            game.game121.dartsThrown += 3;
+            if (game.game121.dartsThrown >= game.game121.dartsPerLeg) {
+                handle121LegEnd(false);
+                return;
+            }
+        }
 
         clearInput();
         game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
@@ -379,12 +416,21 @@ function updateCheckoutSuggestion() {
         }
     }
 
-    // Open finish
+    // Open finish — any single segment 1-20 or 25/50 is a legal last dart.
     if (finishType === 'open' && score <= 180 && score > 0) {
-        if (score <= 60) {
-            suggestionEl.textContent = `Finish with ${score}`;
+        if (score <= 20) {
+            suggestionEl.textContent = `Finish: ${score}`;
+        } else if (score === 25 || score === 50) {
+            suggestionEl.textContent = score === 50 ? 'Finish: Bull' : 'Finish: 25';
+        } else if (score <= 60) {
+            suggestionEl.textContent = `Finish: T${Math.ceil(score / 3)} or similar`;
+        } else if (score <= 80) {
+            suggestionEl.textContent = `T20 + ${score - 60}`;
         } else if (score <= 120) {
-            suggestionEl.textContent = `${score - 60} + 60 or T20 + ${score - 60}`;
+            const remainder = score - 60;
+            suggestionEl.textContent = remainder <= 60
+                ? `T20 + T${Math.ceil(remainder / 3)} (or similar)`
+                : `Score ${score} to win`;
         } else {
             suggestionEl.textContent = `Score ${score} to win`;
         }
