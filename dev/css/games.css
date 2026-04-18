@@ -34,8 +34,11 @@
 }
 
 /* Minnesota rows — use full screen height (1.95x baked in) */
+/* Minnesota has 10 rows (20-15, Bull, Triples, Doubles, Bed) vs 7 for
+   standard cricket. Keep min-height tight so all 10 fit within the main
+   area without BED being clipped below the fold. */
 .cricket-row.minnesota {
-    min-height: clamp(52px, 9dvh, 104px);
+    min-height: clamp(36px, 5.5dvh, 68px);
 }
 
 /* Minnesota buttons are larger — fixed center column sized for D+num+T+gaps+padding */
@@ -69,12 +72,9 @@
     height: 100%;
 }
 
-/* Hidden boobie dot — revealed on tap */
-.mark.show-dot .boobie-dot {
-    opacity: 1;
-}
+/* Boobie highlight ring — revealed on tap to flag a closed-in-one-turn. */
 .mark.show-dot .boobie-ring {
-    opacity: 0.7;
+    opacity: 0.85;
 }
 
 .mark.spanish {
@@ -83,8 +83,8 @@
 }
 
 .mark.minnesota {
-    width: calc(clamp(42px, 6.8dvh, 78px) * var(--ui-scale));
-    height: calc(clamp(42px, 6.8dvh, 78px) * var(--ui-scale));
+    width: calc(clamp(30px, 4.6dvh, 56px) * var(--ui-scale));
+    height: calc(clamp(30px, 4.6dvh, 56px) * var(--ui-scale));
 }
 
 /* Cricket cell — centers marks and scores */
@@ -256,17 +256,17 @@
     min-width: clamp(22px, 5vw, 40px);
 }
 
-/* Minnesota buttons — inherently larger (1.95x baked in: 1.5 * 1.3) */
+/* Minnesota buttons — scaled to fit 10 rows in the main area on tablet. */
 .cricket-num-btn.minnesota {
-    font-size: calc(clamp(1.75rem, 4.9dvh, 2.9rem) * var(--ui-scale));
-    padding: calc(clamp(8px, 2dvh, 20px) * var(--ui-scale)) calc(clamp(16px, 3.9vw, 35px) * var(--ui-scale));
-    min-width: clamp(65px, 15vw, 120px);
+    font-size: calc(clamp(1.3rem, 3.4dvh, 2.2rem) * var(--ui-scale));
+    padding: calc(clamp(4px, 1.2dvh, 14px) * var(--ui-scale)) calc(clamp(10px, 2.6vw, 26px) * var(--ui-scale));
+    min-width: clamp(52px, 12vw, 96px);
 }
 
 .cricket-dt-btn.minnesota {
-    font-size: calc(clamp(1.15rem, 2.9dvh, 1.95rem) * var(--ui-scale));
-    padding: calc(clamp(5px, 1.6dvh, 16px) * var(--ui-scale)) calc(clamp(4px, 1.2vw, 12px) * var(--ui-scale));
-    min-width: clamp(32px, 7vw, 55px);
+    font-size: calc(clamp(0.95rem, 2.2dvh, 1.55rem) * var(--ui-scale));
+    padding: calc(clamp(3px, 1.1dvh, 12px) * var(--ui-scale)) calc(clamp(3px, 0.9vw, 10px) * var(--ui-scale));
+    min-width: clamp(28px, 6vw, 46px);
 }
 
 /* === Last Turn Indicators === */
@@ -297,6 +297,9 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-xs);
+    /* Keep UNDO/MISS anchored at the bottom so showing/hiding REDO or ENTER
+       does not shift the primary button under the player's thumb. */
+    justify-content: flex-end;
 }
 
 .cricket-controls-right {

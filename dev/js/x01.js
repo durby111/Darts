@@ -69,6 +69,31 @@ const checkoutChart = {
 // Supports expressions like: 3*19+6+2*7 = 77
 let expressionStr = '';
 
+// --- Turn-commit debounce ---
+// MISS/BUST/ENTER all commit a turn and advance to the next player. A jittery
+// double-tap on a tablet would otherwise burn a whole turn for the next player.
+// Disable the three buttons briefly after any of them fires.
+let turnCommitLocked = false;
+let turnCommitTimer = null;
+const TURN_COMMIT_COOLDOWN_MS = 700;
+
+function lockTurnCommit() {
+    turnCommitLocked = true;
+    const ids = ['x01MissBtn', 'x01BustBtn', 'x01EnterBtn'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = true;
+    });
+    if (turnCommitTimer) clearTimeout(turnCommitTimer);
+    turnCommitTimer = setTimeout(() => {
+        turnCommitLocked = false;
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = false;
+        });
+    }, TURN_COMMIT_COOLDOWN_MS);
+}
+
 function addDigit(digit) {
     expressionStr += digit;
     updateInputDisplay();
@@ -154,6 +179,7 @@ function clearInput() {
 }
 
 function x01Miss() {
+    // No guard here — submitScore() locks for us.
     expressionStr = '';
     game.currentInput = '0';
     document.getElementById('inputDisplay').textContent = '0';
@@ -161,6 +187,8 @@ function x01Miss() {
 }
 
 function x01Bust() {
+    if (turnCommitLocked) return;
+    lockTurnCommit();
     saveGameState();
     const player = game.players[game.currentPlayer];
     player.history.push({ score: 0, bust: true });
@@ -186,6 +214,11 @@ function x01Bust() {
 // --- Core Score Submission (with bug fixes) ---
 
 function submitScore() {
+    // Guard against double-tap. x01Miss/x01Bust already locked in their
+    // wrapper; direct ENTER presses and quickScore paths land here.
+    if (turnCommitLocked) return;
+    lockTurnCommit();
+
     // Calculate total from expression or direct input
     let score;
     if (expressionStr) {
