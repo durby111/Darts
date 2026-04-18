@@ -218,14 +218,18 @@ function initGame121Events() {
 // --- Undo/Redo for Cricket (global buttons) ---
 
 function initGlobalUndoRedo() {
-    on('undoBtn', 'click', () => {
+    // pointerdown matches the rest of the touch-optimized buttons so a tap
+    // never gets eaten by scroll-disambiguation or a stray pointerup.
+    on('undoBtn', 'pointerdown', (e) => {
+        e.preventDefault();
         undoWithCooldown(() => {
             updateDisplay();
             updateUndoRedoButtons();
         });
     });
 
-    on('redoBtn', 'click', () => {
+    on('redoBtn', 'pointerdown', (e) => {
+        e.preventDefault();
         redoWithCooldown(() => {
             updateDisplay();
             updateUndoRedoButtons();

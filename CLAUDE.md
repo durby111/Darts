@@ -200,6 +200,19 @@ captured in `cricket.js` at the moment of closure.
 
 ---
 
+## Touch / input gotchas
+
+- All in-game buttons (cricket grid, miss/enter, undo/redo) use
+  `pointerdown` rather than `click`. `click` adds a scroll-disambiguation
+  delay over scrollable ancestors and can be eaten by a stray `pointerup`.
+- When a modal opens via `showModal`, its `.modal-content` gets
+  `pointer-events: none` for 300ms. Without this, a tap that *opens* the
+  modal can drive a phantom click on a button inside it that happens to
+  sit at the same screen position (the original report: cricket "T" button
+  → keypad Cancel button at same coords → modal flashed open then closed).
+  If you add a modal that contains a quickly-tappable confirm, leave the
+  guard in — the 300ms is invisible in practice.
+
 ## Things NOT to do
 
 - Don't statically import gitignored files. Anything that *might* not exist

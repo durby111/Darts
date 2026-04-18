@@ -141,7 +141,18 @@ export function updateUndoRedoButtons() {
 
 export function showModal(modalId) {
     const el = document.getElementById(modalId);
-    if (el) el.style.display = 'flex';
+    if (!el) return;
+    el.style.display = 'flex';
+    // Brief input-guard: a tap that OPENS a modal can otherwise drive a
+    // phantom click on a button inside the modal that happens to sit at the
+    // same screen position as the opener (e.g. cricket "T" → keypad Cancel).
+    // We block the modal's content for 300ms; the backdrop still catches
+    // events so taps don't pass through to the screen below.
+    const content = el.querySelector('.modal-content');
+    if (content) {
+        content.style.pointerEvents = 'none';
+        setTimeout(() => { content.style.pointerEvents = ''; }, 300);
+    }
 }
 
 export function hideModal(modalId) {
