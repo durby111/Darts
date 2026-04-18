@@ -1,0 +1,12 @@
+// Copy this file to firebase-config.js and paste your project's web config.
+// Get it from Firebase Console → Project Settings → General → Your apps.
+// firebase-config.js is gitignored so the API key stays out of the public repo
+// (Firebase web keys are not secret — security comes from Firestore rules).
+export const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "your-project.firebaseapp.com",
+    projectId: "your-project",
+    storageBucket: "your-project.firebasestorage.app",
+    messagingSenderId: "0000000000",
+    appId: "1:0000000000:web:abc123"
+};

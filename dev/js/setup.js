@@ -5,6 +5,10 @@
 
 import { game, initCricket, getConfigs, saveConfigs, getCurrentConfig, applyConfig, saveActiveGame, loadActiveGame, clearActiveGame, restoreActiveGame } from './state.js';
 import { showChicagoGameSelection } from './chicago.js';
+import {
+    initFirebase, onRosterChange, getRosterCache,
+    upsertPlayer, deletePlayer, findPlayerByName, getInitState
+} from './firebase.js';
 
 let onGameStart = null;
 let overlayMode = false;
@@ -80,6 +84,99 @@ export function initSetupControls() {
 
     // Show resume button if there's a saved game
     updateResumeButton();
+
+    // Roster (Firestore) — non-blocking. App still works if Firebase fails.
+    initRosterUI();
+    initFirebase().catch(err => {
+        const status = document.getElementById('rosterStatus');
+        if (status) status.textContent = '(offline — check Firebase setup)';
+        console.warn('[Setup] Firebase init error:', err);
+    });
+    onRosterChange(renderRoster);
+}
+
+// --- Roster UI ---
+
+function initRosterUI() {
+    const addBtn = document.getElementById('rosterAddBtn');
+    const nameInput = document.getElementById('rosterAddName');
+    const emailInput = document.getElementById('rosterAddEmail');
+
+    const submit = async () => {
+        const name = nameInput.value.trim();
+        const email = emailInput.value.trim();
+        if (!name || !email) {
+            alert('Both name and email are required.');
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            alert('Please enter a valid email.');
+            return;
+        }
+        addBtn.disabled = true;
+        try {
+            await upsertPlayer({ name, email });
+            nameInput.value = '';
+            emailInput.value = '';
+        } catch (err) {
+            alert('Failed to save: ' + (err.message || err));
+        } finally {
+            addBtn.disabled = false;
+        }
+    };
+    if (addBtn) addBtn.addEventListener('click', submit);
+    [nameInput, emailInput].forEach(el => {
+        if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    });
+}
+
+function renderRoster(roster) {
+    // Refresh the autocomplete datalist used by the player slots.
+    const datalist = document.getElementById('rosterDatalist');
+    if (datalist) {
+        datalist.innerHTML = roster
+            .map(p => `<option value="${escapeHtml(p.name)}">`)
+            .join('');
+    }
+
+    // Refresh the manage-players list.
+    const list = document.getElementById('rosterList');
+    if (list) {
+        if (roster.length === 0) {
+            list.innerHTML = '<div class="roster-empty">No players yet. Add one below.</div>';
+        } else {
+            list.innerHTML = roster.map(p => `
+                <div class="roster-row" data-email="${escapeHtml(p.email)}">
+                    <div class="roster-row-info">
+                        <span class="roster-row-name">${escapeHtml(p.name)}</span>
+                        <span class="roster-row-email">${escapeHtml(p.email)}</span>
+                    </div>
+                    <button class="btn btn--sm btn--danger" data-roster-delete="${escapeHtml(p.email)}">X</button>
+                </div>
+            `).join('');
+            list.querySelectorAll('[data-roster-delete]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const email = btn.dataset.rosterDelete;
+                    if (!confirm(`Remove ${email}? (lifetime stats stay in the cloud and return if re-added.)`)) return;
+                    try { await deletePlayer(email); }
+                    catch (err) { alert('Delete failed: ' + (err.message || err)); }
+                });
+            });
+        }
+    }
+
+    const status = document.getElementById('rosterStatus');
+    if (status) {
+        const init = getInitState();
+        if (init.state === 'error') status.textContent = '(offline)';
+        else status.textContent = roster.length ? `(${roster.length})` : '';
+    }
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
 }
 
 function updateResumeButton() {
@@ -176,8 +273,12 @@ function startGame() {
     // Create players
     for (let i = 1; i <= numPlayers; i++) {
         const name = document.getElementById(`player${i}`).value || `Player ${i}`;
+        // If the typed name matches a roster entry, attribute future stats
+        // to that player by stashing their email. Phase 3 will read this.
+        const rosterMatch = findPlayerByName(name);
         const player = {
             name: name,
+            rosterEmail: rosterMatch ? rosterMatch.email : null,
             score: 0,
             throws: 0,
             totalMarks: 0,

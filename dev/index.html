@@ -87,24 +87,28 @@
                 </select>
             </div>
 
+            <!-- Roster autocomplete: typing a roster name attributes the
+                 game to that player; otherwise it's a one-off guest entry. -->
+            <datalist id="rosterDatalist"></datalist>
+
             <div class="form-group">
                 <label>Home Player</label>
-                <input type="text" id="player1" value="Home">
+                <input type="text" id="player1" value="Home" list="rosterDatalist" autocomplete="off">
             </div>
 
             <div class="form-group" id="player2Group">
                 <label>Away Player</label>
-                <input type="text" id="player2" value="Away">
+                <input type="text" id="player2" value="Away" list="rosterDatalist" autocomplete="off">
             </div>
 
             <div class="form-group hidden" id="player3Group">
                 <label>Player 3</label>
-                <input type="text" id="player3" value="Player 3">
+                <input type="text" id="player3" value="Player 3" list="rosterDatalist" autocomplete="off">
             </div>
 
             <div class="form-group hidden" id="player4Group">
                 <label>Player 4</label>
-                <input type="text" id="player4" value="Player 4">
+                <input type="text" id="player4" value="Player 4" list="rosterDatalist" autocomplete="off">
             </div>
 
             <div class="form-group">
@@ -138,6 +142,31 @@
 
             <button class="btn btn--md btn--neutral btn--block" id="updateAppBtn" style="margin-top:var(--space-lg);">Check for Updates</button>
             <div id="updateStatus" style="text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);margin-top:var(--space-xs);"></div>
+
+            <!-- Roster manager — collapsible. Players added here sync to
+                 Firestore so their lifetime stats follow them across devices. -->
+            <details class="roster-section" id="rosterSection" style="margin-top:var(--space-xl);">
+                <summary>Manage Players <span class="roster-status" id="rosterStatus"></span></summary>
+                <div class="roster-body">
+                    <div class="roster-list" id="rosterList"></div>
+                    <div class="roster-add-row">
+                        <input type="text" id="rosterAddName" placeholder="Player name" autocomplete="off">
+                        <input type="email" id="rosterAddEmail" placeholder="email@example.com" autocomplete="off">
+                        <button class="btn btn--md btn--primary" id="rosterAddBtn">Add</button>
+                    </div>
+                    <div class="roster-hint">Players sync across devices. Stats and emails attribute to whoever's name you pick at game start.</div>
+                </div>
+            </details>
+
+            <!-- Credit footer -->
+            <div class="setup-credit">
+                Created by Mike D.
+                <div class="setup-credit-links">
+                    <a href="https://cash.app/$MikeDurbin" target="_blank" rel="noopener">$MikeDurbin</a>
+                    <span class="dot">&middot;</span>
+                    <a href="mailto:DartsBlakeOut@gmail.com">DartsBlakeOut@gmail.com</a>
+                </div>
+            </div>
         </div>
     </div>
 

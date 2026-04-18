@@ -283,3 +283,131 @@
     flex: 1;
     color: var(--color-text);
 }
+
+/* === Roster manager (collapsible) === */
+.roster-section {
+    background: var(--color-surface-alt, var(--color-surface));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+}
+
+.roster-section > summary {
+    cursor: pointer;
+    font-weight: bold;
+    color: var(--color-text);
+    list-style: none;
+    user-select: none;
+}
+.roster-section > summary::-webkit-details-marker { display: none; }
+.roster-section > summary::before {
+    content: '▸ ';
+    display: inline-block;
+    transition: transform var(--transition-normal);
+}
+.roster-section[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.roster-status {
+    color: var(--color-text-muted);
+    font-weight: normal;
+    font-size: var(--font-sm);
+    margin-left: var(--space-xs);
+}
+
+.roster-body {
+    margin-top: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.roster-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.roster-empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+    padding: var(--space-sm);
+    text-align: center;
+}
+
+.roster-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    background: var(--color-bg);
+    border-radius: var(--radius-sm);
+}
+
+.roster-row-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.roster-row-name {
+    color: var(--color-text);
+    font-weight: 600;
+}
+
+.roster-row-email {
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.roster-add-row {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+.roster-add-row input {
+    flex: 1 1 140px;
+    min-width: 0;
+}
+
+.roster-hint {
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+    line-height: 1.3;
+}
+
+/* === Setup credit footer === */
+.setup-credit {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+}
+
+.setup-credit-links {
+    margin-top: var(--space-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.setup-credit-links a {
+    color: var(--color-primary-light);
+    text-decoration: none;
+}
+.setup-credit-links a:hover {
+    text-decoration: underline;
+}
+
+.setup-credit-links .dot {
+    color: var(--color-text-dim, var(--color-text-muted));
+}
