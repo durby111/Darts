@@ -104,11 +104,15 @@ export function onRosterChange(fn) {
  * Uses merge: true so future stats writes don't clobber profile fields.
  */
 export async function upsertPlayer({ email, name }) {
-    const id = normalizeEmail(email);
     const cleanName = (name || '').trim();
-    if (!id) throw new Error('email required');
     if (!cleanName) throw new Error('name required');
     if (!db || !sdk) throw new Error('Roster is offline. Check your connection and refresh.');
+
+    // Players without an email get a synthetic local-only ID. Their stats
+    // accrue on whichever device entered them (no cross-device merge).
+    // The id is stored as the `email` field so Firestore rules — which require
+    // request.resource.data.email == doc id — still pass.
+    const id = normalizeEmail(email) || `noemail-${cryptoId()}`;
 
     const ref = sdk.doc(db, 'roster', id);
     await sdk.setDoc(ref, {
@@ -116,6 +120,16 @@ export async function upsertPlayer({ email, name }) {
         name: cleanName,
         updatedAt: sdk.serverTimestamp()
     }, { merge: true });
+}
+
+function cryptoId() {
+    const a = new Uint8Array(8);
+    crypto.getRandomValues(a);
+    return Array.from(a, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export function isRealEmail(value) {
+    return typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 export async function deletePlayer(email) {

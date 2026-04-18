@@ -7,7 +7,7 @@ import { game, initCricket, getConfigs, saveConfigs, getCurrentConfig, applyConf
 import { showChicagoGameSelection } from './chicago.js';
 import {
     initFirebase, onRosterChange, getRosterCache,
-    upsertPlayer, deletePlayer, findPlayerByName, getInitState
+    upsertPlayer, deletePlayer, findPlayerByName, getInitState, isRealEmail
 } from './firebase.js';
 
 let onGameStart = null;
@@ -105,12 +105,12 @@ function initRosterUI() {
     const submit = async () => {
         const name = nameInput.value.trim();
         const email = emailInput.value.trim();
-        if (!name || !email) {
-            alert('Both name and email are required.');
+        if (!name) {
+            alert('Name is required. Email is optional but enables cross-device stats.');
             return;
         }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            alert('Please enter a valid email.');
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            alert('That email looks invalid. Leave it blank or fix the format.');
             return;
         }
         addBtn.disabled = true;
@@ -145,15 +145,17 @@ function renderRoster(roster) {
         if (roster.length === 0) {
             list.innerHTML = '<div class="roster-empty">No players yet. Add one below.</div>';
         } else {
-            list.innerHTML = roster.map(p => `
+            list.innerHTML = roster.map(p => {
+                const emailLabel = isRealEmail(p.email) ? p.email : '(no email — local only)';
+                return `
                 <div class="roster-row" data-email="${escapeHtml(p.email)}">
                     <div class="roster-row-info">
                         <span class="roster-row-name">${escapeHtml(p.name)}</span>
-                        <span class="roster-row-email">${escapeHtml(p.email)}</span>
+                        <span class="roster-row-email">${escapeHtml(emailLabel)}</span>
                     </div>
                     <button class="btn btn--sm btn--danger" data-roster-delete="${escapeHtml(p.email)}">X</button>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
             list.querySelectorAll('[data-roster-delete]').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     const email = btn.dataset.rosterDelete;
