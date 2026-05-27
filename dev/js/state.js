@@ -17,7 +17,13 @@ export let game = {
     undoHistory: [],
     redoHistory: [],
     chicago: null,
-    game121: null
+    game121: null,
+    // Team mode (Phase 2). When teamMode is true, game.players[] still has
+    // exactly two entries — Home and Away — which the scoring engine treats
+    // as the two "players". The actual humans throwing live in
+    // game.teams[i].members and rotate per-turn.
+    teamMode: false,
+    teams: null
 };
 
 // Undo/Redo cooldown
@@ -168,6 +174,8 @@ export function saveActiveGame() {
         completedRounds: game.completedRounds,
         chicago: game.chicago ? deepClone(game.chicago) : null,
         game121: game.game121 ? deepClone(game.game121) : null,
+        teamMode: game.teamMode || false,
+        teams: game.teams ? deepClone(game.teams) : null,
         timestamp: Date.now()
     };
     try {
@@ -205,7 +213,9 @@ export function restoreActiveGame(snapshot) {
         undoHistory: [],
         redoHistory: [],
         chicago: snapshot.chicago || null,
-        game121: snapshot.game121 || null
+        game121: snapshot.game121 || null,
+        teamMode: snapshot.teamMode || false,
+        teams: snapshot.teams || null
     });
 }
 

@@ -9,6 +9,7 @@ import { updateCricketDisplay, initCricketControls } from './cricket.js';
 import { updateX01Display, initX01Controls, clearInput } from './x01.js';
 import { initChicagoControls } from './chicago.js';
 import { initSetupControls, setGameStartCallback, showSetup, showSetupAsOverlay, playAgain } from './setup.js';
+import { initTeamBuilder } from './teams.js';
 
 // --- Safe element helper ---
 function on(id, event, handler) {
@@ -310,6 +311,7 @@ function safeInit(name, fn) {
 
 document.addEventListener('DOMContentLoaded', () => {
     safeInit('setup', initSetupControls);
+    safeInit('teams', initTeamBuilder);
     safeInit('cricket', initCricketControls);
     safeInit('x01', initX01Controls);
     safeInit('chicago', initChicagoControls);

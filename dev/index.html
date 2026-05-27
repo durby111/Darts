@@ -77,7 +77,7 @@
                 </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="numPlayersGroup">
                 <label>Number of Players</label>
                 <select id="numPlayers">
                     <option value="1">1 Player</option>
@@ -87,11 +87,21 @@
                 </select>
             </div>
 
+            <!-- Team Mode: routes Start Game through a team-builder screen so
+                 each side can have 1+ members (2v3 supported). When off, the
+                 classic 1–4 player flow is unchanged. -->
+            <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="teamMode">
+                    <span>Team Mode (Home vs Away, 1+ players per team)</span>
+                </label>
+            </div>
+
             <!-- Roster autocomplete: typing a roster name attributes the
                  game to that player; otherwise it's a one-off guest entry. -->
             <datalist id="rosterDatalist"></datalist>
 
-            <div class="form-group">
+            <div class="form-group" id="player1Group">
                 <label>Home Player</label>
                 <input type="text" id="player1" value="Home" list="rosterDatalist" autocomplete="off">
             </div>
@@ -167,6 +177,38 @@
                     <a href="mailto:DartsBlakeOut@gmail.com">DartsBlakeOut@gmail.com</a>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Team Builder Screen (Phase 2 — only used when Team Mode is on) -->
+    <div class="setup-screen" id="teamBuilderScreen" style="display:none;">
+        <div class="card">
+            <h1>Build Teams</h1>
+
+            <div class="team-tray-section">
+                <div class="team-section-label">Available Players</div>
+                <div class="team-tray" id="teamTray"></div>
+                <div class="team-add-row">
+                    <input type="text" id="teamAddName" placeholder="Add ad-hoc player" list="rosterDatalist" autocomplete="off">
+                    <button class="btn btn--md btn--primary" id="teamAddBtn">Add</button>
+                </div>
+            </div>
+
+            <div class="team-zones">
+                <div class="team-zone" id="teamZone0" data-team="0">
+                    <div class="team-zone-label">Home</div>
+                    <div class="team-zone-members" id="teamZone0Members"></div>
+                </div>
+                <div class="team-zone" id="teamZone1" data-team="1">
+                    <div class="team-zone-label">Away</div>
+                    <div class="team-zone-members" id="teamZone1Members"></div>
+                </div>
+            </div>
+
+            <div class="team-builder-hint" id="teamBuilderHint">Tap a player chip, then tap Home or Away. Tap a member to remove them.</div>
+
+            <button class="btn btn--lg btn--success btn--block" id="teamStartMatchBtn" style="margin-top:var(--space-lg);" disabled>Start Match</button>
+            <button class="btn btn--md btn--neutral btn--block" id="teamBackBtn" style="margin-top:var(--space-md);">Back to Setup</button>
         </div>
     </div>
 

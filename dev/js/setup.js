@@ -9,6 +9,7 @@ import {
     initFirebase, onRosterChange, getRosterCache,
     upsertPlayer, deletePlayer, findPlayerByName, getInitState, isRealEmail
 } from './firebase.js';
+import { showTeamBuilder, setTeamsConfirmedCallback } from './teams.js';
 
 let onGameStart = null;
 let overlayMode = false;
@@ -24,6 +25,20 @@ export function initSetupControls() {
         document.getElementById('player2Group').classList.toggle('hidden', count < 2);
         document.getElementById('player3Group').classList.toggle('hidden', count < 3);
         document.getElementById('player4Group').classList.toggle('hidden', count < 4);
+    });
+
+    // Team Mode toggle — hides per-player inputs and the count selector;
+    // Start Game then routes through the team builder.
+    const teamModeCb = document.getElementById('teamMode');
+    if (teamModeCb) {
+        teamModeCb.addEventListener('change', applyTeamModeVisibility);
+        applyTeamModeVisibility();
+    }
+
+    // When the team builder confirms a roster, finish the match start.
+    setTeamsConfirmedCallback((teams) => {
+        document.getElementById('teamBuilderScreen').style.display = 'none';
+        beginMatchFromTeams(teams);
     });
 
     // Game type change
@@ -217,6 +232,23 @@ function applyGameTypeScale() {
     document.documentElement.style.setProperty('--ui-scale', userScale);
 }
 
+function applyTeamModeVisibility() {
+    const on = document.getElementById('teamMode')?.checked;
+    document.getElementById('numPlayersGroup').classList.toggle('hidden', !!on);
+    document.getElementById('player1Group').classList.toggle('hidden', !!on);
+    document.getElementById('player2Group').classList.toggle('hidden', !!on);
+    document.getElementById('player3Group').classList.toggle('hidden', !!on);
+    document.getElementById('player4Group').classList.toggle('hidden', !!on);
+
+    // When toggling team mode off, restore the player count-based visibility.
+    if (!on) {
+        const count = parseInt(document.getElementById('numPlayers').value);
+        document.getElementById('player2Group').classList.toggle('hidden', count < 2);
+        document.getElementById('player3Group').classList.toggle('hidden', count < 3);
+        document.getElementById('player4Group').classList.toggle('hidden', count < 4);
+    }
+}
+
 function startGame() {
     // Warn if there's an active game being overlaid
     if (overlayMode) {
@@ -226,8 +258,36 @@ function startGame() {
         if (backBtn) backBtn.classList.add('hidden');
     }
 
-    const gameType = document.getElementById('gameType').value;
+    // Auto-save config so it survives the team-builder detour too.
+    const configs = getConfigs();
+    configs.lastConfig = getCurrentConfig();
+    saveConfigs(configs);
+
+    if (document.getElementById('teamMode')?.checked) {
+        showTeamBuilder();
+        return;
+    }
+
+    // Classic flow: gather names from the per-player inputs and start now.
     const numPlayers = parseInt(document.getElementById('numPlayers').value);
+    const players = [];
+    for (let i = 1; i <= numPlayers; i++) {
+        const name = document.getElementById(`player${i}`).value || `Player ${i}`;
+        const rosterMatch = findPlayerByName(name);
+        players.push({ name, rosterEmail: rosterMatch ? rosterMatch.email : null });
+    }
+    beginMatch(players, null);
+}
+
+function beginMatchFromTeams(teams) {
+    // In team mode, game.players represents the two TEAMS. Members live in
+    // game.teams[i].members and rotate per-turn (see teams.js).
+    const players = teams.map(t => ({ name: t.name, rosterEmail: null }));
+    beginMatch(players, teams);
+}
+
+function beginMatch(playerSeeds, teams) {
+    const gameType = document.getElementById('gameType').value;
     const cricketPoints = document.getElementById('cricketPoints').checked;
     const finishType = document.getElementById('finishType').value;
     const includeBulls = document.getElementById('spanishBulls').checked;
@@ -235,12 +295,6 @@ function startGame() {
     const isChicago = gameType === 'chicago';
     const is121 = gameType === '121';
 
-    // Auto-save config
-    const configs = getConfigs();
-    configs.lastConfig = getCurrentConfig();
-    saveConfigs(configs);
-
-    // Reset game state
     Object.assign(game, {
         type: gameType,
         players: [],
@@ -269,18 +323,19 @@ function startGame() {
             startingScore: 121,
             legResults: [],
             legsWon: []
-        } : null
+        } : null,
+        teamMode: !!teams,
+        teams: teams ? teams.map(t => ({
+            name: t.name,
+            members: t.members.map(m => ({ name: m.name, rosterEmail: m.rosterEmail || null })),
+            rotationIndex: 0
+        })) : null
     });
 
-    // Create players
-    for (let i = 1; i <= numPlayers; i++) {
-        const name = document.getElementById(`player${i}`).value || `Player ${i}`;
-        // If the typed name matches a roster entry, attribute future stats
-        // to that player by stashing their email. Phase 3 will read this.
-        const rosterMatch = findPlayerByName(name);
+    playerSeeds.forEach(seed => {
         const player = {
-            name: name,
-            rosterEmail: rosterMatch ? rosterMatch.email : null,
+            name: seed.name,
+            rosterEmail: seed.rosterEmail || null,
             score: 0,
             throws: 0,
             totalMarks: 0,
@@ -300,16 +355,13 @@ function startGame() {
         }
 
         game.players.push(player);
-    }
+    });
 
-    // Clear any previous saved game. Keep the user's UI scale —
-    // it persists with their saved config so they don't have to re-set it.
     clearActiveGame();
     const scaleSlider = document.getElementById('uiScale');
     const scale = parseFloat(scaleSlider?.value || '1.0');
     document.documentElement.style.setProperty('--ui-scale', scale);
 
-    // Switch screens
     document.getElementById('setupScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'flex';
 
@@ -354,6 +406,12 @@ export function playAgain() {
     const currentFinishType = game.finishType;
     const includeBulls = document.getElementById('spanishBulls').checked;
 
+    // Preserve team mode + reset rotation so "Play Again" starts each team
+    // from member 0.
+    const preservedTeams = game.teamMode && game.teams
+        ? game.teams.map(t => ({ name: t.name, members: t.members.slice(), rotationIndex: 0 }))
+        : null;
+
     Object.assign(game, {
         type: currentGameType,
         players: [],
@@ -366,7 +424,9 @@ export function playAgain() {
         undoHistory: [],
         redoHistory: [],
         chicago: null,
-        game121: null
+        game121: null,
+        teamMode: !!preservedTeams,
+        teams: preservedTeams
     });
 
     currentPlayers.forEach(name => {
