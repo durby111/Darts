@@ -144,11 +144,27 @@ body {
 }
 
 .player-name {
-    font-size: var(--font-sm);
+    font-size: calc(var(--font-xl) * var(--ui-scale));
     font-weight: bold;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: 0.02em;
+}
+
+.thrower-name {
+    font-size: calc(var(--font-md) * var(--ui-scale));
+    font-weight: 600;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+    line-height: 1.1;
+}
+
+.thrower-name.active {
+    color: var(--color-primary-light, var(--color-primary));
 }
 
 .score-display-header {
@@ -161,14 +177,17 @@ body {
 
 .score-big {
     font-size: calc(var(--font-score) * var(--ui-scale));
-    font-weight: bold;
+    font-weight: 900;
     background: var(--color-score-bg);
     color: var(--color-score-text);
     padding: var(--space-xs) var(--space-md);
     border-radius: var(--radius-md);
-    min-width: clamp(60px, 12vw, 120px);
+    min-width: clamp(80px, 16vw, 170px);
     text-align: center;
-    line-height: 1.1;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.35);
+    font-variant-numeric: tabular-nums;
 }
 
 .avg-small {
@@ -210,10 +229,10 @@ body {
 .round-badge {
     background: var(--color-primary);
     color: var(--color-text);
-    font-size: var(--font-lg);
+    font-size: calc(var(--font-2xl) * var(--ui-scale));
     font-weight: bold;
-    width: clamp(30px, 5vw, 45px);
-    height: clamp(30px, 5vw, 45px);
+    width: calc(clamp(50px, 8vw, 75px) * var(--ui-scale));
+    height: calc(clamp(50px, 8vw, 75px) * var(--ui-scale));
     display: flex;
     align-items: center;
     justify-content: center;
@@ -227,6 +246,8 @@ body {
 }
 
 /* === Cricket Main Area === */
+/* Stretch grid to fill available height for all cricket variants — rows
+   distribute remaining space so there's no dead band at the bottom. */
 .cricket-main {
     flex: 1;
     min-height: 0;
@@ -235,24 +256,23 @@ body {
     padding: var(--space-xs) 0 var(--space-lg) 0;
     scrollbar-width: thin;
     scrollbar-color: #444 var(--color-surface);
+    display: flex;
+    flex-direction: column;
 }
 
-/* Minnesota: stretch grid to fill available height */
+.cricket-main #cricketGrid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.cricket-main .cricket-row {
+    flex: 1 1 0;
+}
+
+/* Minnesota: remove bottom padding so the last (BED) row is never clipped. */
 .cricket-main.minnesota-layout {
-    display: flex;
-    flex-direction: column;
     padding-bottom: 0;
-}
-
-.cricket-main.minnesota-layout #cricketGrid {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.cricket-main.minnesota-layout .cricket-row {
-    flex: 1;
-    min-height: 0;
 }
 
 /* === X01 Main Area === */
@@ -309,11 +329,7 @@ body {
 /* Large tablets portrait (iPad Pro 12.9": 1024x1366) */
 @media (min-height: 1200px) {
     .score-big {
-        font-size: clamp(3.5rem, 9vw, 6rem);
-    }
-
-    .player-name {
-        font-size: var(--font-md);
+        font-size: clamp(5rem, 13vw, 9rem);
     }
 
     .round-badge {
@@ -323,10 +339,11 @@ body {
     }
 }
 
-/* Landscape mode */
+/* Landscape mode — scores still need to read at 10-15 feet.
+   Prefer dvh so the number tracks screen height. */
 @media (orientation: landscape) {
     .score-big {
-        font-size: clamp(1.5rem, 5dvh, 2.5rem);
+        font-size: clamp(2.8rem, 11dvh, 5.5rem);
     }
 
     .player-header {
@@ -343,7 +360,7 @@ body {
 /* Small tablet landscape (iPad Mini landscape: 1133x744) */
 @media (orientation: landscape) and (max-height: 800px) {
     .score-big {
-        font-size: clamp(1.2rem, 4dvh, 2rem);
+        font-size: clamp(2.4rem, 10dvh, 4.5rem);
     }
 
     .bottom-controls,

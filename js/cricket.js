@@ -3,8 +3,15 @@
    Standard Cricket, Spanish Cricket, Minnesota Cricket
    ============================================ */
 
-import { game, saveGameState, undoWithCooldown } from './state.js';
+import { game, saveGameState, saveActiveGame, undoWithCooldown } from './state.js';
 import { getMarkSymbol, updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner } from './ui.js';
+import { currentThrower, advanceRotation } from './teams.js';
+
+function activeThrowerName() {
+    if (!game.teamMode) return null;
+    const t = currentThrower(game.currentPlayer);
+    return t ? t.name : null;
+}
 
 // --- Internal Helpers ---
 
@@ -119,6 +126,7 @@ function updateCricketGrid() {
             const cricketData = p.cricketData[target];
             const marks = cricketData.marks;
             const closedInOneTurn = cricketData.closedInOneTurn;
+            const marksBeforeClose = cricketData.marksBeforeClose || 0;
 
             let cellHtml;
 
@@ -131,9 +139,9 @@ function updateCricketGrid() {
                     }
                 }
                 // Show marks with pending in green using getMarkSymbol's pending feature
-                cellHtml = getMarkSymbol(marks, pendingMarks, closedInOneTurn, isCompact, target, cricketData.showBoobie, i);
+                cellHtml = getMarkSymbol(marks, pendingMarks, closedInOneTurn, isCompact, target, cricketData.showBoobie, i, marksBeforeClose);
             } else {
-                cellHtml = getMarkSymbol(marks, 0, closedInOneTurn, isCompact, target, cricketData.showBoobie, i);
+                cellHtml = getMarkSymbol(marks, 0, closedInOneTurn, isCompact, target, cricketData.showBoobie, i, marksBeforeClose);
 
                 // Grey previous turn indicators
                 if (p.lastTurnMarks && p.lastTurnMarks[target] !== undefined) {
@@ -323,8 +331,16 @@ export function hitTarget(target, multiplier) {
         const cricketData = player.cricketData[target];
         const maxMarks = cricketData.maxMarks;
 
-        // Check if player already closed it AND opponents haven't all closed
-        const playerClosed = cricketData.marks >= maxMarks;
+        // Count pending darts already placed on this target *this turn*,
+        // so a dart that closes the target in-turn correctly triggers the
+        // keypad on subsequent taps (matches how numbers/bulls behave).
+        let pendingOnTarget = 0;
+        for (const d of game.pendingDarts) {
+            if (d.target === target) pendingOnTarget++;
+        }
+        const effectiveMarks = cricketData.marks + pendingOnTarget;
+
+        const playerClosed = effectiveMarks >= maxMarks;
         const allOpponentsClosed = game.players.every((p, i) => {
             if (i === game.currentPlayer) return true;
             return p.cricketData[target].closed;
@@ -337,10 +353,10 @@ export function hitTarget(target, multiplier) {
             });
             document.dispatchEvent(event);
         } else {
-            game.pendingDarts.push({ target, multiplier: 1 });
+            game.pendingDarts.push({ target, multiplier: 1, thrower: activeThrowerName() });
         }
     } else {
-        game.pendingDarts.push({ target, multiplier });
+        game.pendingDarts.push({ target, multiplier, thrower: activeThrowerName() });
     }
 
     // Clear any active cooldown so ENTER is immediately available
@@ -358,6 +374,15 @@ export function cricketConfirm() {
     const player = game.players[game.currentPlayer];
     const lastTurnMarks = {};
     let isBlakeout = false;
+
+    // Snapshot marks BEFORE this turn, per target — needed so the
+    // closed-in-one-turn flag reflects turn start, not per-dart state.
+    const preTurnMarks = {};
+    for (const dart of game.pendingDarts) {
+        if (preTurnMarks[dart.target] === undefined) {
+            preTurnMarks[dart.target] = player.cricketData[dart.target].marks;
+        }
+    }
 
     // Process all pending darts
     for (const dart of game.pendingDarts) {
@@ -388,7 +413,7 @@ export function cricketConfirm() {
 
                     if (!allOpponentsClosed) {
                         const numVal = parseInt(target);
-                    const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
+                        const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
                         player.score += pointMarks * pointValue;
                     }
                 }
@@ -400,12 +425,11 @@ export function cricketConfirm() {
         // Track closure
         if (cricketData.marks >= maxMarks && !cricketData.closed) {
             cricketData.closed = true;
-            // Track closedInOneTurn: marks went from 0 to maxMarks in one turn
-            if (marksBefore === 0 && cricketData.marks >= maxMarks) {
-                cricketData.closedInOneTurn = true;
-            } else {
-                cricketData.closedInOneTurn = false;
-            }
+            // Snapshot of marks at the START of the closing turn (preTurnMarks),
+            // not just before this individual dart. Drives the rendering of
+            // closed cells: 0 → empty O, 1 → O with slash, 2 → O with X.
+            cricketData.marksBeforeClose = preTurnMarks[target] || 0;
+            cricketData.closedInOneTurn = cricketData.marksBeforeClose === 0;
         }
 
         // Track marks for grey indicators
@@ -447,6 +471,9 @@ export function cricketConfirm() {
     // Save lastTurnMarks for the grey indicators
     player.lastTurnMarks = lastTurnMarks;
 
+    // Team mode: advance this team's thrower before swapping to the next team.
+    if (game.teamMode) advanceRotation(game.currentPlayer);
+
     // Move to next player
     const nextPlayer = (game.currentPlayer + 1) % game.players.length;
 
@@ -461,7 +488,7 @@ export function cricketConfirm() {
     game.currentPlayer = nextPlayer;
     game.pendingDarts = [];
 
-    saveGameState();
+    saveActiveGame();
     updateCricketDisplay();
     updateUndoRedoButtons();
 }
@@ -484,6 +511,9 @@ export function cricketMiss() {
     // Set lastTurnMarks for miss indicator
     player.lastTurnMarks = { 'MISS': 0 };
 
+    // Team mode: a missed turn still consumes the thrower's slot.
+    if (game.teamMode) advanceRotation(game.currentPlayer);
+
     // Move to next player
     const nextPlayer = (game.currentPlayer + 1) % game.players.length;
 
@@ -498,7 +528,7 @@ export function cricketMiss() {
     game.currentPlayer = nextPlayer;
     game.pendingDarts = [];
 
-    saveGameState();
+    saveActiveGame();
     updateCricketDisplay();
     updateUndoRedoButtons();
 }
@@ -507,10 +537,12 @@ export function initCricketControls() {
     if (controlsInitialized) return;
     controlsInitialized = true;
 
-    // Miss button
+    // Miss button — pointerdown fires on finger-press, bypassing the
+    // scroll-disambiguation delay that click incurs over a scrollable ancestor.
     const missBtn = document.getElementById('missBtn');
     if (missBtn) {
-        missBtn.addEventListener('click', () => {
+        missBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
             cricketMiss();
         });
     }
@@ -518,7 +550,8 @@ export function initCricketControls() {
     // Enter/Confirm button
     const enterBtn = document.getElementById('enterBtn');
     if (enterBtn) {
-        enterBtn.addEventListener('click', () => {
+        enterBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
             cricketConfirm();
         });
     }
@@ -526,7 +559,7 @@ export function initCricketControls() {
     // Event delegation for cricket grid buttons
     const cricketGrid = document.getElementById('cricketGrid');
     if (cricketGrid) {
-        cricketGrid.addEventListener('click', (e) => {
+        cricketGrid.addEventListener('pointerdown', (e) => {
             // Handle boobie dot toggle
             const boobieEl = e.target.closest('[data-boobie="true"]');
             if (boobieEl) {
@@ -542,6 +575,7 @@ export function initCricketControls() {
 
             const btn = e.target.closest('.cricket-num-btn, .cricket-dt-btn');
             if (!btn) return;
+            e.preventDefault();
 
             const target = btn.getAttribute('data-target');
             const multiplier = parseInt(btn.getAttribute('data-multiplier'));

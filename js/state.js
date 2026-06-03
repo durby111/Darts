@@ -17,7 +17,13 @@ export let game = {
     undoHistory: [],
     redoHistory: [],
     chicago: null,
-    game121: null
+    game121: null,
+    // Team mode (Phase 2). When teamMode is true, game.players[] still has
+    // exactly two entries — Home and Away — which the scoring engine treats
+    // as the two "players". The actual humans throwing live in
+    // game.teams[i].members and rotate per-turn.
+    teamMode: false,
+    teams: null
 };
 
 // Undo/Redo cooldown
@@ -35,16 +41,30 @@ export function resetGameState(newState) {
 
 // --- Undo/Redo System ---
 
-export function saveGameState() {
-    const state = {
+function snapshot() {
+    return {
         players: deepClone(game.players),
         currentPlayer: game.currentPlayer,
         completedRounds: game.completedRounds,
         pendingDarts: deepClone(game.pendingDarts),
         currentInput: game.currentInput,
+        // Snapshot teams so undo rolls back rotationIndex too.
+        teams: game.teams ? deepClone(game.teams) : null,
         timestamp: Date.now()
     };
-    game.undoHistory.push(state);
+}
+
+function restore(state) {
+    game.players = state.players;
+    game.currentPlayer = state.currentPlayer;
+    game.completedRounds = state.completedRounds;
+    game.pendingDarts = state.pendingDarts;
+    game.currentInput = state.currentInput;
+    if (state.teams !== undefined) game.teams = state.teams;
+}
+
+export function saveGameState() {
+    game.undoHistory.push(snapshot());
     game.redoHistory = [];
 
     // Persist live game to localStorage
@@ -53,47 +73,15 @@ export function saveGameState() {
 
 export function undoLastAction(onAfterRestore) {
     if (game.undoHistory.length === 0) return;
-
-    const currentState = {
-        players: deepClone(game.players),
-        currentPlayer: game.currentPlayer,
-        completedRounds: game.completedRounds,
-        pendingDarts: deepClone(game.pendingDarts),
-        currentInput: game.currentInput,
-        timestamp: Date.now()
-    };
-    game.redoHistory.push(currentState);
-
-    const previousState = game.undoHistory.pop();
-    game.players = previousState.players;
-    game.currentPlayer = previousState.currentPlayer;
-    game.completedRounds = previousState.completedRounds;
-    game.pendingDarts = previousState.pendingDarts;
-    game.currentInput = previousState.currentInput;
-
+    game.redoHistory.push(snapshot());
+    restore(game.undoHistory.pop());
     if (onAfterRestore) onAfterRestore();
 }
 
 export function redoLastAction(onAfterRestore) {
     if (game.redoHistory.length === 0) return;
-
-    const currentState = {
-        players: deepClone(game.players),
-        currentPlayer: game.currentPlayer,
-        completedRounds: game.completedRounds,
-        pendingDarts: deepClone(game.pendingDarts),
-        currentInput: game.currentInput,
-        timestamp: Date.now()
-    };
-    game.undoHistory.push(currentState);
-
-    const nextState = game.redoHistory.pop();
-    game.players = nextState.players;
-    game.currentPlayer = nextState.currentPlayer;
-    game.completedRounds = nextState.completedRounds;
-    game.pendingDarts = nextState.pendingDarts;
-    game.currentInput = nextState.currentInput;
-
+    game.undoHistory.push(snapshot());
+    restore(game.redoHistory.pop());
     if (onAfterRestore) onAfterRestore();
 }
 
@@ -142,6 +130,10 @@ export function initCricket(type, includeBulls = false) {
             marks: 0,
             closed: false,
             closedInOneTurn: false,
+            // marks already on the target at the START of the turn that closed it
+            // (0 = closed in one turn, 1 = had a slash, 2 = had an X). Drives the
+            // closed-cell rendering: empty O / O-with-slash / O-with-X.
+            marksBeforeClose: 0,
             showBoobie: false,
             maxMarks: 3
         };
@@ -164,6 +156,8 @@ export function saveActiveGame() {
         completedRounds: game.completedRounds,
         chicago: game.chicago ? deepClone(game.chicago) : null,
         game121: game.game121 ? deepClone(game.game121) : null,
+        teamMode: game.teamMode || false,
+        teams: game.teams ? deepClone(game.teams) : null,
         timestamp: Date.now()
     };
     try {
@@ -201,7 +195,9 @@ export function restoreActiveGame(snapshot) {
         undoHistory: [],
         redoHistory: [],
         chicago: snapshot.chicago || null,
-        game121: snapshot.game121 || null
+        game121: snapshot.game121 || null,
+        teamMode: snapshot.teamMode || false,
+        teams: snapshot.teams || null
     });
 }
 

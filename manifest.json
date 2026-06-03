@@ -1,12 +1,12 @@
 {
     "name": "BlakeOut Darts",
     "short_name": "BlakeOut",
-    "description": "Darts scorekeeper for X01, Cricket, Chicago, and more",
+    "description": "Darts scorekeeper",
     "start_url": "./index.html",
     "display": "standalone",
     "orientation": "portrait",
     "background_color": "#000000",
-    "theme_color": "#0066cc",
+    "theme_color": "#cc6600",
     "icons": [
         {
             "src": "assets/icon-192.png",

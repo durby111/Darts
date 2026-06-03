@@ -6,6 +6,24 @@
 import { game, saveGameState, undoWithCooldown, redoWithCooldown } from './state.js';
 import { updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner, show121MatchSummary } from './ui.js';
 import { handle121LegEnd } from './game121.js';
+import { currentThrower, advanceRotation } from './teams.js';
+
+function activeThrowerName() {
+    if (!game.teamMode) return null;
+    const t = currentThrower(game.currentPlayer);
+    return t ? t.name : null;
+}
+
+function makeHistoryEntry(score, bust = false, thrower = null) {
+    // Keep the legacy number form when no extra data is needed, so existing
+    // games and the X01 history renderer's `typeof === 'object'` check both
+    // stay correct.
+    if (!bust && !thrower) return score;
+    const entry = { score };
+    if (bust) entry.bust = true;
+    if (thrower) entry.thrower = thrower;
+    return entry;
+}
 
 // --- Checkout Chart (verbatim) ---
 const checkoutChart = {
@@ -69,6 +87,31 @@ const checkoutChart = {
 // Supports expressions like: 3*19+6+2*7 = 77
 let expressionStr = '';
 
+// --- Turn-commit debounce ---
+// MISS/BUST/ENTER all commit a turn and advance to the next player. A jittery
+// double-tap on a tablet would otherwise burn a whole turn for the next player.
+// Disable the three buttons briefly after any of them fires.
+let turnCommitLocked = false;
+let turnCommitTimer = null;
+const TURN_COMMIT_COOLDOWN_MS = 700;
+
+function lockTurnCommit() {
+    turnCommitLocked = true;
+    const ids = ['x01MissBtn', 'x01BustBtn', 'x01EnterBtn'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = true;
+    });
+    if (turnCommitTimer) clearTimeout(turnCommitTimer);
+    turnCommitTimer = setTimeout(() => {
+        turnCommitLocked = false;
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = false;
+        });
+    }, TURN_COMMIT_COOLDOWN_MS);
+}
+
 function addDigit(digit) {
     expressionStr += digit;
     updateInputDisplay();
@@ -130,7 +173,17 @@ function updateMissEnterVisibility() {
 }
 
 function quickScore(score) {
-    expressionStr = '';
+    // If the user is mid-expression, don't silently drop their typed value.
+    // Require them to clear or submit first.
+    if (expressionStr.length > 0) {
+        const indicator = document.getElementById('finishIndicator');
+        if (indicator) {
+            indicator.textContent = 'Clear input first (UNDO) or press ENTER';
+            indicator.style.color = 'var(--color-warning)';
+            setTimeout(() => { indicator.textContent = ''; updateX01Display(); }, 2000);
+        }
+        return;
+    }
     game.currentInput = String(score);
     document.getElementById('inputDisplay').textContent = game.currentInput;
     submitScore();
@@ -144,6 +197,7 @@ function clearInput() {
 }
 
 function x01Miss() {
+    // No guard here — submitScore() locks for us.
     expressionStr = '';
     game.currentInput = '0';
     document.getElementById('inputDisplay').textContent = '0';
@@ -151,9 +205,23 @@ function x01Miss() {
 }
 
 function x01Bust() {
+    if (turnCommitLocked) return;
+    lockTurnCommit();
     saveGameState();
+    const thrower = activeThrowerName();
     const player = game.players[game.currentPlayer];
-    player.history.push({ score: 0, bust: true });
+    player.history.push(makeHistoryEntry(0, true, thrower));
+
+    // 121 mode: a busted turn still consumes 3 darts from the player's allotment.
+    if (game.game121) {
+        game.game121.dartsThrown += 3;
+        if (game.game121.dartsThrown >= game.game121.dartsPerLeg) {
+            handle121LegEnd(false);
+            return;
+        }
+    }
+
+    if (game.teamMode) advanceRotation(game.currentPlayer);
     game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
     if (game.currentPlayer === 0) {
         game.completedRounds++;
@@ -166,6 +234,11 @@ function x01Bust() {
 // --- Core Score Submission (with bug fixes) ---
 
 function submitScore() {
+    // Guard against double-tap. x01Miss/x01Bust already locked in their
+    // wrapper; direct ENTER presses and quickScore paths land here.
+    if (turnCommitLocked) return;
+    lockTurnCommit();
+
     // Calculate total from expression or direct input
     let score;
     if (expressionStr) {
@@ -186,6 +259,7 @@ function submitScore() {
 
     saveGameState();
 
+    const thrower = activeThrowerName();
     const player = game.players[game.currentPlayer];
     const newScore = player.score - score;
     const finishType = game.finishType || 'open';
@@ -204,16 +278,34 @@ function submitScore() {
         }
     }
 
-    // Bust check: below 0 or left on 1 (can't finish with double from 1)
-    if (newScore < 0 || newScore === 1) {
-        player.history.push({ score: score, bust: true });
+    // Bust check. In double-out modes, 1 is also a bust because you can't
+    // finish with a double from 1. In open-finish, 1 is a legal remainder.
+    const isDoubleOut = finishType === 'double-out' || finishType === 'double-in-out';
+    const bustBelowZero = newScore < 0;
+    const bustOnOne = isDoubleOut && newScore === 1;
+    if (bustBelowZero || bustOnOne) {
+        player.history.push(makeHistoryEntry(score, true, thrower));
 
         const indicator = document.getElementById('finishIndicator');
-        indicator.textContent = 'BUST!';
+        if (bustBelowZero) {
+            indicator.textContent = `BUST! ${score} > ${player.score} remaining`;
+        } else {
+            indicator.textContent = 'BUST! Cannot finish on 1';
+        }
         indicator.style.color = 'var(--color-danger)';
-        setTimeout(() => { indicator.textContent = ''; }, 2000);
+        setTimeout(() => { indicator.textContent = ''; updateX01Display(); }, 2500);
+
+        // 121: a bust still consumes 3 darts from the player's allotment.
+        if (game.game121) {
+            game.game121.dartsThrown += 3;
+            if (game.game121.dartsThrown >= game.game121.dartsPerLeg) {
+                handle121LegEnd(false);
+                return;
+            }
+        }
 
         clearInput();
+        if (game.teamMode) advanceRotation(game.currentPlayer);
         game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
         if (game.currentPlayer === 0) game.completedRounds++;
         updateX01Display();
@@ -224,7 +316,7 @@ function submitScore() {
     // BUG FIX: newScore === 0 is ALWAYS a win. Trust the player.
     // Apply score
     player.score = newScore;
-    player.history.push(score);
+    player.history.push(makeHistoryEntry(score, false, thrower));
 
     // Handle 121 game dart counting
     if (game.game121) {
@@ -248,6 +340,7 @@ function submitScore() {
     }
 
     clearInput();
+    if (game.teamMode) advanceRotation(game.currentPlayer);
     game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
     if (game.currentPlayer === 0) game.completedRounds++;
 
@@ -379,12 +472,21 @@ function updateCheckoutSuggestion() {
         }
     }
 
-    // Open finish
+    // Open finish — any single segment 1-20 or 25/50 is a legal last dart.
     if (finishType === 'open' && score <= 180 && score > 0) {
-        if (score <= 60) {
-            suggestionEl.textContent = `Finish with ${score}`;
+        if (score <= 20) {
+            suggestionEl.textContent = `Finish: ${score}`;
+        } else if (score === 25 || score === 50) {
+            suggestionEl.textContent = score === 50 ? 'Finish: Bull' : 'Finish: 25';
+        } else if (score <= 60) {
+            suggestionEl.textContent = `Finish: T${Math.ceil(score / 3)} or similar`;
+        } else if (score <= 80) {
+            suggestionEl.textContent = `T20 + ${score - 60}`;
         } else if (score <= 120) {
-            suggestionEl.textContent = `${score - 60} + 60 or T20 + ${score - 60}`;
+            const remainder = score - 60;
+            suggestionEl.textContent = remainder <= 60
+                ? `T20 + T${Math.ceil(remainder / 3)} (or similar)`
+                : `Score ${score} to win`;
         } else {
             suggestionEl.textContent = `Score ${score} to win`;
         }
@@ -450,25 +552,34 @@ function onEl(id, event, handler) {
 }
 
 function initX01Controls() {
+    // Scoring buttons use pointerdown so they fire the instant the finger
+    // lands — bypasses click's scroll-disambiguation delay.
+    const bindDown = (btn, fn) => {
+        btn.addEventListener('pointerdown', (e) => { e.preventDefault(); fn(); });
+    };
+
     // Digit buttons
     document.querySelectorAll('[data-digit]').forEach(btn => {
-        btn.addEventListener('click', () => addDigit(btn.dataset.digit));
+        bindDown(btn, () => addDigit(btn.dataset.digit));
     });
 
     // Operator buttons (× and +)
     document.querySelectorAll('[data-op]').forEach(btn => {
-        btn.addEventListener('click', () => addOperator(btn.dataset.op));
+        bindDown(btn, () => addOperator(btn.dataset.op));
     });
 
     // Quick score buttons
     document.querySelectorAll('[data-quick]').forEach(btn => {
-        btn.addEventListener('click', () => quickScore(parseInt(btn.dataset.quick)));
+        bindDown(btn, () => quickScore(parseInt(btn.dataset.quick)));
     });
 
     // Control buttons
-    onEl('x01EnterBtn', 'click', submitScore);
-    onEl('x01MissBtn', 'click', x01Miss);
-    onEl('x01BustBtn', 'click', x01Bust);
+    const enterEl = document.getElementById('x01EnterBtn');
+    if (enterEl) bindDown(enterEl, submitScore);
+    const missEl = document.getElementById('x01MissBtn');
+    if (missEl) bindDown(missEl, x01Miss);
+    const bustEl = document.getElementById('x01BustBtn');
+    if (bustEl) bindDown(bustEl, x01Bust);
 
     // Undo/Redo (Undo also acts as Back — clears input first, then undoes last action)
     onEl('undoBtnX01', 'click', () => {

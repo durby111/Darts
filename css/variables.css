@@ -62,7 +62,7 @@
     --font-lg: clamp(1.1rem, 3vw, 1.4rem);
     --font-xl: clamp(1.4rem, 4vw, 1.8rem);
     --font-2xl: clamp(1.8rem, 5vw, 2.5rem);
-    --font-score: clamp(3rem, 8vw, 5rem);
+    --font-score: clamp(4.5rem, 14vw, 8rem);
 
     /* === Button Sizes === */
     --btn-padding-sm: var(--space-sm) var(--space-md);

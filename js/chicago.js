@@ -79,10 +79,22 @@ function handleChicagoLegWin(winnerIndex) {
     const winner = game.players[winnerIndex];
     game.chicago.legWins[winnerIndex]++;
 
-    // Check if match is won (2 leg wins)
+    // Check if match is won (2 leg wins) — only reachable with 2 players,
+    // since with 3+ players a single player rarely gets 2 of 3 legs.
     const maxWins = Math.max(...game.chicago.legWins);
     if (maxWins >= 2) {
         showWinner(winner.name, false, true);
+        return;
+    }
+
+    // If all 3 games are used up without a 2-win leader, the match ends on
+    // whoever has the most leg wins. Ties declare a co-winner by name list.
+    if (game.chicago.gamesRemaining.length === 0) {
+        const leaders = [];
+        game.players.forEach((p, i) => {
+            if (game.chicago.legWins[i] === maxWins) leaders.push(p.name);
+        });
+        showWinner(leaders.join(' & '), false, true);
         return;
     }
 

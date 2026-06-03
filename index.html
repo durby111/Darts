@@ -5,22 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#cc6600">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
-    <title>BlakeOut</title>
+    <title>BlakeOut Dev</title>
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/games.css">
 </head>
 <body>
-    <!-- Shared SVG chalk texture filter — referenced by all mark symbols -->
+    <!-- Shared SVG filter — subtle texture only; shapes carry the hand-drawn
+         feel via their paths, not via noise. Keeps marks crisp. -->
     <svg style="position:absolute;width:0;height:0" aria-hidden="true">
         <defs>
-            <filter id="chalk" x="-8%" y="-8%" width="116%" height="116%">
-                <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="4" seed="2" result="noise"/>
-                <feDisplacementMap in="SourceGraphic" in2="noise" scale="4.5" xChannelSelector="R" yChannelSelector="G"/>
+            <filter id="chalk" x="-4%" y="-4%" width="108%" height="108%">
+                <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="2" result="noise"/>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.9" xChannelSelector="R" yChannelSelector="G"/>
             </filter>
         </defs>
     </svg>
@@ -75,7 +76,7 @@
                 </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="numPlayersGroup">
                 <label>Number of Players</label>
                 <select id="numPlayers">
                     <option value="1">1 Player</option>
@@ -85,24 +86,38 @@
                 </select>
             </div>
 
+            <!-- Team Mode: routes Start Game through a team-builder screen so
+                 each side can have 1+ members (2v3 supported). When off, the
+                 classic 1–4 player flow is unchanged. -->
             <div class="form-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="teamMode">
+                    <span>Team Mode (Home vs Away, 1+ players per team)</span>
+                </label>
+            </div>
+
+            <!-- Roster autocomplete: typing a roster name attributes the
+                 game to that player; otherwise it's a one-off guest entry. -->
+            <datalist id="rosterDatalist"></datalist>
+
+            <div class="form-group" id="player1Group">
                 <label>Home Player</label>
-                <input type="text" id="player1" value="Home">
+                <input type="text" id="player1" value="Home" list="rosterDatalist" autocomplete="off">
             </div>
 
             <div class="form-group" id="player2Group">
                 <label>Away Player</label>
-                <input type="text" id="player2" value="Away">
+                <input type="text" id="player2" value="Away" list="rosterDatalist" autocomplete="off">
             </div>
 
             <div class="form-group hidden" id="player3Group">
                 <label>Player 3</label>
-                <input type="text" id="player3" value="Player 3">
+                <input type="text" id="player3" value="Player 3" list="rosterDatalist" autocomplete="off">
             </div>
 
             <div class="form-group hidden" id="player4Group">
                 <label>Player 4</label>
-                <input type="text" id="player4" value="Player 4">
+                <input type="text" id="player4" value="Player 4" list="rosterDatalist" autocomplete="off">
             </div>
 
             <div class="form-group">
@@ -136,6 +151,72 @@
 
             <button class="btn btn--md btn--neutral btn--block" id="updateAppBtn" style="margin-top:var(--space-lg);">Check for Updates</button>
             <div id="updateStatus" style="text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);margin-top:var(--space-xs);"></div>
+
+            <!-- Roster manager — collapsible. Players added here sync to
+                 Firestore so their lifetime stats follow them across devices. -->
+            <details class="roster-section" id="rosterSection" style="margin-top:var(--space-xl);">
+                <summary>Manage Players <span class="roster-status" id="rosterStatus"></span></summary>
+                <div class="roster-body">
+                    <div class="roster-list" id="rosterList"></div>
+                    <div class="roster-add-row">
+                        <input type="text" id="rosterAddName" placeholder="Player name" autocomplete="off">
+                        <input type="email" id="rosterAddEmail" placeholder="email@example.com" autocomplete="off">
+                        <button class="btn btn--md btn--primary" id="rosterAddBtn">Add</button>
+                    </div>
+                    <div class="roster-hint">Players sync across devices. Stats and emails attribute to whoever's name you pick at game start.</div>
+                </div>
+            </details>
+
+            <!-- Credit footer -->
+            <div class="setup-credit">
+                Created by Mike D.
+                <div class="setup-credit-links">
+                    <a href="https://cash.app/$MikeDurbin" target="_blank" rel="noopener">$MikeDurbin</a>
+                    <span class="dot">&middot;</span>
+                    <a href="mailto:DartsBlakeOut@gmail.com">DartsBlakeOut@gmail.com</a>
+                </div>
+            </div>
+
+            <!-- Prod-app QR — scan with a phone to open the live BlakeOut app -->
+            <div class="setup-qr" id="setupQR">
+                <div class="setup-qr-label">Scan to open BlakeOut on your phone</div>
+                <a href="https://durby111.github.io/Darts/" target="_blank" rel="noopener" id="setupQRLink">
+                    <canvas id="setupQRCanvas" aria-label="QR code linking to https://durby111.github.io/Darts/"></canvas>
+                </a>
+                <div class="setup-qr-url">durby111.github.io/Darts/</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Builder Screen (Phase 2 — only used when Team Mode is on) -->
+    <div class="setup-screen" id="teamBuilderScreen" style="display:none;">
+        <div class="card">
+            <h1>Build Teams</h1>
+
+            <div class="team-tray-section">
+                <div class="team-section-label">Available Players</div>
+                <div class="team-tray" id="teamTray"></div>
+                <div class="team-add-row">
+                    <input type="text" id="teamAddName" placeholder="Add ad-hoc player" list="rosterDatalist" autocomplete="off">
+                    <button class="btn btn--md btn--primary" id="teamAddBtn">Add</button>
+                </div>
+            </div>
+
+            <div class="team-zones">
+                <div class="team-zone" id="teamZone0" data-team="0">
+                    <div class="team-zone-label">Home</div>
+                    <div class="team-zone-members" id="teamZone0Members"></div>
+                </div>
+                <div class="team-zone" id="teamZone1" data-team="1">
+                    <div class="team-zone-label">Away</div>
+                    <div class="team-zone-members" id="teamZone1Members"></div>
+                </div>
+            </div>
+
+            <div class="team-builder-hint" id="teamBuilderHint">Tap a player chip, then tap Home or Away. Tap a member to remove them.</div>
+
+            <button class="btn btn--lg btn--success btn--block" id="teamStartMatchBtn" style="margin-top:var(--space-lg);" disabled>Start Match</button>
+            <button class="btn btn--md btn--neutral btn--block" id="teamBackBtn" style="margin-top:var(--space-md);">Back to Setup</button>
         </div>
     </div>
 
@@ -155,7 +236,7 @@
             <div class="center-logo">
                 <button class="end-game-btn" id="menuBtn">Menu</button>
                 <div class="round-badge" id="roundBadge">1</div>
-                <div class="version-text">v2.2</div>
+                <div class="version-text">v2.3</div>
             </div>
 
             <div class="player-header away" id="awayHeader">
@@ -203,8 +284,8 @@
         <!-- Bottom Controls (Cricket) -->
         <div class="bottom-controls hidden" id="cricketControls">
             <div class="cricket-controls-left">
-                <button class="btn btn--lg btn--undo" id="undoBtn" disabled>UNDO</button>
                 <button class="btn btn--md btn--primary" id="redoBtn" disabled style="display:none;">REDO</button>
+                <button class="btn btn--lg btn--undo" id="undoBtn" disabled>UNDO</button>
             </div>
             <div class="center-area">
                 <div class="pending-text" id="pendingText"></div>

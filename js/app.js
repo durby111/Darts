@@ -9,6 +9,7 @@ import { updateCricketDisplay, initCricketControls } from './cricket.js';
 import { updateX01Display, initX01Controls, clearInput } from './x01.js';
 import { initChicagoControls } from './chicago.js';
 import { initSetupControls, setGameStartCallback, showSetup, showSetupAsOverlay, playAgain } from './setup.js';
+import { initTeamBuilder, currentThrower } from './teams.js';
 
 // --- Safe element helper ---
 function on(id, event, handler) {
@@ -72,10 +73,14 @@ function initKeypadControls() {
                 const scoreValue = parseInt(keypadInput) || 0;
                 if (scoreValue < 0 || scoreValue > 180) return;
 
+                const thrower = game.teamMode
+                    ? (currentThrower(game.currentPlayer)?.name || null)
+                    : null;
                 game.pendingDarts.push({
                     target: keypadTarget,
                     multiplier: 1,
-                    specialScore: scoreValue
+                    specialScore: scoreValue,
+                    thrower
                 });
 
                 hideModal('scoreKeypadModal');
@@ -218,14 +223,18 @@ function initGame121Events() {
 // --- Undo/Redo for Cricket (global buttons) ---
 
 function initGlobalUndoRedo() {
-    on('undoBtn', 'click', () => {
+    // pointerdown matches the rest of the touch-optimized buttons so a tap
+    // never gets eaten by scroll-disambiguation or a stray pointerup.
+    on('undoBtn', 'pointerdown', (e) => {
+        e.preventDefault();
         undoWithCooldown(() => {
             updateDisplay();
             updateUndoRedoButtons();
         });
     });
 
-    on('redoBtn', 'click', () => {
+    on('redoBtn', 'pointerdown', (e) => {
+        e.preventDefault();
         redoWithCooldown(() => {
             updateDisplay();
             updateUndoRedoButtons();
@@ -236,27 +245,31 @@ function initGlobalUndoRedo() {
 // --- PWA Service Worker ---
 
 function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw.js').then(reg => {
-            // Force update check on every page load
-            reg.update().catch(() => {});
-            // If a new SW is waiting, activate it immediately
-            if (reg.waiting) {
-                reg.waiting.postMessage('skipWaiting');
-            }
-            reg.addEventListener('updatefound', () => {
-                const newWorker = reg.installing;
-                if (newWorker) {
-                    newWorker.addEventListener('statechange', () => {
-                        if (newWorker.state === 'activated') {
-                            // New SW activated — reload to get fresh files
-                            window.location.reload();
-                        }
-                    });
+    if (!('serviceWorker' in navigator)) return;
+
+    // Reload exactly once when a new SW takes control — standard pattern,
+    // avoids multi-tab reload loops from per-tab statechange handlers.
+    let reloadedOnce = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloadedOnce) return;
+        reloadedOnce = true;
+        window.location.reload();
+    });
+
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+        reg.update().catch(() => {});
+        if (reg.waiting) reg.waiting.postMessage('skipWaiting');
+        reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New SW installed alongside an existing one — activate it.
+                    newWorker.postMessage('skipWaiting');
                 }
             });
-        }).catch(() => {});
-    }
+        });
+    }).catch(() => {});
 }
 
 function initUpdateButton() {
@@ -302,6 +315,7 @@ function safeInit(name, fn) {
 
 document.addEventListener('DOMContentLoaded', () => {
     safeInit('setup', initSetupControls);
+    safeInit('teams', initTeamBuilder);
     safeInit('cricket', initCricketControls);
     safeInit('x01', initX01Controls);
     safeInit('chicago', initChicagoControls);
