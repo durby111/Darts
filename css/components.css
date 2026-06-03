@@ -602,7 +602,7 @@
     line-height: 0;
 }
 
-.setup-qr canvas {
+.setup-qr img {
     display: block;
     width: clamp(140px, 38vw, 200px);
     height: auto;
