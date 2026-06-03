@@ -403,6 +403,17 @@
     border: 1px dashed var(--color-border);
     border-radius: var(--radius-md);
     margin-bottom: var(--space-sm);
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.team-tray.drop-ready {
+    border-style: solid;
+    border-color: var(--color-primary);
+}
+
+.team-tray.drop-hover {
+    background: rgba(0, 102, 204, 0.12);
+    border-color: var(--color-primary);
 }
 
 .team-tray-empty,
@@ -424,10 +435,21 @@
     font-size: var(--font-md);
     font-family: var(--font-family);
     font-weight: 600;
-    cursor: pointer;
+    cursor: grab;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+    touch-action: none;
+    user-select: none;
     transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.team-chip-ghost {
+    position: fixed;
+    transform: translate(-50%, -50%) scale(1.05);
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.92;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    cursor: grabbing;
 }
 
 .team-chip:active {
@@ -489,6 +511,11 @@
 .team-zone.drop-ready {
     border-color: var(--color-primary);
     background: rgba(0, 102, 204, 0.08);
+}
+
+.team-zone.drop-hover {
+    border-color: var(--color-primary);
+    background: rgba(0, 102, 204, 0.22);
 }
 
 .team-zone-label {

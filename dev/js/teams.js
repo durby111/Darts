@@ -24,6 +24,11 @@ let teamMembers = [[], []]; // 0 = Home, 1 = Away
 let selectedChipId = null;  // tap-to-assign source
 let controlsInitialized = false;
 
+// Drag state. sourceZone: null = tray, 0 = Home, 1 = Away.
+// Tap vs drag is decided by movement past DRAG_THRESHOLD before pointerup.
+const DRAG_THRESHOLD = 8;
+let drag = null;
+
 export function setTeamsConfirmedCallback(fn) {
     onTeamsConfirmed = fn;
 }
@@ -113,7 +118,7 @@ function render() {
         } else if (ready) {
             hint.textContent = `${teamMembers[0].length} vs ${teamMembers[1].length}. Tap Start Match — order shown is throwing order.`;
         } else {
-            hint.textContent = 'Tap a player chip, then tap Home or Away. Tap a member to remove them.';
+            hint.textContent = 'Drag a player into Home or Away (or tap a chip, then tap a zone). Drag a member back to the tray to undo.';
         }
     }
 }
@@ -132,6 +137,171 @@ function removeFromZone(zoneIdx, memberId) {
     const removed = teamMembers[zoneIdx].find(p => p.id === memberId);
     teamMembers[zoneIdx] = teamMembers[zoneIdx].filter(p => p.id !== memberId);
     if (removed) trayPeople.push(removed);
+    selectedChipId = null;
+    render();
+}
+
+// --- Drag-and-drop ---
+
+function findPerson(chipId, sourceZone) {
+    if (sourceZone == null) return trayPeople.find(p => p.id === chipId);
+    return teamMembers[sourceZone].find(p => p.id === chipId);
+}
+
+function startPointerTrack(e, chipId, sourceZone) {
+    if (e.button !== undefined && e.button !== 0) return;
+    drag = {
+        chipId,
+        sourceZone,
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        isDragging: false,
+        ghost: null,
+        hoverZone: null,
+        overTray: false
+    };
+    document.addEventListener('pointermove', onPointerMove);
+    document.addEventListener('pointerup', onPointerUp);
+    document.addEventListener('pointercancel', onPointerCancel);
+}
+
+function onPointerMove(e) {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    if (!drag.isDragging) {
+        if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+        beginDrag(e);
+    }
+    moveGhost(e.clientX, e.clientY);
+    updateHover(e.clientX, e.clientY);
+}
+
+function beginDrag(e) {
+    const person = findPerson(drag.chipId, drag.sourceZone);
+    if (!person) { cleanupDrag(); return; }
+    drag.isDragging = true;
+
+    const ghost = document.createElement('div');
+    ghost.className = 'team-chip team-chip-ghost';
+    ghost.textContent = person.name;
+    ghost.style.left = e.clientX + 'px';
+    ghost.style.top = e.clientY + 'px';
+    document.body.appendChild(ghost);
+    drag.ghost = ghost;
+
+    [0, 1].forEach(idx => {
+        const z = document.getElementById(`teamZone${idx}`);
+        if (z) z.classList.add('drop-ready');
+    });
+    if (drag.sourceZone != null) {
+        const tray = document.getElementById('teamTray');
+        if (tray) tray.classList.add('drop-ready');
+    }
+}
+
+function moveGhost(x, y) {
+    if (!drag || !drag.ghost) return;
+    drag.ghost.style.left = x + 'px';
+    drag.ghost.style.top = y + 'px';
+}
+
+function rectContains(el, x, y) {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+
+function updateHover(x, y) {
+    let hover = null;
+    if (rectContains(document.getElementById('teamZone0'), x, y)) hover = 0;
+    else if (rectContains(document.getElementById('teamZone1'), x, y)) hover = 1;
+    const overTray = drag.sourceZone != null
+        && rectContains(document.getElementById('teamTray'), x, y);
+
+    if (hover === drag.hoverZone && overTray === drag.overTray) return;
+    drag.hoverZone = hover;
+    drag.overTray = overTray;
+    [0, 1].forEach(idx => {
+        const z = document.getElementById(`teamZone${idx}`);
+        if (z) z.classList.toggle('drop-hover', hover === idx);
+    });
+    const tray = document.getElementById('teamTray');
+    if (tray) tray.classList.toggle('drop-hover', overTray);
+}
+
+function onPointerUp(e) {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    const wasDragging = drag.isDragging;
+    const target = drag.hoverZone;
+    const droppedOnTray = drag.overTray;
+    const chipId = drag.chipId;
+    const sourceZone = drag.sourceZone;
+    cleanupDrag();
+
+    if (wasDragging) {
+        if (target != null && target !== sourceZone) {
+            moveChip(chipId, sourceZone, target);
+        } else if (droppedOnTray && sourceZone != null) {
+            moveChipToTray(chipId, sourceZone);
+        } else {
+            render();
+        }
+        return;
+    }
+    // Tap behavior — preserved fallback.
+    if (sourceZone == null) {
+        selectedChipId = (selectedChipId === chipId) ? null : chipId;
+        render();
+    } else {
+        removeFromZone(sourceZone, chipId);
+    }
+}
+
+function onPointerCancel(e) {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    cleanupDrag();
+    render();
+}
+
+function cleanupDrag() {
+    document.removeEventListener('pointermove', onPointerMove);
+    document.removeEventListener('pointerup', onPointerUp);
+    document.removeEventListener('pointercancel', onPointerCancel);
+    if (drag) {
+        if (drag.ghost) drag.ghost.remove();
+        [0, 1].forEach(idx => {
+            const z = document.getElementById(`teamZone${idx}`);
+            if (z) z.classList.remove('drop-hover');
+        });
+        const tray = document.getElementById('teamTray');
+        if (tray) tray.classList.remove('drop-hover', 'drop-ready');
+    }
+    drag = null;
+}
+
+function moveChip(chipId, sourceZone, targetZone) {
+    let person;
+    if (sourceZone == null) {
+        person = trayPeople.find(p => p.id === chipId);
+        if (!person) return;
+        trayPeople = trayPeople.filter(p => p.id !== chipId);
+    } else {
+        person = teamMembers[sourceZone].find(p => p.id === chipId);
+        if (!person) return;
+        teamMembers[sourceZone] = teamMembers[sourceZone].filter(p => p.id !== chipId);
+    }
+    teamMembers[targetZone].push(person);
+    selectedChipId = null;
+    render();
+}
+
+function moveChipToTray(chipId, sourceZone) {
+    const person = teamMembers[sourceZone].find(p => p.id === chipId);
+    if (!person) return;
+    teamMembers[sourceZone] = teamMembers[sourceZone].filter(p => p.id !== chipId);
+    trayPeople.push(person);
     selectedChipId = null;
     render();
 }
@@ -159,9 +329,7 @@ export function initTeamBuilder() {
             const chip = e.target.closest('[data-chip-id]');
             if (!chip) return;
             e.preventDefault();
-            const id = chip.dataset.chipId;
-            selectedChipId = (selectedChipId === id) ? null : id;
-            render();
+            startPointerTrack(e, chip.dataset.chipId, null);
         });
     }
 
@@ -172,9 +340,10 @@ export function initTeamBuilder() {
             const member = e.target.closest('[data-zone-member-id]');
             if (member) {
                 e.preventDefault();
-                removeFromZone(idx, member.dataset.zoneMemberId);
+                startPointerTrack(e, member.dataset.zoneMemberId, idx);
                 return;
             }
+            // Empty-zone tap with a selected tray chip → assign (tap fallback).
             if (!selectedChipId) return;
             e.preventDefault();
             assignSelectedTo(idx);
