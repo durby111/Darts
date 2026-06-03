@@ -5,6 +5,13 @@
 
 import { game, saveGameState, saveActiveGame, undoWithCooldown } from './state.js';
 import { getMarkSymbol, updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner } from './ui.js';
+import { currentThrower, advanceRotation } from './teams.js';
+
+function activeThrowerName() {
+    if (!game.teamMode) return null;
+    const t = currentThrower(game.currentPlayer);
+    return t ? t.name : null;
+}
 
 // --- Internal Helpers ---
 
@@ -346,10 +353,10 @@ export function hitTarget(target, multiplier) {
             });
             document.dispatchEvent(event);
         } else {
-            game.pendingDarts.push({ target, multiplier: 1 });
+            game.pendingDarts.push({ target, multiplier: 1, thrower: activeThrowerName() });
         }
     } else {
-        game.pendingDarts.push({ target, multiplier });
+        game.pendingDarts.push({ target, multiplier, thrower: activeThrowerName() });
     }
 
     // Clear any active cooldown so ENTER is immediately available
@@ -464,6 +471,9 @@ export function cricketConfirm() {
     // Save lastTurnMarks for the grey indicators
     player.lastTurnMarks = lastTurnMarks;
 
+    // Team mode: advance this team's thrower before swapping to the next team.
+    if (game.teamMode) advanceRotation(game.currentPlayer);
+
     // Move to next player
     const nextPlayer = (game.currentPlayer + 1) % game.players.length;
 
@@ -500,6 +510,9 @@ export function cricketMiss() {
 
     // Set lastTurnMarks for miss indicator
     player.lastTurnMarks = { 'MISS': 0 };
+
+    // Team mode: a missed turn still consumes the thrower's slot.
+    if (game.teamMode) advanceRotation(game.currentPlayer);
 
     // Move to next player
     const nextPlayer = (game.currentPlayer + 1) % game.players.length;

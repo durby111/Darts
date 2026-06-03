@@ -41,16 +41,30 @@ export function resetGameState(newState) {
 
 // --- Undo/Redo System ---
 
-export function saveGameState() {
-    const state = {
+function snapshot() {
+    return {
         players: deepClone(game.players),
         currentPlayer: game.currentPlayer,
         completedRounds: game.completedRounds,
         pendingDarts: deepClone(game.pendingDarts),
         currentInput: game.currentInput,
+        // Snapshot teams so undo rolls back rotationIndex too.
+        teams: game.teams ? deepClone(game.teams) : null,
         timestamp: Date.now()
     };
-    game.undoHistory.push(state);
+}
+
+function restore(state) {
+    game.players = state.players;
+    game.currentPlayer = state.currentPlayer;
+    game.completedRounds = state.completedRounds;
+    game.pendingDarts = state.pendingDarts;
+    game.currentInput = state.currentInput;
+    if (state.teams !== undefined) game.teams = state.teams;
+}
+
+export function saveGameState() {
+    game.undoHistory.push(snapshot());
     game.redoHistory = [];
 
     // Persist live game to localStorage
@@ -59,47 +73,15 @@ export function saveGameState() {
 
 export function undoLastAction(onAfterRestore) {
     if (game.undoHistory.length === 0) return;
-
-    const currentState = {
-        players: deepClone(game.players),
-        currentPlayer: game.currentPlayer,
-        completedRounds: game.completedRounds,
-        pendingDarts: deepClone(game.pendingDarts),
-        currentInput: game.currentInput,
-        timestamp: Date.now()
-    };
-    game.redoHistory.push(currentState);
-
-    const previousState = game.undoHistory.pop();
-    game.players = previousState.players;
-    game.currentPlayer = previousState.currentPlayer;
-    game.completedRounds = previousState.completedRounds;
-    game.pendingDarts = previousState.pendingDarts;
-    game.currentInput = previousState.currentInput;
-
+    game.redoHistory.push(snapshot());
+    restore(game.undoHistory.pop());
     if (onAfterRestore) onAfterRestore();
 }
 
 export function redoLastAction(onAfterRestore) {
     if (game.redoHistory.length === 0) return;
-
-    const currentState = {
-        players: deepClone(game.players),
-        currentPlayer: game.currentPlayer,
-        completedRounds: game.completedRounds,
-        pendingDarts: deepClone(game.pendingDarts),
-        currentInput: game.currentInput,
-        timestamp: Date.now()
-    };
-    game.undoHistory.push(currentState);
-
-    const nextState = game.redoHistory.pop();
-    game.players = nextState.players;
-    game.currentPlayer = nextState.currentPlayer;
-    game.completedRounds = nextState.completedRounds;
-    game.pendingDarts = nextState.pendingDarts;
-    game.currentInput = nextState.currentInput;
-
+    game.undoHistory.push(snapshot());
+    restore(game.redoHistory.pop());
     if (onAfterRestore) onAfterRestore();
 }
 

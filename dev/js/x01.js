@@ -6,6 +6,24 @@
 import { game, saveGameState, undoWithCooldown, redoWithCooldown } from './state.js';
 import { updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner, show121MatchSummary } from './ui.js';
 import { handle121LegEnd } from './game121.js';
+import { currentThrower, advanceRotation } from './teams.js';
+
+function activeThrowerName() {
+    if (!game.teamMode) return null;
+    const t = currentThrower(game.currentPlayer);
+    return t ? t.name : null;
+}
+
+function makeHistoryEntry(score, bust = false, thrower = null) {
+    // Keep the legacy number form when no extra data is needed, so existing
+    // games and the X01 history renderer's `typeof === 'object'` check both
+    // stay correct.
+    if (!bust && !thrower) return score;
+    const entry = { score };
+    if (bust) entry.bust = true;
+    if (thrower) entry.thrower = thrower;
+    return entry;
+}
 
 // --- Checkout Chart (verbatim) ---
 const checkoutChart = {
@@ -190,8 +208,9 @@ function x01Bust() {
     if (turnCommitLocked) return;
     lockTurnCommit();
     saveGameState();
+    const thrower = activeThrowerName();
     const player = game.players[game.currentPlayer];
-    player.history.push({ score: 0, bust: true });
+    player.history.push(makeHistoryEntry(0, true, thrower));
 
     // 121 mode: a busted turn still consumes 3 darts from the player's allotment.
     if (game.game121) {
@@ -202,6 +221,7 @@ function x01Bust() {
         }
     }
 
+    if (game.teamMode) advanceRotation(game.currentPlayer);
     game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
     if (game.currentPlayer === 0) {
         game.completedRounds++;
@@ -239,6 +259,7 @@ function submitScore() {
 
     saveGameState();
 
+    const thrower = activeThrowerName();
     const player = game.players[game.currentPlayer];
     const newScore = player.score - score;
     const finishType = game.finishType || 'open';
@@ -263,7 +284,7 @@ function submitScore() {
     const bustBelowZero = newScore < 0;
     const bustOnOne = isDoubleOut && newScore === 1;
     if (bustBelowZero || bustOnOne) {
-        player.history.push({ score: score, bust: true });
+        player.history.push(makeHistoryEntry(score, true, thrower));
 
         const indicator = document.getElementById('finishIndicator');
         if (bustBelowZero) {
@@ -284,6 +305,7 @@ function submitScore() {
         }
 
         clearInput();
+        if (game.teamMode) advanceRotation(game.currentPlayer);
         game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
         if (game.currentPlayer === 0) game.completedRounds++;
         updateX01Display();
@@ -294,7 +316,7 @@ function submitScore() {
     // BUG FIX: newScore === 0 is ALWAYS a win. Trust the player.
     // Apply score
     player.score = newScore;
-    player.history.push(score);
+    player.history.push(makeHistoryEntry(score, false, thrower));
 
     // Handle 121 game dart counting
     if (game.game121) {
@@ -318,6 +340,7 @@ function submitScore() {
     }
 
     clearInput();
+    if (game.teamMode) advanceRotation(game.currentPlayer);
     game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
     if (game.currentPlayer === 0) game.completedRounds++;
 

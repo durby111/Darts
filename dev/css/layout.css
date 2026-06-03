@@ -152,6 +152,21 @@ body {
     letter-spacing: 0.02em;
 }
 
+.thrower-name {
+    font-size: calc(var(--font-md) * var(--ui-scale));
+    font-weight: 600;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+    line-height: 1.1;
+}
+
+.thrower-name.active {
+    color: var(--color-primary-light, var(--color-primary));
+}
+
 .score-display-header {
     display: flex;
     flex-direction: column;

@@ -9,7 +9,7 @@ import { updateCricketDisplay, initCricketControls } from './cricket.js';
 import { updateX01Display, initX01Controls, clearInput } from './x01.js';
 import { initChicagoControls } from './chicago.js';
 import { initSetupControls, setGameStartCallback, showSetup, showSetupAsOverlay, playAgain } from './setup.js';
-import { initTeamBuilder } from './teams.js';
+import { initTeamBuilder, currentThrower } from './teams.js';
 
 // --- Safe element helper ---
 function on(id, event, handler) {
@@ -73,10 +73,14 @@ function initKeypadControls() {
                 const scoreValue = parseInt(keypadInput) || 0;
                 if (scoreValue < 0 || scoreValue > 180) return;
 
+                const thrower = game.teamMode
+                    ? (currentThrower(game.currentPlayer)?.name || null)
+                    : null;
                 game.pendingDarts.push({
                     target: keypadTarget,
                     multiplier: 1,
-                    specialScore: scoreValue
+                    specialScore: scoreValue,
+                    thrower
                 });
 
                 hideModal('scoreKeypadModal');

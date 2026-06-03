@@ -4,6 +4,7 @@
    ============================================ */
 
 import { game, canUndo, canRedo } from './state.js';
+import { currentThrower } from './teams.js';
 
 // --- SVG Mark Symbols ---
 // Hand-drawn-feeling chalk marks built from clean bezier curves.
@@ -256,6 +257,47 @@ export function updatePlayerHeaders() {
         document.getElementById('player4Header').className = 'player-header player4 ' +
             (game.currentPlayer === 3 ? 'active' : 'inactive');
     }
+
+    updateThrowerLines();
+}
+
+function updateThrowerLines() {
+    // Team mode renders a "Throwing: Name" / "Next: Name" sub-line under each
+    // team name. Headers are reused across matches, so we also have to remove
+    // the lines when team mode is off.
+    const slots = [
+        { headerId: 'homeHeader', lineId: 'homeThrower', teamIdx: 0 },
+        { headerId: 'awayHeader', lineId: 'awayThrower', teamIdx: 1 }
+    ];
+    const on = game.teamMode && game.teams && game.teams.length === 2;
+    slots.forEach(({ headerId, lineId, teamIdx }) => {
+        const header = document.getElementById(headerId);
+        if (!header) return;
+        let line = document.getElementById(lineId);
+        if (!on) {
+            if (line) line.remove();
+            return;
+        }
+        const thrower = currentThrower(teamIdx);
+        if (!thrower) {
+            if (line) line.remove();
+            return;
+        }
+        if (!line) {
+            line = document.createElement('div');
+            line.id = lineId;
+            line.className = 'thrower-name';
+            const nameEl = header.querySelector('.player-name');
+            if (nameEl && nameEl.nextSibling) {
+                header.insertBefore(line, nameEl.nextSibling);
+            } else {
+                header.appendChild(line);
+            }
+        }
+        const isActive = game.currentPlayer === teamIdx;
+        line.textContent = (isActive ? 'Throwing: ' : 'Next: ') + thrower.name;
+        line.classList.toggle('active', isActive);
+    });
 }
 
 // --- Round Badge ---
