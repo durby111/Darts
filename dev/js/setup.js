@@ -10,6 +10,9 @@ import {
     upsertPlayer, deletePlayer, findPlayerByName, getInitState, isRealEmail
 } from './firebase.js';
 import { showTeamBuilder, setTeamsConfirmedCallback } from './teams.js';
+import { renderQRToCanvas } from './qrcode.js';
+
+const PROD_APP_URL = 'https://durby111.github.io/Darts/';
 
 let onGameStart = null;
 let overlayMode = false;
@@ -99,6 +102,16 @@ export function initSetupControls() {
 
     // Show resume button if there's a saved game
     updateResumeButton();
+
+    // Prod-app QR — isolated so a render bug can't break setup.
+    try {
+        const canvas = document.getElementById('setupQRCanvas');
+        if (canvas) renderQRToCanvas(canvas, PROD_APP_URL, { scale: 6, margin: 2 });
+    } catch (err) {
+        console.warn('[Setup] QR render failed:', err);
+        const box = document.getElementById('setupQR');
+        if (box) box.style.display = 'none';
+    }
 
     // Roster (Firestore) — non-blocking. App still works if Firebase fails.
     initRosterUI();

@@ -16,6 +16,7 @@ const ASSETS = [
     './js/x01.js',
     './js/chicago.js',
     './js/game121.js',
+    './js/qrcode.js',
     './assets/background.png',
     './assets/logo.png'
 ];
