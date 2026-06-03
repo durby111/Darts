@@ -106,7 +106,12 @@ export function initSetupControls() {
     // Prod-app QR — isolated so a render bug can't break setup.
     try {
         const canvas = document.getElementById('setupQRCanvas');
-        if (canvas) renderQRToCanvas(canvas, PROD_APP_URL, { scale: 6, margin: 2 });
+        if (canvas) renderQRToCanvas(canvas, PROD_APP_URL, {
+            scale: 6,
+            margin: 2,
+            dark: '#fff',
+            light: 'rgba(0,0,0,0)'
+        });
     } catch (err) {
         console.warn('[Setup] QR render failed:', err);
         const box = document.getElementById('setupQR');

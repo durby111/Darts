@@ -572,15 +572,19 @@
     color: var(--color-text-dim, var(--color-text-muted));
 }
 
-/* === Prod-app QR === */
+/* === Prod-app QR ===
+   Sits at the visual bottom of the setup card. White modules on a
+   transparent ground with a white outline so it reads on the dark
+   background image. Modern phone cameras scan inverted QRs fine. */
 .setup-qr {
-    margin-top: var(--space-lg);
-    padding-top: var(--space-md);
+    margin-top: var(--space-2xl, var(--space-xl));
+    padding-top: var(--space-lg);
     border-top: 1px solid var(--color-border);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-xs);
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
 }
 
 .setup-qr-label {
@@ -591,8 +595,9 @@
 
 .setup-qr a {
     display: inline-block;
-    background: #fff;
-    padding: var(--space-sm);
+    background: transparent;
+    padding: var(--space-md);
+    border: 2px solid #fff;
     border-radius: var(--radius-md);
     line-height: 0;
 }
