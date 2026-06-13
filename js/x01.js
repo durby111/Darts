@@ -5,7 +5,7 @@
 
 import { game, saveGameState, undoWithCooldown, redoWithCooldown } from './state.js';
 import { updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner, show121MatchSummary } from './ui.js';
-import { handle121LegEnd } from './game121.js';
+import { handle121LegEnd, record121Round } from './game121.js';
 import { currentThrower, advanceRotation } from './teams.js';
 
 function activeThrowerName() {
@@ -318,9 +318,10 @@ function submitScore() {
     player.score = newScore;
     player.history.push(makeHistoryEntry(score, false, thrower));
 
-    // Handle 121 game dart counting
+    // Handle 121 game dart counting + round tallies (180s, 100+, etc.)
     if (game.game121) {
         game.game121.dartsThrown += 3;
+        record121Round(score);
     }
 
     // Win check

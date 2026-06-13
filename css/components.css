@@ -706,3 +706,166 @@
     grid-template-columns: 1fr 1fr 2fr;
     gap: var(--space-sm);
 }
+
+/* === Team-builder additions: first-team badge, reorder buttons === */
+.team-zone-first-badge {
+    display: none;
+    align-self: center;
+    margin-bottom: var(--space-xs);
+    padding: 2px var(--space-sm);
+    background: var(--color-success-dark, var(--color-success));
+    color: var(--color-text);
+    font-size: var(--font-xs, 0.7rem);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border-radius: var(--radius-sm);
+}
+
+.team-zone.first .team-zone-first-badge {
+    display: inline-block;
+}
+
+.team-zone-member {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: var(--space-xs);
+    background: var(--color-primary-dark, var(--color-primary));
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: var(--space-sm) var(--space-md);
+    color: var(--color-text);
+    touch-action: none;
+    user-select: none;
+}
+
+.team-zone-member-name {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.team-zone-member-order-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.team-zone-member-order-btns button {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--color-border-light);
+    color: var(--color-text);
+    font-size: var(--font-sm);
+    width: 28px;
+    height: 22px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+
+.team-zone-member-order-btns button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.team-zone-member-swap-btn {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--color-border-light);
+    color: var(--color-text);
+    font-size: var(--font-sm);
+    padding: 4px var(--space-sm);
+    line-height: 1;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+}
+
+.team-builder-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.team-builder-actions .btn {
+    flex: 1 1 auto;
+}
+
+/* === Bermuda face-value picker grid === */
+.face-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-sm);
+}
+
+.face-picker-grid button {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 2px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-md) 0;
+    font-size: var(--font-lg);
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.face-picker-grid button:active {
+    background: var(--color-primary);
+    border-color: var(--color-primary-light);
+}
+
+/* === 121 summary table === */
+.summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: var(--space-md);
+    font-size: var(--font-md);
+}
+
+.summary-table th,
+.summary-table td {
+    padding: var(--space-sm) var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+}
+
+.summary-table th {
+    color: var(--color-text-muted);
+    font-weight: 600;
+    font-size: var(--font-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.summary-table td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.summary-section-label {
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-xs);
+}
+
+.summary-leaderboard-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-xs) var(--space-md);
+    color: var(--color-text);
+    background: var(--color-surface-alt);
+    border-radius: var(--radius-sm);
+    margin-bottom: 2px;
+    font-size: var(--font-sm);
+}
+
+.summary-leaderboard-row.new-record {
+    background: var(--color-success-dark, var(--color-success));
+    color: var(--color-text);
+    font-weight: 700;
+}

@@ -62,11 +62,15 @@
                 </select>
                 <label style="margin-top:10px;">Total Legs</label>
                 <select id="totalLegs121">
-                    <option value="3">3 Legs</option>
                     <option value="5" selected>5 Legs</option>
-                    <option value="7">7 Legs</option>
-                    <option value="9">9 Legs</option>
+                    <option value="10">10 Legs</option>
+                    <option value="25">25 Legs</option>
+                    <option value="infinite">Infinite (play until stopped)</option>
                 </select>
+                <label class="checkbox-label" style="margin-top:10px;">
+                    <input type="checkbox" id="game121SoloMode">
+                    <span>Solo / Co-op (1 team, beat your last score)</span>
+                </label>
                 <label style="margin-top:10px;">Leg-Loss Penalty</label>
                 <select id="legLossPenalty121">
                     <option value="1" selected>-1 point</option>
@@ -239,18 +243,25 @@
                 </div>
             </div>
 
-            <div class="team-zones">
+            <div class="team-zones" id="teamZones">
                 <div class="team-zone" id="teamZone0" data-team="0">
-                    <div class="team-zone-label">Home</div>
+                    <div class="team-zone-label" id="teamZone0Label">Home</div>
+                    <div class="team-zone-first-badge" id="teamZone0FirstBadge">Throws first</div>
                     <div class="team-zone-members" id="teamZone0Members"></div>
                 </div>
                 <div class="team-zone" id="teamZone1" data-team="1">
-                    <div class="team-zone-label">Away</div>
+                    <div class="team-zone-label" id="teamZone1Label">Away</div>
+                    <div class="team-zone-first-badge" id="teamZone1FirstBadge">Throws first</div>
                     <div class="team-zone-members" id="teamZone1Members"></div>
                 </div>
             </div>
 
             <div class="team-builder-hint" id="teamBuilderHint">Tap a player chip, then tap Home or Away. Tap a member to remove them.</div>
+
+            <div class="team-builder-actions">
+                <button class="btn btn--md btn--neutral" id="teamSwapFirstBtn">Swap which team throws first</button>
+                <button class="btn btn--md btn--neutral" id="teamLoadLastBtn">Load last team setup</button>
+            </div>
 
             <button class="btn btn--lg btn--success btn--block" id="teamStartMatchBtn" style="margin-top:var(--space-lg);" disabled>Start Match</button>
             <button class="btn btn--md btn--neutral btn--block" id="teamBackBtn" style="margin-top:var(--space-md);">Back to Setup</button>
@@ -273,7 +284,7 @@
             <div class="center-logo">
                 <button class="end-game-btn" id="menuBtn">Menu</button>
                 <div class="round-badge" id="roundBadge">1</div>
-                <div class="version-text">v2.5</div>
+                <div class="version-text">v2.6</div>
             </div>
 
             <div class="player-header away" id="awayHeader">
@@ -439,12 +450,35 @@
                 <button class="btn btn--lg btn--undo btn--block" id="gameMenuUndoBtn">UNDO Last Action</button>
                 <button class="btn btn--lg btn--primary btn--block" id="gameMenuRedoBtn" style="display:none;">REDO</button>
                 <button class="btn btn--lg btn--neutral btn--block" id="gameMenuResumeBtn">Resume Game</button>
+                <button class="btn btn--lg btn--primary btn--block" id="gameMenuEnd121Btn" style="display:none;">End Game &amp; Show Stats</button>
                 <hr style="border-color:var(--color-border);margin:var(--space-xs) 0;">
                 <button class="btn btn--lg btn--success-dark btn--block" id="gameMenuNewGameBtn">New Game (Same Players)</button>
                 <button class="btn btn--lg btn--neutral btn--block" id="gameMenuSettingsBtn">Change Settings</button>
                 <button class="btn btn--lg btn--danger btn--block" id="gameMenuExitBtn">Cancel Game</button>
                 <hr style="border-color:var(--color-border);margin:var(--space-xs) 0;">
                 <button class="btn btn--md btn--neutral btn--block" id="gameMenuUpdateBtn">Download Latest Version</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bermuda Triangle face-value picker (used on Doubles/Triples rings) -->
+    <div class="modal" id="bermudaFacePickerModal" style="display:none;">
+        <div class="modal-content" style="max-width:400px;">
+            <h2 id="bermudaFacePickerTitle">Pick the number you hit</h2>
+            <p style="color:var(--color-text-muted);margin-bottom:var(--space-md);" id="bermudaFacePickerHint">Tap the segment your dart landed on. Score is added at the ring's multiplier.</p>
+            <div class="face-picker-grid" id="bermudaFacePickerGrid"></div>
+            <button class="btn btn--md btn--neutral btn--block" id="bermudaFacePickerCancelBtn" style="margin-top:var(--space-md);">Cancel</button>
+        </div>
+    </div>
+
+    <!-- 121 Match Summary Modal -->
+    <div class="modal" id="game121SummaryModal" style="display:none;">
+        <div class="modal-content" style="max-width:520px;">
+            <h2>121 Game Summary</h2>
+            <div id="game121SummaryBody"></div>
+            <div style="display:flex;gap:var(--space-md);margin-top:var(--space-xl);">
+                <button class="btn btn--lg btn--success" id="game121SummaryAgainBtn" style="flex:1;">Play Again</button>
+                <button class="btn btn--lg btn--neutral" id="game121SummaryDoneBtn" style="flex:1;">Done</button>
             </div>
         </div>
     </div>

@@ -351,16 +351,24 @@ function beginMatch(playerSeeds, teams) {
             currentGameType: null,
             whoPicksNext: 0
         } : null,
-        game121: is121 ? {
-            currentLeg: 1,
-            totalLegs: parseInt(document.getElementById('totalLegs121').value),
-            dartsPerLeg: parseInt(document.getElementById('dartsPerLeg').value),
-            dartsThrown: 0,
-            startingScore: 121,
-            legLossPenalty: parseInt(document.getElementById('legLossPenalty121').value) || 1,
-            legResults: [],
-            legsWon: []
-        } : null,
+        game121: is121 ? (() => {
+            const rawLegs = document.getElementById('totalLegs121').value;
+            const totalLegs = rawLegs === 'infinite' ? 'infinite' : parseInt(rawLegs);
+            const solo = document.getElementById('game121SoloMode').checked;
+            return {
+                currentLeg: 1,
+                totalLegs,
+                dartsPerLeg: parseInt(document.getElementById('dartsPerLeg').value),
+                dartsThrown: 0,
+                startingScore: 121,
+                highestStart: 121,
+                legLossPenalty: parseInt(document.getElementById('legLossPenalty121').value) || 1,
+                soloMode: solo,
+                legResults: [],
+                legsWon: [],
+                roundsByPlayer: {}
+            };
+        })() : null,
         baseball: isBaseball ? initBaseballState(document.getElementById('baseballVariant').value) : null,
         bermuda: isBermuda ? initBermudaState(document.getElementById('bermudaVariant').value) : null,
         teamMode: !!teams,

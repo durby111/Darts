@@ -11,6 +11,7 @@ import { initChicagoControls } from './chicago.js';
 import { initSetupControls, setGameStartCallback, showSetup, showSetupAsOverlay, playAgain } from './setup.js';
 import { initTeamBuilder, currentThrower } from './teams.js';
 import { initTargetGameControls, updateTargetGameDisplay } from './target_game.js';
+import { init121SummaryControls } from './game121.js';
 
 // --- Safe element helper ---
 function on(id, event, handler) {
@@ -114,7 +115,16 @@ function initGameMenuControls() {
     on('menuBtn', 'click', () => {
         const redoBtn = document.getElementById('gameMenuRedoBtn');
         if (redoBtn) redoBtn.style.display = game.redoHistory && game.redoHistory.length > 0 ? 'block' : 'none';
+        // Surface "End Game & Show Stats" only for 121 (needed for infinite legs).
+        const end121Btn = document.getElementById('gameMenuEnd121Btn');
+        if (end121Btn) end121Btn.style.display = game.game121 ? 'block' : 'none';
         showModal('gameMenuModal');
+    });
+
+    on('gameMenuEnd121Btn', 'click', async () => {
+        hideModal('gameMenuModal');
+        const mod = await import('./game121.js');
+        mod.show121MatchSummary();
     });
 
     on('gameMenuUndoBtn', 'click', () => {
@@ -326,6 +336,12 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('x01', initX01Controls);
     safeInit('chicago', initChicagoControls);
     safeInit('targetGame', () => initTargetGameControls(updateDisplay));
+    safeInit('game121Summary', () => init121SummaryControls(
+        // "Play Again": go back to setup with all current settings preserved.
+        // playAgain() doesn't re-init game121 state, so this is the safe path.
+        () => showSetup(),
+        () => showSetup()
+    ));
     safeInit('keypad', initKeypadControls);
     safeInit('gameMenu', initGameMenuControls);
     safeInit('winnerModal', initWinnerModalControls);
