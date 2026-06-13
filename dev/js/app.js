@@ -12,6 +12,8 @@ import { initSetupControls, setGameStartCallback, showSetup, showSetupAsOverlay,
 import { initTeamBuilder, currentThrower } from './teams.js';
 import { initTargetGameControls, updateTargetGameDisplay } from './target_game.js';
 import { init121SummaryControls } from './game121.js';
+// Side-effect import: applies the saved theme before any UI paints.
+import './theme.js';
 
 // --- Safe element helper ---
 function on(id, event, handler) {

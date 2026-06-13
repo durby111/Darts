@@ -1,26 +1,33 @@
 /* ============================================
    BlakeOut Design Tokens
-   All shared values — colors, spacing, radii,
-   typography, z-index. No raw values elsewhere.
+   Theme system + structural scale.
+
+   Three themes are selectable by setting
+   `data-theme="blue|red|neon"` on the <html> root.
+   theme.js persists the selection to localStorage
+   and applies it at boot.
+
+   All other tokens (spacing, radii, type, z-index)
+   are theme-agnostic and live on :root below.
    ============================================ */
 
-:root {
-    /* === Colors: Primary === */
+/* === Default + Blue (Classic) === */
+:root,
+:root[data-theme="blue"] {
     --color-primary: #0066cc;
     --color-primary-dark: #0052a3;
     --color-primary-light: #00aaff;
 
-    /* === Colors: Semantic === */
     --color-success: #00aa00;
     --color-success-dark: #006600;
     --color-danger: #cc0000;
     --color-warning: #cc9900;
     --color-undo: #cc6600;
 
-    /* === Colors: Neutrals === */
     --color-bg: #000000;
     --color-surface: #1a1a1a;
     --color-surface-alt: #111111;
+    --color-surface-elevated: #232323;
     --color-border: #333333;
     --color-border-light: #666666;
     --color-text: #ffffff;
@@ -28,7 +35,6 @@
     --color-text-muted: #999999;
     --color-text-dim: #666666;
 
-    /* === Colors: Game-specific === */
     --color-active-player: var(--color-primary);
     --color-inactive-player: #666666;
     --color-pending: #00ff00;
@@ -38,7 +44,88 @@
     --color-bust: #cc6633;
     --color-miss: #555566;
 
-    /* === Spacing === */
+    --color-accent: #00aaff;
+    --color-accent-glow: rgba(0, 170, 255, 0.35);
+    --bg-image-overlay: rgba(0, 0, 0, 0.78);
+}
+
+/* === Crimson (Red) === */
+:root[data-theme="red"] {
+    --color-primary: #cc1f3a;
+    --color-primary-dark: #8c0e22;
+    --color-primary-light: #ff4a64;
+
+    --color-success: #1fa873;
+    --color-success-dark: #137551;
+    --color-danger: #ff3344;
+    --color-warning: #d68f1f;
+    --color-undo: #d68f1f;
+
+    --color-bg: #0c0608;
+    --color-surface: #1f1518;
+    --color-surface-alt: #160d10;
+    --color-surface-elevated: #2a1d21;
+    --color-border: #3a262b;
+    --color-border-light: #6d4a52;
+    --color-text: #fff5f5;
+    --color-text-dark: #1a0a0d;
+    --color-text-muted: #a59395;
+    --color-text-dim: #6d5256;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #4d3239;
+    --color-pending: #ffae40;
+    --color-prev-turn: #8b6266;
+    --color-score-bg: #ffffff;
+    --color-score-text: #1a0a0d;
+    --color-bust: #ff7733;
+    --color-miss: #5c4045;
+
+    --color-accent: #ff4a64;
+    --color-accent-glow: rgba(255, 74, 100, 0.35);
+    --bg-image-overlay: rgba(20, 4, 8, 0.82);
+}
+
+/* === Neon (Cyan/Magenta) === */
+:root[data-theme="neon"] {
+    --color-primary: #00d4ff;
+    --color-primary-dark: #008db3;
+    --color-primary-light: #66e7ff;
+
+    --color-success: #00ff88;
+    --color-success-dark: #00b35e;
+    --color-danger: #ff2e7e;
+    --color-warning: #ffdd00;
+    --color-undo: #ff7700;
+
+    --color-bg: #060614;
+    --color-surface: #131326;
+    --color-surface-alt: #0c0c1c;
+    --color-surface-elevated: #1c1c34;
+    --color-border: #2b2b4a;
+    --color-border-light: #4b4b78;
+    --color-text: #eaf6ff;
+    --color-text-dark: #06061a;
+    --color-text-muted: #8a8ab6;
+    --color-text-dim: #555582;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #3a3a5c;
+    --color-pending: #00ff88;
+    --color-prev-turn: #6b6b9a;
+    --color-score-bg: #ffffff;
+    --color-score-text: #06061a;
+    --color-bust: #ff2e7e;
+    --color-miss: #4b4b78;
+
+    --color-accent: #ff2eb0;
+    --color-accent-glow: rgba(0, 212, 255, 0.45);
+    --bg-image-overlay: rgba(6, 6, 20, 0.85);
+}
+
+/* === Structural tokens — theme-agnostic === */
+:root {
+    /* Spacing scale */
     --space-xs: 4px;
     --space-sm: 8px;
     --space-md: 12px;
@@ -46,44 +133,56 @@
     --space-xl: 20px;
     --space-2xl: 24px;
     --space-3xl: 32px;
+    --space-4xl: 48px;
 
-    /* === Border Radius (standardized) === */
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
+    /* Radii */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 22px;
+    --radius-pill: 999px;
 
-    /* === Typography === */
-    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    /* Typography */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+    --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'SF Mono', Menlo, Monaco, 'Cascadia Mono', Consolas, monospace;
 
-    /* Font sizes — clamp(min, preferred, max) tuned for 720-1366px height */
-    --font-xs: clamp(0.6rem, 1.5vw, 0.75rem);
-    --font-sm: clamp(0.75rem, 2vw, 0.95rem);
-    --font-md: clamp(0.9rem, 2.5vw, 1.15rem);
+    /* Font sizes — fluid, tuned for 720-1366px height */
+    --font-xs: clamp(0.65rem, 1.5vw, 0.78rem);
+    --font-sm: clamp(0.78rem, 2vw, 0.95rem);
+    --font-md: clamp(0.92rem, 2.5vw, 1.15rem);
     --font-lg: clamp(1.1rem, 3vw, 1.4rem);
     --font-xl: clamp(1.4rem, 4vw, 1.8rem);
     --font-2xl: clamp(1.8rem, 5vw, 2.5rem);
+    --font-display-xl: clamp(2.4rem, 6.5vw, 3.4rem);
     --font-score: clamp(4.5rem, 14vw, 8rem);
 
-    /* === Button Sizes === */
+    /* Button paddings (standardized) */
     --btn-padding-sm: var(--space-sm) var(--space-md);
     --btn-padding-md: var(--space-md) var(--space-xl);
     --btn-padding-lg: var(--space-lg) var(--space-2xl);
 
-    /* === Z-Index Scale === */
+    /* Shadows */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 0 3px var(--color-accent-glow);
+
+    /* Z-index scale */
     --z-base: 1;
     --z-header: 10;
     --z-overlay: 100;
     --z-modal: 1000;
 
-    /* === UI Scale (user-adjustable) === */
+    /* UI scale (user-adjustable) */
     --ui-scale: 1;
 
-    /* === Cricket Grid Center Column === */
+    /* Cricket grid center column */
     --cricket-center-col: clamp(130px, 28vw, 220px);
-    /* Minnesota: wider center for D+num+T at 1.95x baked-in size + gaps + padding */
     --minnesota-center-col: clamp(145px, calc(29vw + 16px), 250px);
 
-    /* === Transitions === */
+    /* Transitions */
     --transition-fast: 0.15s ease;
-    --transition-normal: 0.3s ease;
+    --transition-normal: 0.25s ease;
+    --transition-slow: 0.4s ease;
 }

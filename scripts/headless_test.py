@@ -138,6 +138,44 @@ async def test_bermuda_picker(page):
     return {"face_buttons": btn_count}
 
 
+async def test_theme_picker(page):
+    # Three swatches render; default is blue. Click each one and confirm
+    # data-theme on <html> updates + localStorage persists it.
+    swatches = await page.locator(".theme-swatch[data-theme-choice]").count()
+    assert swatches == 3, f"expected 3 theme swatches, got {swatches}"
+    initial = await page.evaluate("document.documentElement.getAttribute('data-theme')")
+    assert initial == "blue", f"default theme was {initial!r}, expected 'blue'"
+
+    for theme in ("red", "neon", "blue"):
+        await page.click(f".theme-swatch[data-theme-choice='{theme}']")
+        await page.wait_for_timeout(80)
+        applied = await page.evaluate("document.documentElement.getAttribute('data-theme')")
+        saved = await page.evaluate("localStorage.getItem('blakeout_theme')")
+        assert applied == theme, f"clicking {theme} → data-theme={applied!r}"
+        assert saved == theme, f"clicking {theme} → localStorage={saved!r}"
+    return {"swatches": swatches, "final": "blue"}
+
+
+async def test_game_grid(page):
+    # 11 game cards render, default-active is 501, click cricket → active swaps
+    # and the hidden <select> mirrors the new value.
+    cards = await page.locator(".game-card[data-game-value]").count()
+    assert cards == 11, f"expected 11 game cards, got {cards}"
+    active = await page.locator(".game-card.active").get_attribute("data-game-value")
+    assert active == "501", f"default-active card was {active!r}"
+
+    await page.click(".game-card[data-game-value='cricket']")
+    await page.wait_for_timeout(80)
+    new_active = await page.locator(".game-card.active").get_attribute("data-game-value")
+    select_val = await page.eval_on_selector("#gameType", "el => el.value")
+    assert new_active == "cricket", f"clicking cricket → active card={new_active!r}"
+    assert select_val == "cricket", f"hidden select stayed at {select_val!r}"
+    # And the cricket options form should now be visible
+    cricket_hidden = await page.locator("#cricketOptions").evaluate("el => el.classList.contains('hidden')")
+    assert not cricket_hidden, "cricketOptions still hidden after picking cricket"
+    return {"cards": cards, "active_after_click": new_active}
+
+
 async def test_leaderboard_seed(page):
     # Drive a synthetic 121 match-end by writing state then calling the
     # show121MatchSummary export. Confirms the leaderboard localStorage row
