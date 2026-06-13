@@ -49,6 +49,8 @@
                     <option value="minnesota">Minnesota Cricket</option>
                     <option value="chicago">Chicago (Best of 3)</option>
                     <option value="121">121 Game</option>
+                    <option value="baseball">Baseball</option>
+                    <option value="bermuda">Bermuda Triangle</option>
                 </select>
             </div>
 
@@ -66,6 +68,40 @@
                     <option value="7">7 Legs</option>
                     <option value="9">9 Legs</option>
                 </select>
+                <label style="margin-top:10px;">Leg-Loss Penalty</label>
+                <select id="legLossPenalty121">
+                    <option value="1" selected>-1 point</option>
+                    <option value="2">-2 points</option>
+                    <option value="3">-3 points</option>
+                    <option value="5">-5 points</option>
+                </select>
+                <div class="form-hint">Points subtracted from the next leg's starting score when you lose a leg. Floor is always 121.</div>
+            </div>
+
+            <!-- Baseball options -->
+            <div class="form-group hidden" id="baseballOptions">
+                <label>Baseball Variant</label>
+                <select id="baseballVariant">
+                    <option value="standard" selected>Standard 9-inning</option>
+                    <option value="extras">Extra-innings tiebreak</option>
+                    <option value="stretch">7th-inning stretch (bull)</option>
+                </select>
+                <div class="form-hint" id="baseballVariantHint">
+                    Standard 9 innings: each player throws 3 darts per inning at the inning's number (1–9). Single = 1 run, Double = 2 runs, Triple = 3 runs. Highest total runs after 9 innings wins.
+                </div>
+            </div>
+
+            <!-- Bermuda Triangle options -->
+            <div class="form-group hidden" id="bermudaOptions">
+                <label>Bermuda Triangle Variant</label>
+                <select id="bermudaVariant">
+                    <option value="classic" selected>Classic 13 targets</option>
+                    <option value="simple">Simple 9 targets</option>
+                    <option value="halveit">Halve-It variant</option>
+                </select>
+                <div class="form-hint" id="bermudaVariantHint">
+                    Classic: 12, 13, 14, 15, Double, 16, 17, 18, Triple, 19, 20, 25 (bull), Bullseye. Each turn = 3 darts at that target; score = sum × multiplier. Miss all 3 on the bullseye-stage targets and your score halves. Highest score at the end wins.
+                </div>
             </div>
 
             <div class="form-group" id="finishTypeOptions">
@@ -192,7 +228,7 @@
 
     <!-- Team Builder Screen (Phase 2 — only used when Team Mode is on) -->
     <div class="setup-screen" id="teamBuilderScreen" style="display:none;">
-        <div class="card">
+        <div class="setup-card card">
             <h1>Build Teams</h1>
 
             <div class="team-tray-section">
@@ -283,6 +319,13 @@
             <div class="score-history-col right" id="p4HistoryCol" style="display:none;"></div>
         </div>
 
+        <!-- Target Game Main (Baseball, Bermuda Triangle) -->
+        <div class="target-game-main hidden" id="targetGameMain">
+            <div class="target-stage" id="targetStage">Inning</div>
+            <div class="target-value" id="targetValue">1</div>
+            <div class="target-hint" id="targetHint">Throw 3 darts. Single = +1, Double = +2, Triple = +3.</div>
+        </div>
+
         <!-- Bottom Controls (Cricket) -->
         <div class="bottom-controls hidden" id="cricketControls">
             <div class="cricket-controls-left">
@@ -349,6 +392,24 @@
                 <button class="btn btn--lg btn--miss" id="x01MissBtn">MISS</button>
                 <button class="btn btn--lg btn--bust" id="x01BustBtn">BUST</button>
                 <button class="btn btn--lg btn--success" id="x01EnterBtn" style="display:none;">ENTER</button>
+            </div>
+        </div>
+
+        <!-- Bottom Controls (Target Game — Baseball, Bermuda) -->
+        <div class="controls-area hidden" id="targetGameControls">
+            <div class="target-turn-display">
+                <span class="target-turn-label">This turn:</span>
+                <span class="target-turn-score" id="targetTurnScore">0</span>
+            </div>
+            <div class="target-hit-buttons">
+                <button class="btn btn--lg btn--primary" data-hit="single" id="hitSingleBtn">Single</button>
+                <button class="btn btn--lg btn--primary" data-hit="double" id="hitDoubleBtn">Double</button>
+                <button class="btn btn--lg btn--primary" data-hit="triple" id="hitTripleBtn">Triple</button>
+            </div>
+            <div class="target-bottom-row">
+                <button class="btn btn--md btn--undo" id="targetUndoBtn" disabled>UNDO</button>
+                <button class="btn btn--md btn--miss" id="targetClearBtn">CLEAR</button>
+                <button class="btn btn--lg btn--success" id="targetEndTurnBtn">END TURN</button>
             </div>
         </div>
     </div>

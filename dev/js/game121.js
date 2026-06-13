@@ -22,7 +22,8 @@ export function handle121LegEnd(won, checkoutScore = 0) {
         g121.legsWon[playerIndex]++;
         g121.startingScore += 5;
     } else {
-        g121.startingScore = Math.max(121, g121.startingScore - 5);
+        const penalty = g121.legLossPenalty || 1;
+        g121.startingScore = Math.max(121, g121.startingScore - penalty);
     }
 
     // Check if match is over

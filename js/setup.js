@@ -10,6 +10,8 @@ import {
     upsertPlayer, deletePlayer, findPlayerByName, getInitState, isRealEmail
 } from './firebase.js';
 import { showTeamBuilder, setTeamsConfirmedCallback } from './teams.js';
+import { initBaseballState } from './baseball.js';
+import { initBermudaState } from './bermuda.js';
 
 let onGameStart = null;
 let overlayMode = false;
@@ -48,11 +50,43 @@ export function initSetupControls() {
         const isChicago = this.value === 'chicago';
         const isSpanish = this.value === 'spanish';
         const is121 = this.value === '121';
+        const isBaseball = this.value === 'baseball';
+        const isBermuda = this.value === 'bermuda';
         document.getElementById('cricketOptions').classList.toggle('hidden', !isCricket);
         document.getElementById('spanishBullsOption').classList.toggle('hidden', !isSpanish);
         document.getElementById('game121Options').classList.toggle('hidden', !is121);
+        document.getElementById('baseballOptions').classList.toggle('hidden', !isBaseball);
+        document.getElementById('bermudaOptions').classList.toggle('hidden', !isBermuda);
         document.getElementById('finishTypeOptions').classList.toggle('hidden', !isX01 && !isChicago && !is121);
     });
+
+    // Baseball variant hint updater
+    const baseballHints = {
+        standard: 'Standard 9 innings: each player throws 3 darts per inning at the inning\'s number (1–9). Single = 1 run, Double = 2 runs, Triple = 3 runs. Highest total runs after 9 innings wins.',
+        extras: 'Same as standard, but if players are tied after 9 innings the game enters extra innings (15, 16, 17, 18, 19, 20, 25, repeating) until one player leads after a full inning.',
+        stretch: 'Standard 1–9, except inning 7 targets the bullseye instead of the 7. Outer bull = +1 run, inner bull (50) = +2 runs. Triple disabled for inning 7.'
+    };
+    const baseballVariantEl = document.getElementById('baseballVariant');
+    const baseballHintEl = document.getElementById('baseballVariantHint');
+    if (baseballVariantEl && baseballHintEl) {
+        baseballVariantEl.addEventListener('change', () => {
+            baseballHintEl.textContent = baseballHints[baseballVariantEl.value] || '';
+        });
+    }
+
+    // Bermuda variant hint updater
+    const bermudaHints = {
+        classic: 'Classic: 12, 13, 14, 15, Double, 16, 17, 18, Triple, 19, 20, 25 (bull), Bullseye. Each turn = 3 darts at that target; score = sum × multiplier. If all 3 darts miss on the Double/Triple/25/Bullseye stages, your score halves. Highest score at the end wins.',
+        simple: 'Simple: 9 targets only (12 → 20). No halving on a miss — just no points scored that turn. Faster and more forgiving for casual play.',
+        halveit: 'Halve-It: same target list as Classic, but if you miss on ANY target with all 3 darts your score halves. Most competitive version.'
+    };
+    const bermudaVariantEl = document.getElementById('bermudaVariant');
+    const bermudaHintEl = document.getElementById('bermudaVariantHint');
+    if (bermudaVariantEl && bermudaHintEl) {
+        bermudaVariantEl.addEventListener('change', () => {
+            bermudaHintEl.textContent = bermudaHints[bermudaVariantEl.value] || '';
+        });
+    }
 
     // Start game
     document.getElementById('startGameBtn').addEventListener('click', startGame);
@@ -294,6 +328,8 @@ function beginMatch(playerSeeds, teams) {
 
     const isChicago = gameType === 'chicago';
     const is121 = gameType === '121';
+    const isBaseball = gameType === 'baseball';
+    const isBermuda = gameType === 'bermuda';
 
     Object.assign(game, {
         type: gameType,
@@ -321,9 +357,12 @@ function beginMatch(playerSeeds, teams) {
             dartsPerLeg: parseInt(document.getElementById('dartsPerLeg').value),
             dartsThrown: 0,
             startingScore: 121,
+            legLossPenalty: parseInt(document.getElementById('legLossPenalty121').value) || 1,
             legResults: [],
             legsWon: []
         } : null,
+        baseball: isBaseball ? initBaseballState(document.getElementById('baseballVariant').value) : null,
+        bermuda: isBermuda ? initBermudaState(document.getElementById('bermudaVariant').value) : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,
@@ -350,6 +389,8 @@ function beginMatch(playerSeeds, teams) {
             game.game121.legsWon.push(0);
         } else if (['301', '501', '701', '801'].includes(gameType)) {
             player.score = parseInt(gameType);
+        } else if (isBaseball || isBermuda) {
+            // score stays at 0; both games accumulate runs/points
         } else {
             player.cricketData = initCricket(gameType, includeBulls);
         }

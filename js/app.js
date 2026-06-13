@@ -10,6 +10,7 @@ import { updateX01Display, initX01Controls, clearInput } from './x01.js';
 import { initChicagoControls } from './chicago.js';
 import { initSetupControls, setGameStartCallback, showSetup, showSetupAsOverlay, playAgain } from './setup.js';
 import { initTeamBuilder, currentThrower } from './teams.js';
+import { initTargetGameControls, updateTargetGameDisplay } from './target_game.js';
 
 // --- Safe element helper ---
 function on(id, event, handler) {
@@ -24,17 +25,22 @@ function on(id, event, handler) {
 function updateDisplay() {
     const effectiveType = game.chicago ? game.chicago.currentGameType : game.type;
     const isCricket = ['cricket', 'spanish', 'minnesota'].includes(effectiveType);
+    const isTargetGame = effectiveType === 'baseball' || effectiveType === 'bermuda';
 
     // Show/hide game areas
     const cricketMain = document.getElementById('cricketMain');
     cricketMain.classList.toggle('hidden', !isCricket);
     cricketMain.classList.toggle('minnesota-layout', effectiveType === 'minnesota');
-    document.getElementById('x01Main').classList.toggle('hidden', isCricket);
+    document.getElementById('x01Main').classList.toggle('hidden', isCricket || isTargetGame);
+    document.getElementById('targetGameMain').classList.toggle('hidden', !isTargetGame);
     document.getElementById('cricketControls').classList.toggle('hidden', !isCricket);
-    document.getElementById('x01Controls').classList.toggle('hidden', isCricket);
+    document.getElementById('x01Controls').classList.toggle('hidden', isCricket || isTargetGame);
+    document.getElementById('targetGameControls').classList.toggle('hidden', !isTargetGame);
 
     if (isCricket) {
         updateCricketDisplay();
+    } else if (isTargetGame) {
+        updateTargetGameDisplay();
     } else {
         updateX01Display();
     }
@@ -319,6 +325,7 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('cricket', initCricketControls);
     safeInit('x01', initX01Controls);
     safeInit('chicago', initChicagoControls);
+    safeInit('targetGame', () => initTargetGameControls(updateDisplay));
     safeInit('keypad', initKeypadControls);
     safeInit('gameMenu', initGameMenuControls);
     safeInit('winnerModal', initWinnerModalControls);

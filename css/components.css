@@ -614,3 +614,95 @@
     font-size: var(--font-xs, var(--font-sm));
     font-family: var(--font-mono, monospace);
 }
+
+/* === Form hint (used by 121/Baseball/Bermuda explanations) === */
+.form-hint {
+    margin-top: var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+    line-height: 1.4;
+    background: var(--color-surface-alt);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--color-primary);
+}
+
+/* === Target-Game main area (Baseball + Bermuda Triangle) === */
+.target-game-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-lg);
+    gap: var(--space-md);
+    overflow: hidden;
+}
+
+.target-stage {
+    color: var(--color-text-muted);
+    font-size: calc(var(--font-lg) * var(--ui-scale));
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.target-value {
+    color: var(--color-text);
+    font-size: calc(var(--font-score) * var(--ui-scale) * 0.85);
+    font-weight: 900;
+    line-height: 1;
+    background: var(--color-primary);
+    padding: var(--space-md) var(--space-2xl);
+    border-radius: var(--radius-lg);
+    min-width: 30vw;
+    text-align: center;
+    letter-spacing: -0.02em;
+}
+
+.target-hint {
+    color: var(--color-text-muted);
+    font-size: calc(var(--font-md) * var(--ui-scale));
+    text-align: center;
+    max-width: 80%;
+    line-height: 1.3;
+}
+
+/* === Target-Game controls === */
+.target-turn-display {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.target-turn-label {
+    color: var(--color-text-muted);
+    font-size: var(--font-md);
+}
+
+.target-turn-score {
+    color: var(--color-pending);
+    font-size: calc(var(--font-2xl) * var(--ui-scale));
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+}
+
+.target-hit-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.target-hit-buttons .btn:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.target-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr;
+    gap: var(--space-sm);
+}
