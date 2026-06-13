@@ -49,41 +49,43 @@
     --bg-image-overlay: rgba(0, 0, 0, 0.78);
 }
 
-/* === Crimson (Red) === */
+/* === Crimson (Red) ===
+   Deep blood red + rust + moss. Deliberately monochromatic-warm —
+   no yellow / gold / coral that would read multicolored alongside it. */
 :root[data-theme="red"] {
-    --color-primary: #cc1f3a;
-    --color-primary-dark: #8c0e22;
-    --color-primary-light: #ff4a64;
+    --color-primary: #8b0000;
+    --color-primary-dark: #4a0000;
+    --color-primary-light: #b8252e;
 
-    --color-success: #1fa873;
-    --color-success-dark: #137551;
-    --color-danger: #ff3344;
-    --color-warning: #d68f1f;
-    --color-undo: #d68f1f;
+    --color-success: #4a6b2c;
+    --color-success-dark: #2f4318;
+    --color-danger: #cc1818;
+    --color-warning: #a86420;
+    --color-undo: #a86420;
 
-    --color-bg: #0c0608;
-    --color-surface: #1f1518;
-    --color-surface-alt: #160d10;
-    --color-surface-elevated: #2a1d21;
-    --color-border: #3a262b;
-    --color-border-light: #6d4a52;
-    --color-text: #fff5f5;
+    --color-bg: #0d0507;
+    --color-surface: #1a0f12;
+    --color-surface-alt: #110608;
+    --color-surface-elevated: #261419;
+    --color-border: #381c22;
+    --color-border-light: #5c3a40;
+    --color-text: #f5e6e6;
     --color-text-dark: #1a0a0d;
-    --color-text-muted: #a59395;
-    --color-text-dim: #6d5256;
+    --color-text-muted: #a08585;
+    --color-text-dim: #604548;
 
     --color-active-player: var(--color-primary);
-    --color-inactive-player: #4d3239;
-    --color-pending: #ffae40;
-    --color-prev-turn: #8b6266;
+    --color-inactive-player: #4a2c30;
+    --color-pending: #c97a35;
+    --color-prev-turn: #7a5258;
     --color-score-bg: #ffffff;
     --color-score-text: #1a0a0d;
-    --color-bust: #ff7733;
-    --color-miss: #5c4045;
+    --color-bust: #8e3a26;
+    --color-miss: #4a2c30;
 
-    --color-accent: #ff4a64;
-    --color-accent-glow: rgba(255, 74, 100, 0.35);
-    --bg-image-overlay: rgba(20, 4, 8, 0.82);
+    --color-accent: #b8252e;
+    --color-accent-glow: rgba(184, 37, 46, 0.35);
+    --bg-image-overlay: rgba(15, 4, 6, 0.85);
 }
 
 /* === Neon (Cyan/Magenta) === */

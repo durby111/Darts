@@ -8,8 +8,8 @@
     background: rgba(26, 26, 26, 0.95);
     border-radius: var(--radius-lg);
     padding: var(--space-2xl);
-    border: 1px solid rgba(0, 102, 204, 0.2);
-    box-shadow: 0 10px 40px rgba(0, 102, 204, 0.2);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+    box-shadow: 0 10px 40px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 /* === Setup Logo === */
@@ -28,7 +28,7 @@
     font-size: var(--font-2xl);
     margin-bottom: var(--space-xl);
     text-align: center;
-    text-shadow: 0 0 20px rgba(0, 102, 204, 0.5);
+    text-shadow: 0 0 20px color-mix(in srgb, var(--color-primary) 50%, transparent);
 }
 
 /* === Unified Button System === */
@@ -36,22 +36,26 @@
     border: none;
     border-radius: var(--radius-md);
     font-family: var(--font-family);
-    font-weight: bold;
+    font-weight: 700;
+    letter-spacing: 0.01em;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: opacity var(--transition-fast);
+    transition: opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
     text-align: center;
     line-height: 1.2;
     touch-action: manipulation;
+    box-shadow: var(--shadow-sm);
 }
 
 .btn:active {
-    opacity: 0.8;
+    opacity: 0.86;
+    transform: translateY(1px);
 }
 
 .btn:disabled {
     opacity: 0.4;
     cursor: default;
+    box-shadow: none;
 }
 
 /* Button Sizes */
@@ -246,14 +250,14 @@
     font-size: clamp(2.5rem, 8vw, 4rem);
     font-weight: bold;
     margin: var(--space-2xl) 0;
-    text-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+    text-shadow: 0 0 30px color-mix(in srgb, var(--color-pending) 50%, transparent);
 }
 
 /* === Winner Modal === */
 .winner-modal-content {
-    background: linear-gradient(180deg, #1a1a1a 0%, #0a1a0a 100%);
+    background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-alt) 100%);
     border: 2px solid var(--color-pending);
-    box-shadow: 0 0 60px rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 60px color-mix(in srgb, var(--color-pending) 30%, transparent);
 }
 
 .winner-trophy {
@@ -412,7 +416,7 @@
 }
 
 .team-tray.drop-hover {
-    background: rgba(0, 102, 204, 0.12);
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
     border-color: var(--color-primary);
 }
 
@@ -459,7 +463,7 @@
 .team-chip.selected {
     background: var(--color-primary);
     border-color: var(--color-primary-light, var(--color-primary));
-    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.35);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
 .team-chip.in-zone {
@@ -510,12 +514,12 @@
 
 .team-zone.drop-ready {
     border-color: var(--color-primary);
-    background: rgba(0, 102, 204, 0.08);
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 .team-zone.drop-hover {
     border-color: var(--color-primary);
-    background: rgba(0, 102, 204, 0.22);
+    background: color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 
 .team-zone-label {
@@ -613,6 +617,266 @@
     color: var(--color-text-dim, var(--color-text-muted));
     font-size: var(--font-xs, var(--font-sm));
     font-family: var(--font-mono, monospace);
+}
+
+/* ============================================
+   Modernized Setup Screen
+   ============================================ */
+
+.visually-hidden {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%);
+    border: 0; white-space: nowrap;
+}
+
+.setup-header {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.setup-header .setup-logo {
+    margin: 0;
+    width: 56px;
+    height: 56px;
+}
+
+.setup-header .setup-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.setup-header-text h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: calc(var(--font-display-xl) * 0.6);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--color-text);
+}
+
+.setup-subtitle {
+    margin-top: 2px;
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+/* Theme picker */
+.theme-picker {
+    display: flex;
+    gap: var(--space-xs);
+}
+
+.theme-swatch {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 8px;
+    background: var(--color-surface-alt);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.theme-swatch:hover {
+    border-color: var(--color-border-light);
+    color: var(--color-text);
+}
+
+.theme-swatch.active {
+    background: var(--color-surface-elevated);
+    border-color: var(--color-primary);
+    color: var(--color-text);
+    box-shadow: var(--shadow-glow);
+}
+
+.theme-swatch-dot {
+    display: block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.15);
+}
+
+.theme-swatch-label {
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+/* Sections */
+.setup-section {
+    margin-bottom: var(--space-lg);
+}
+
+.setup-section-label {
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: var(--space-sm);
+    font-weight: 700;
+}
+
+.setup-section--collapsible {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    background: var(--color-surface-alt);
+}
+
+.setup-section--collapsible > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-sm);
+}
+
+.setup-section--collapsible[open] > summary {
+    margin-bottom: var(--space-md);
+}
+
+/* Game grid */
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-sm);
+}
+
+.game-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: var(--space-md) var(--space-sm);
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    min-height: 76px;
+    line-height: 1.15;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+}
+
+.game-card:hover {
+    border-color: var(--color-border-light);
+}
+
+.game-card.active {
+    background: var(--color-surface-elevated);
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.game-card:active {
+    transform: scale(0.97);
+}
+
+.game-card-icon {
+    font-size: 1.4em;
+    line-height: 1;
+}
+
+.game-card-label {
+    font-size: var(--font-sm);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.game-card-sub {
+    font-size: var(--font-xs);
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+/* Player rows */
+.player-row {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-sm);
+}
+
+.player-row label {
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+    font-weight: 600;
+    margin: 0;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.player-row input {
+    width: 100%;
+    padding: var(--space-md);
+    background: var(--color-bg);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-family: inherit;
+    font-size: var(--font-md);
+    transition: border-color var(--transition-fast);
+}
+
+.player-row input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.ui-scale-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.ui-scale-row input[type="range"] {
+    flex: 1;
+}
+
+.config-row {
+    display: flex;
+    gap: var(--space-md);
+}
+
+.config-row .btn {
+    flex: 1;
+}
+
+.setup-action-row {
+    margin-top: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.btn--hero {
+    font-size: calc(var(--font-lg) * 1.05);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    box-shadow: var(--shadow-md);
 }
 
 /* === Form hint (used by 121/Baseball/Bermuda explanations) === */

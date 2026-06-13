@@ -12,6 +12,21 @@ import {
 import { showTeamBuilder, setTeamsConfirmedCallback } from './teams.js';
 import { initBaseballState } from './baseball.js';
 import { initBermudaState } from './bermuda.js';
+import { initThemePickerUI } from './theme.js';
+
+const GAME_META = {
+    '301':       { label: '301',        sub: 'Double out',        icon: '🎯' },
+    '501':       { label: '501',        sub: 'Standard',          icon: '🎯' },
+    '701':       { label: '701',        sub: 'Long form',         icon: '🎯' },
+    '801':       { label: '801',        sub: 'Endurance',         icon: '🎯' },
+    'cricket':   { label: 'Cricket',    sub: '15–20 + Bull',      icon: '✕' },
+    'spanish':   { label: 'Spanish',    sub: '20→10',             icon: '✕' },
+    'minnesota': { label: 'Minnesota',  sub: 'Cricket variant',   icon: '✕' },
+    'chicago':   { label: 'Chicago',    sub: 'Best of 3',         icon: '🌆' },
+    '121':       { label: '121',        sub: 'Limited darts',     icon: '⏱' },
+    'baseball':  { label: 'Baseball',   sub: '9 innings',         icon: '⚾' },
+    'bermuda':   { label: 'Bermuda',    sub: 'Triangle',          icon: '🔺' }
+};
 
 let onGameStart = null;
 let overlayMode = false;
@@ -20,7 +35,45 @@ export function setGameStartCallback(callback) {
     onGameStart = callback;
 }
 
+function renderGameGrid() {
+    const grid = document.getElementById('gameTypeGrid');
+    const select = document.getElementById('gameType');
+    if (!grid || !select) return;
+    const current = select.value;
+    const cards = Array.from(select.options).map(opt => {
+        const meta = GAME_META[opt.value] || { label: opt.text, sub: '', icon: '🎯' };
+        const isActive = opt.value === current;
+        return `
+            <button type="button" class="game-card${isActive ? ' active' : ''}" data-game-value="${opt.value}">
+                <span class="game-card-icon" aria-hidden="true">${meta.icon}</span>
+                <span class="game-card-label">${meta.label}</span>
+                ${meta.sub ? `<span class="game-card-sub">${meta.sub}</span>` : ''}
+            </button>
+        `;
+    }).join('');
+    grid.innerHTML = cards;
+}
+
+function bindGameGrid() {
+    const grid = document.getElementById('gameTypeGrid');
+    const select = document.getElementById('gameType');
+    if (!grid || !select) return;
+    grid.addEventListener('click', e => {
+        const card = e.target.closest('[data-game-value]');
+        if (!card) return;
+        const value = card.dataset.gameValue;
+        if (select.value === value) return;
+        select.value = value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        renderGameGrid();   // re-paint the active state
+    });
+}
+
 export function initSetupControls() {
+    initThemePickerUI();
+    renderGameGrid();
+    bindGameGrid();
+
     // Player count change
     document.getElementById('numPlayers').addEventListener('change', function () {
         const count = parseInt(this.value);

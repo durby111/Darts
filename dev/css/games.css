@@ -101,12 +101,16 @@
    each cell plus a faint wash. Reads clearly across the room and ties
    visually to the active player header at the top. */
 .cricket-cell.active {
+    /* Themed gradient — uses a CSS color-mix when supported, falls back to
+       a flat primary tint otherwise. Stops are at the same 4 positions but
+       the color is theme-driven, so red/neon themes don't get a blue wash. */
+    background: var(--color-primary);
     background: linear-gradient(
         to right,
-        rgba(0, 102, 204, 0.28) 0%,
-        rgba(0, 102, 204, 0.08) 18%,
-        rgba(0, 102, 204, 0.08) 82%,
-        rgba(0, 102, 204, 0.28) 100%
+        color-mix(in srgb, var(--color-primary) 28%, transparent) 0%,
+        color-mix(in srgb, var(--color-primary) 8%, transparent) 18%,
+        color-mix(in srgb, var(--color-primary) 8%, transparent) 82%,
+        color-mix(in srgb, var(--color-primary) 28%, transparent) 100%
     );
     box-shadow:
         inset 6px 0 0 var(--color-primary-light),
@@ -188,7 +192,10 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
     user-select: none;
-    background: linear-gradient(to bottom, #1a7ae6, var(--color-primary) 40%, #004da6);
+    /* Two-stop themed gradient — was a three-stop band w/ hardcoded blues
+       that read as a rainbow under non-blue themes. Now everything tracks
+       the primary scale. */
+    background: linear-gradient(180deg, var(--color-primary-light), var(--color-primary-dark));
     color: var(--color-text);
     font-size: calc(clamp(1.4rem, 4.5dvh, 3rem) * var(--ui-scale));
     padding: calc(clamp(8px, 2.5dvh, 22px) * var(--ui-scale)) calc(clamp(14px, 4vw, 32px) * var(--ui-scale));
@@ -205,7 +212,7 @@
 .cricket-num-btn:active {
     transform: translateY(2px);
     box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
-    background: linear-gradient(to bottom, #0060cc, #004da6 40%, #003380);
+    background: linear-gradient(180deg, var(--color-primary), var(--color-primary-dark));
 }
 
 .cricket-num-btn.dimmed {
@@ -222,7 +229,7 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: none;
     user-select: none;
-    background: linear-gradient(to bottom, #0068c0, var(--color-primary-dark) 40%, #003d7a);
+    background: linear-gradient(180deg, var(--color-primary), var(--color-primary-dark));
     color: var(--color-text);
     font-size: calc(clamp(0.8rem, 2.5dvh, 1.5rem) * var(--ui-scale));
     padding: calc(clamp(4px, 1.5dvh, 14px) * var(--ui-scale)) calc(clamp(6px, 1.5vw, 14px) * var(--ui-scale));
@@ -239,7 +246,8 @@
 .cricket-dt-btn:active {
     transform: translateY(2px);
     box-shadow: 0 1px 2px rgba(0,0,0,0.4);
-    background: linear-gradient(to bottom, #004da6, #003d7a 40%, #002d5c);
+    background: linear-gradient(180deg, var(--color-primary-dark), var(--color-primary-dark));
+    filter: brightness(0.8);
 }
 
 .cricket-dt-btn.dimmed {
@@ -434,7 +442,7 @@
 
 /* === X01 Controls Area === */
 .checkout-suggestion {
-    background: rgba(0, 102, 204, 0.25);
+    background: color-mix(in srgb, var(--color-primary) 25%, transparent);
     color: var(--color-primary-light);
     text-align: center;
     padding: var(--space-md);

@@ -8,8 +8,8 @@
     background: rgba(26, 26, 26, 0.95);
     border-radius: var(--radius-lg);
     padding: var(--space-2xl);
-    border: 1px solid rgba(0, 102, 204, 0.2);
-    box-shadow: 0 10px 40px rgba(0, 102, 204, 0.2);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+    box-shadow: 0 10px 40px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 /* === Setup Logo === */
@@ -28,7 +28,7 @@
     font-size: var(--font-2xl);
     margin-bottom: var(--space-xl);
     text-align: center;
-    text-shadow: 0 0 20px rgba(0, 102, 204, 0.5);
+    text-shadow: 0 0 20px color-mix(in srgb, var(--color-primary) 50%, transparent);
 }
 
 /* === Unified Button System === */
@@ -250,14 +250,14 @@
     font-size: clamp(2.5rem, 8vw, 4rem);
     font-weight: bold;
     margin: var(--space-2xl) 0;
-    text-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+    text-shadow: 0 0 30px color-mix(in srgb, var(--color-pending) 50%, transparent);
 }
 
 /* === Winner Modal === */
 .winner-modal-content {
-    background: linear-gradient(180deg, #1a1a1a 0%, #0a1a0a 100%);
+    background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-alt) 100%);
     border: 2px solid var(--color-pending);
-    box-shadow: 0 0 60px rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 60px color-mix(in srgb, var(--color-pending) 30%, transparent);
 }
 
 .winner-trophy {
@@ -416,7 +416,7 @@
 }
 
 .team-tray.drop-hover {
-    background: rgba(0, 102, 204, 0.12);
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
     border-color: var(--color-primary);
 }
 
@@ -463,7 +463,7 @@
 .team-chip.selected {
     background: var(--color-primary);
     border-color: var(--color-primary-light, var(--color-primary));
-    box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.35);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
 .team-chip.in-zone {
@@ -514,12 +514,12 @@
 
 .team-zone.drop-ready {
     border-color: var(--color-primary);
-    background: rgba(0, 102, 204, 0.08);
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 .team-zone.drop-hover {
     border-color: var(--color-primary);
-    background: rgba(0, 102, 204, 0.22);
+    background: color-mix(in srgb, var(--color-primary) 22%, transparent);
 }
 
 .team-zone-label {
