@@ -176,6 +176,53 @@ async def test_game_grid(page):
     return {"cards": cards, "active_after_click": new_active}
 
 
+async def test_x01_trusts_player(page):
+    # Regression: x01 used to reject Double-In odd first throws and auto-bust
+    # at newScore === 1 in double-out modes. App only sees turn totals, so
+    # the player is now trusted on rule-compliance — only newScore < 0 busts.
+    await page.select_option("#gameType", "301")
+    await page.select_option("#finishType", "double-in-out")
+    await page.evaluate("document.getElementById('teamMode').checked = false")
+    await page.click("#startGameBtn")
+    await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
+
+    # First throw: odd 7 used to be rejected as "MUST START WITH DOUBLE".
+    await page.click("[data-digit='7']")
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(150)
+    # Score should have advanced (player 0 went 301 → 294) and turn moved to player 1.
+    p0_score = int(await page.locator("#homeScore").inner_text())
+    assert p0_score == 294, f"expected 294 after single 7, got {p0_score}"
+
+    # Drive player 0 down toward 5 remaining, then throw 4 (would have been
+    # auto-bust on newScore === 1 in the old code).
+    # Currently player 1 is active. Score them a 0 so they pass quickly.
+    await page.click("[data-digit='0']")
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(80)
+    # Back to player 0 at 294. Set their score directly to 5 to skip the grind.
+    await page.evaluate("""
+        (async () => {
+            const stateMod = await import('./js/state.js');
+            stateMod.game.players[0].score = 5;
+            stateMod.game.currentPlayer = 0;
+            const x01 = await import('./js/x01.js');
+            x01.updateX01Display();
+        })()
+    """)
+    await page.wait_for_timeout(80)
+    p0_now = int(await page.locator("#homeScore").inner_text())
+    assert p0_now == 5, f"forced-set score didn't stick, got {p0_now}"
+
+    # Throw a 4 → newScore = 1. Under the old rule this was BUST. Now it's a legal score.
+    await page.click("[data-digit='4']")
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(150)
+    after = int(await page.locator("#homeScore").inner_text())
+    assert after == 1, f"expected newScore=1 to be accepted (player goes to 1), got {after}"
+    return {"first_throw_odd_accepted": True, "newScore_1_accepted": True}
+
+
 async def test_leaderboard_seed(page):
     # Drive a synthetic 121 match-end by writing state then calling the
     # show121MatchSummary export. Confirms the leaderboard localStorage row

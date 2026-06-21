@@ -262,36 +262,19 @@ function submitScore() {
     const thrower = activeThrowerName();
     const player = game.players[game.currentPlayer];
     const newScore = player.score - score;
-    const finishType = game.finishType || 'open';
-    const isFirstThrow = player.history.length === 0;
 
-    // Double In check
-    if (finishType === 'double-in-out' && isFirstThrow) {
-        const validDoubleIns = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 50];
-        if (!validDoubleIns.includes(score)) {
-            const indicator = document.getElementById('finishIndicator');
-            indicator.textContent = 'MUST START WITH DOUBLE!';
-            indicator.style.color = 'var(--color-danger)';
-            setTimeout(() => { indicator.textContent = ''; updateX01Display(); }, 3000);
-            clearInput();
-            return;
-        }
-    }
-
-    // Bust check. In double-out modes, 1 is also a bust because you can't
-    // finish with a double from 1. In open-finish, 1 is a legal remainder.
-    const isDoubleOut = finishType === 'double-out' || finishType === 'double-in-out';
-    const bustBelowZero = newScore < 0;
-    const bustOnOne = isDoubleOut && newScore === 1;
-    if (bustBelowZero || bustOnOne) {
+    // X01 rules at the dart-segment level (Double-In / Double-Out / what
+    // counts as a finish) can't be enforced from a turn total — the app
+    // sees a single number, not which segments were hit. The player is
+    // responsible for following the rules. The only check we still apply
+    // is the one that's purely arithmetic: you can't subtract more than
+    // you have left (newScore would go negative). That's a mathematical
+    // bust, not a rules call.
+    if (newScore < 0) {
         player.history.push(makeHistoryEntry(score, true, thrower));
 
         const indicator = document.getElementById('finishIndicator');
-        if (bustBelowZero) {
-            indicator.textContent = `BUST! ${score} > ${player.score} remaining`;
-        } else {
-            indicator.textContent = 'BUST! Cannot finish on 1';
-        }
+        indicator.textContent = `BUST! ${score} > ${player.score} remaining`;
         indicator.style.color = 'var(--color-danger)';
         setTimeout(() => { indicator.textContent = ''; updateX01Display(); }, 2500);
 
