@@ -43,7 +43,7 @@ function targetsFor(variant) {
 
 export function initBermudaState(variant) {
     return {
-        variant: variant || 'classic',
+        variant: variant || 'halveit',
         targetIndex: 0,
         turnScore: 0
     };
