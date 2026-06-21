@@ -220,7 +220,30 @@ async def test_x01_trusts_player(page):
     await page.wait_for_timeout(150)
     after = int(await page.locator("#homeScore").inner_text())
     assert after == 1, f"expected newScore=1 to be accepted (player goes to 1), got {after}"
-    return {"first_throw_odd_accepted": True, "newScore_1_accepted": True}
+
+    # Last-turn check: from 1 remaining, throw 1 → newScore=0 → trust as WIN
+    # even though strict double-out would require ending on a double. The app
+    # only sees totals, so it has to trust.
+    await page.evaluate("""
+        (async () => {
+            const stateMod = await import('./js/state.js');
+            stateMod.game.players[0].score = 1;
+            stateMod.game.currentPlayer = 0;
+            const x01 = await import('./js/x01.js');
+            x01.updateX01Display();
+        })()
+    """)
+    await page.wait_for_timeout(80)
+    await page.click("[data-digit='1']")
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(300)
+    winner_visible = await page.locator("#winnerModal").is_visible()
+    assert winner_visible, "winner modal should open when player wins from 1 with odd 1 in double-out"
+    return {
+        "first_throw_odd_accepted": True,
+        "newScore_1_accepted": True,
+        "last_turn_odd_wins": True,
+    }
 
 
 async def test_leaderboard_seed(page):
