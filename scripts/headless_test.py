@@ -138,6 +138,56 @@ async def test_bermuda_picker(page):
     return {"face_buttons": btn_count}
 
 
+async def test_golf(page):
+    # Game grid should now show 12 cards (Golf added), Golf select option
+    # exists, picking Golf reveals #golfOptions with 3 variants.
+    opts = await page.eval_on_selector_all("#gameType option", "els => els.map(e => e.value)")
+    assert "golf" in opts, f"golf missing from gameType: {opts}"
+    cards = await page.locator(".game-card[data-game-value]").count()
+    assert cards == 12, f"expected 12 game cards (Golf added), got {cards}"
+
+    await page.click(".game-card[data-game-value='golf']")
+    await page.wait_for_timeout(80)
+    golf_hidden = await page.locator("#golfOptions").evaluate("el => el.classList.contains('hidden')")
+    assert not golf_hidden, "golfOptions still hidden after picking Golf"
+    variants = await page.eval_on_selector_all("#golfVariant option", "els => els.map(e => e.value)")
+    assert set(variants) == {"9hole", "18hole", "stableford"}, f"unexpected golf variants: {variants}"
+
+    # Start an 18-hole stroke-play game with 2 default players.
+    await page.evaluate("document.getElementById('teamMode').checked = false")
+    await page.click("#startGameBtn")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+
+    # Hole 1 should be the active target.
+    target_value = await page.locator("#targetValue").inner_text()
+    assert target_value == "1", f"expected Hole 1, got {target_value!r}"
+
+    # Tap two singles → 2 hits at 3 strokes each + 1 implied miss at 5 = 11.
+    await page.click("#hitSingleBtn")
+    await page.click("#hitSingleBtn")
+    await page.wait_for_timeout(80)
+    live_total = int(await page.locator("#targetTurnScore").inner_text())
+    assert live_total == 11, f"expected 11 strokes (2 singles + 1 miss), got {live_total}"
+
+    # END TURN should commit 11 strokes to player 0 and pass to player 1.
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(150)
+    p0 = int(await page.locator("#homeScore").inner_text())
+    assert p0 == 11, f"player 0 score should be 11 strokes after hole 1, got {p0}"
+
+    # Now player 1 goes; tap a Triple then end turn → 1 stroke + 2 misses = 11.
+    await page.click("#hitTripleBtn")
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(150)
+    p1 = int(await page.locator("#awayScore").inner_text())
+    assert p1 == 11, f"player 1 score should be 11 strokes after hole 1, got {p1}"
+
+    # Hole should have advanced to 2.
+    new_target = await page.locator("#targetValue").inner_text()
+    assert new_target == "2", f"expected Hole 2 after both players finished hole 1, got {new_target!r}"
+    return {"hole_after_turn": new_target, "p0_strokes": p0, "p1_strokes": p1}
+
+
 async def test_theme_picker(page):
     # Three swatches render; default is blue. Click each one and confirm
     # data-theme on <html> updates + localStorage persists it.
@@ -160,7 +210,7 @@ async def test_game_grid(page):
     # 11 game cards render, default-active is 501, click cricket → active swaps
     # and the hidden <select> mirrors the new value.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 11, f"expected 11 game cards, got {cards}"
+    assert cards == 12, f"expected 12 game cards, got {cards}"
     active = await page.locator(".game-card.active").get_attribute("data-game-value")
     assert active == "501", f"default-active card was {active!r}"
 

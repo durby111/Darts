@@ -12,6 +12,7 @@ import {
 import { showTeamBuilder, setTeamsConfirmedCallback } from './teams.js';
 import { initBaseballState } from './baseball.js';
 import { initBermudaState } from './bermuda.js';
+import { initGolfState } from './golf.js';
 import { initThemePickerUI } from './theme.js';
 
 const GAME_META = {
@@ -25,7 +26,8 @@ const GAME_META = {
     'chicago':   { label: 'Chicago',    sub: 'Best of 3',         icon: '🌆' },
     '121':       { label: '121',        sub: 'Limited darts',     icon: '⏱' },
     'baseball':  { label: 'Baseball',   sub: '9 innings',         icon: '⚾' },
-    'bermuda':   { label: 'Bermuda',    sub: 'Triangle',          icon: '🔺' }
+    'bermuda':   { label: 'Bermuda',    sub: 'Triangle',          icon: '🔺' },
+    'golf':      { label: 'Golf',       sub: '18 holes',          icon: '⛳' }
 };
 
 let onGameStart = null;
@@ -105,11 +107,13 @@ export function initSetupControls() {
         const is121 = this.value === '121';
         const isBaseball = this.value === 'baseball';
         const isBermuda = this.value === 'bermuda';
+        const isGolf = this.value === 'golf';
         document.getElementById('cricketOptions').classList.toggle('hidden', !isCricket);
         document.getElementById('spanishBullsOption').classList.toggle('hidden', !isSpanish);
         document.getElementById('game121Options').classList.toggle('hidden', !is121);
         document.getElementById('baseballOptions').classList.toggle('hidden', !isBaseball);
         document.getElementById('bermudaOptions').classList.toggle('hidden', !isBermuda);
+        document.getElementById('golfOptions').classList.toggle('hidden', !isGolf);
         document.getElementById('finishTypeOptions').classList.toggle('hidden', !isX01 && !isChicago && !is121);
     });
 
@@ -138,6 +142,20 @@ export function initSetupControls() {
     if (bermudaVariantEl && bermudaHintEl) {
         bermudaVariantEl.addEventListener('change', () => {
             bermudaHintEl.textContent = bermudaHints[bermudaVariantEl.value] || '';
+        });
+    }
+
+    // Golf variant hint updater
+    const golfHints = {
+        '18hole': '18 holes (1 → 18). Each player throws 3 darts per hole at the hole\'s number. Triple = 1 stroke (eagle), Double = 2 (birdie), Single = 3 (par), miss = 5. Lowest total strokes wins.',
+        '9hole': '9 holes (1 → 9). Quicker round. Same stroke values as standard: Triple = 1, Double = 2, Single = 3, miss = 5. Lowest total strokes wins.',
+        stableford: '18 holes, Stableford scoring (higher is better). Triple = 4 pts (eagle), Double = 3 (birdie), Single = 1 (par), miss = 0. Highest total points wins.'
+    };
+    const golfVariantEl = document.getElementById('golfVariant');
+    const golfHintEl = document.getElementById('golfVariantHint');
+    if (golfVariantEl && golfHintEl) {
+        golfVariantEl.addEventListener('change', () => {
+            golfHintEl.textContent = golfHints[golfVariantEl.value] || '';
         });
     }
 
@@ -383,6 +401,7 @@ function beginMatch(playerSeeds, teams) {
     const is121 = gameType === '121';
     const isBaseball = gameType === 'baseball';
     const isBermuda = gameType === 'bermuda';
+    const isGolf = gameType === 'golf';
 
     Object.assign(game, {
         type: gameType,
@@ -424,6 +443,7 @@ function beginMatch(playerSeeds, teams) {
         })() : null,
         baseball: isBaseball ? initBaseballState(document.getElementById('baseballVariant').value) : null,
         bermuda: isBermuda ? initBermudaState(document.getElementById('bermudaVariant').value) : null,
+        golf: isGolf ? initGolfState(document.getElementById('golfVariant').value) : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,
@@ -450,7 +470,7 @@ function beginMatch(playerSeeds, teams) {
             game.game121.legsWon.push(0);
         } else if (['301', '501', '701', '801'].includes(gameType)) {
             player.score = parseInt(gameType);
-        } else if (isBaseball || isBermuda) {
+        } else if (isBaseball || isBermuda || isGolf) {
             // score stays at 0; both games accumulate runs/points
         } else {
             player.cricketData = initCricket(gameType, includeBulls);

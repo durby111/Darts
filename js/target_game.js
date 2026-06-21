@@ -26,6 +26,13 @@ import {
     describeHitButtons as bmButtons,
     commitTurn as bmCommit
 } from './bermuda.js';
+import {
+    currentTarget as golfTarget,
+    describeHitButtons as golfButtons,
+    pointsForHit as golfPoints,
+    missPenalty as golfMissPenalty,
+    commitTurn as golfCommit
+} from './golf.js';
 
 const DARTS_PER_TURN = 3;
 
@@ -34,16 +41,19 @@ let turnHits = [];            // [{ kind, points }]
 
 function isBaseball() { return game.type === 'baseball' && !!game.baseball; }
 function isBermuda() { return game.type === 'bermuda' && !!game.bermuda; }
+function isGolf() { return game.type === 'golf' && !!game.golf; }
 
 function currentTarget() {
     if (isBaseball()) return bbTarget();
     if (isBermuda()) return bmTarget();
+    if (isGolf()) return golfTarget();
     return null;
 }
 
 function describeButtons() {
     if (isBaseball()) return bbButtons();
     if (isBermuda()) return bmButtons();
+    if (isGolf()) return golfButtons();
     return { single: 'Single', double: 'Double', triple: 'Triple', tripleEnabled: true };
 }
 
@@ -70,7 +80,15 @@ function pointsForBermudaNumber(target, kind, faceValue) {
 }
 
 function turnTotal() {
-    return turnHits.reduce((sum, h) => sum + h.points, 0);
+    const hitSum = turnHits.reduce((sum, h) => sum + h.points, 0);
+    if (isGolf()) {
+        // Unhit dart slots count as misses in golf — fold them into the
+        // displayed and committed total so the player sees the full
+        // stroke cost (or stableford yield) before tapping END TURN.
+        const misses = DARTS_PER_TURN - turnHits.length;
+        return hitSum + misses * golfMissPenalty();
+    }
+    return hitSum;
 }
 
 function clearTurn() {
@@ -105,6 +123,11 @@ function applyHit(kind) {
 
     if (isBaseball()) {
         recordHit(kind, pointsForBaseball(kind));
+        return;
+    }
+
+    if (isGolf()) {
+        recordHit(kind, golfPoints(kind));
     }
 }
 
@@ -129,6 +152,8 @@ function endTurn() {
         result = bbCommit(total);
     } else if (isBermuda()) {
         result = bmCommit(total, anyHit);
+    } else if (isGolf()) {
+        result = golfCommit(total);
     }
     clearTurn();
     saveActiveGame();
@@ -240,6 +265,12 @@ function refresh() {
             } else if (target && target.kind === 'number') {
                 ctxLine = `Hit ${target.label}. Single = ${target.value}, Double = ${target.value * 2}, Triple = ${target.value * 3}.`;
             }
+            hint.textContent = `${ctxLine} ${dartsLine}`;
+        } else if (isGolf()) {
+            const stableford = game.golf && game.golf.variant === 'stableford';
+            const ctxLine = stableford
+                ? `Hit ${target ? target.value : '—'}. Triple = +4 pts, Double = +3, Single = +1, miss = 0. Highest score wins.`
+                : `Hit ${target ? target.value : '—'}. Triple = 1 stroke, Double = 2, Single = 3, miss = 5. Lowest score wins.`;
             hint.textContent = `${ctxLine} ${dartsLine}`;
         }
     }

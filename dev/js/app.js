@@ -28,7 +28,7 @@ function on(id, event, handler) {
 function updateDisplay() {
     const effectiveType = game.chicago ? game.chicago.currentGameType : game.type;
     const isCricket = ['cricket', 'spanish', 'minnesota'].includes(effectiveType);
-    const isTargetGame = effectiveType === 'baseball' || effectiveType === 'bermuda';
+    const isTargetGame = effectiveType === 'baseball' || effectiveType === 'bermuda' || effectiveType === 'golf';
 
     // Show/hide game areas
     const cricketMain = document.getElementById('cricketMain');

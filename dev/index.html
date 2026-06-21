@@ -60,6 +60,7 @@
                     <option value="121">121 Game</option>
                     <option value="baseball">Baseball</option>
                     <option value="bermuda">Bermuda Triangle</option>
+                    <option value="golf">Golf</option>
                 </select>
             </div>
 
@@ -101,6 +102,19 @@
                 </select>
                 <div class="form-hint" id="baseballVariantHint">
                     Standard 9 innings: each player throws 3 darts per inning at the inning's number (1–9). Single = 1 run, Double = 2 runs, Triple = 3 runs. Highest total runs after 9 innings wins.
+                </div>
+            </div>
+
+            <!-- Golf options -->
+            <div class="form-group hidden" id="golfOptions">
+                <label>Golf Variant</label>
+                <select id="golfVariant">
+                    <option value="18hole" selected>18 holes (standard)</option>
+                    <option value="9hole">9 holes (front nine)</option>
+                    <option value="stableford">18 holes Stableford (points)</option>
+                </select>
+                <div class="form-hint" id="golfVariantHint">
+                    18 holes (1 → 18). Each player throws 3 darts per hole at the hole's number. Triple = 1 stroke (eagle), Double = 2 (birdie), Single = 3 (par), miss = 5. Lowest total strokes wins.
                 </div>
             </div>
 
