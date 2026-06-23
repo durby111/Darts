@@ -161,7 +161,8 @@ function updateCricketGrid() {
 
         // Layout class
         let rowClass = 'cricket-row';
-        if (numPlayers === 2) rowClass += ' two-player';
+        if (numPlayers === 1) rowClass += ' one-player';
+        else if (numPlayers === 2) rowClass += ' two-player';
         else if (numPlayers === 3) rowClass += ' three-player';
         else if (numPlayers === 4) rowClass += ' four-player';
         if (isSpanish) rowClass += ' spanish';

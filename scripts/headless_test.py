@@ -188,6 +188,183 @@ async def test_golf(page):
     return {"hole_after_turn": new_target, "p0_strokes": p0, "p1_strokes": p1}
 
 
+async def _start_solo(page, game_type, *, finish=None, extra_setup=None):
+    """Common 1-player startup helper. Returns once the game screen is up."""
+    await page.select_option("#gameType", game_type)
+    await page.select_option("#numPlayers", "1")
+    await page.evaluate("document.getElementById('teamMode').checked = false")
+    if finish:
+        await page.select_option("#finishType", finish)
+    if extra_setup:
+        await extra_setup(page)
+    await page.click("#startGameBtn")
+    await page.wait_for_timeout(300)
+
+
+async def test_solo_x01_501(page):
+    # 1-player 501, throw a few scores, force winning checkout, verify winner.
+    await _start_solo(page, "501", finish="double-out")
+    await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
+    # Away column should be hidden (1 player).
+    away_display = await page.eval_on_selector("#awayHeader", "el => getComputedStyle(el).display")
+    assert away_display == "none", f"away header still rendered in 1-player ({away_display})"
+    # Throw two 100s (501 -> 401 -> 301). x01 has a 700ms commit cooldown to
+    # absorb double-taps, so we have to wait longer between turns than the
+    # default 100ms here.
+    for _ in range(2):
+        await page.click("[data-quick='100']")
+        await page.wait_for_timeout(800)
+    home_score = int(await page.locator("#homeScore").inner_text())
+    assert home_score == 301, f"expected 301 after two 100s, got {home_score}"
+    # Force remaining to 50 then throw 50 → win.
+    await page.evaluate("""
+        (async () => {
+            const stateMod = await import('./js/state.js');
+            stateMod.game.players[0].score = 50;
+            stateMod.game.currentPlayer = 0;
+            const x01 = await import('./js/x01.js');
+            x01.updateX01Display();
+        })()
+    """)
+    await page.wait_for_timeout(80)
+    await page.click("[data-digit='5']")
+    await page.click("[data-digit='0']")
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(300)
+    winner = await page.locator("#winnerModal").is_visible()
+    assert winner, "winner modal didn't open on 1-player 501 checkout"
+    return {"home_score_after_two_100s": home_score, "winner_modal": winner}
+
+
+async def test_solo_cricket(page):
+    # 1-player cricket: grid must render (numPlayers===1 row layout), tapping
+    # the 20 button must record a mark and increment totalMarks.
+    await _start_solo(page, "cricket")
+    await page.wait_for_selector("#cricketMain", state="visible", timeout=3000)
+
+    # Cricket grid must have one-player rows so the CSS grid-template-columns
+    # applies. (Bug: cricket.js wasn't appending one-player to rowClass.)
+    rows = await page.locator(".cricket-row").count()
+    assert rows >= 7, f"expected at least 7 cricket rows, got {rows}"
+    one_player_rows = await page.locator(".cricket-row.one-player").count()
+    assert one_player_rows == rows, (
+        f"cricket rows missing .one-player class — only {one_player_rows}/{rows} have it. "
+        f"With no modifier class, the grid template doesn't apply and the layout collapses."
+    )
+
+    # Tap the 20 button to mark one hit. With pending input, MISS hides and
+    # ENTER takes its place — commit via ENTER.
+    await page.locator(".cricket-num-btn", has_text="20").first.click()
+    await page.wait_for_timeout(80)
+    pending = await page.locator("#pendingText").inner_text()
+    assert pending.strip(), f"pending text empty after tap: {pending!r}"
+    await page.click("#enterBtn")
+    await page.wait_for_timeout(200)
+    # Player 0 totalMarks should reflect 1, and the round should advance since
+    # there's only one player (current → 0+1 mod 1 → still 0, completedRounds++).
+    total_marks = await page.evaluate(
+        "(async () => { const m = await import('./js/state.js'); return m.game.players[0].totalMarks; })()"
+    )
+    assert total_marks >= 1, f"expected at least 1 mark recorded, got {total_marks}"
+    round_badge = (await page.locator("#roundBadge").inner_text()).strip()
+    assert round_badge in ("1", "2"), f"unexpected round badge: {round_badge!r}"
+    return {"rows": rows, "one_player_rows": one_player_rows, "round": round_badge, "marks": total_marks}
+
+
+async def test_solo_baseball(page):
+    # 1-player baseball: target should be inning 1, end turn after 3 singles
+    # → inning advances to 2 with player 0 still the active (only) player.
+    await _start_solo(page, "baseball")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    val_before = (await page.locator("#targetValue").inner_text()).strip()
+    assert val_before == "1", f"expected Inning 1, got {val_before!r}"
+    for _ in range(3):
+        await page.click("#hitSingleBtn")
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(200)
+    val_after = (await page.locator("#targetValue").inner_text()).strip()
+    assert val_after == "2", f"inning didn't advance after 1-player turn: {val_after!r}"
+    home_score = int(await page.locator("#homeScore").inner_text())
+    assert home_score == 3, f"expected 3 runs from 3 singles, got {home_score}"
+    return {"inning_before": val_before, "inning_after": val_after, "runs": home_score}
+
+
+async def test_solo_bermuda(page):
+    # 1-player bermuda (halveit default now): target index 0 = 12. Tap a triple
+    # → 36 points, end turn → target advances and score sticks.
+    await _start_solo(page, "bermuda")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    target_before = (await page.locator("#targetValue").inner_text()).strip()
+    assert target_before == "12", f"expected first bermuda target 12, got {target_before!r}"
+    await page.click("#hitTripleBtn")
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(200)
+    home_score = int(await page.locator("#homeScore").inner_text())
+    assert home_score == 36, f"expected 36 (triple 12), got {home_score}"
+    target_after = (await page.locator("#targetValue").inner_text()).strip()
+    assert target_after == "13", f"target didn't advance after 1-player turn: {target_after!r}"
+    return {"score": home_score, "target_after": target_after}
+
+
+async def test_solo_golf(page):
+    # 1-player golf: hole 1 active, 1 triple + 2 implied misses = 1 + 10 = 11.
+    # End turn → hole advances to 2.
+    await _start_solo(page, "golf")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    hole_before = (await page.locator("#targetValue").inner_text()).strip()
+    assert hole_before == "1", f"expected Hole 1, got {hole_before!r}"
+    await page.click("#hitTripleBtn")
+    live = int(await page.locator("#targetTurnScore").inner_text())
+    assert live == 11, f"expected 11 strokes (1 triple + 2 misses), got {live}"
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(200)
+    home_score = int(await page.locator("#homeScore").inner_text())
+    assert home_score == 11, f"expected 11 strokes, got {home_score}"
+    hole_after = (await page.locator("#targetValue").inner_text()).strip()
+    assert hole_after == "2", f"hole didn't advance after 1-player turn: {hole_after!r}"
+    return {"strokes": home_score, "hole_after": hole_after}
+
+
+async def test_solo_121(page):
+    # 1-player 121: throw 60s until darts run out. Confirm the leg ends and a
+    # new leg starts (or the match summary appears at totalLegs limit).
+    async def lower_legs(page):
+        await page.select_option("#totalLegs121", "5")
+        await page.select_option("#dartsPerLeg", "9")
+    await _start_solo(page, "121", extra_setup=lower_legs)
+    await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
+    # 9 darts at 60 strokes → 3 turns of 60 = 180 total, can't checkout from 121.
+    # Each turn-commit has a 700ms cooldown to absorb double-taps.
+    for _ in range(3):
+        await page.click("[data-quick='60']")
+        await page.wait_for_timeout(800)
+    await page.wait_for_timeout(2500)  # leg-end 2s delay
+    leg_now = await page.evaluate("(async () => { const m = await import('./js/state.js'); return m.game.game121.currentLeg; })()")
+    assert leg_now >= 2, f"expected leg to advance after dart limit hit, got {leg_now}"
+    return {"current_leg": leg_now}
+
+
+async def test_solo_minnesota(page):
+    # 1-player minnesota cricket: grid renders with one-player class
+    # (same regression as cricket).
+    await _start_solo(page, "minnesota")
+    await page.wait_for_selector("#cricketMain", state="visible", timeout=3000)
+    rows = await page.locator(".cricket-row").count()
+    one_player = await page.locator(".cricket-row.one-player").count()
+    assert one_player == rows, f"minnesota rows missing .one-player class: {one_player}/{rows}"
+    return {"rows": rows}
+
+
+async def test_solo_spanish(page):
+    # 1-player spanish cricket: same rendering regression check.
+    await _start_solo(page, "spanish")
+    await page.wait_for_selector("#cricketMain", state="visible", timeout=3000)
+    rows = await page.locator(".cricket-row").count()
+    one_player = await page.locator(".cricket-row.one-player").count()
+    assert one_player == rows, f"spanish rows missing .one-player class: {one_player}/{rows}"
+    return {"rows": rows}
+
+
 async def test_theme_picker(page):
     # Three swatches render; default is blue. Click each one and confirm
     # data-theme on <html> updates + localStorage persists it.
