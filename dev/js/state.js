@@ -18,6 +18,10 @@ export let game = {
     redoHistory: [],
     chicago: null,
     game121: null,
+    baseball: null,
+    bermuda: null,
+    golf: null,
+    shanghai: null,
     // Team mode (Phase 2). When teamMode is true, game.players[] still has
     // exactly two entries — Home and Away — which the scoring engine treats
     // as the two "players". The actual humans throwing live in
@@ -109,6 +113,21 @@ export function canRedo() {
 
 // --- Cricket Initialization ---
 
+// Chaos Cricket: draw 6 unique random numbers (1–20) + Bull. Sorted
+// descending so the board reads like a normal cricket sheet.
+export function generateChaosTargets() {
+    const pool = [];
+    for (let n = 1; n <= 20; n++) pool.push(n);
+    // Fisher–Yates partial shuffle — take 6.
+    for (let i = pool.length - 1; i > pool.length - 1 - 6; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const picked = pool.slice(-6).sort((a, b) => b - a).map(String);
+    picked.push('Bull');
+    return picked;
+}
+
 export function initCricket(type, includeBulls = false) {
     let targets;
     if (type === 'cricket') {
@@ -117,6 +136,8 @@ export function initCricket(type, includeBulls = false) {
         targets = includeBulls
             ? ['20', '19', '18', '17', '16', '15', '14', '13', '12', '11', '10', 'Bull']
             : ['20', '19', '18', '17', '16', '15', '14', '13', '12', '11', '10'];
+    } else if (type === 'chaos') {
+        targets = generateChaosTargets();
     } else {
         // Minnesota
         targets = ['20', '19', '18', '17', '16', '15', 'Bull', 'Triples', 'Doubles', 'Bed'];
@@ -156,6 +177,10 @@ export function saveActiveGame() {
         completedRounds: game.completedRounds,
         chicago: game.chicago ? deepClone(game.chicago) : null,
         game121: game.game121 ? deepClone(game.game121) : null,
+        baseball: game.baseball ? deepClone(game.baseball) : null,
+        bermuda: game.bermuda ? deepClone(game.bermuda) : null,
+        golf: game.golf ? deepClone(game.golf) : null,
+        shanghai: game.shanghai ? deepClone(game.shanghai) : null,
         teamMode: game.teamMode || false,
         teams: game.teams ? deepClone(game.teams) : null,
         timestamp: Date.now()
@@ -196,6 +221,10 @@ export function restoreActiveGame(snapshot) {
         redoHistory: [],
         chicago: snapshot.chicago || null,
         game121: snapshot.game121 || null,
+        baseball: snapshot.baseball || null,
+        bermuda: snapshot.bermuda || null,
+        golf: snapshot.golf || null,
+        shanghai: snapshot.shanghai || null,
         teamMode: snapshot.teamMode || false,
         teams: snapshot.teams || null
     });
@@ -229,6 +258,10 @@ export function getCurrentConfig() {
         spanishBulls: document.getElementById('spanishBulls').checked,
         dartsPerLeg: document.getElementById('dartsPerLeg').value,
         totalLegs121: document.getElementById('totalLegs121').value,
+        baseballVariant: document.getElementById('baseballVariant')?.value,
+        bermudaVariant: document.getElementById('bermudaVariant')?.value,
+        golfVariant: document.getElementById('golfVariant')?.value,
+        shanghaiVariant: document.getElementById('shanghaiVariant')?.value,
         uiScale: document.getElementById('uiScale')?.value || '1.0',
         timestamp: Date.now()
     };
@@ -246,6 +279,16 @@ export function applyConfig(config) {
     document.getElementById('spanishBulls').checked = config.spanishBulls || false;
     if (config.dartsPerLeg) document.getElementById('dartsPerLeg').value = config.dartsPerLeg;
     if (config.totalLegs121) document.getElementById('totalLegs121').value = config.totalLegs121;
+    const variantMap = {
+        baseballVariant: 'baseballVariant',
+        bermudaVariant: 'bermudaVariant',
+        golfVariant: 'golfVariant',
+        shanghaiVariant: 'shanghaiVariant'
+    };
+    Object.entries(variantMap).forEach(([key, id]) => {
+        const el = document.getElementById(id);
+        if (el && config[key]) el.value = config[key];
+    });
 
     // UI Scale
     const scale = config.uiScale || '1.0';

@@ -33,6 +33,12 @@ import {
     missPenalty as golfMissPenalty,
     commitTurn as golfCommit
 } from './golf.js';
+import {
+    currentTarget as shTarget,
+    describeHitButtons as shButtons,
+    pointsForHit as shPoints,
+    commitTurn as shCommit
+} from './shanghai.js';
 
 const DARTS_PER_TURN = 3;
 
@@ -42,11 +48,13 @@ let turnHits = [];            // [{ kind, points }]
 function isBaseball() { return game.type === 'baseball' && !!game.baseball; }
 function isBermuda() { return game.type === 'bermuda' && !!game.bermuda; }
 function isGolf() { return game.type === 'golf' && !!game.golf; }
+function isShanghai() { return game.type === 'shanghai' && !!game.shanghai; }
 
 function currentTarget() {
     if (isBaseball()) return bbTarget();
     if (isBermuda()) return bmTarget();
     if (isGolf()) return golfTarget();
+    if (isShanghai()) return shTarget();
     return null;
 }
 
@@ -54,6 +62,7 @@ function describeButtons() {
     if (isBaseball()) return bbButtons();
     if (isBermuda()) return bmButtons();
     if (isGolf()) return golfButtons();
+    if (isShanghai()) return shButtons();
     return { single: 'Single', double: 'Double', triple: 'Triple', tripleEnabled: true };
 }
 
@@ -128,6 +137,11 @@ function applyHit(kind) {
 
     if (isGolf()) {
         recordHit(kind, golfPoints(kind));
+        return;
+    }
+
+    if (isShanghai()) {
+        recordHit(kind, shPoints(kind));
     }
 }
 
@@ -147,6 +161,7 @@ function endTurn() {
     saveGameState();   // snapshot for cross-turn UNDO
     const total = turnTotal();
     const anyHit = turnHits.length > 0;
+    const hits = turnHits.slice();
     let result = { matchOver: false };
     if (isBaseball()) {
         result = bbCommit(total);
@@ -154,6 +169,8 @@ function endTurn() {
         result = bmCommit(total, anyHit);
     } else if (isGolf()) {
         result = golfCommit(total);
+    } else if (isShanghai()) {
+        result = shCommit(total, hits);
     }
     clearTurn();
     saveActiveGame();
@@ -272,6 +289,9 @@ function refresh() {
                 ? `Hit ${target ? target.value : '—'}. Triple = +4 pts, Double = +3, Single = +1, miss = 0. Highest score wins.`
                 : `Hit ${target ? target.value : '—'}. Triple = 1 stroke, Double = 2, Single = 3, miss = 5. Lowest score wins.`;
             hint.textContent = `${ctxLine} ${dartsLine}`;
+        } else if (isShanghai()) {
+            const n = target ? target.value : '—';
+            hint.textContent = `Hit ${n}. Score = face × multiplier. Single + Double + Triple in one turn = SHANGHAI, instant win! ${dartsLine}`;
         }
     }
 

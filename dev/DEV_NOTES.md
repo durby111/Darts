@@ -1,0 +1,107 @@
+# BlakeOut v2.3-dev — Overhaul Notes
+
+Dev-only release. Production (repo root) untouched — promote by copying
+`/dev/` → root as usual, and fold these notes into `CLAUDE.md` at that time.
+
+---
+
+## Architecture: game registry
+
+`js/registry.js` is now the single source of truth for game modes. Every
+game is one entry: `{ id, label, sub, icon, engine, category, tags, desc }`.
+
+Engines:
+
+| engine    | scoring module               | notes |
+|-----------|------------------------------|-------|
+| `cricket` | `cricket.js` + `state.js:initCricket()` | cricket, spanish, minnesota, **chaos** |
+| `x01`     | `x01.js`                     | 301 / 501 / 701 / 801 (id parses to start score) |
+| `target`  | `target_game.js` dispatcher  | baseball, bermuda, golf, **shanghai** |
+| `special` | own module                   | chicago, 121 |
+
+Hard-coded type lists (`['cricket','spanish','minnesota']`…) were removed
+from `app.js` / `setup.js` in favor of `isCricketGame()` / `isX01Game()` /
+`isTargetGame()`. **To add a game**: registry entry → options panel (optional)
+→ engine hooks. `syncSelectWithRegistry()` auto-injects missing `<option>`s,
+so the hidden select can't drift from the registry.
+
+Target-engine lifecycle hooks (implement all four, wire into
+`target_game.js`): `currentTarget()`, `describeHitButtons()`,
+`pointsForHit(kind)`, `commitTurn(total, hits)`.
+
+## Game picker (`js/picker.js`)
+
+Search (label/sub/desc/tags), category chips, favorites
+(`blakeout_game_favs`), recents (`blakeout_recent_games`, last 4, recorded in
+`beginMatch`), and ⚡ Quick Start (re-applies `lastConfig` and starts).
+The hidden `#gameType` select remains the state carrier; the picker only
+reads/writes it and fires `change`.
+
+## New games
+
+**Chaos Cricket** (`chaos`, cricket engine)
+- 6 unique random numbers (1–20, sorted desc) + Bull, drawn at game start
+  (`state.js:generateChaosTargets`). All players share one board (stamped in
+  `setup.js:beginMatch`). Standard marks/close/points rules. Play Again re-rolls.
+
+**Shanghai** (`shanghai`, target engine, `js/shanghai.js`)
+- Rounds 1→7 (or 1→20 marathon). 3 darts at the round number;
+  score = face × multiplier. Single + Double + Triple in one turn = instant
+  win (detected from the per-dart `hits` array passed by `target_game.js`).
+  Otherwise highest total after the last round wins.
+
+## Themes
+
+12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
+grape, aqua, royal, shamrock, arctic-light). New contrast tokens
+`--color-on-primary` / `--color-on-success` carry ink color on bright fills;
+they default to white in `:root` and flip to dark ink in high-luminance
+themes. Anything painted `--color-primary`/`--color-success` must use them.
+Also fixed: `.card` bg and setup scrim were hardcoded dark (broke Arctic) —
+now `--color-surface` mix + `--bg-image-overlay`.
+
+## Max Visibility Mode (`js/visibility.js`)
+
+The web has **no** screen-brightness API, so the strategy is:
+1. `tryNativeBrightness()` probes webview-shell hooks (no-op on open web).
+2. **Screen Wake Lock** while enabled — acquired on enable + game start +
+   `visibilitychange` re-acquire. Chromium & Safari ≥16.4; older → tips text
+   says to raise the screen timeout.
+3. Fallback UX: first-launch inline onboarding card (non-blocking), ☀
+   indicator chip (off / ok / pulsing warn) that opens per-platform
+   brightness steps (UA-detected), in-game banner until the user confirms
+   "brightness is set" (confirmation expires after 12 h), and a `vis-boost`
+   contrast class layered over any theme.
+Prefs: `blakeout_visibility` `{enabled, onboarded, boost, brightnessConfirmedAt}`.
+
+## Bug fixes (dev)
+
+- `playAgain()` corrupted every non-cricket/x01 game (stamped `cricketData`,
+  left stale baseball/chicago/121 state). Now rebuilds through `beginMatch()`.
+- `saveActiveGame()`/`restoreActiveGame()` dropped baseball/bermuda/golf
+  state → resume lost the inning/target/hole. Now persisted (plus shanghai).
+- First-ever SW install triggered a `controllerchange` reload mid-setup.
+  Now only reloads when a previous SW was controlling the page.
+- Config presets now persist variant selects (baseball/bermuda/golf/shanghai).
+
+## Tests
+
+- `tests/dev_test.py` — 11-test Playwright battery (registry/picker,
+  favorites/recents, chaos, shanghai ×2, themes, visibility, play-again +
+  resume regressions, core cricket + x01). `python3 dev/tests/dev_test.py`.
+- `tests/visual_qa.py` — screenshot dump for theme/legibility review.
+- Legacy `scripts/headless_test.py --target dev`: 15/18 — the 3 failures are
+  stale count assertions in the prod-tree script (12 cards → now 14 games,
+  3 themes → now 12). Update those numbers when promoting.
+
+## Known limitations / next steps
+
+- Web pages cannot set device brightness; Max Visibility is wake lock +
+  guided-manual + boost. A future thin Android wrapper could use
+  `tryNativeBrightness()` as-is via `AndroidBridge.setBrightness`.
+- Round badge shows leg/round only for cricket/x01/121/chicago; target games
+  show their stage in the main panel instead.
+- Legacy test counts (above) will need a bump at promote time.
+- Candidates next: per-game quick-rules modal from registry `desc`,
+  stats hooks for chaos/shanghai match ends (Phase 3), theme preview on
+  long-press, favorites-first ordering in the grid.

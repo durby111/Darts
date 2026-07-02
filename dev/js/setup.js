@@ -13,22 +13,11 @@ import { showTeamBuilder, setTeamsConfirmedCallback } from './teams.js';
 import { initBaseballState } from './baseball.js';
 import { initBermudaState } from './bermuda.js';
 import { initGolfState } from './golf.js';
+import { initShanghaiState } from './shanghai.js';
 import { initThemePickerUI } from './theme.js';
-
-const GAME_META = {
-    '301':       { label: '301',        sub: 'Double out',        icon: '🎯' },
-    '501':       { label: '501',        sub: 'Standard',          icon: '🎯' },
-    '701':       { label: '701',        sub: 'Long form',         icon: '🎯' },
-    '801':       { label: '801',        sub: 'Endurance',         icon: '🎯' },
-    'cricket':   { label: 'Cricket',    sub: '15–20 + Bull',      icon: '✕' },
-    'spanish':   { label: 'Spanish',    sub: '20→10',             icon: '✕' },
-    'minnesota': { label: 'Minnesota',  sub: 'Cricket variant',   icon: '✕' },
-    'chicago':   { label: 'Chicago',    sub: 'Best of 3',         icon: '🌆' },
-    '121':       { label: '121',        sub: 'Limited darts',     icon: '⏱' },
-    'baseball':  { label: 'Baseball',   sub: '9 innings',         icon: '⚾' },
-    'bermuda':   { label: 'Bermuda',    sub: 'Triangle',          icon: '🔺' },
-    'golf':      { label: 'Golf',       sub: '18 holes',          icon: '⛳' }
-};
+import { isCricketGame, isX01Game, isTargetGame } from './registry.js';
+import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
+import { onGameStart as visibilityOnGameStart } from './visibility.js';
 
 let onGameStart = null;
 let overlayMode = false;
@@ -37,44 +26,9 @@ export function setGameStartCallback(callback) {
     onGameStart = callback;
 }
 
-function renderGameGrid() {
-    const grid = document.getElementById('gameTypeGrid');
-    const select = document.getElementById('gameType');
-    if (!grid || !select) return;
-    const current = select.value;
-    const cards = Array.from(select.options).map(opt => {
-        const meta = GAME_META[opt.value] || { label: opt.text, sub: '', icon: '🎯' };
-        const isActive = opt.value === current;
-        return `
-            <button type="button" class="game-card${isActive ? ' active' : ''}" data-game-value="${opt.value}">
-                <span class="game-card-icon" aria-hidden="true">${meta.icon}</span>
-                <span class="game-card-label">${meta.label}</span>
-                ${meta.sub ? `<span class="game-card-sub">${meta.sub}</span>` : ''}
-            </button>
-        `;
-    }).join('');
-    grid.innerHTML = cards;
-}
-
-function bindGameGrid() {
-    const grid = document.getElementById('gameTypeGrid');
-    const select = document.getElementById('gameType');
-    if (!grid || !select) return;
-    grid.addEventListener('click', e => {
-        const card = e.target.closest('[data-game-value]');
-        if (!card) return;
-        const value = card.dataset.gameValue;
-        if (select.value === value) return;
-        select.value = value;
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-        renderGameGrid();   // re-paint the active state
-    });
-}
-
 export function initSetupControls() {
     initThemePickerUI();
-    renderGameGrid();
-    bindGameGrid();
+    initGamePicker(quickStartLastGame);
 
     // Player count change
     document.getElementById('numPlayers').addEventListener('change', function () {
@@ -98,22 +52,26 @@ export function initSetupControls() {
         beginMatchFromTeams(teams);
     });
 
-    // Game type change
+    // Game type change — option-panel visibility is registry-driven.
     document.getElementById('gameType').addEventListener('change', function () {
-        const isCricket = ['cricket', 'spanish', 'minnesota'].includes(this.value);
-        const isX01 = ['301', '501', '701', '801'].includes(this.value);
+        const isCricket = isCricketGame(this.value);
+        const isX01 = isX01Game(this.value);
         const isChicago = this.value === 'chicago';
         const isSpanish = this.value === 'spanish';
         const is121 = this.value === '121';
         const isBaseball = this.value === 'baseball';
         const isBermuda = this.value === 'bermuda';
         const isGolf = this.value === 'golf';
+        const isShanghai = this.value === 'shanghai';
+        const isChaos = this.value === 'chaos';
         document.getElementById('cricketOptions').classList.toggle('hidden', !isCricket);
         document.getElementById('spanishBullsOption').classList.toggle('hidden', !isSpanish);
+        document.getElementById('chaosOptions')?.classList.toggle('hidden', !isChaos);
         document.getElementById('game121Options').classList.toggle('hidden', !is121);
         document.getElementById('baseballOptions').classList.toggle('hidden', !isBaseball);
         document.getElementById('bermudaOptions').classList.toggle('hidden', !isBermuda);
         document.getElementById('golfOptions').classList.toggle('hidden', !isGolf);
+        document.getElementById('shanghaiOptions')?.classList.toggle('hidden', !isShanghai);
         document.getElementById('finishTypeOptions').classList.toggle('hidden', !isX01 && !isChicago && !is121);
     });
 
@@ -156,6 +114,19 @@ export function initSetupControls() {
     if (golfVariantEl && golfHintEl) {
         golfVariantEl.addEventListener('change', () => {
             golfHintEl.textContent = golfHints[golfVariantEl.value] || '';
+        });
+    }
+
+    // Shanghai variant hint updater
+    const shanghaiHints = {
+        rounds17: 'Standard: rounds 1→7, 3 darts per round at the round\'s number. Score = face × multiplier. Single + Double + Triple in one turn = SHANGHAI — instant win. Otherwise highest total after round 7 wins.',
+        rounds120: 'Marathon: rounds 1→20. Same rules — face × multiplier, and a Single + Double + Triple turn is an instant Shanghai win. Highest total after round 20 wins.'
+    };
+    const shanghaiVariantEl = document.getElementById('shanghaiVariant');
+    const shanghaiHintEl = document.getElementById('shanghaiVariantHint');
+    if (shanghaiVariantEl && shanghaiHintEl) {
+        shanghaiVariantEl.addEventListener('change', () => {
+            shanghaiHintEl.textContent = shanghaiHints[shanghaiVariantEl.value] || '';
         });
     }
 
@@ -402,6 +373,7 @@ function beginMatch(playerSeeds, teams) {
     const isBaseball = gameType === 'baseball';
     const isBermuda = gameType === 'bermuda';
     const isGolf = gameType === 'golf';
+    const isShanghai = gameType === 'shanghai';
 
     Object.assign(game, {
         type: gameType,
@@ -444,6 +416,7 @@ function beginMatch(playerSeeds, teams) {
         baseball: isBaseball ? initBaseballState(document.getElementById('baseballVariant').value) : null,
         bermuda: isBermuda ? initBermudaState(document.getElementById('bermudaVariant').value) : null,
         golf: isGolf ? initGolfState(document.getElementById('golfVariant').value) : null,
+        shanghai: isShanghai ? initShanghaiState(document.getElementById('shanghaiVariant')?.value) : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,
@@ -468,16 +441,30 @@ function beginMatch(playerSeeds, teams) {
         } else if (is121) {
             player.score = 121;
             game.game121.legsWon.push(0);
-        } else if (['301', '501', '701', '801'].includes(gameType)) {
+        } else if (isX01Game(gameType)) {
             player.score = parseInt(gameType);
-        } else if (isBaseball || isBermuda || isGolf) {
-            // score stays at 0; both games accumulate runs/points
+        } else if (isTargetGame(gameType)) {
+            // score stays at 0; target games accumulate runs/points/strokes
         } else {
             player.cricketData = initCricket(gameType, includeBulls);
         }
 
         game.players.push(player);
     });
+
+    // Chaos Cricket: every player must share the SAME randomized board.
+    // initCricket() randomizes per call, so generate one final board and
+    // stamp every player with their own copy of it.
+    if (gameType === 'chaos') {
+        const shared = initCricket('chaos');   // also sets game.cricketTargets
+        game.players.forEach(p => {
+            p.cricketData = JSON.parse(JSON.stringify(shared));
+        });
+    }
+
+    recordRecentGame(gameType);
+    refreshPicker();
+    visibilityOnGameStart();
 
     clearActiveGame();
     const scaleSlider = document.getElementById('uiScale');
@@ -522,11 +509,18 @@ export function showSetupAsOverlay() {
 
 export function playAgain() {
     clearActiveGame();
-    const currentGameType = game.type;
-    const currentPlayers = game.players.map(p => p.name);
-    const currentCricketPoints = game.cricketPoints;
-    const currentFinishType = game.finishType;
-    const includeBulls = document.getElementById('spanishBulls').checked;
+
+    // Rebuild the match through beginMatch() so every engine (cricket,
+    // x01, chicago, 121, target games, chaos) re-initializes correctly.
+    // The hidden select still holds the current setup; force it to the
+    // active game's type in case the user browsed the picker mid-game.
+    const select = document.getElementById('gameType');
+    if (select && select.value !== game.type) {
+        select.value = game.type;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    const seeds = game.players.map(p => ({ name: p.name, rosterEmail: p.rosterEmail || null }));
 
     // Preserve team mode + reset rotation so "Play Again" starts each team
     // from member 0.
@@ -534,44 +528,17 @@ export function playAgain() {
         ? game.teams.map(t => ({ name: t.name, members: t.members.slice(), rotationIndex: 0 }))
         : null;
 
-    Object.assign(game, {
-        type: currentGameType,
-        players: [],
-        currentPlayer: 0,
-        currentInput: '',
-        cricketPoints: currentCricketPoints,
-        finishType: currentFinishType,
-        pendingDarts: [],
-        completedRounds: 0,
-        undoHistory: [],
-        redoHistory: [],
-        chicago: null,
-        game121: null,
-        teamMode: !!preservedTeams,
-        teams: preservedTeams
-    });
-
-    currentPlayers.forEach(name => {
-        const player = {
-            name: name,
-            score: 0,
-            throws: 0,
-            totalMarks: 0,
-            history: [],
-            lastTurnMarks: {}
-        };
-
-        if (['301', '501', '701', '801'].includes(currentGameType)) {
-            player.score = parseInt(currentGameType);
-        } else {
-            player.cricketData = initCricket(currentGameType, includeBulls);
-        }
-
-        game.players.push(player);
-    });
-
     document.getElementById('winnerModal').style.display = 'none';
-    if (onGameStart) onGameStart();
+    beginMatch(seeds, preservedTeams);
+}
+
+// Quick Start — one tap from the picker: re-apply the last-used config
+// (game, players, options) and start immediately.
+function quickStartLastGame() {
+    const configs = getConfigs();
+    if (!configs.lastConfig) return;
+    applyConfig(configs.lastConfig);
+    startGame();
 }
 
 // --- Config Management ---

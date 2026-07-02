@@ -51,7 +51,9 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
+    /* Theme-driven scrim over the background photo (light themes need a
+       light scrim, not the old hardcoded black). */
+    background: var(--bg-image-overlay, rgba(0, 0, 0, 0.75));
     z-index: 0;
 }
 
@@ -136,6 +138,7 @@ body {
 
 .player-header.active {
     background: var(--color-active-player);
+    color: var(--color-on-primary);
 }
 
 .player-header.inactive {
@@ -228,7 +231,7 @@ body {
 
 .round-badge {
     background: var(--color-primary);
-    color: var(--color-text);
+    color: var(--color-on-primary);
     font-size: calc(var(--font-2xl) * var(--ui-scale));
     font-weight: bold;
     width: calc(clamp(50px, 8vw, 75px) * var(--ui-scale));

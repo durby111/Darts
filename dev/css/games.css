@@ -196,7 +196,7 @@
        that read as a rainbow under non-blue themes. Now everything tracks
        the primary scale. */
     background: linear-gradient(180deg, var(--color-primary-light), var(--color-primary-dark));
-    color: var(--color-text);
+    color: var(--color-on-primary);
     font-size: calc(clamp(1.4rem, 4.5dvh, 3rem) * var(--ui-scale));
     padding: calc(clamp(8px, 2.5dvh, 22px) * var(--ui-scale)) calc(clamp(14px, 4vw, 32px) * var(--ui-scale));
     min-width: clamp(50px, 12vw, 100px);
@@ -230,7 +230,7 @@
     touch-action: none;
     user-select: none;
     background: linear-gradient(180deg, var(--color-primary), var(--color-primary-dark));
-    color: var(--color-text);
+    color: var(--color-on-primary);
     font-size: calc(clamp(0.8rem, 2.5dvh, 1.5rem) * var(--ui-scale));
     padding: calc(clamp(4px, 1.5dvh, 14px) * var(--ui-scale)) calc(clamp(6px, 1.5vw, 14px) * var(--ui-scale));
     min-width: clamp(28px, 6vw, 50px);
@@ -518,7 +518,9 @@
     touch-action: none;
     user-select: none;
     background: #ccc;
-    color: var(--color-text-dark);
+    /* Fixed ink on a fixed #ccc pad — --color-text-dark flips to white in
+       light themes (Arctic) and would vanish on the grey keys. */
+    color: #1a1a1a;
     border: 2px solid #999;
     font-size: calc(clamp(1.1rem, 3dvh, 1.8rem) * var(--ui-scale));
     padding: calc(clamp(8px, 1.5dvh, 18px) * var(--ui-scale));
@@ -537,7 +539,7 @@
     touch-action: none;
     user-select: none;
     background: var(--color-primary-dark);
-    color: var(--color-text);
+    color: var(--color-on-primary);
     font-size: calc(clamp(0.75rem, 1.8dvh, 1.1rem) * var(--ui-scale));
     padding: calc(clamp(6px, 1.2dvh, 14px) * var(--ui-scale)) clamp(2px, 0.5vw, 6px);
     flex: 1;

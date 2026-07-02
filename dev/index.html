@@ -38,14 +38,35 @@
                     <h1>BLAKE OUT</h1>
                     <div class="setup-subtitle">Tablet scorer</div>
                 </div>
-                <div class="theme-picker" id="themePicker" aria-label="Theme"></div>
+                <div class="setup-header-side">
+                    <button type="button" class="vis-indicator vis-off" id="visIndicator" aria-label="Max Visibility status">☀ off</button>
+                    <div class="theme-picker" id="themePicker" aria-label="Theme"></div>
+                </div>
             </header>
 
             <button class="btn btn--lg btn--success btn--block hidden" id="backToGameBtn" style="margin-bottom:var(--space-lg);">Back to Game</button>
 
+            <!-- Max Visibility onboarding — inline, non-blocking, first launch only -->
+            <div class="vis-onboard-card hidden" id="visOnboardCard">
+                <div class="vis-onboard-text">
+                    <strong>☀ Max Visibility Mode</strong>
+                    Playing in a dim bar? Keep the screen awake, boost contrast, and get a reminder to set brightness to 70%+.
+                </div>
+                <div class="vis-onboard-actions">
+                    <button class="btn btn--sm btn--neutral" id="visOnboardSkipBtn">Not now</button>
+                    <button class="btn btn--sm btn--primary" id="visOnboardEnableBtn">Enable</button>
+                </div>
+            </div>
+
             <div class="setup-section">
                 <div class="setup-section-label">Game</div>
+                <div class="picker-toolbar">
+                    <input type="search" id="gameSearchInput" class="picker-search" placeholder="Search games…" autocomplete="off" aria-label="Search games">
+                </div>
+                <div class="picker-chips" id="gameCategoryChips"></div>
+                <div class="picker-recents hidden" id="gameRecentsRow"></div>
                 <div class="game-grid" id="gameTypeGrid"></div>
+                <div class="picker-description" id="gameDescription"></div>
                 <!-- Keep the native select for state — hidden visually, still
                      driven by the card grid above. -->
                 <select id="gameType" class="visually-hidden" tabindex="-1" aria-hidden="true">
@@ -56,11 +77,13 @@
                     <option value="cricket">Cricket</option>
                     <option value="spanish">Spanish (20-10)</option>
                     <option value="minnesota">Minnesota Cricket</option>
+                    <option value="chaos">Chaos Cricket</option>
                     <option value="chicago">Chicago (Best of 3)</option>
                     <option value="121">121 Game</option>
                     <option value="baseball">Baseball</option>
                     <option value="bermuda">Bermuda Triangle</option>
                     <option value="golf">Golf</option>
+                    <option value="shanghai">Shanghai</option>
                 </select>
             </div>
 
@@ -115,6 +138,25 @@
                 </select>
                 <div class="form-hint" id="golfVariantHint">
                     18 holes (1 → 18). Each player throws 3 darts per hole at the hole's number. Triple = 1 stroke (eagle), Double = 2 (birdie), Single = 3 (par), miss = 5. Lowest total strokes wins.
+                </div>
+            </div>
+
+            <!-- Shanghai options -->
+            <div class="form-group hidden" id="shanghaiOptions">
+                <label>Shanghai Variant</label>
+                <select id="shanghaiVariant">
+                    <option value="rounds17" selected>Rounds 1→7 (standard)</option>
+                    <option value="rounds120">Rounds 1→20 (marathon)</option>
+                </select>
+                <div class="form-hint" id="shanghaiVariantHint">
+                    Standard: rounds 1→7, 3 darts per round at the round's number. Score = face × multiplier. Single + Double + Triple in one turn = SHANGHAI — instant win. Otherwise highest total after round 7 wins.
+                </div>
+            </div>
+
+            <!-- Chaos Cricket note -->
+            <div class="form-group hidden" id="chaosOptions">
+                <div class="form-hint">
+                    🎲 Chaos Cricket: 6 numbers are drawn at random (plus Bull) when the game starts — every match plays a different board. Standard cricket marks, closing and points rules apply. "Play Again" re-rolls the numbers.
                 </div>
             </div>
 
@@ -194,6 +236,17 @@
 
             <details class="setup-section setup-section--collapsible">
                 <summary class="setup-section-label">Display &amp; presets</summary>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="visModeToggle">
+                        <span>Max Visibility Mode (keep screen awake, boost contrast)</span>
+                    </label>
+                    <label class="checkbox-label hidden" id="visBoostRow" style="margin-top:6px;">
+                        <input type="checkbox" id="visBoostToggle" checked>
+                        <span>Contrast boost</span>
+                    </label>
+                    <button class="btn btn--sm btn--neutral" id="visTipsBtn" style="margin-top:8px;">Brightness tips (set 70%+)</button>
+                </div>
                 <div class="form-group">
                     <label>UI Scale</label>
                     <div class="ui-scale-row">
@@ -296,6 +349,12 @@
 
     <!-- Game Screen -->
     <div class="game-screen" id="gameScreen">
+        <!-- Max Visibility brightness reminder (shown until confirmed) -->
+        <div class="vis-banner hidden" id="visBanner">
+            <span class="vis-banner-text">☀ Bar-visible mode: set screen brightness to 70%+</span>
+            <button type="button" class="vis-banner-btn" id="visBannerHowBtn">How?</button>
+            <button type="button" class="vis-banner-btn vis-banner-done" id="visBannerDoneBtn">Done ✓</button>
+        </div>
         <!-- Header -->
         <div class="score-header" id="scoreHeader">
             <div class="player-header home" id="homeHeader">
@@ -310,7 +369,7 @@
             <div class="center-logo">
                 <button class="end-game-btn" id="menuBtn">Menu</button>
                 <div class="round-badge" id="roundBadge">1</div>
-                <div class="version-text">v2.2-dev</div>
+                <div class="version-text">v2.3-dev</div>
             </div>
 
             <div class="player-header away" id="awayHeader">
@@ -552,6 +611,22 @@
             <div class="winner-name" id="chicagoLegWinner"></div>
             <div id="chicagoMatchScore" style="font-size:var(--font-xl);color:var(--color-primary);margin-bottom:var(--space-xl);"></div>
             <button class="btn btn--lg btn--success" id="chicagoContinueBtn">Continue</button>
+        </div>
+    </div>
+
+    <!-- Max Visibility brightness tips -->
+    <div class="modal" id="visTipsModal" style="display:none;">
+        <div class="modal-content" style="max-width:460px;text-align:left;">
+            <h2>Set brightness to 70%+</h2>
+            <p style="color:var(--color-text-muted);margin:var(--space-sm) 0;">
+                Browsers can't change device brightness directly — it takes two seconds by hand:
+            </p>
+            <ol id="visTipsSteps" style="margin:var(--space-md) 0 var(--space-md) 1.2em;color:var(--color-text);line-height:1.5;"></ol>
+            <p id="visTipsSupport" style="color:var(--color-text-muted);font-size:var(--font-sm);margin-bottom:var(--space-md);"></p>
+            <div class="modal-buttons">
+                <button class="btn btn--lg btn--neutral" id="visTipsCloseBtn">Close</button>
+                <button class="btn btn--lg btn--success" id="visTipsDoneBtn">Brightness is set ✓</button>
+            </div>
         </div>
     </div>
 

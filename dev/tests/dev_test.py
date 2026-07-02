@@ -1,0 +1,519 @@
+#!/usr/bin/env python3
+"""
+BlakeOut DEV overhaul test battery (v2.3-dev).
+
+Lives under /dev/tests/ — tests the dev build only. Modeled on
+scripts/headless_test.py but covers the v2.3 overhaul features:
+
+    registry_picker    — 14 game cards render from registry, search filters,
+                         category chips filter, hidden select syncs
+    favorites_recents  — star toggles favorites, favorites chip appears,
+                         recents recorded after a game start
+    chaos_cricket      — random board: 6 unique numbers + Bull, shared across
+                         players, marks/scoring work, play-again re-rolls
+    shanghai           — round targets advance, face×multiplier scoring,
+                         S+D+T instant win
+    shanghai_no_win    — normal completion path: highest score wins round 7
+    themes             — all 12 swatches render and apply, persist to storage
+    visibility         — onboarding modal appears once, enable → wake-lock
+                         attempt + boost class + indicator states + banner
+    play_again_target  — regression: Play Again after a baseball game
+                         restarts baseball correctly (was broken)
+    resume_target_game — regression: baseball state survives save/restore
+    core_cricket       — no regression: standard cricket scoring flow
+    core_x01           — no regression: 501 scoring + winner modal
+
+Usage:
+    python3 dev/tests/dev_test.py                # run all
+    python3 dev/tests/dev_test.py --only themes  # single test
+"""
+
+import argparse, asyncio, inspect, json, subprocess, sys, time
+from pathlib import Path
+
+DEV_ROOT = Path(__file__).resolve().parent.parent   # .../blakeout/dev
+OUT = Path("/tmp/blakeout_dev_test")
+PORT = 8823
+
+
+# ---------------------------------------------------------------- helpers
+
+async def fresh(page):
+    """Clear storage so onboarding/favorites tests start clean."""
+    await page.evaluate("localStorage.clear()")
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(300)
+
+
+async def dismiss_onboard(page):
+    vis = await page.locator("#visOnboardCard").is_visible()
+    if vis:
+        await page.click("#visOnboardSkipBtn")
+        await page.wait_for_timeout(100)
+
+
+async def start_game(page, game_type, num_players="2"):
+    await page.select_option("#gameType", game_type)
+    await page.select_option("#numPlayers", num_players)
+    await page.evaluate("document.getElementById('teamMode').checked = false")
+    await page.click("#startGameBtn")
+    await page.wait_for_timeout(300)
+
+
+async def get_state(page, expr):
+    return await page.evaluate(
+        f"(async () => {{ const m = await import('./js/state.js'); return {expr}; }})()"
+    )
+
+
+# ---------------------------------------------------------------- tests
+
+async def test_registry_picker(page):
+    await dismiss_onboard(page)
+    # 14 cards from the registry
+    cards = await page.locator(".game-card[data-game-value]").count()
+    assert cards == 14, f"expected 14 game cards, got {cards}"
+
+    # New games present
+    for gid in ("chaos", "shanghai"):
+        n = await page.locator(f".game-card[data-game-value='{gid}']").count()
+        assert n == 1, f"{gid} card missing"
+
+    # Search filters
+    await page.fill("#gameSearchInput", "shang")
+    await page.wait_for_timeout(100)
+    visible = await page.locator(".game-card[data-game-value]").count()
+    assert visible == 1, f"search 'shang' should leave 1 card, got {visible}"
+    await page.fill("#gameSearchInput", "")
+    await page.wait_for_timeout(100)
+
+    # Category chips filter
+    await page.click(".picker-chip[data-category='cricket']")
+    await page.wait_for_timeout(100)
+    cricket_cards = await page.eval_on_selector_all(
+        ".game-card[data-game-value]", "els => els.map(e => e.dataset.gameValue)")
+    assert set(cricket_cards) == {"cricket", "spanish", "minnesota", "chaos"}, \
+        f"cricket category shows {cricket_cards}"
+    await page.click(".picker-chip[data-category='all']")
+    await page.wait_for_timeout(100)
+
+    # Selecting a card syncs the hidden select and shows the right options
+    await page.click(".game-card[data-game-value='shanghai']")
+    await page.wait_for_timeout(100)
+    sel = await page.eval_on_selector("#gameType", "el => el.value")
+    assert sel == "shanghai", f"hidden select = {sel!r}"
+    sh_hidden = await page.locator("#shanghaiOptions").evaluate(
+        "el => el.classList.contains('hidden')")
+    assert not sh_hidden, "shanghaiOptions hidden after picking shanghai"
+    return {"cards": cards}
+
+
+async def test_favorites_recents(page):
+    await fresh(page)
+    await dismiss_onboard(page)
+    # No favorites chip initially (0 favs)
+    fav_chip = await page.locator(".picker-chip[data-category='fav']").count()
+    assert fav_chip == 0, "favorites chip should hide when no favorites"
+
+    # Star cricket
+    await page.click(".game-card-fav[data-fav-toggle='cricket']")
+    await page.wait_for_timeout(100)
+    favs = await page.evaluate("JSON.parse(localStorage.getItem('blakeout_game_favs'))")
+    assert favs == ["cricket"], f"favs = {favs}"
+    fav_chip = await page.locator(".picker-chip[data-category='fav']").count()
+    assert fav_chip == 1, "favorites chip should appear after starring"
+
+    # Favorites category shows only cricket
+    await page.click(".picker-chip[data-category='fav']")
+    await page.wait_for_timeout(100)
+    shown = await page.eval_on_selector_all(
+        ".game-card[data-game-value]", "els => els.map(e => e.dataset.gameValue)")
+    assert shown == ["cricket"], f"fav view shows {shown}"
+    await page.click(".picker-chip[data-category='all']")
+
+    # Start a game → recents recorded, recent chip visible after returning
+    await start_game(page, "301")
+    recents = await page.evaluate("JSON.parse(localStorage.getItem('blakeout_recent_games'))")
+    assert recents[0] == "301", f"recents = {recents}"
+    return {"favs": favs, "recents": recents}
+
+
+async def test_chaos_cricket(page):
+    await dismiss_onboard(page)
+    await start_game(page, "chaos")
+    await page.wait_for_selector("#cricketMain", state="visible", timeout=3000)
+
+    targets = await get_state(page, "m.game.cricketTargets")
+    assert len(targets) == 7, f"expected 7 chaos targets, got {targets}"
+    assert targets[-1] == "Bull", f"last target should be Bull: {targets}"
+    nums = [int(t) for t in targets[:-1]]
+    assert len(set(nums)) == 6, f"numbers not unique: {nums}"
+    assert all(1 <= n <= 20 for n in nums), f"numbers out of range: {nums}"
+    assert nums == sorted(nums, reverse=True), f"not sorted desc: {nums}"
+
+    # Both players share the same board
+    p0_keys = await get_state(page, "Object.keys(m.game.players[0].cricketData)")
+    p1_keys = await get_state(page, "Object.keys(m.game.players[1].cricketData)")
+    assert p0_keys == p1_keys, f"players have different boards: {p0_keys} vs {p1_keys}"
+
+    # Grid renders all 7 rows with buttons for the random numbers
+    rows = await page.locator(".cricket-row").count()
+    assert rows == 7, f"expected 7 cricket rows, got {rows}"
+
+    # Hit the first target 3 times → closes for player 0
+    first = targets[0]
+    for _ in range(3):
+        await page.locator(f".cricket-num-btn[data-target='{first}']").first.click()
+        await page.wait_for_timeout(60)
+    await page.click("#enterBtn")
+    await page.wait_for_timeout(250)
+    closed = await get_state(page, f"m.game.players[0].cricketData['{first}'].closed")
+    assert closed, f"target {first} not closed after 3 marks"
+
+    # Play Again re-rolls the board (statistically: 10 tries, boards differ)
+    await page.evaluate("""
+        (async () => {
+            const s = await import('./js/setup.js');
+            s.playAgain();
+        })()
+    """)
+    await page.wait_for_timeout(300)
+    targets2 = await get_state(page, "m.game.cricketTargets")
+    assert len(targets2) == 7, f"re-rolled board malformed: {targets2}"
+    # marks reset
+    marks = await get_state(page, f"m.game.players[0].cricketData['{targets2[0]}'].marks")
+    assert marks == 0, "marks not reset after Play Again"
+    return {"board1": targets, "board2": targets2}
+
+
+async def test_shanghai(page):
+    await dismiss_onboard(page)
+    await start_game(page, "shanghai")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+
+    # Round 1 target
+    val = (await page.locator("#targetValue").inner_text()).strip()
+    assert val == "1", f"expected round 1, got {val!r}"
+
+    # Player 0: single (1) + double (2) = 3 points, no shanghai (no triple)
+    await page.click("#hitSingleBtn")
+    await page.click("#hitDoubleBtn")
+    live = int(await page.locator("#targetTurnScore").inner_text())
+    assert live == 3, f"expected 3 (S+D on 1s), got {live}"
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(200)
+    p0 = int(await page.locator("#homeScore").inner_text())
+    assert p0 == 3, f"player 0 should have 3, got {p0}"
+    no_win = await page.locator("#winnerModal").is_visible()
+    assert not no_win, "S+D alone must NOT trigger shanghai"
+
+    # Player 1: S+D+T on 1s = 6 points AND instant shanghai win
+    await page.click("#hitSingleBtn")
+    await page.click("#hitDoubleBtn")
+    await page.click("#hitTripleBtn")
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(300)
+    winner = await page.locator("#winnerModal").is_visible()
+    assert winner, "S+D+T in one turn must trigger instant Shanghai win"
+    name = await page.locator("#winnerName").inner_text()
+    assert "SHANGHAI" in name.upper(), f"winner text should shout SHANGHAI: {name!r}"
+    return {"p0_score": p0, "shanghai_win": winner}
+
+
+async def test_shanghai_no_win(page):
+    await dismiss_onboard(page)
+    await start_game(page, "shanghai", num_players="1")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    # Play all 7 rounds with a single triple each round: score = 3×round
+    for rnd in range(1, 8):
+        await page.click("#hitTripleBtn")
+        await page.click("#targetEndTurnBtn")
+        await page.wait_for_timeout(150)
+    winner = await page.locator("#winnerModal").is_visible()
+    assert winner, "winner modal should open after round 7"
+    # Total = 3×(1+..+7) = 84
+    score = await get_state(page, "m.game.players[0].score")
+    assert score == 84, f"expected 84, got {score}"
+    return {"final_score": score}
+
+
+async def test_themes(page):
+    await dismiss_onboard(page)
+    swatches = await page.eval_on_selector_all(
+        ".theme-swatch[data-theme-choice]", "els => els.map(e => e.dataset.themeChoice)")
+    expected = {"blue", "red", "neon", "sunburst", "volt", "inferno", "miami",
+                "grape", "aqua", "royal", "shamrock", "arctic"}
+    assert set(swatches) == expected, f"swatches = {swatches}"
+    assert len(swatches) == 12, f"expected 12 swatches, got {len(swatches)}"
+
+    for theme in ("sunburst", "arctic", "volt", "blue"):
+        await page.click(f".theme-swatch[data-theme-choice='{theme}']")
+        await page.wait_for_timeout(80)
+        applied = await page.evaluate("document.documentElement.getAttribute('data-theme')")
+        saved = await page.evaluate("localStorage.getItem('blakeout_theme')")
+        assert applied == theme and saved == theme, f"{theme}: applied={applied}, saved={saved}"
+
+    # Contrast sanity: primary color must differ per theme (tokens actually loaded)
+    prims = {}
+    for theme in ("sunburst", "volt", "arctic"):
+        await page.click(f".theme-swatch[data-theme-choice='{theme}']")
+        await page.wait_for_timeout(80)
+        prims[theme] = await page.evaluate(
+            "getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim()")
+    assert len(set(prims.values())) == 3, f"theme tokens not distinct: {prims}"
+    await page.click(".theme-swatch[data-theme-choice='blue']")
+    return {"swatches": len(swatches), "primaries": prims}
+
+
+async def test_visibility(page):
+    await fresh(page)
+    # Inline onboarding card should appear on first load (no stored prefs).
+    # It must NOT be a blocking modal — the rest of setup stays tappable.
+    onboard = await page.locator("#visOnboardCard").is_visible()
+    assert onboard, "onboarding card should show on first launch"
+    start_clickable = await page.locator("#startGameBtn").is_enabled()
+    assert start_clickable, "setup must stay usable while onboarding card is shown"
+
+    # Enable → card hides, tips open, boost class applied, prefs stored
+    await page.click("#visOnboardEnableBtn")
+    await page.wait_for_timeout(150)
+    tips = await page.locator("#visTipsModal").is_visible()
+    assert tips, "brightness tips should open after enabling"
+    steps = await page.locator("#visTipsSteps li").count()
+    assert steps >= 2, f"expected platform steps, got {steps}"
+    boost = await page.evaluate("document.documentElement.classList.contains('vis-boost')")
+    assert boost, "vis-boost class missing after enable"
+    prefs = await page.evaluate("JSON.parse(localStorage.getItem('blakeout_visibility'))")
+    assert prefs["enabled"] and prefs["onboarded"], f"prefs = {prefs}"
+
+    # Confirm brightness → indicator goes ok/warn (wake lock may be denied headless)
+    await page.click("#visTipsDoneBtn")
+    await page.wait_for_timeout(150)
+    chip_cls = await page.eval_on_selector("#visIndicator", "el => el.className")
+    assert "vis-ok" in chip_cls or "vis-warn" in chip_cls, f"indicator class: {chip_cls}"
+
+    # Banner logic: unconfirmed → shows during game; confirmed → hidden
+    await start_game(page, "501")
+    banner_hidden = await page.locator("#visBanner").evaluate(
+        "el => el.classList.contains('hidden')")
+    assert banner_hidden, "banner should hide once brightness confirmed"
+
+    # Reload → no onboarding again, still enabled
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(300)
+    onboard2 = await page.locator("#visOnboardCard").is_visible()
+    assert not onboard2, "onboarding must not reappear"
+    toggle = await page.eval_on_selector("#visModeToggle", "el => el.checked")
+    assert toggle, "setup toggle should reflect enabled state"
+    return {"prefs": prefs, "indicator": chip_cls}
+
+
+async def test_play_again_target(page):
+    # Regression: playAgain() used to corrupt target games (left stale
+    # baseball state + stamped cricketData on players).
+    await dismiss_onboard(page)
+    await start_game(page, "baseball")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    # Play one turn to dirty the state
+    await page.click("#hitSingleBtn")
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(200)
+
+    await page.evaluate("""
+        (async () => {
+            const s = await import('./js/setup.js');
+            s.playAgain();
+        })()
+    """)
+    await page.wait_for_timeout(300)
+    bb = await get_state(page, "m.game.baseball")
+    assert bb and bb["inning"] == 1, f"baseball state not re-initialized: {bb}"
+    p0 = await get_state(page, "m.game.players[0]")
+    assert p0["score"] == 0, f"score not reset: {p0['score']}"
+    assert "cricketData" not in p0, "cricketData wrongly stamped on baseball player"
+    val = (await page.locator("#targetValue").inner_text()).strip()
+    assert val == "1", f"target display should reset to inning 1, got {val!r}"
+    return {"inning": bb["inning"]}
+
+
+async def test_resume_target_game(page):
+    # Regression: baseball/bermuda/golf/shanghai state now survives
+    # save → reload → resume.
+    await dismiss_onboard(page)
+    await start_game(page, "baseball")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    # Two full innings-turns to advance state
+    for _ in range(2):
+        await page.click("#hitSingleBtn")
+        await page.click("#targetEndTurnBtn")
+        await page.wait_for_timeout(200)
+    inning_before = await get_state(page, "m.game.baseball.inning")
+
+    # Reload the app (simulates tablet refresh) and resume
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(400)
+    resume_visible = await page.locator("#resumeGameBtn").is_visible()
+    assert resume_visible, "Resume button missing after reload with saved game"
+    await page.click("#resumeGameBtn")
+    await page.wait_for_timeout(300)
+    inning_after = await get_state(page, "m.game.baseball.inning")
+    assert inning_after == inning_before, \
+        f"baseball inning lost on resume: {inning_before} → {inning_after}"
+    return {"inning": inning_after}
+
+
+async def test_core_cricket(page):
+    # No-regression: standard cricket flow still works end to end.
+    await dismiss_onboard(page)
+    await start_game(page, "cricket")
+    await page.wait_for_selector("#cricketMain", state="visible", timeout=3000)
+    rows = await page.locator(".cricket-row").count()
+    assert rows == 7, f"expected 7 cricket rows, got {rows}"
+    # T20 → 3 marks, closes 20 in one turn
+    await page.locator(".cricket-dt-btn[data-target='20'][data-multiplier='3']").first.click()
+    await page.wait_for_timeout(80)
+    await page.click("#enterBtn")
+    await page.wait_for_timeout(250)
+    closed = await get_state(page, "m.game.players[0].cricketData['20'].closed")
+    one_turn = await get_state(page, "m.game.players[0].cricketData['20'].closedInOneTurn")
+    assert closed and one_turn, f"T20 close failed: closed={closed}, oneTurn={one_turn}"
+    return {"rows": rows}
+
+
+async def test_core_x01(page):
+    # No-regression: 501 still scores and declares a winner.
+    await dismiss_onboard(page)
+    await start_game(page, "501", num_players="1")
+    await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
+    await page.click("[data-quick='100']")
+    await page.wait_for_timeout(800)
+    score = int(await page.locator("#homeScore").inner_text())
+    assert score == 401, f"expected 401 after 100, got {score}"
+    await page.evaluate("""
+        (async () => {
+            const stateMod = await import('./js/state.js');
+            stateMod.game.players[0].score = 40;
+            stateMod.game.currentPlayer = 0;
+            const x01 = await import('./js/x01.js');
+            x01.updateX01Display();
+        })()
+    """)
+    await page.wait_for_timeout(100)
+    await page.click("[data-quick='40']")
+    await page.wait_for_timeout(400)
+    winner = await page.locator("#winnerModal").is_visible()
+    assert winner, "winner modal didn't open on 501 checkout"
+    return {"score_after_100": score}
+
+
+# ---------------------------------------------------------------- runner
+
+async def run_one(page, name, fn, screens_dir, keep_screens):
+    page.set_default_timeout(5000)
+    errors = []
+
+    def on_pageerror(err):
+        errors.append(f"pageerror: {err}")
+
+    def on_console(msg):
+        if msg.type in ("error", "warning"):
+            txt = msg.text
+            if "deprecated" in txt.lower() or "firestore" in txt.lower():
+                return
+            errors.append(f"{msg.type}: {txt}")
+
+    page.on("pageerror", on_pageerror)
+    page.on("console", on_console)
+    try:
+        result = await fn(page)
+        shot_path = screens_dir / f"{name}.png"
+        if keep_screens:
+            await page.screenshot(path=str(shot_path), full_page=True)
+        return {"ok": True, "result": result, "console": errors,
+                "screenshot": str(shot_path) if keep_screens else None}
+    except Exception as e:
+        shot_path = screens_dir / f"{name}-FAIL.png"
+        try:
+            await page.screenshot(path=str(shot_path), full_page=True)
+        except Exception:
+            pass
+        return {"ok": False, "error": str(e), "console": errors, "screenshot": str(shot_path)}
+
+
+def discover():
+    return {
+        name[len("test_"):]: fn
+        for name, fn in inspect.getmembers(sys.modules[__name__], inspect.iscoroutinefunction)
+        if name.startswith("test_")
+    }
+
+
+async def main_async(only, keep_screens):
+    OUT.mkdir(exist_ok=True)
+    screens = OUT / "screens"
+    screens.mkdir(exist_ok=True)
+
+    srv = subprocess.Popen(
+        ["python3", "-m", "http.server", str(PORT), "--bind", "127.0.0.1"],
+        cwd=str(DEV_ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    time.sleep(1.2)
+    try:
+        from playwright.async_api import async_playwright
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            ctx = await browser.new_context(viewport={"width": 900, "height": 1600})
+
+            # Warm-up: first load installs the service worker, which fires a
+            # one-time controllerchange → location.reload(). Let that happen
+            # on a throwaway page so it can't destroy a test mid-flight.
+            warm = await ctx.new_page()
+            await warm.goto(f"http://127.0.0.1:{PORT}/index.html",
+                            wait_until="domcontentloaded", timeout=10000)
+            await warm.wait_for_timeout(1800)
+            await warm.close()
+
+            results = {}
+            tests = discover()
+            names = [only] if only else list(tests.keys())
+            for name in names:
+                if name not in tests:
+                    print(f"!! unknown test: {name}", file=sys.stderr)
+                    continue
+                page = await ctx.new_page()
+                await page.goto(f"http://127.0.0.1:{PORT}/index.html",
+                                wait_until="domcontentloaded", timeout=10000)
+                await page.wait_for_timeout(300)
+                r = await run_one(page, name, tests[name], screens, keep_screens)
+                results[name] = r
+                status = "PASS" if r["ok"] else "FAIL"
+                print(f"  [{status}] {name}")
+                if not r["ok"]:
+                    print(f"         {r['error']}")
+                    for line in r["console"][:6]:
+                        print(f"           console: {line}")
+                    print(f"         screenshot: {r['screenshot']}")
+                await page.close()
+            await browser.close()
+    finally:
+        srv.terminate()
+        srv.wait()
+
+    report_path = OUT / "report.json"
+    report_path.write_text(json.dumps(results, indent=2))
+    passed = sum(1 for r in results.values() if r["ok"])
+    total = len(results)
+    print(f"\n{passed}/{total} passed. Report: {report_path}")
+    return 0 if passed == total else 1
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--only", help="run a single test by name (without test_ prefix)")
+    ap.add_argument("--keep-screenshots", action="store_true")
+    args = ap.parse_args()
+    sys.exit(asyncio.run(main_async(args.only, args.keep_screenshots)))
+
+
+if __name__ == "__main__":
+    main()

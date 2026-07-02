@@ -5,7 +5,9 @@
 
 /* === Card === */
 .card {
-    background: rgba(26, 26, 26, 0.95);
+    /* Track the theme surface (was hardcoded near-black, which broke the
+       light Arctic theme). color-mix keeps the slight translucency. */
+    background: color-mix(in srgb, var(--color-surface) 95%, transparent);
     border-radius: var(--radius-lg);
     padding: var(--space-2xl);
     border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
@@ -77,17 +79,17 @@
 /* Button Variants */
 .btn--primary {
     background: var(--color-primary);
-    color: var(--color-text);
+    color: var(--color-on-primary);
 }
 
 .btn--primary-dark {
     background: var(--color-primary-dark);
-    color: var(--color-text);
+    color: var(--color-on-primary);
 }
 
 .btn--success {
     background: var(--color-success);
-    color: var(--color-text);
+    color: var(--color-on-success);
 }
 
 .btn--success-dark {
@@ -463,6 +465,7 @@
 .team-chip.selected {
     background: var(--color-primary);
     border-color: var(--color-primary-light, var(--color-primary));
+    color: var(--color-on-primary);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
@@ -1077,6 +1080,7 @@
 
 .face-picker-grid button:active {
     background: var(--color-primary);
+    color: var(--color-on-primary);
     border-color: var(--color-primary-light);
 }
 
@@ -1132,4 +1136,300 @@
     background: var(--color-success-dark, var(--color-success));
     color: var(--color-text);
     font-weight: 700;
+}
+
+/* ============================================
+   Game Picker (search / chips / recents / favs)
+   ============================================ */
+
+.picker-toolbar {
+    margin-bottom: var(--space-sm);
+}
+
+.picker-search {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface-alt);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: var(--font-md);
+    font-family: inherit;
+    outline: none;
+}
+
+.picker-search:focus {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.picker-search::placeholder {
+    color: var(--color-text-dim);
+}
+
+.picker-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.picker-chip {
+    padding: 5px 12px;
+    background: var(--color-surface-alt);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.picker-chip:hover {
+    border-color: var(--color-border-light);
+    color: var(--color-text);
+}
+
+.picker-chip.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.picker-recents {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.picker-recents-label {
+    color: var(--color-text-dim);
+    font-size: var(--font-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 2px;
+}
+
+.picker-recent-chip {
+    padding: 5px 10px;
+    background: var(--color-surface);
+    border: 1.5px dashed var(--color-border-light);
+    border-radius: var(--radius-pill);
+    color: var(--color-text);
+    font-size: var(--font-xs);
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.picker-recent-chip:hover {
+    border-color: var(--color-primary);
+}
+
+.picker-quickstart {
+    border-style: solid;
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.picker-description {
+    margin-top: var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    line-height: 1.4;
+    min-height: 1.4em;
+}
+
+.picker-empty {
+    grid-column: 1 / -1;
+    padding: var(--space-xl);
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+}
+
+/* Card + favorite star wrapper */
+.game-card-wrap {
+    position: relative;
+}
+
+.game-card-wrap .game-card {
+    width: 100%;
+    height: 100%;
+}
+
+.game-card-fav {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-dim);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    opacity: 0.7;
+}
+
+.game-card-fav.faved {
+    color: var(--color-warning);
+    opacity: 1;
+}
+
+.game-card-new {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    padding: 1px 5px;
+    background: var(--color-success);
+    color: var(--color-on-success);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+/* ============================================
+   Max Visibility Mode
+   ============================================ */
+
+.setup-header-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+/* 12 themes — wrap into rows, right-aligned, capped width */
+.theme-picker {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 240px;
+}
+
+.vis-indicator {
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--color-border);
+    background: var(--color-surface-alt);
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    white-space: nowrap;
+}
+
+.vis-indicator.vis-ok {
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.vis-indicator.vis-warn {
+    border-color: var(--color-warning);
+    color: var(--color-warning);
+    animation: vis-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes vis-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+.vis-banner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-md);
+    background: var(--color-warning);
+    color: var(--color-text-dark);
+    font-size: var(--font-xs);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.vis-banner.hidden {
+    display: none;
+}
+
+.vis-banner-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vis-banner-btn {
+    padding: 3px 10px;
+    background: rgba(0, 0, 0, 0.25);
+    border: none;
+    border-radius: var(--radius-pill);
+    color: inherit;
+    font-size: var(--font-xs);
+    font-weight: 700;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    white-space: nowrap;
+}
+
+.vis-banner-done {
+    background: rgba(0, 0, 0, 0.45);
+    color: #ffffff;
+}
+
+.vis-onboard-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    margin-bottom: var(--space-lg);
+    background: var(--color-surface-alt);
+    border: 1.5px solid var(--color-primary);
+    border-radius: var(--radius-md);
+}
+
+.vis-onboard-card.hidden {
+    display: none;
+}
+
+.vis-onboard-text {
+    flex: 1;
+    min-width: 0;
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    line-height: 1.4;
+}
+
+.vis-onboard-text strong {
+    display: block;
+    color: var(--color-text);
+    font-size: var(--font-sm);
+    margin-bottom: 2px;
+}
+
+.vis-onboard-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    flex-shrink: 0;
 }

@@ -12,6 +12,8 @@ import { initSetupControls, setGameStartCallback, showSetup, showSetupAsOverlay,
 import { initTeamBuilder, currentThrower } from './teams.js';
 import { initTargetGameControls, updateTargetGameDisplay } from './target_game.js';
 import { init121SummaryControls } from './game121.js';
+import { isCricketGame, isTargetGame } from './registry.js';
+import { initVisibility } from './visibility.js';
 // Side-effect import: applies the saved theme before any UI paints.
 import './theme.js';
 
@@ -27,22 +29,22 @@ function on(id, event, handler) {
 
 function updateDisplay() {
     const effectiveType = game.chicago ? game.chicago.currentGameType : game.type;
-    const isCricket = ['cricket', 'spanish', 'minnesota'].includes(effectiveType);
-    const isTargetGame = effectiveType === 'baseball' || effectiveType === 'bermuda' || effectiveType === 'golf';
+    const isCricket = isCricketGame(effectiveType);
+    const isTarget = isTargetGame(effectiveType);
 
     // Show/hide game areas
     const cricketMain = document.getElementById('cricketMain');
     cricketMain.classList.toggle('hidden', !isCricket);
     cricketMain.classList.toggle('minnesota-layout', effectiveType === 'minnesota');
-    document.getElementById('x01Main').classList.toggle('hidden', isCricket || isTargetGame);
-    document.getElementById('targetGameMain').classList.toggle('hidden', !isTargetGame);
+    document.getElementById('x01Main').classList.toggle('hidden', isCricket || isTarget);
+    document.getElementById('targetGameMain').classList.toggle('hidden', !isTarget);
     document.getElementById('cricketControls').classList.toggle('hidden', !isCricket);
-    document.getElementById('x01Controls').classList.toggle('hidden', isCricket || isTargetGame);
-    document.getElementById('targetGameControls').classList.toggle('hidden', !isTargetGame);
+    document.getElementById('x01Controls').classList.toggle('hidden', isCricket || isTarget);
+    document.getElementById('targetGameControls').classList.toggle('hidden', !isTarget);
 
     if (isCricket) {
         updateCricketDisplay();
-    } else if (isTargetGame) {
+    } else if (isTarget) {
         updateTargetGameDisplay();
     } else {
         updateX01Display();
@@ -135,7 +137,7 @@ function initGameMenuControls() {
             updateDisplay();
             updateUndoRedoButtons();
             const effectiveType = game.chicago ? game.chicago.currentGameType : game.type;
-            if (!['cricket', 'spanish', 'minnesota'].includes(effectiveType)) {
+            if (!isCricketGame(effectiveType)) {
                 const inputEl = document.getElementById('inputDisplay');
                 if (inputEl) inputEl.textContent = game.currentInput || '0';
             }
@@ -267,9 +269,14 @@ function registerServiceWorker() {
 
     // Reload exactly once when a new SW takes control — standard pattern,
     // avoids multi-tab reload loops from per-tab statechange handlers.
+    // Only reload if an SW was ALREADY controlling this page: on the very
+    // first install (fresh device / fresh profile) the page was served
+    // straight from the network, so a reload is pointless and jarring —
+    // and it can interrupt a game being set up.
+    const hadController = !!navigator.serviceWorker.controller;
     let reloadedOnce = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (reloadedOnce) return;
+        if (!hadController || reloadedOnce) return;
         reloadedOnce = true;
         window.location.reload();
     });
@@ -350,6 +357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('chicagoEvents', initChicagoEvents);
     safeInit('game121Events', initGame121Events);
     safeInit('undoRedo', initGlobalUndoRedo);
+    safeInit('visibility', initVisibility);
     safeInit('serviceWorker', registerServiceWorker);
     safeInit('updateButton', initUpdateButton);
 });
