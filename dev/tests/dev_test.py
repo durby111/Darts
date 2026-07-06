@@ -406,6 +406,144 @@ async def test_core_x01(page):
     return {"score_after_100": score}
 
 
+async def test_all_games_boot(page):
+    # Every registry game must start cleanly and route to the right main
+    # panel for its engine. Driven from the registry so new games are
+    # covered automatically.
+    await dismiss_onboard(page)
+    games = await page.evaluate(
+        "(async () => { const r = await import('./js/registry.js');"
+        " return r.listGames().map(g => ({id: g.id, engine: g.engine})); })()")
+    assert len(games) >= 14, f"registry shrank? {len(games)} games"
+    panels = {"cricket": "#cricketMain", "x01": "#x01Main", "target": "#targetGameMain"}
+    booted = []
+    for g in games:
+        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_timeout(400)
+        await dismiss_onboard(page)
+        await start_game(page, g["id"])
+        game_visible = await page.locator("#gameScreen").is_visible()
+        assert game_visible, f"{g['id']}: game screen didn't open"
+        panel = panels.get(g["engine"])
+        if panel:
+            vis = await page.locator(panel).is_visible()
+            assert vis, f"{g['id']}: {panel} not visible for engine {g['engine']}"
+        booted.append(g["id"])
+    return {"booted": booted}
+
+
+async def test_x01_remaining_entry(page):
+    # a1: tapping the ACTIVE player's score flips the pad into remaining-
+    # score mode — type what's LEFT, app computes the turn score.
+    await dismiss_onboard(page)
+    await start_game(page, "501", num_players="1")
+    await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
+
+    # Tap the score → remaining mode indicator
+    await page.click("#homeScore")
+    await page.wait_for_timeout(100)
+    disp = await page.locator("#inputDisplay").inner_text()
+    assert "LEFT" in disp, f"remaining mode not shown: {disp!r}"
+
+    # Type 376 (i.e. threw 125 from 501) → display shows the math
+    for d in "376":
+        await page.click(f"[data-digit='{d}']")
+    disp = await page.locator("#inputDisplay").inner_text()
+    assert "376" in disp and "125" in disp, f"conversion not shown: {disp!r}"
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(800)
+    score = await get_state(page, "m.game.players[0].score")
+    assert score == 376, f"expected 376 remaining, got {score}"
+    hist = await get_state(page, "m.game.players[0].history")
+    last = hist[-1]["score"] if isinstance(hist[-1], dict) else hist[-1]
+    assert last == 125, f"history should record 125 thrown, got {hist[-1]}"
+
+    # Invalid remaining (more than current) → rejected, score unchanged
+    await page.click("#homeScore")
+    for d in "999":
+        await page.click(f"[data-digit='{d}']")
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(800)
+    score2 = await get_state(page, "m.game.players[0].score")
+    assert score2 == 376, f"invalid remaining must not change score: {score2}"
+
+    # Tapping the score again cancels the mode
+    await page.click("#homeScore")
+    await page.wait_for_timeout(100)
+    await page.click("#homeScore")
+    await page.wait_for_timeout(100)
+    disp = await page.locator("#inputDisplay").inner_text()
+    assert "LEFT" not in disp, f"remaining mode should toggle off: {disp!r}"
+    return {"score": score}
+
+
+async def test_x01_miss_bust_symbols(page):
+    # a4: MISS and BUST are distinct player-declared actions with their
+    # own history symbols, and BUST stays available even mid-input.
+    await dismiss_onboard(page)
+    await start_game(page, "501", num_players="2")
+    await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
+
+    # P0 declares a miss → ⊘ MISS in history, score unchanged
+    await page.click("#x01MissBtn")
+    await page.wait_for_timeout(800)
+    p0_score = await get_state(page, "m.game.players[0].score")
+    assert p0_score == 501, f"miss must not change score: {p0_score}"
+    miss_cells = await page.locator("#p1HistoryCol .score-history-entry.miss").count()
+    assert miss_cells == 1, f"expected 1 miss cell, got {miss_cells}"
+    miss_txt = await page.locator("#p1HistoryCol .score-history-entry.miss").inner_text()
+    assert "MISS" in miss_txt and "⊘" in miss_txt, f"miss cell text: {miss_txt!r}"
+
+    # P1: BUST must stay visible while digits are typed
+    await page.click("[data-digit='4']")
+    await page.click("[data-digit='5']")
+    bust_visible = await page.locator("#x01BustBtn").is_visible()
+    assert bust_visible, "BUST button must stay available mid-input"
+    await page.click("#x01BustBtn")
+    await page.wait_for_timeout(800)
+    p1_score = await get_state(page, "m.game.players[1].score")
+    assert p1_score == 501, f"bust must not change score: {p1_score}"
+    # 2-player layout puts player 1 in #p3HistoryCol
+    bust_cells = await page.locator("#p3HistoryCol .score-history-entry.bust").count()
+    assert bust_cells == 1, f"expected 1 bust cell, got {bust_cells}"
+    bust_txt = await page.locator("#p3HistoryCol .score-history-entry.bust").inner_text()
+    assert "BUST" in bust_txt and "✖" in bust_txt, f"bust cell text: {bust_txt!r}"
+
+    # History entries survive undo/redo shape checks (flags round-trip storage)
+    hist0 = await get_state(page, "m.game.players[0].history")
+    assert isinstance(hist0[-1], dict) and hist0[-1].get("miss"), f"miss flag lost: {hist0[-1]}"
+    hist1 = await get_state(page, "m.game.players[1].history")
+    assert isinstance(hist1[-1], dict) and hist1[-1].get("bust"), f"bust flag lost: {hist1[-1]}"
+    return {"miss": miss_txt, "bust": bust_txt}
+
+
+async def test_header_fit_four_player(page):
+    # Header crowding fix: with 4 players the two score boxes sharing a
+    # side must not overlap, even with 3-digit scores (900px viewport).
+    await dismiss_onboard(page)
+    await start_game(page, "cricket", num_players="4")
+    await page.wait_for_selector("#cricketMain", state="visible", timeout=3000)
+    await page.evaluate("""
+        ['homeScore','awayScore','player3Score','player4Score'].forEach((id, i) => {
+            document.getElementById(id).textContent = [188, 142, 96, 205][i];
+        });
+    """)
+    boxes = {}
+    for pid in ("homeScore", "awayScore", "player3Score", "player4Score"):
+        boxes[pid] = await page.locator(f"#{pid}").bounding_box()
+        assert boxes[pid], f"{pid} has no bounding box"
+    # Left pair and right pair must not intersect horizontally
+    assert boxes["homeScore"]["x"] + boxes["homeScore"]["width"] <= boxes["awayScore"]["x"] + 1, \
+        f"home/away score boxes overlap: {boxes['homeScore']} vs {boxes['awayScore']}"
+    assert boxes["player3Score"]["x"] + boxes["player3Score"]["width"] <= boxes["player4Score"]["x"] + 1, \
+        f"p3/p4 score boxes overlap: {boxes['player3Score']} vs {boxes['player4Score']}"
+    # And every box stays inside the viewport
+    for pid, b in boxes.items():
+        assert b["x"] >= 0 and b["x"] + b["width"] <= 900, f"{pid} clipped: {b}"
+    return {"boxes": {k: round(v["width"]) for k, v in boxes.items()}}
+
+
 # ---------------------------------------------------------------- runner
 
 async def run_one(page, name, fn, screens_dir, keep_screens):

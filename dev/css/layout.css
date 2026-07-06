@@ -203,6 +203,29 @@ body {
     display: none;
 }
 
+/* 3-4 player headers: two score boxes share a side, so the full-size
+   score font (14vw) overflows and the numbers run together. Shrink the
+   score box and name to fit the narrower columns, and add a hairline
+   gap between adjacent headers so the boxes stay visually separate. */
+.score-header.three-player,
+.score-header.four-player {
+    column-gap: 2px;
+}
+
+.score-header.three-player .player-name,
+.score-header.four-player .player-name {
+    font-size: calc(var(--font-lg) * var(--ui-scale));
+}
+
+.score-header.three-player .score-big,
+.score-header.four-player .score-big {
+    font-size: calc(clamp(2rem, 7vw, 4.5rem) * var(--ui-scale));
+    min-width: clamp(56px, 11vw, 120px);
+    max-width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    box-sizing: border-box;
+}
+
 /* === Center Logo / Round Badge === */
 .center-logo {
     background: var(--color-surface);

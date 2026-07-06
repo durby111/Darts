@@ -14,13 +14,14 @@ function activeThrowerName() {
     return t ? t.name : null;
 }
 
-function makeHistoryEntry(score, bust = false, thrower = null) {
+function makeHistoryEntry(score, bust = false, thrower = null, miss = false) {
     // Keep the legacy number form when no extra data is needed, so existing
     // games and the X01 history renderer's `typeof === 'object'` check both
     // stay correct.
-    if (!bust && !thrower) return score;
+    if (!bust && !thrower && !miss) return score;
     const entry = { score };
     if (bust) entry.bust = true;
+    if (miss) entry.miss = true;
     if (thrower) entry.thrower = thrower;
     return entry;
 }
@@ -87,6 +88,22 @@ const checkoutChart = {
 // Supports expressions like: 3*19+6+2*7 = 77
 let expressionStr = '';
 
+// --- Remaining-Score Entry Mode ---
+// Tapping the ACTIVE player's score in the header flips the keypad into
+// "remaining" mode: the player types what's LEFT on the board (e.g. 32)
+// and the app computes the turn score (157 - 32 = 125) on ENTER. Entering
+// digits without tapping the score works exactly like before.
+let remainingMode = false;
+
+function setRemainingMode(on) {
+    remainingMode = on;
+    updateInputDisplay();
+}
+
+function toggleRemainingMode() {
+    setRemainingMode(!remainingMode);
+}
+
 // --- Turn-commit debounce ---
 // MISS/BUST/ENTER all commit a turn and advance to the next player. A jittery
 // double-tap on a tablet would otherwise burn a whole turn for the next player.
@@ -149,6 +166,20 @@ function evaluateExpression(str) {
 
 function updateInputDisplay() {
     const display = document.getElementById('inputDisplay');
+    if (remainingMode) {
+        const player = game.players[game.currentPlayer];
+        if (!expressionStr) {
+            display.textContent = 'LEFT → ?';
+        } else {
+            const remaining = evaluateExpression(expressionStr);
+            const scored = player.score - remaining;
+            display.textContent = `LEFT ${remaining} = ${scored >= 0 ? scored : '?'} scored`;
+        }
+        display.classList.add('remaining-mode');
+        updateMissEnterVisibility();
+        return;
+    }
+    display.classList.remove('remaining-mode');
     if (!expressionStr) {
         display.textContent = '0';
     } else {
@@ -165,11 +196,16 @@ function updateInputDisplay() {
 }
 
 function updateMissEnterVisibility() {
+    // MISS collapses once digits are typed (ENTER takes its slot), but
+    // BUST stays available in every state — busting is player-declared
+    // and must never require the MISS button.
     const missBtn = document.getElementById('x01MissBtn');
     const enterBtn = document.getElementById('x01EnterBtn');
+    const bustBtn = document.getElementById('x01BustBtn');
     const hasInput = expressionStr.length > 0;
     if (missBtn) missBtn.style.display = hasInput ? 'none' : '';
     if (enterBtn) enterBtn.style.display = hasInput ? '' : 'none';
+    if (bustBtn) bustBtn.style.display = '';
 }
 
 function quickScore(score) {
@@ -192,16 +228,20 @@ function quickScore(score) {
 function clearInput() {
     game.currentInput = '';
     expressionStr = '';
-    document.getElementById('inputDisplay').textContent = '0';
+    remainingMode = false;
+    const display = document.getElementById('inputDisplay');
+    display.textContent = '0';
+    display.classList.remove('remaining-mode');
     updateMissEnterVisibility();
 }
 
 function x01Miss() {
     // No guard here — submitScore() locks for us.
     expressionStr = '';
+    remainingMode = false;
     game.currentInput = '0';
     document.getElementById('inputDisplay').textContent = '0';
-    submitScore();
+    submitScore({ miss: true });
 }
 
 function x01Bust() {
@@ -210,6 +250,7 @@ function x01Bust() {
     saveGameState();
     const thrower = activeThrowerName();
     const player = game.players[game.currentPlayer];
+    remainingMode = false;
     player.history.push(makeHistoryEntry(0, true, thrower));
 
     // 121 mode: a busted turn still consumes 3 darts from the player's allotment.
@@ -233,7 +274,7 @@ function x01Bust() {
 
 // --- Core Score Submission (with bug fixes) ---
 
-function submitScore() {
+function submitScore(opts = {}) {
     // Guard against double-tap. x01Miss/x01Bust already locked in their
     // wrapper; direct ENTER presses and quickScore paths land here.
     if (turnCommitLocked) return;
@@ -246,7 +287,26 @@ function submitScore() {
     } else {
         score = game.currentInput ? parseInt(game.currentInput) : 0;
     }
+
+    // Remaining mode: the typed value is what's LEFT on the board, not
+    // what was thrown. Convert to a turn score before the normal flow so
+    // history/undo/stats look identical to typing the turn score.
+    if (remainingMode && expressionStr) {
+        const remaining = score;
+        const current = game.players[game.currentPlayer].score;
+        score = current - remaining;
+        if (remaining < 0 || remaining > current || score > 180) {
+            const indicator = document.getElementById('finishIndicator');
+            indicator.textContent = `Invalid: ${remaining} left of ${current} isn't possible`;
+            indicator.style.color = 'var(--color-danger)';
+            setTimeout(() => { indicator.textContent = ''; updateX01Display(); }, 2000);
+            expressionStr = '';
+            clearInput();
+            return;
+        }
+    }
     expressionStr = '';
+    remainingMode = false;
 
     if (score < 0 || score > 180) {
         const indicator = document.getElementById('finishIndicator');
@@ -299,7 +359,7 @@ function submitScore() {
     // BUG FIX: newScore === 0 is ALWAYS a win. Trust the player.
     // Apply score
     player.score = newScore;
-    player.history.push(makeHistoryEntry(score, false, thrower));
+    player.history.push(makeHistoryEntry(score, false, thrower, !!opts.miss));
 
     // Handle 121 game dart counting + round tallies (180s, 100+, etc.)
     if (game.game121) {
@@ -404,7 +464,13 @@ function renderX01ScoreHistory() {
             if (entry !== undefined) {
                 const scoreVal = typeof entry === 'object' ? entry.score : entry;
                 const isBust = typeof entry === 'object' && entry.bust;
-                html += `<div class="score-history-entry${isBust ? ' bust' : ''}">${isLeft ? '' : arrow}${scoreVal}${isLeft ? arrow : ''}</div>`;
+                const isMiss = typeof entry === 'object' && entry.miss;
+                // Distinct symbols: miss = ⊘ (circle-slash), bust = ✖
+                let cellText = scoreVal;
+                let cellClass = '';
+                if (isBust) { cellText = '✖ BUST'; cellClass = ' bust'; }
+                else if (isMiss) { cellText = '⊘ MISS'; cellClass = ' miss'; }
+                html += `<div class="score-history-entry${cellClass}">${isLeft ? '' : arrow}${cellText}${isLeft ? arrow : ''}</div>`;
             } else if (isCurrent) {
                 html += `<div class="score-history-entry current">${isLeft ? '' : arrow}--${isLeft ? arrow : ''}</div>`;
             } else {
@@ -564,6 +630,21 @@ function initX01Controls() {
     if (missEl) bindDown(missEl, x01Miss);
     const bustEl = document.getElementById('x01BustBtn');
     if (bustEl) bindDown(bustEl, x01Bust);
+
+    // Tap the ACTIVE player's score in the header → toggle remaining-score
+    // entry mode (type what's LEFT; app computes the turn score). Tapping
+    // again cancels. Non-active headers and non-X01 games are ignored.
+    ['homeScore', 'awayScore', 'player3Score', 'player4Score'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('pointerdown', (e) => {
+            const controls = document.getElementById('x01Controls');
+            if (!controls || controls.classList.contains('hidden')) return;
+            if (idx !== game.currentPlayer) return;
+            e.preventDefault();
+            toggleRemainingMode();
+        });
+    });
 
     // Undo/Redo (Undo also acts as Back — clears input first, then undoes last action)
     onEl('undoBtnX01', 'click', () => {

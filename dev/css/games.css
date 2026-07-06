@@ -437,7 +437,20 @@
 
 .score-history-entry.bust {
     color: #ff4444;
-    text-decoration: line-through;
+    font-size: calc(clamp(1.1rem, 3.6dvh, 1.7rem) * var(--ui-scale));
+    letter-spacing: 0.02em;
+}
+
+.score-history-entry.miss {
+    color: var(--color-text-muted);
+    font-size: calc(clamp(1.1rem, 3.6dvh, 1.7rem) * var(--ui-scale));
+    letter-spacing: 0.02em;
+}
+
+/* Remaining-score entry mode (tap active player's score to toggle) */
+.input-display.remaining-mode {
+    border-color: var(--color-primary);
+    color: var(--color-primary-light, var(--color-primary));
 }
 
 /* === X01 Controls Area === */
