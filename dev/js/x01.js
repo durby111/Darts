@@ -235,6 +235,24 @@ function clearInput() {
     updateMissEnterVisibility();
 }
 
+// Reset ALL input-side state between matches. The win path returns early
+// without clearInput(), so the winning throw would otherwise still be on
+// screen (and module state like remainingMode would leak) when the next
+// game starts. Called from beginMatch().
+function resetX01Input() {
+    game.currentInput = '';
+    expressionStr = '';
+    remainingMode = false;
+    const display = document.getElementById('inputDisplay');
+    if (display) {
+        display.textContent = '0';
+        display.classList.remove('remaining-mode');
+    }
+    const indicator = document.getElementById('finishIndicator');
+    if (indicator) indicator.textContent = '';
+    updateMissEnterVisibility();
+}
+
 function x01Miss() {
     // No guard here — submitScore() locks for us.
     expressionStr = '';
@@ -671,4 +689,4 @@ function initX01Controls() {
     updateMissEnterVisibility();
 }
 
-export { updateX01Display, initX01Controls, submitScore, clearInput };
+export { updateX01Display, initX01Controls, submitScore, clearInput, resetX01Input };

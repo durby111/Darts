@@ -272,7 +272,15 @@ function updatePending() {
         return prefix + label;
     });
 
-    if (pendingText) pendingText.textContent = parts.join(' \u2022 ');
+    // Running total of marks being entered this turn (1f) — special-score
+    // rows count as 1 mark, normal hits count their multiplier.
+    const totalMarks = game.pendingDarts.reduce(
+        (sum, dart) => sum + (dart.specialScore !== undefined ? 1 : dart.multiplier), 0);
+
+    if (pendingText) {
+        pendingText.textContent =
+            `${parts.join(' \u2022 ')} \u2014 ${totalMarks} mark${totalMarks !== 1 ? 's' : ''}`;
+    }
 
     if (game.cricketPoints) updateScoreDiffIndicator();
 }
