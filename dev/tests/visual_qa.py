@@ -24,8 +24,6 @@ async def main():
             page = await ctx.new_page()
             await page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="domcontentloaded")
             await page.wait_for_timeout(1500)
-            if await page.locator("#visOnboardSkipBtn").is_visible():
-                await page.click("#visOnboardSkipBtn")
 
             # Setup screen in a few themes
             for theme in ("sunburst", "volt", "arctic", "miami"):
@@ -59,17 +57,6 @@ async def main():
             await page.click("#startGameBtn")
             await page.wait_for_timeout(400)
             await page.screenshot(path=str(OUT / "game_501_arctic.png"))
-
-            # Max visibility banner (enabled, unconfirmed)
-            await page.evaluate("localStorage.removeItem('blakeout_active_game')")
-            await page.evaluate(
-                "localStorage.setItem('blakeout_visibility', JSON.stringify({enabled:true,onboarded:true,boost:true,brightnessConfirmedAt:0}))")
-            await page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="domcontentloaded")
-            await page.wait_for_timeout(800)
-            await page.select_option("#gameType", "cricket")
-            await page.click("#startGameBtn")
-            await page.wait_for_timeout(400)
-            await page.screenshot(path=str(OUT / "game_cricket_visbanner.png"))
 
             await browser.close()
     finally:

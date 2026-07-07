@@ -490,18 +490,6 @@
     --bg-image-overlay: rgba(238, 242, 247, 0.92);
 }
 
-/* === Max Visibility boost — layered on top of ANY theme. Raises text
-   and border luminance one notch so the UI punches through glare.
-   Applied by visibility.js as html.vis-boost. === */
-html.vis-boost:not([data-theme="arctic"]) {
-    --color-text-muted: #d5d5d5;
-    --color-text-dim: #a8a8a8;
-    --color-border: #555555;
-    --color-border-light: #8a8a8a;
-    --color-inactive-player: #9a9a9a;
-    --color-prev-turn: #c0c0c0;
-}
-
 /* === Structural tokens — theme-agnostic === */
 :root {
     /* Spacing scale */

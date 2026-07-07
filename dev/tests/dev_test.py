@@ -15,8 +15,6 @@ scripts/headless_test.py but covers the v2.3 overhaul features:
                          S+D+T instant win
     shanghai_no_win    — normal completion path: highest score wins round 7
     themes             — all 12 swatches render and apply, persist to storage
-    visibility         — onboarding modal appears once, enable → wake-lock
-                         attempt + boost class + indicator states + banner
     play_again_target  — regression: Play Again after a baseball game
                          restarts baseball correctly (was broken)
     resume_target_game — regression: baseball state survives save/restore
@@ -46,10 +44,9 @@ async def fresh(page):
 
 
 async def dismiss_onboard(page):
-    vis = await page.locator("#visOnboardCard").is_visible()
-    if vis:
-        await page.click("#visOnboardSkipBtn")
-        await page.wait_for_timeout(100)
+    # Max Visibility feature removed — kept as a no-op shim so tests that
+    # call it don't all need editing. Safe to delete once nothing calls it.
+    return
 
 
 async def start_game(page, game_type, num_players="2"):
@@ -263,49 +260,6 @@ async def test_themes(page):
     assert len(set(prims.values())) == 3, f"theme tokens not distinct: {prims}"
     await page.click(".theme-swatch[data-theme-choice='blue']")
     return {"swatches": len(swatches), "primaries": prims}
-
-
-async def test_visibility(page):
-    await fresh(page)
-    # Inline onboarding card should appear on first load (no stored prefs).
-    # It must NOT be a blocking modal — the rest of setup stays tappable.
-    onboard = await page.locator("#visOnboardCard").is_visible()
-    assert onboard, "onboarding card should show on first launch"
-    start_clickable = await page.locator("#startGameBtn").is_enabled()
-    assert start_clickable, "setup must stay usable while onboarding card is shown"
-
-    # Enable → card hides, tips open, boost class applied, prefs stored
-    await page.click("#visOnboardEnableBtn")
-    await page.wait_for_timeout(150)
-    tips = await page.locator("#visTipsModal").is_visible()
-    assert tips, "brightness tips should open after enabling"
-    steps = await page.locator("#visTipsSteps li").count()
-    assert steps >= 2, f"expected platform steps, got {steps}"
-    boost = await page.evaluate("document.documentElement.classList.contains('vis-boost')")
-    assert boost, "vis-boost class missing after enable"
-    prefs = await page.evaluate("JSON.parse(localStorage.getItem('blakeout_visibility'))")
-    assert prefs["enabled"] and prefs["onboarded"], f"prefs = {prefs}"
-
-    # Confirm brightness → indicator goes ok/warn (wake lock may be denied headless)
-    await page.click("#visTipsDoneBtn")
-    await page.wait_for_timeout(150)
-    chip_cls = await page.eval_on_selector("#visIndicator", "el => el.className")
-    assert "vis-ok" in chip_cls or "vis-warn" in chip_cls, f"indicator class: {chip_cls}"
-
-    # Banner logic: unconfirmed → shows during game; confirmed → hidden
-    await start_game(page, "501")
-    banner_hidden = await page.locator("#visBanner").evaluate(
-        "el => el.classList.contains('hidden')")
-    assert banner_hidden, "banner should hide once brightness confirmed"
-
-    # Reload → no onboarding again, still enabled
-    await page.reload(wait_until="domcontentloaded")
-    await page.wait_for_timeout(300)
-    onboard2 = await page.locator("#visOnboardCard").is_visible()
-    assert not onboard2, "onboarding must not reappear"
-    toggle = await page.eval_on_selector("#visModeToggle", "el => el.checked")
-    assert toggle, "setup toggle should reflect enabled state"
-    return {"prefs": prefs, "indicator": chip_cls}
 
 
 async def test_play_again_target(page):

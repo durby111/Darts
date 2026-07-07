@@ -18,7 +18,6 @@ import { initThemePickerUI } from './theme.js';
 import { isCricketGame, isX01Game, isTargetGame } from './registry.js';
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
 import { resetX01Input } from './x01.js';
-import { onGameStart as visibilityOnGameStart } from './visibility.js';
 
 let onGameStart = null;
 let overlayMode = false;
@@ -465,7 +464,6 @@ function beginMatch(playerSeeds, teams) {
 
     recordRecentGame(gameType);
     refreshPicker();
-    visibilityOnGameStart();
 
     // 1e: the previous game's winning throw would otherwise still be in
     // the X01 input display (win path skips clearInput) — wipe all input

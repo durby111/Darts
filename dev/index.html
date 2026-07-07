@@ -39,24 +39,11 @@
                     <div class="setup-subtitle">Tablet scorer</div>
                 </div>
                 <div class="setup-header-side">
-                    <button type="button" class="vis-indicator vis-off" id="visIndicator" aria-label="Max Visibility status">☀ off</button>
                     <div class="theme-picker" id="themePicker" aria-label="Theme"></div>
                 </div>
             </header>
 
             <button class="btn btn--lg btn--success btn--block hidden" id="backToGameBtn" style="margin-bottom:var(--space-lg);">Back to Game</button>
-
-            <!-- Max Visibility onboarding — inline, non-blocking, first launch only -->
-            <div class="vis-onboard-card hidden" id="visOnboardCard">
-                <div class="vis-onboard-text">
-                    <strong>☀ Max Visibility Mode</strong>
-                    Playing in a dim bar? Keep the screen awake, boost contrast, and get a reminder to set brightness to 70%+.
-                </div>
-                <div class="vis-onboard-actions">
-                    <button class="btn btn--sm btn--neutral" id="visOnboardSkipBtn">Not now</button>
-                    <button class="btn btn--sm btn--primary" id="visOnboardEnableBtn">Enable</button>
-                </div>
-            </div>
 
             <div class="setup-section">
                 <div class="setup-section-label">Game</div>
@@ -237,17 +224,6 @@
             <details class="setup-section setup-section--collapsible">
                 <summary class="setup-section-label">Display &amp; presets</summary>
                 <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="visModeToggle">
-                        <span>Max Visibility Mode (keep screen awake, boost contrast)</span>
-                    </label>
-                    <label class="checkbox-label hidden" id="visBoostRow" style="margin-top:6px;">
-                        <input type="checkbox" id="visBoostToggle" checked>
-                        <span>Contrast boost</span>
-                    </label>
-                    <button class="btn btn--sm btn--neutral" id="visTipsBtn" style="margin-top:8px;">Brightness tips (set 70%+)</button>
-                </div>
-                <div class="form-group">
                     <label>UI Scale</label>
                     <div class="ui-scale-row">
                         <input type="range" id="uiScale" min="0.7" max="1.5" step="0.1" value="1.0">
@@ -349,12 +325,6 @@
 
     <!-- Game Screen -->
     <div class="game-screen" id="gameScreen">
-        <!-- Max Visibility brightness reminder (shown until confirmed) -->
-        <div class="vis-banner hidden" id="visBanner">
-            <span class="vis-banner-text">☀ Bar-visible mode: set screen brightness to 70%+</span>
-            <button type="button" class="vis-banner-btn" id="visBannerHowBtn">How?</button>
-            <button type="button" class="vis-banner-btn vis-banner-done" id="visBannerDoneBtn">Done ✓</button>
-        </div>
         <!-- Header -->
         <div class="score-header" id="scoreHeader">
             <div class="player-header home" id="homeHeader">
@@ -614,21 +584,7 @@
         </div>
     </div>
 
-    <!-- Max Visibility brightness tips -->
-    <div class="modal" id="visTipsModal" style="display:none;">
-        <div class="modal-content" style="max-width:460px;text-align:left;">
-            <h2>Set brightness to 70%+</h2>
-            <p style="color:var(--color-text-muted);margin:var(--space-sm) 0;">
-                Browsers can't change device brightness directly — it takes two seconds by hand:
-            </p>
-            <ol id="visTipsSteps" style="margin:var(--space-md) 0 var(--space-md) 1.2em;color:var(--color-text);line-height:1.5;"></ol>
-            <p id="visTipsSupport" style="color:var(--color-text-muted);font-size:var(--font-sm);margin-bottom:var(--space-md);"></p>
-            <div class="modal-buttons">
-                <button class="btn btn--lg btn--neutral" id="visTipsCloseBtn">Close</button>
-                <button class="btn btn--lg btn--success" id="visTipsDoneBtn">Brightness is set ✓</button>
-            </div>
-        </div>
-    </div>
+    <!-- Max Visibility brightness tips (removed — feature deleted) -->
 
     <script type="module" src="js/app.js"></script>
 </body>

@@ -13,7 +13,6 @@ import { initTeamBuilder, currentThrower } from './teams.js';
 import { initTargetGameControls, updateTargetGameDisplay } from './target_game.js';
 import { init121SummaryControls } from './game121.js';
 import { isCricketGame, isTargetGame } from './registry.js';
-import { initVisibility } from './visibility.js';
 // Side-effect import: applies the saved theme before any UI paints.
 import './theme.js';
 
@@ -357,7 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('chicagoEvents', initChicagoEvents);
     safeInit('game121Events', initGame121Events);
     safeInit('undoRedo', initGlobalUndoRedo);
-    safeInit('visibility', initVisibility);
     safeInit('serviceWorker', registerServiceWorker);
     safeInit('updateButton', initUpdateButton);
 });
