@@ -518,6 +518,58 @@ async def test_x01_miss_bust_symbols(page):
     return {"miss": miss_txt, "bust": bust_txt}
 
 
+async def test_x01_no_stale_score_game2(page):
+    # 1e: the winning throw must not still be on screen when game 2 starts.
+    await dismiss_onboard(page)
+    await start_game(page, "501", num_players="1")
+    await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
+    await page.evaluate("""
+        (async () => {
+            const stateMod = await import('./js/state.js');
+            stateMod.game.players[0].score = 40;
+            const x01 = await import('./js/x01.js');
+            x01.updateX01Display();
+        })()
+    """)
+    await page.click("[data-quick='40']")
+    await page.wait_for_timeout(400)
+    assert await page.locator("#winnerModal").is_visible(), "checkout should win"
+    # Winning throw is sitting in the display right now — Play Again must wipe it
+    await page.click("#playAgainBtn")
+    await page.wait_for_timeout(500)
+    disp = (await page.locator("#inputDisplay").inner_text()).strip()
+    assert disp == "0", f"stale score visible at game 2 start: {disp!r}"
+    indicator = (await page.locator("#finishIndicator").inner_text()).strip()
+    assert indicator == "" or "DOUBLE" in indicator, f"stale indicator: {indicator!r}"
+    score = await get_state(page, "m.game.players[0].score")
+    assert score == 501, f"game 2 should restart at 501, got {score}"
+    return {"display": disp}
+
+
+async def test_cricket_pending_mark_count(page):
+    # 1f: while entering marks the pending line shows a running total.
+    await dismiss_onboard(page)
+    await start_game(page, "cricket")
+    await page.wait_for_selector("#cricketMain", state="visible", timeout=3000)
+    await page.locator(".cricket-dt-btn[data-target='20'][data-multiplier='3']").first.click()
+    await page.wait_for_timeout(80)
+    await page.locator(".cricket-dt-btn[data-target='19'][data-multiplier='2']").first.click()
+    await page.wait_for_timeout(80)
+    await page.locator(".cricket-num-btn[data-target='18']").first.click()
+    await page.wait_for_timeout(80)
+    pending = (await page.locator("#pendingText").inner_text()).strip()
+    assert "6 marks" in pending, f"pending line missing mark count: {pending!r}"
+    assert "T20" in pending and "D19" in pending, f"dart list gone: {pending!r}"
+    # Single dart → singular form
+    await page.click("#enterBtn")
+    await page.wait_for_timeout(300)
+    await page.locator(".cricket-num-btn[data-target='20']").first.click()
+    await page.wait_for_timeout(80)
+    pending2 = (await page.locator("#pendingText").inner_text()).strip()
+    assert "1 mark" in pending2 and "1 marks" not in pending2, f"singular broken: {pending2!r}"
+    return {"pending": pending}
+
+
 async def test_header_fit_four_player(page):
     # Header crowding fix: with 4 players the two score boxes sharing a
     # side must not overlap, even with 3-digit scores (900px viewport).
