@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a3a22"/>
+      <stop offset="50%" stop-color="#462c18"/>
+      <stop offset="100%" stop-color="#2e1c0e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#g)"/>
+  <g stroke="rgba(0,0,0,0.28)" stroke-width="3">
+    <line x1="0" y1="125" x2="1600" y2="125"/>
+    <line x1="0" y1="250" x2="1600" y2="250"/>
+    <line x1="0" y1="375" x2="1600" y2="375"/>
+    <line x1="0" y1="500" x2="1600" y2="500"/>
+    <line x1="0" y1="625" x2="1600" y2="625"/>
+    <line x1="0" y1="750" x2="1600" y2="750"/>
+    <line x1="0" y1="875" x2="1600" y2="875"/>
+  </g>
+  <g stroke="rgba(255,255,255,0.04)" stroke-width="1">
+    <line x1="0" y1="127" x2="1600" y2="127"/>
+    <line x1="0" y1="377" x2="1600" y2="377"/>
+    <line x1="0" y1="627" x2="1600" y2="627"/>
+    <line x1="0" y1="877" x2="1600" y2="877"/>
+  </g>
+</svg>

@@ -39,7 +39,7 @@
                     <div class="setup-subtitle">Tablet scorer</div>
                 </div>
                 <div class="setup-header-side">
-                    <div class="theme-picker" id="themePicker" aria-label="Theme"></div>
+                    <button type="button" class="btn btn--md btn--neutral settings-gear" id="settingsBtnSetup" aria-label="Settings">⚙ Settings</button>
                 </div>
             </header>
 
@@ -222,14 +222,7 @@
             </div>
 
             <details class="setup-section setup-section--collapsible">
-                <summary class="setup-section-label">Display &amp; presets</summary>
-                <div class="form-group">
-                    <label>UI Scale</label>
-                    <div class="ui-scale-row">
-                        <input type="range" id="uiScale" min="0.7" max="1.5" step="0.1" value="1.0">
-                        <span id="uiScaleValue">1.0x</span>
-                    </div>
-                </div>
+                <summary class="setup-section-label">Presets</summary>
                 <div class="form-group">
                     <div class="config-row">
                         <button class="btn btn--md btn--success-dark" id="saveConfigBtn">Save preset</button>
@@ -508,6 +501,7 @@
                 <button class="btn btn--lg btn--primary btn--block" id="gameMenuEnd121Btn" style="display:none;">End Game &amp; Show Stats</button>
                 <hr style="border-color:var(--color-border);margin:var(--space-xs) 0;">
                 <button class="btn btn--lg btn--success-dark btn--block" id="gameMenuNewGameBtn">New Game (Same Players)</button>
+                <button class="btn btn--lg btn--neutral btn--block" id="gameMenuVisualBtn">⚙ Visual Settings</button>
                 <button class="btn btn--lg btn--neutral btn--block" id="gameMenuSettingsBtn">Change Settings</button>
                 <button class="btn btn--lg btn--danger btn--block" id="gameMenuExitBtn">Cancel Game</button>
                 <hr style="border-color:var(--color-border);margin:var(--space-xs) 0;">
@@ -584,7 +578,37 @@
         </div>
     </div>
 
-    <!-- Max Visibility brightness tips (removed — feature deleted) -->
+    <!-- Unified Settings — themes, wallpaper, UI scale. Opened from the
+         setup header gear and from Game Menu → Visual Settings. -->
+    <div class="modal" id="settingsModal" style="display:none;">
+        <div class="modal-content settings-modal-content">
+            <h2>Settings</h2>
+
+            <div class="settings-section">
+                <div class="settings-section-label">Theme</div>
+                <div class="theme-picker" id="themePicker" aria-label="Theme"></div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-label">Wallpaper</div>
+                <div class="wallpaper-grid" id="wallpaperChoices"></div>
+                <label class="btn btn--md btn--neutral wallpaper-upload-btn">
+                    Upload your own…
+                    <input type="file" id="wallpaperUpload" accept="image/*" style="display:none;">
+                </label>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-label">UI Scale</div>
+                <div class="ui-scale-row">
+                    <input type="range" id="uiScale" min="0.7" max="1.5" step="0.1" value="1.0">
+                    <span id="uiScaleValue">1.0x</span>
+                </div>
+            </div>
+
+            <button class="btn btn--lg btn--success btn--block" id="settingsCloseBtn" style="margin-top:var(--space-lg);">Done</button>
+        </div>
+    </div>
 
     <script type="module" src="js/app.js"></script>
 </body>

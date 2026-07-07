@@ -265,6 +265,9 @@ async def test_shanghai_no_win(page):
 
 async def test_themes(page):
     await dismiss_onboard(page)
+    # Theme picker now lives inside the unified Settings modal
+    await page.click("#settingsBtnSetup")
+    await page.wait_for_timeout(400)   # showModal 300ms input guard
     swatches = await page.eval_on_selector_all(
         ".theme-swatch[data-theme-choice]", "els => els.map(e => e.dataset.themeChoice)")
     expected = {"blue", "red", "neon", "sunburst", "volt", "inferno", "miami",
@@ -288,7 +291,63 @@ async def test_themes(page):
             "getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim()")
     assert len(set(prims.values())) == 3, f"theme tokens not distinct: {prims}"
     await page.click(".theme-swatch[data-theme-choice='blue']")
+    await page.click("#settingsCloseBtn")
     return {"swatches": len(swatches), "primaries": prims}
+
+
+async def test_settings_modal(page):
+    # a5/a3/a8: unified settings — gear on setup, wallpaper presets +
+    # persistence, and in-game access via Game Menu → Visual Settings.
+    await fresh(page)
+    await page.click("#settingsBtnSetup")
+    await page.wait_for_timeout(400)
+    assert await page.locator("#settingsModal").is_visible(), "settings modal should open"
+    assert await page.locator("#settingsModal #themePicker .theme-swatch").count() >= 12, \
+        "theme picker should render inside settings"
+    n_wall = await page.locator(".wallpaper-choice").count()
+    assert n_wall == 6, f"expected 6 wallpaper choices (Default/None/4 presets), got {n_wall}"
+
+    # Pick the felt preset → CSS var applied + persisted
+    await page.click(".wallpaper-choice[data-wallpaper-id='felt']")
+    await page.wait_for_timeout(100)
+    var = await page.evaluate(
+        "document.documentElement.style.getPropertyValue('--app-wallpaper')")
+    assert "felt.svg" in var, f"wallpaper var not applied: {var!r}"
+    saved = await page.evaluate("JSON.parse(localStorage.getItem('blakeout_wallpaper'))")
+    assert saved == {"type": "preset", "id": "felt"}, f"saved = {saved}"
+    active = await page.locator(".wallpaper-choice.active").get_attribute("data-wallpaper-id")
+    assert active == "felt", f"active choice = {active}"
+
+    # Survives reload
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(500)
+    var2 = await page.evaluate(
+        "document.documentElement.style.getPropertyValue('--app-wallpaper')")
+    assert "felt.svg" in var2, f"wallpaper lost on reload: {var2!r}"
+
+    # UI scale slider lives in the modal now
+    await page.click("#settingsBtnSetup")
+    await page.wait_for_timeout(400)
+    assert await page.locator("#settingsModal #uiScale").is_visible(), "uiScale missing from settings"
+    await page.click("#settingsCloseBtn")
+    await page.wait_for_timeout(100)
+    assert not await page.locator("#settingsModal").is_visible(), "Done should close settings"
+
+    # In-game: Menu → Visual Settings opens the same modal
+    await start_game(page, "501")
+    await page.click("#menuBtn")
+    await page.wait_for_timeout(400)
+    await page.click("#gameMenuVisualBtn")
+    await page.wait_for_timeout(400)
+    assert await page.locator("#settingsModal").is_visible(), "settings should open in-game"
+    assert not await page.locator("#gameMenuModal").is_visible(), "game menu should close first"
+    # Live theme change mid-game
+    await page.click(".theme-swatch[data-theme-choice='volt']")
+    await page.wait_for_timeout(100)
+    applied = await page.evaluate("document.documentElement.getAttribute('data-theme')")
+    assert applied == "volt", f"in-game theme change failed: {applied}"
+    await page.click("#settingsCloseBtn")
+    return {"wallpaper": saved, "choices": n_wall}
 
 
 async def test_play_again_target(page):

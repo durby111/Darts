@@ -25,14 +25,25 @@ async def main():
             await page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="domcontentloaded")
             await page.wait_for_timeout(1500)
 
-            # Setup screen in a few themes
+            # Setup screen in a few themes (picker now lives in the
+            # settings modal — set via storage + reload instead)
             for theme in ("sunburst", "volt", "arctic", "miami"):
-                await page.click(f".theme-swatch[data-theme-choice='{theme}']")
-                await page.wait_for_timeout(120)
+                await page.evaluate(f"localStorage.setItem('blakeout_theme', '{theme}')")
+                await page.reload(wait_until="domcontentloaded")
+                await page.wait_for_timeout(500)
                 await page.screenshot(path=str(OUT / f"setup_{theme}.png"))
 
+            # Settings modal itself
+            await page.click("#settingsBtnSetup")
+            await page.wait_for_timeout(500)
+            await page.screenshot(path=str(OUT / "settings_modal.png"))
+            await page.click("#settingsCloseBtn")
+            await page.wait_for_timeout(200)
+
             # Chaos Cricket game screen in sunburst (bar theme)
-            await page.click(".theme-swatch[data-theme-choice='sunburst']")
+            await page.evaluate("localStorage.setItem('blakeout_theme', 'sunburst')")
+            await page.reload(wait_until="domcontentloaded")
+            await page.wait_for_timeout(500)
             await page.select_option("#gameType", "chaos")
             await page.click("#startGameBtn")
             await page.wait_for_timeout(400)
@@ -40,9 +51,9 @@ async def main():
 
             # Shanghai game screen in volt
             await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+            await page.evaluate("localStorage.setItem('blakeout_theme', 'volt')")
             await page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="domcontentloaded")
             await page.wait_for_timeout(800)
-            await page.click(".theme-swatch[data-theme-choice='volt']")
             await page.select_option("#gameType", "shanghai")
             await page.click("#startGameBtn")
             await page.wait_for_timeout(400)
@@ -50,9 +61,9 @@ async def main():
 
             # X01 in arctic (light) — legibility check
             await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+            await page.evaluate("localStorage.setItem('blakeout_theme', 'arctic')")
             await page.goto(f"http://127.0.0.1:{PORT}/index.html", wait_until="domcontentloaded")
             await page.wait_for_timeout(800)
-            await page.click(".theme-swatch[data-theme-choice='arctic']")
             await page.select_option("#gameType", "501")
             await page.click("#startGameBtn")
             await page.wait_for_timeout(400)
