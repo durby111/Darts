@@ -132,6 +132,8 @@ function renderGrid() {
                 </button>
                 <button type="button" class="game-card-fav${isFav ? ' faved' : ''}" data-fav-toggle="${g.id}"
                         aria-label="${isFav ? 'Unfavorite' : 'Favorite'} ${g.label}" title="${isFav ? 'Remove from' : 'Add to'} favorites">★</button>
+                <button type="button" class="game-card-info" data-rules-toggle="${g.id}"
+                        aria-label="How to play ${g.label}" title="How to play">ⓘ</button>
             </div>`;
     }).join('');
 
@@ -140,6 +142,26 @@ function renderGrid() {
         const meta = getGame(current);
         descEl.textContent = meta ? meta.desc : '';
     }
+}
+
+// --- Rules tooltip (ⓘ badge on every card) ---
+
+function hideRulesPop() {
+    const pop = document.getElementById('gameRulesPop');
+    if (pop) pop.remove();
+}
+
+function showRulesPop(gameId, anchorBtn) {
+    hideRulesPop();
+    const meta = getGame(gameId);
+    if (!meta) return;
+    const pop = document.createElement('div');
+    pop.id = 'gameRulesPop';
+    pop.className = 'game-rules-pop';
+    pop.innerHTML = `<strong>${escapeHtml(meta.icon + ' ' + meta.label)}</strong>` +
+        `<span>${escapeHtml(meta.rules || meta.desc || '')}</span>`;
+    const wrap = anchorBtn.closest('.game-card-wrap');
+    (wrap || document.body).appendChild(pop);
 }
 
 export function refreshPicker() {
@@ -197,10 +219,19 @@ export function initGamePicker(quickStartFn) {
         });
     }
 
-    // Grid: card select + favorite star
+    // Grid: card select + favorite star + rules ⓘ
     const grid = el('gameTypeGrid');
     if (grid) {
         grid.addEventListener('click', e => {
+            const info = e.target.closest('[data-rules-toggle]');
+            if (info) {
+                const already = document.getElementById('gameRulesPop');
+                const sameCard = already && already.closest('.game-card-wrap') === info.closest('.game-card-wrap');
+                if (sameCard) { hideRulesPop(); return; }
+                showRulesPop(info.dataset.rulesToggle, info);
+                return;
+            }
+            hideRulesPop();
             const fav = e.target.closest('[data-fav-toggle]');
             if (fav) {
                 toggleFavorite(fav.dataset.favToggle);
@@ -221,6 +252,11 @@ export function initGamePicker(quickStartFn) {
     // (config load, applyConfig, etc.).
     const select = el('gameType');
     if (select) select.addEventListener('change', renderGrid);
+
+    // Tapping anywhere outside the grid closes an open rules popover.
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#gameTypeGrid')) hideRulesPop();
+    });
 
     refreshPicker();
 }

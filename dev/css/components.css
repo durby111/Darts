@@ -1290,6 +1290,51 @@
     opacity: 1;
 }
 
+/* ⓘ rules badge — bottom-right of each card */
+.game-card-info {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-dim);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    opacity: 0.7;
+}
+
+/* Rules popover — anchored to the tapped card */
+.game-rules-pop {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 4px);
+    transform: translateX(-50%);
+    width: min(300px, 78vw);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface-alt);
+    border: 1.5px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+    line-height: 1.4;
+    text-align: left;
+    z-index: var(--z-overlay);
+}
+
+.game-rules-pop strong {
+    display: block;
+    color: var(--color-text);
+    margin-bottom: 3px;
+}
+
 .game-card-new {
     position: absolute;
     top: 4px;

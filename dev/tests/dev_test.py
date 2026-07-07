@@ -105,6 +105,35 @@ async def test_registry_picker(page):
     return {"cards": cards}
 
 
+async def test_game_rules_tooltip(page):
+    # ⓘ badge on every card pops a brief gameplay summary.
+    await dismiss_onboard(page)
+    n_info = await page.locator(".game-card-info[data-rules-toggle]").count()
+    n_cards = await page.locator(".game-card[data-game-value]").count()
+    assert n_info == n_cards, f"every card needs an info badge: {n_info}/{n_cards}"
+
+    await page.click(".game-card-info[data-rules-toggle='cricket']")
+    await page.wait_for_timeout(100)
+    pop = page.locator("#gameRulesPop")
+    assert await pop.is_visible(), "rules popover should open"
+    text = await pop.inner_text()
+    assert "mark" in text.lower() and "Cricket" in text, f"popover text: {text!r}"
+
+    # Same badge again → toggles closed
+    await page.click(".game-card-info[data-rules-toggle='cricket']")
+    await page.wait_for_timeout(100)
+    assert await page.locator("#gameRulesPop").count() == 0, "popover should toggle off"
+
+    # Open, then tap outside the grid → closes
+    await page.click(".game-card-info[data-rules-toggle='501']")
+    await page.wait_for_timeout(100)
+    assert await page.locator("#gameRulesPop").is_visible()
+    await page.click("h1")
+    await page.wait_for_timeout(100)
+    assert await page.locator("#gameRulesPop").count() == 0, "outside tap should close popover"
+    return {"badges": n_info}
+
+
 async def test_favorites_recents(page):
     await fresh(page)
     await dismiss_onboard(page)
