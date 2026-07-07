@@ -101,7 +101,7 @@ function renderWallpaperChoices() {
         current.type === type && (type !== 'preset' || current.id === id);
 
     const choices = [
-        { type: 'default', label: 'Default', style: "background-image:url('assets/background.png');background-size:cover;" },
+        { type: 'default', label: 'Default', style: "background-image:url('assets/background.jpg');background-size:cover;" },
         { type: 'none', label: 'None', style: 'background:var(--color-bg);' },
         ...WALLPAPER_PRESETS.map(p => ({
             type: 'preset', id: p.id, label: p.label,
