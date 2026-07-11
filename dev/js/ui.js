@@ -311,6 +311,8 @@ export function updateRoundBadge() {
         badge.textContent = `L${game.game121.currentLeg} (${dartsLeft})`;
     } else if (game.countUp) {
         badge.textContent = Math.min(game.completedRounds + 1, game.countUp.totalRounds || 8);
+    } else if (game.type === 'quickie') {
+        badge.textContent = Math.min(game.completedRounds + 1, 10);
     } else {
         badge.textContent = game.completedRounds + 1;
     }

@@ -53,6 +53,7 @@ function snapshot() {
         completedRounds: game.completedRounds,
         pendingDarts: deepClone(game.pendingDarts),
         currentInput: game.currentInput,
+        cricketTargets: deepClone(game.cricketTargets),
         countUp: game.countUp ? deepClone(game.countUp) : null,
         // Snapshot teams so undo rolls back rotationIndex too.
         teams: game.teams ? deepClone(game.teams) : null,
@@ -66,6 +67,7 @@ function restore(state) {
     game.completedRounds = state.completedRounds;
     game.pendingDarts = state.pendingDarts;
     game.currentInput = state.currentInput;
+    if (state.cricketTargets !== undefined) game.cricketTargets = state.cricketTargets;
     if (state.countUp !== undefined) game.countUp = state.countUp;
     if (state.teams !== undefined) game.teams = state.teams;
 }
@@ -131,9 +133,33 @@ export function generateChaosTargets() {
     return picked;
 }
 
+// Wild Card Cricket draws six unique values from 7–20. Unlike Chaos,
+// their row positions matter because each still-unmarked value is replaced
+// after every turn, so preserve draw order rather than sorting.
+export function generateWildcardTargets() {
+    const pool = [];
+    for (let n = 7; n <= 20; n++) pool.push(n);
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    return pool.slice(0, 6).map(String).concat('Bull');
+}
+
+export function createCricketTargetState() {
+    return {
+        marks: 0,
+        closed: false,
+        closedInOneTurn: false,
+        marksBeforeClose: 0,
+        showBoobie: false,
+        maxMarks: 3
+    };
+}
+
 export function initCricket(type, includeBulls = false) {
     let targets;
-    if (type === 'cricket') {
+    if (type === 'cricket' || type === 'quickie' || type === 'cutthroat') {
         targets = ['20', '19', '18', '17', '16', '15', 'Bull'];
     } else if (type === 'spanish') {
         targets = includeBulls
@@ -141,26 +167,19 @@ export function initCricket(type, includeBulls = false) {
             : ['20', '19', '18', '17', '16', '15', '14', '13', '12', '11', '10'];
     } else if (type === 'chaos') {
         targets = generateChaosTargets();
-    } else {
-        // Minnesota
+    } else if (type === 'wildcard') {
+        targets = generateWildcardTargets();
+    } else if (type === 'minnesota') {
         targets = ['20', '19', '18', '17', '16', '15', 'Bull', 'Triples', 'Doubles', 'Bed'];
+    } else {
+        targets = ['20', '19', '18', '17', '16', '15', 'Bull'];
     }
 
     game.cricketTargets = targets;
 
     const data = {};
     targets.forEach(t => {
-        data[t] = {
-            marks: 0,
-            closed: false,
-            closedInOneTurn: false,
-            // marks already on the target at the START of the turn that closed it
-            // (0 = closed in one turn, 1 = had a slash, 2 = had an X). Drives the
-            // closed-cell rendering: empty O / O-with-slash / O-with-X.
-            marksBeforeClose: 0,
-            showBoobie: false,
-            maxMarks: 3
-        };
+        data[t] = createCricketTargetState();
     });
     return data;
 }

@@ -112,6 +112,27 @@ export const GAME_REGISTRY = [
         rules: 'Standard cricket rules — 3 marks to close, points on numbers your opponent has open — but the 6 numbers are drawn at random each game (Bull always plays). Play Again re-rolls the board.'
     },
     {
+        id: 'quickie', label: 'Cricket Quickie', sub: '10 rounds', icon: '⚡',
+        engine: 'cricket', category: 'cricket', isNew: true,
+        tags: ['cricket', 'marks', 'quick', '10 rounds', 'no spread', 'new'],
+        desc: 'Full Cricket compressed into a strict 10-round game.',
+        rules: 'Play standard Cricket on 15–20 + Bull, but only for 10 rounds and with no point-spread cap. A normal close-and-points win can end it early; at the limit, most board marks wins, then points break the tie.'
+    },
+    {
+        id: 'cutthroat', label: 'Cut-Throat', sub: 'Lowest score wins', icon: '🗡️',
+        engine: 'cricket', category: 'cricket', isNew: true,
+        tags: ['cricket', 'cut throat', 'cutthroat', 'lowest score', 'opponents', 'new'],
+        desc: 'Close the board while loading points onto opponents. Lowest score wins.',
+        rules: 'Close 15–20 + Bull normally. Once you close a target, extra hits add points to every opponent who still has it open — not to you. Close the whole board with the lowest or tied-lowest score to win.'
+    },
+    {
+        id: 'wildcard', label: 'Wild Card', sub: 'Targets keep changing', icon: '🃏',
+        engine: 'cricket', category: 'cricket', isNew: true,
+        tags: ['cricket', 'wild card', 'random', 'changing targets', '7 to 20', 'new'],
+        desc: 'Six random targets from 7–20 + Bull. Unmarked targets change every turn.',
+        rules: 'Standard Cricket scoring on six random numbers from 7–20 plus Bull. After every turn, each number nobody has marked changes to a new value. As soon as anyone marks a number, that row locks for the rest of the game. Bull is always fixed.'
+    },
+    {
         id: 'chicago', label: 'Chicago', sub: 'Best of 3', icon: '🌆',
         engine: 'special', category: 'party',
         tags: ['combo', 'cricket', 'x01', 'match', 'best of 3'],

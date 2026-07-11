@@ -237,6 +237,7 @@ export function initSetupControls() {
         const isGolf = this.value === 'golf';
         const isShanghai = this.value === 'shanghai';
         const isChaos = this.value === 'chaos';
+        const isCutThroat = this.value === 'cutthroat';
         document.getElementById('cricketOptions').classList.toggle('hidden', !isCricket);
         document.getElementById('spanishBullsOption').classList.toggle('hidden', !isSpanish);
         document.getElementById('chaosOptions')?.classList.toggle('hidden', !isChaos);
@@ -246,6 +247,28 @@ export function initSetupControls() {
         document.getElementById('golfOptions').classList.toggle('hidden', !isGolf);
         document.getElementById('shanghaiOptions')?.classList.toggle('hidden', !isShanghai);
         document.getElementById('finishTypeOptions').classList.toggle('hidden', !isX01 && !isChicago && !is121);
+
+        // Cut-Throat always sends points to open opponents and requires at
+        // least two sides. Restore the normal configurable control when the
+        // user switches to another Cricket variant.
+        const points = document.getElementById('cricketPoints');
+        const pointsLabel = document.getElementById('cricketPointsLabel');
+        if (points) {
+            points.disabled = isCutThroat;
+            if (isCutThroat) points.checked = true;
+        }
+        if (pointsLabel) {
+            pointsLabel.textContent = isCutThroat
+                ? 'Points go to open opponents (required)'
+                : 'Enable Points';
+        }
+        const onePlayer = document.querySelector('#numPlayers option[value="1"]');
+        if (onePlayer) onePlayer.disabled = isCutThroat;
+        const count = document.getElementById('numPlayers');
+        if (isCutThroat && count?.value === '1') {
+            count.value = '2';
+            count.dispatchEvent(new Event('change'));
+        }
     });
 
     // Baseball variant hint updater
@@ -539,7 +562,9 @@ function beginMatchFromTeams(teams) {
 
 function beginMatch(playerSeeds, teams) {
     const gameType = document.getElementById('gameType').value;
-    const cricketPoints = document.getElementById('cricketPoints').checked;
+    const cricketPoints = gameType === 'cutthroat'
+        ? true
+        : document.getElementById('cricketPoints').checked;
     const finishType = document.getElementById('finishType').value;
     const includeBulls = document.getElementById('spanishBulls').checked;
 
@@ -631,11 +656,11 @@ function beginMatch(playerSeeds, teams) {
         game.players.push(player);
     });
 
-    // Chaos Cricket: every player must share the SAME randomized board.
+    // Random-board Cricket variants: every player must share the SAME board.
     // initCricket() randomizes per call, so generate one final board and
     // stamp every player with their own copy of it.
-    if (gameType === 'chaos') {
-        const shared = initCricket('chaos');   // also sets game.cricketTargets
+    if (gameType === 'chaos' || gameType === 'wildcard') {
+        const shared = initCricket(gameType);   // also sets game.cricketTargets
         game.players.forEach(p => {
             p.cricketData = JSON.parse(JSON.stringify(shared));
         });

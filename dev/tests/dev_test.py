@@ -101,10 +101,11 @@ async def test_registry_picker(page):
     await dismiss_onboard(page)
     # Registry card count grows deliberately as game batches land.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 18, f"expected 18 game cards, got {cards}"
+    assert cards == 21, f"expected 21 game cards, got {cards}"
 
     # New games present
-    for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup"):
+    for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup",
+                "quickie", "cutthroat", "wildcard"):
         n = await page.locator(f".game-card[data-game-value='{gid}']").count()
         assert n == 1, f"{gid} card missing"
 
@@ -121,7 +122,10 @@ async def test_registry_picker(page):
     await page.wait_for_timeout(100)
     cricket_cards = await page.eval_on_selector_all(
         ".game-card[data-game-value]", "els => els.map(e => e.dataset.gameValue)")
-    assert set(cricket_cards) == {"cricket", "spanish", "minnesota", "chaos"}, \
+    assert set(cricket_cards) == {
+        "cricket", "spanish", "minnesota", "chaos",
+        "quickie", "cutthroat", "wildcard"
+    }, \
         f"cricket category shows {cricket_cards}"
     await page.click(".picker-chip[data-category='all']")
     await page.wait_for_timeout(100)
@@ -316,6 +320,133 @@ async def test_chaos_cricket(page):
     marks = await get_state(page, f"m.game.players[0].cricketData['{targets2[0]}'].marks")
     assert marks == 0, "marks not reset after Play Again"
     return {"board1": targets, "board2": targets2}
+
+
+async def test_cricket_quickie(page):
+    # Quickie ends after the last player in round 10. Board progress ranks
+    # first, then points break an equal-marks tie.
+    await fresh(page)
+    await start_game(page, "quickie", num_players="2")
+    await page.wait_for_selector("#cricketMain", state="visible", timeout=3000)
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.completedRounds = 9;
+            state.game.currentPlayer = 1;
+            state.game.players[0].cricketData['20'].marks = 2;
+            state.game.players[1].cricketData['20'].marks = 1;
+            state.game.players[0].score = 10;
+            state.game.players[1].score = 500;
+            (await import('./js/cricket.js')).updateCricketDisplay();
+        })()
+    """)
+    await page.click("#missBtn")
+    await page.wait_for_timeout(450)
+    assert await page.locator("#winnerModal").is_visible(), "Quickie did not end at 10 rounds"
+    winner = (await page.locator("#winnerName").inner_text()).strip()
+    assert winner == "Home", f"board progress should beat points at limit: {winner!r}"
+    rounds = await get_state(page, "m.game.completedRounds")
+    badge = (await page.locator("#roundBadge").inner_text()).strip()
+    assert rounds == 10 and badge == "10", f"Quickie round cap: rounds={rounds}, badge={badge}"
+    stored = await page.evaluate(
+        "JSON.parse(localStorage.getItem('blakeout_active_game')).completedRounds")
+    assert stored == 10, f"Quickie final round not persisted: {stored}"
+    return {"winner": winner, "rounds": rounds}
+
+
+async def test_cutthroat_cricket(page):
+    # Extra marks penalize every open opponent, preview in their headers,
+    # and the closer wins only while holding the lowest score.
+    await fresh(page)
+    await page.select_option("#numPlayers", "1")
+    await page.select_option("#gameType", "cutthroat")
+    await page.wait_for_timeout(100)
+    assert await page.input_value("#numPlayers") == "2", "Cut-Throat must require 2+ sides"
+    assert await page.locator("#cricketPoints").is_disabled(), "Cut-Throat points must be forced"
+    await page.click("#startGameBtn")
+    await page.wait_for_selector("#cricketMain", state="visible", timeout=3000)
+
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            const target = state.game.players[0].cricketData['20'];
+            target.marks = 3;
+            target.closed = true;
+            (await import('./js/cricket.js')).updateCricketDisplay();
+        })()
+    """)
+    await page.locator(".cricket-dt-btn[data-target='20'][data-multiplier='3']").first.click()
+    await page.wait_for_timeout(100)
+    preview = int(await page.locator("#awayScore").inner_text())
+    indicator = (await page.locator("#scoreDiffIndicator").inner_text()).strip()
+    assert preview == 60 and "+60" in indicator, f"Cut-Throat preview={preview}, indicator={indicator!r}"
+    await page.click("#enterBtn")
+    await page.wait_for_timeout(350)
+    scores = await get_state(page, "m.game.players.map(p => p.score)")
+    assert scores == [0, 60], f"Cut-Throat penalties = {scores}"
+
+    # Close the rest of Home's board and give one final excess Bull. Away
+    # receives the penalty and Home qualifies with the lower score.
+    await page.wait_for_timeout(750)
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.currentPlayer = 0;
+            state.game.cricketTargets.forEach(target => {
+                const data = state.game.players[0].cricketData[target];
+                data.marks = 3;
+                data.closed = true;
+            });
+            (await import('./js/cricket.js')).updateCricketDisplay();
+        })()
+    """)
+    await page.locator(".cricket-num-btn[data-target='Bull']").first.click()
+    await page.click("#enterBtn")
+    await page.wait_for_timeout(350)
+    assert await page.locator("#winnerModal").is_visible(), "lowest-score closer should win Cut-Throat"
+    winner = (await page.locator("#winnerName").inner_text()).strip()
+    assert winner == "Home", winner
+    final_scores = await get_state(page, "m.game.players.map(p => p.score)")
+    assert final_scores == [0, 85], final_scores
+    return {"preview": preview, "scores": final_scores, "winner": winner}
+
+
+async def test_wildcard_cricket(page):
+    # Six unique 7–20 values start wild. A marked row locks; every unmarked
+    # row visibly changes after the turn; Bull remains fixed. Undo restores
+    # both player data and the prior target board.
+    await fresh(page)
+    await start_game(page, "wildcard", num_players="2")
+    await page.wait_for_selector("#cricketMain", state="visible", timeout=3000)
+    initial = await get_state(page, "m.game.cricketTargets.slice()")
+    nums = [int(value) for value in initial[:-1]]
+    assert len(nums) == 6 and len(set(nums)) == 6, initial
+    assert all(7 <= value <= 20 for value in nums) and initial[-1] == "Bull", initial
+
+    locked = initial[0]
+    await page.locator(f".cricket-num-btn[data-target='{locked}']").first.click()
+    await page.click("#enterBtn")
+    await page.wait_for_timeout(350)
+    changed = await get_state(page, "m.game.cricketTargets.slice()")
+    assert changed[0] == locked, f"marked Wild Card row moved: {initial} -> {changed}"
+    assert changed[-1] == "Bull", changed
+    assert all(changed[index] != initial[index] for index in range(1, 6)), \
+        f"unmarked rows must all change: {initial} -> {changed}"
+    changed_nums = [int(value) for value in changed[:-1]]
+    assert len(set(changed_nums)) == 6 and all(7 <= value <= 20 for value in changed_nums), changed
+    marks = await get_state(page, f"m.game.players[0].cricketData['{locked}'].marks")
+    assert marks == 1, f"locked target lost mark: {marks}"
+
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.undoLastAction(() => {});
+            (await import('./js/cricket.js')).updateCricketDisplay();
+        })()
+    """)
+    restored = await get_state(page, "m.game.cricketTargets.slice()")
+    assert restored == initial, f"undo did not restore Wild Card board: {restored}"
+    return {"initial": initial, "changed": changed, "restored": restored}
 
 
 async def test_shanghai(page):
@@ -571,7 +702,7 @@ async def test_all_games_boot(page):
     games = await page.evaluate(
         "(async () => { const r = await import('./js/registry.js');"
         " return r.listGames().map(g => ({id: g.id, engine: g.engine})); })()")
-    assert len(games) >= 18, f"registry shrank? {len(games)} games"
+    assert len(games) >= 21, f"registry shrank? {len(games)} games"
     panels = {
         "cricket": "#cricketMain", "x01": "#x01Main",
         "score": "#x01Main", "target": "#targetGameMain"

@@ -58,6 +58,17 @@ reads/writes it and fires `change`.
   engine. Scores add from zero for 8 rounds; highest score wins and ties are
   supported. X01-only Bust, checkout, and remaining-score controls are hidden.
 
+**Batch A Cricket variants**
+- Cricket Quickie: standard 15–20 + Bull with a strict 10-round limit and no
+  spread cap. A normal Cricket win can end early; at the limit, board marks
+  rank first and points break equal-mark ties.
+- Cut-Throat Cricket: extra marks penalize every opponent who still has the
+  target open. Points are forced on; close the board with the lowest or tied
+  lowest score to win.
+- Wild Card Cricket: six unique values from 7–20 + fixed Bull. Every row that
+  nobody has marked rerolls after each player turn; a marked row locks in
+  place. Undo snapshots include the target board, and resume/play-again work.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
@@ -95,7 +106,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 24-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 27-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.

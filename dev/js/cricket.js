@@ -3,7 +3,7 @@
    Standard Cricket, Spanish Cricket, Minnesota Cricket
    ============================================ */
 
-import { game, saveGameState, saveActiveGame, undoWithCooldown } from './state.js';
+import { game, createCricketTargetState, saveGameState, saveActiveGame, undoWithCooldown } from './state.js';
 import { getMarkSymbol, updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner } from './ui.js';
 import { currentThrower, advanceRotation } from './teams.js';
 
@@ -12,6 +12,10 @@ function activeThrowerName() {
     const t = currentThrower(game.currentPlayer);
     return t ? t.name : null;
 }
+
+function isCutThroat() { return game.type === 'cutthroat'; }
+function isQuickie() { return game.type === 'quickie'; }
+function isWildcard() { return game.type === 'wildcard'; }
 
 // --- Internal Helpers ---
 
@@ -35,9 +39,9 @@ function clearCooldown() {
     if (missBtn) missBtn.disabled = false;
 }
 
-function calculatePendingScore() {
+function calculatePendingScoreDeltas() {
     const player = game.players[game.currentPlayer];
-    let score = 0;
+    const deltas = game.players.map(() => 0);
 
     // Track marks locally without mutating game state
     const localMarks = {};
@@ -51,7 +55,7 @@ function calculatePendingScore() {
         const maxMarks = player.cricketData[target].maxMarks;
 
         if (dart.specialScore !== undefined) {
-            score += dart.specialScore;
+            deltas[game.currentPlayer] += dart.specialScore;
             localMarks[target] = Math.min(localMarks[target] + 1, maxMarks);
             continue;
         }
@@ -66,21 +70,26 @@ function calculatePendingScore() {
             const pointMarks = excessAfter - excessBefore;
 
             if (pointMarks > 0) {
-                const allOpponentsClosed = game.players.every((p, i) => {
-                    if (i === game.currentPlayer) return true;
-                    return p.cricketData[target].closed;
-                });
-
-                if (!allOpponentsClosed) {
-                    const numVal = parseInt(target);
-                    const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
-                    score += pointMarks * pointValue;
+                const numVal = parseInt(target);
+                const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
+                if (isCutThroat()) {
+                    game.players.forEach((opponent, index) => {
+                        if (index !== game.currentPlayer && !opponent.cricketData[target].closed) {
+                            deltas[index] += pointMarks * pointValue;
+                        }
+                    });
+                } else {
+                    const anyOpponentOpen = game.players.some((opponent, index) =>
+                        index !== game.currentPlayer && !opponent.cricketData[target].closed);
+                    if (anyOpponentOpen) {
+                        deltas[game.currentPlayer] += pointMarks * pointValue;
+                    }
                 }
             }
         }
     }
 
-    return score;
+    return deltas;
 }
 
 function updateCricketGrid() {
@@ -205,7 +214,18 @@ function updateCricketGrid() {
 
 function updateScoreDiffIndicator() {
     const player = game.players[game.currentPlayer];
-    const pendingScore = calculatePendingScore();
+    const pendingDeltas = calculatePendingScoreDeltas();
+    if (isCutThroat()) {
+        const pointsGiven = pendingDeltas.reduce((sum, delta, index) =>
+            sum + (index === game.currentPlayer ? 0 : delta), 0);
+        const indicator = document.getElementById('scoreDiffIndicator');
+        if (indicator) {
+            indicator.textContent = pointsGiven ? `+${pointsGiven} to opponents` : '';
+            indicator.style.color = 'var(--color-warning)';
+        }
+        return;
+    }
+    const pendingScore = pendingDeltas[game.currentPlayer];
     const currentScore = player.score + pendingScore;
 
     let maxOpponentScore = 0;
@@ -285,10 +305,64 @@ function updatePending() {
     if (game.cricketPoints) updateScoreDiffIndicator();
 }
 
+function rerollWildcardTargets() {
+    if (!isWildcard()) return;
+    const currentNumbers = game.cricketTargets.filter(target => target !== 'Bull');
+    const changing = currentNumbers.filter(target =>
+        !game.players.some(player => player.cricketData[target].marks > 0));
+    if (!changing.length) return;
+
+    // Exclude every current value, not only locked ones. This guarantees
+    // each still-wild row visibly changes while leaving eight candidates
+    // available for at most six replacements.
+    const blocked = new Set(currentNumbers.map(Number));
+    const pool = [];
+    for (let value = 7; value <= 20; value++) {
+        if (!blocked.has(value)) pool.push(value);
+    }
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+
+    const replacements = new Map();
+    changing.forEach((oldTarget, index) => {
+        replacements.set(oldTarget, String(pool[index]));
+    });
+
+    game.players.forEach(player => {
+        replacements.forEach((newTarget, oldTarget) => {
+            delete player.cricketData[oldTarget];
+            player.cricketData[newTarget] = createCricketTargetState();
+        });
+    });
+    game.cricketTargets = game.cricketTargets.map(target => replacements.get(target) || target);
+}
+
+function cricketBoardMarks(player) {
+    return game.cricketTargets.reduce((total, target) =>
+        total + Math.min(player.cricketData[target].marks, 3), 0);
+}
+
+function finishQuickieAtLimit() {
+    if (!isQuickie() || game.completedRounds < 10) return false;
+    const mostMarks = Math.max(...game.players.map(cricketBoardMarks));
+    let leaders = game.players.filter(player => cricketBoardMarks(player) === mostMarks);
+    if (game.cricketPoints && leaders.length > 1) {
+        const highScore = Math.max(...leaders.map(player => player.score));
+        leaders = leaders.filter(player => player.score === highScore);
+    }
+    saveActiveGame();
+    updateCricketDisplay();
+    updateUndoRedoButtons();
+    showWinner(leaders.map(player => player.name).join(' & '), false, true);
+    return true;
+}
+
 // --- Exported Functions ---
 
 export function updateCricketDisplay() {
-    const pendingScore = calculatePendingScore();
+    const pendingDeltas = calculatePendingScoreDeltas();
     const numPlayers = game.players.length;
 
     // Score element IDs mapped by player index
@@ -299,7 +373,7 @@ export function updateCricketDisplay() {
         // Update score
         const scoreEl = document.getElementById(scoreIds[i]);
         if (scoreEl) {
-            const displayScore = i === game.currentPlayer ? player.score + pendingScore : player.score;
+            const displayScore = player.score + pendingDeltas[i];
             scoreEl.textContent = displayScore;
         }
 
@@ -415,15 +489,20 @@ export function cricketConfirm() {
                 const pointMarks = excessAfter - excessBefore;
 
                 if (pointMarks > 0) {
-                    const allOpponentsClosed = game.players.every((p, i) => {
-                        if (i === game.currentPlayer) return true;
-                        return p.cricketData[target].closed;
-                    });
-
-                    if (!allOpponentsClosed) {
-                        const numVal = parseInt(target);
-                        const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
-                        player.score += pointMarks * pointValue;
+                    const numVal = parseInt(target);
+                    const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
+                    if (isCutThroat()) {
+                        game.players.forEach((opponent, index) => {
+                            if (index !== game.currentPlayer && !opponent.cricketData[target].closed) {
+                                opponent.score += pointMarks * pointValue;
+                            }
+                        });
+                    } else {
+                        const anyOpponentOpen = game.players.some((opponent, index) =>
+                            index !== game.currentPlayer && !opponent.cricketData[target].closed);
+                        if (anyOpponentOpen) {
+                            player.score += pointMarks * pointValue;
+                        }
                     }
                 }
             }
@@ -466,7 +545,7 @@ export function cricketConfirm() {
         if (game.cricketPoints) {
             hasWon = game.players.every((p, i) => {
                 if (i === game.currentPlayer) return true;
-                return player.score >= p.score;
+                return isCutThroat() ? player.score <= p.score : player.score >= p.score;
             });
         }
         if (hasWon) {
@@ -496,6 +575,9 @@ export function cricketConfirm() {
 
     game.currentPlayer = nextPlayer;
     game.pendingDarts = [];
+
+    rerollWildcardTargets();
+    if (finishQuickieAtLimit()) return;
 
     saveActiveGame();
     updateCricketDisplay();
@@ -536,6 +618,9 @@ export function cricketMiss() {
 
     game.currentPlayer = nextPlayer;
     game.pendingDarts = [];
+
+    rerollWildcardTargets();
+    if (finishQuickieAtLimit()) return;
 
     saveActiveGame();
     updateCricketDisplay();
