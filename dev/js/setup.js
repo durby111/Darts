@@ -22,6 +22,177 @@ import { resetX01Input } from './x01.js';
 let onGameStart = null;
 let overlayMode = false;
 
+const PLAYER_ORDER_DRAG_THRESHOLD = 8;
+let playerOrderDrag = null;
+
+function playerCount() {
+    const raw = parseInt(document.getElementById('numPlayers')?.value || '2');
+    return Math.max(1, Math.min(4, raw));
+}
+
+function ordinal(value) {
+    return value === 1 ? '1st' : value === 2 ? '2nd' : value === 3 ? '3rd' : `${value}th`;
+}
+
+function renderPlayerOrderControls() {
+    const count = playerCount();
+    for (let index = 0; index < 4; index++) {
+        const row = document.getElementById(`player${index + 1}Group`);
+        const input = document.getElementById(`player${index + 1}`);
+        if (!row || !input) continue;
+
+        const label = row.querySelector('[data-player-order-label]');
+        if (label) label.textContent = `Throws ${ordinal(index + 1)}`;
+
+        const displayName = input.value.trim() || `Player ${index + 1}`;
+        const handle = row.querySelector('[data-player-drag-index]');
+        if (handle) handle.setAttribute('aria-label', `Drag ${displayName} in throw order`);
+
+        const up = row.querySelector('[data-player-order-action="up"]');
+        const down = row.querySelector('[data-player-order-action="down"]');
+        if (up) {
+            up.disabled = index === 0 || index >= count;
+            up.setAttribute('aria-label', `Move ${displayName} earlier`);
+        }
+        if (down) {
+            down.disabled = index >= count - 1;
+            down.setAttribute('aria-label', `Move ${displayName} later`);
+        }
+    }
+
+    const randomize = document.getElementById('randomizePlayersBtn');
+    if (randomize) randomize.disabled = count < 2;
+}
+
+function movePlayerInOrder(fromIndex, toIndex) {
+    const count = playerCount();
+    if (fromIndex < 0 || fromIndex >= count || toIndex < 0 || toIndex >= count) return;
+    if (fromIndex === toIndex) {
+        renderPlayerOrderControls();
+        return;
+    }
+
+    const values = Array.from({ length: count }, (_, index) =>
+        document.getElementById(`player${index + 1}`).value
+    );
+    const [moved] = values.splice(fromIndex, 1);
+    values.splice(toIndex, 0, moved);
+    values.forEach((value, index) => {
+        document.getElementById(`player${index + 1}`).value = value;
+    });
+    renderPlayerOrderControls();
+}
+
+function shufflePlayerOrder() {
+    const count = playerCount();
+    if (count < 2) return;
+    const values = Array.from({ length: count }, (_, index) =>
+        document.getElementById(`player${index + 1}`).value
+    );
+    const original = values.slice();
+    for (let i = values.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [values[i], values[j]] = [values[j], values[i]];
+    }
+    // A random button that appears to do nothing feels broken. If the
+    // shuffle lands on the original order, rotate once instead.
+    if (values.every((value, index) => value === original[index])) {
+        values.push(values.shift());
+    }
+    values.forEach((value, index) => {
+        document.getElementById(`player${index + 1}`).value = value;
+    });
+    renderPlayerOrderControls();
+}
+
+function playerDropIndexAt(y) {
+    const rows = Array.from({ length: playerCount() }, (_, index) =>
+        document.getElementById(`player${index + 1}Group`)
+    ).filter(Boolean);
+    for (let index = 0; index < rows.length; index++) {
+        const rect = rows[index].getBoundingClientRect();
+        if (y < rect.top + rect.height / 2) return index;
+    }
+    return Math.max(0, rows.length - 1);
+}
+
+function clearPlayerOrderDragClasses() {
+    document.querySelectorAll('.player-row--dragging, .player-row--drop-target').forEach(row => {
+        row.classList.remove('player-row--dragging', 'player-row--drop-target');
+    });
+}
+
+function onPlayerOrderPointerMove(event) {
+    if (!playerOrderDrag || event.pointerId !== playerOrderDrag.pointerId) return;
+    const distance = Math.hypot(
+        event.clientX - playerOrderDrag.startX,
+        event.clientY - playerOrderDrag.startY
+    );
+    if (!playerOrderDrag.dragging && distance < PLAYER_ORDER_DRAG_THRESHOLD) return;
+    event.preventDefault();
+    playerOrderDrag.dragging = true;
+    playerOrderDrag.toIndex = playerDropIndexAt(event.clientY);
+    clearPlayerOrderDragClasses();
+    document.getElementById(`player${playerOrderDrag.fromIndex + 1}Group`)
+        ?.classList.add('player-row--dragging');
+    document.getElementById(`player${playerOrderDrag.toIndex + 1}Group`)
+        ?.classList.add('player-row--drop-target');
+}
+
+function finishPlayerOrderDrag(event, cancelled = false) {
+    if (!playerOrderDrag || event.pointerId !== playerOrderDrag.pointerId) return;
+    const finished = playerOrderDrag;
+    playerOrderDrag = null;
+    document.removeEventListener('pointermove', onPlayerOrderPointerMove);
+    document.removeEventListener('pointerup', onPlayerOrderPointerUp);
+    document.removeEventListener('pointercancel', onPlayerOrderPointerCancel);
+    clearPlayerOrderDragClasses();
+    if (!cancelled && finished.dragging) {
+        movePlayerInOrder(finished.fromIndex, finished.toIndex);
+    }
+}
+
+function onPlayerOrderPointerUp(event) {
+    finishPlayerOrderDrag(event);
+}
+
+function onPlayerOrderPointerCancel(event) {
+    finishPlayerOrderDrag(event, true);
+}
+
+function initPlayerOrderControls() {
+    document.querySelectorAll('[data-player-drag-index]').forEach(handle => {
+        handle.addEventListener('pointerdown', event => {
+            if (event.button !== undefined && event.button !== 0) return;
+            event.preventDefault();
+            playerOrderDrag = {
+                pointerId: event.pointerId,
+                fromIndex: parseInt(handle.dataset.playerDragIndex),
+                toIndex: parseInt(handle.dataset.playerDragIndex),
+                startX: event.clientX,
+                startY: event.clientY,
+                dragging: false
+            };
+            document.addEventListener('pointermove', onPlayerOrderPointerMove, { passive: false });
+            document.addEventListener('pointerup', onPlayerOrderPointerUp);
+            document.addEventListener('pointercancel', onPlayerOrderPointerCancel);
+        });
+    });
+
+    document.querySelectorAll('[data-player-order-action]').forEach(button => {
+        button.addEventListener('click', () => {
+            const index = parseInt(button.dataset.playerIndex);
+            const offset = button.dataset.playerOrderAction === 'up' ? -1 : 1;
+            movePlayerInOrder(index, index + offset);
+        });
+    });
+    document.getElementById('randomizePlayersBtn')?.addEventListener('click', shufflePlayerOrder);
+    for (let index = 1; index <= 4; index++) {
+        document.getElementById(`player${index}`)?.addEventListener('input', renderPlayerOrderControls);
+    }
+    renderPlayerOrderControls();
+}
+
 export function setGameStartCallback(callback) {
     onGameStart = callback;
 }
@@ -29,6 +200,7 @@ export function setGameStartCallback(callback) {
 export function initSetupControls() {
     initThemePickerUI();
     initGamePicker(quickStartLastGame);
+    initPlayerOrderControls();
 
     // Player count change
     document.getElementById('numPlayers').addEventListener('change', function () {
@@ -36,6 +208,7 @@ export function initSetupControls() {
         document.getElementById('player2Group').classList.toggle('hidden', count < 2);
         document.getElementById('player3Group').classList.toggle('hidden', count < 3);
         document.getElementById('player4Group').classList.toggle('hidden', count < 4);
+        renderPlayerOrderControls();
     });
 
     // Team Mode toggle — hides per-player inputs and the count selector;
@@ -311,6 +484,7 @@ function applyGameTypeScale() {
 function applyTeamModeVisibility() {
     const on = document.getElementById('teamMode')?.checked;
     document.getElementById('numPlayersGroup').classList.toggle('hidden', !!on);
+    document.getElementById('playerOrderControls')?.classList.toggle('hidden', !!on);
     document.getElementById('player1Group').classList.toggle('hidden', !!on);
     document.getElementById('player2Group').classList.toggle('hidden', !!on);
     document.getElementById('player3Group').classList.toggle('hidden', !!on);
@@ -323,6 +497,7 @@ function applyTeamModeVisibility() {
         document.getElementById('player3Group').classList.toggle('hidden', count < 3);
         document.getElementById('player4Group').classList.toggle('hidden', count < 4);
     }
+    renderPlayerOrderControls();
 }
 
 function startGame() {

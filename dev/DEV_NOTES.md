@@ -60,19 +60,20 @@ themes. Anything painted `--color-primary`/`--color-success` must use them.
 Also fixed: `.card` bg and setup scrim were hardcoded dark (broke Arctic) —
 now `--color-surface` mix + `--bg-image-overlay`.
 
-## Max Visibility Mode (`js/visibility.js`)
+## Settings + throw order (v2.4-dev)
 
-The web has **no** screen-brightness API, so the strategy is:
-1. `tryNativeBrightness()` probes webview-shell hooks (no-op on open web).
-2. **Screen Wake Lock** while enabled — acquired on enable + game start +
-   `visibilitychange` re-acquire. Chromium & Safari ≥16.4; older → tips text
-   says to raise the screen timeout.
-3. Fallback UX: first-launch inline onboarding card (non-blocking), ☀
-   indicator chip (off / ok / pulsing warn) that opens per-platform
-   brightness steps (UA-detected), in-game banner until the user confirms
-   "brightness is set" (confirmation expires after 12 h), and a `vis-boost`
-   contrast class layered over any theme.
-Prefs: `blakeout_visibility` `{enabled, onboarded, boost, brightnessConfirmedAt}`.
+- Unified Settings modal is available from setup and the in-game menu. It
+  contains themes, UI scale, bundled wallpaper presets, no wallpaper, and a
+  canvas-downscaled custom upload.
+- Standard 2–4 player setup supports handle drag, ▲/▼ fallback controls, and
+  randomization. The input slots themselves are the canonical throw order,
+  so presets, Quick Start, `beginMatch()` and Play Again preserve it.
+- Team setup supports drag insertion within a team as well as across teams,
+  ▲/▼ fallback controls, independent within-team randomization, and the
+  existing Home/Away first-team swap.
+- 3/4-player headers size scores against each actual grid column and constrain
+  max-scale marks/buttons on compact screens. Responsive tests cover phone,
+  tablet, portrait, landscape, 0.7×–1.5× scale and four-digit X01 scores.
 
 ## Bug fixes (dev)
 
@@ -86,9 +87,10 @@ Prefs: `blakeout_visibility` `{enabled, onboarded, boost, brightnessConfirmedAt}
 
 ## Tests
 
-- `tests/dev_test.py` — 11-test Playwright battery (registry/picker,
-  favorites/recents, chaos, shanghai ×2, themes, visibility, play-again +
-  resume regressions, core cricket + x01). `python3 dev/tests/dev_test.py`.
+- `tests/dev_test.py` — 22-test Playwright battery (registry/picker,
+  favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
+  responsive 3/4-player visibility, play-again/resume regressions, core
+  cricket + x01). `python3 dev/tests/dev_test.py`.
 - `tests/visual_qa.py` — screenshot dump for theme/legibility review.
 - Legacy `scripts/headless_test.py --target dev`: 15/18 — the 3 failures are
   stale count assertions in the prod-tree script (12 cards → now 14 games,
@@ -96,9 +98,6 @@ Prefs: `blakeout_visibility` `{enabled, onboarded, boost, brightnessConfirmedAt}
 
 ## Known limitations / next steps
 
-- Web pages cannot set device brightness; Max Visibility is wake lock +
-  guided-manual + boost. A future thin Android wrapper could use
-  `tryNativeBrightness()` as-is via `AndroidBridge.setBrightness`.
 - Round badge shows leg/round only for cricket/x01/121/chicago; target games
   show their stage in the main panel instead.
 - Legacy test counts (above) will need a bump at promote time.

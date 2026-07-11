@@ -87,6 +87,15 @@
     height: calc(clamp(36px, 5.6dvh, 68px) * var(--ui-scale));
 }
 
+/* In 3/4-player layouts each mark owns a much narrower grid cell. Keep
+   scale changes from pushing the SVG into the neighboring player's lane. */
+.cricket-row.three-player .mark,
+.cricket-row.four-player .mark {
+    max-width: calc(100% - 4px);
+    height: auto;
+    aspect-ratio: 1;
+}
+
 /* Cricket cell — centers marks and scores */
 .cricket-cell {
     display: flex;
@@ -637,6 +646,30 @@
     .mark.minnesota {
         width: clamp(22px, 3.5dvh, 36px);
         height: clamp(22px, 3.5dvh, 36px);
+    }
+}
+
+@media (max-width: 600px) {
+    .cricket-row.three-player .cricket-buttons,
+    .cricket-row.four-player .cricket-buttons {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .cricket-row.three-player .cricket-num-btn,
+    .cricket-row.four-player .cricket-num-btn {
+        min-width: 0;
+        font-size: clamp(0.9rem, calc(3.8vw * var(--ui-scale)), 1.5rem);
+        padding: clamp(3px, calc(1vw * var(--ui-scale)), 6px)
+                 clamp(4px, calc(1.5vw * var(--ui-scale)), 8px);
+    }
+
+    .cricket-row.three-player .cricket-dt-btn,
+    .cricket-row.four-player .cricket-dt-btn {
+        min-width: 0;
+        font-size: clamp(0.65rem, calc(2.4vw * var(--ui-scale)), 1rem);
+        padding: clamp(2px, calc(0.7vw * var(--ui-scale)), 4px)
+                 clamp(2px, calc(0.8vw * var(--ui-scale)), 5px);
     }
 }
 

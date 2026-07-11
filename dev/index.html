@@ -203,21 +203,46 @@
                     </label>
                 </div>
 
-                <div class="player-row" id="player1Group">
-                    <label for="player1">Home</label>
+                <div class="player-order-toolbar" id="playerOrderControls">
+                    <div class="player-order-hint">Drag ☰ or use the arrows to set who throws first.</div>
+                    <button type="button" class="btn btn--sm btn--neutral" id="randomizePlayersBtn">🎲 Randomize</button>
+                </div>
+
+                <div class="player-row" id="player1Group" data-player-index="0">
+                    <button type="button" class="player-order-drag" data-player-drag-index="0" aria-label="Drag first player">☰</button>
+                    <label for="player1" data-player-order-label>Throws 1st</label>
                     <input type="text" id="player1" value="Home" list="rosterDatalist" autocomplete="off">
+                    <span class="player-order-stepper">
+                        <button type="button" data-player-order-action="up" data-player-index="0" aria-label="Move first player earlier" disabled>▲</button>
+                        <button type="button" data-player-order-action="down" data-player-index="0" aria-label="Move first player later">▼</button>
+                    </span>
                 </div>
-                <div class="player-row" id="player2Group">
-                    <label for="player2">Away</label>
+                <div class="player-row" id="player2Group" data-player-index="1">
+                    <button type="button" class="player-order-drag" data-player-drag-index="1" aria-label="Drag second player">☰</button>
+                    <label for="player2" data-player-order-label>Throws 2nd</label>
                     <input type="text" id="player2" value="Away" list="rosterDatalist" autocomplete="off">
+                    <span class="player-order-stepper">
+                        <button type="button" data-player-order-action="up" data-player-index="1" aria-label="Move second player earlier">▲</button>
+                        <button type="button" data-player-order-action="down" data-player-index="1" aria-label="Move second player later" disabled>▼</button>
+                    </span>
                 </div>
-                <div class="player-row hidden" id="player3Group">
-                    <label for="player3">Player 3</label>
+                <div class="player-row hidden" id="player3Group" data-player-index="2">
+                    <button type="button" class="player-order-drag" data-player-drag-index="2" aria-label="Drag third player">☰</button>
+                    <label for="player3" data-player-order-label>Throws 3rd</label>
                     <input type="text" id="player3" value="Player 3" list="rosterDatalist" autocomplete="off">
+                    <span class="player-order-stepper">
+                        <button type="button" data-player-order-action="up" data-player-index="2" aria-label="Move third player earlier">▲</button>
+                        <button type="button" data-player-order-action="down" data-player-index="2" aria-label="Move third player later" disabled>▼</button>
+                    </span>
                 </div>
-                <div class="player-row hidden" id="player4Group">
-                    <label for="player4">Player 4</label>
+                <div class="player-row hidden" id="player4Group" data-player-index="3">
+                    <button type="button" class="player-order-drag" data-player-drag-index="3" aria-label="Drag fourth player">☰</button>
+                    <label for="player4" data-player-order-label>Throws 4th</label>
                     <input type="text" id="player4" value="Player 4" list="rosterDatalist" autocomplete="off">
+                    <span class="player-order-stepper">
+                        <button type="button" data-player-order-action="up" data-player-index="3" aria-label="Move fourth player earlier">▲</button>
+                        <button type="button" data-player-order-action="down" data-player-index="3" aria-label="Move fourth player later" disabled>▼</button>
+                    </span>
                 </div>
             </div>
 
@@ -308,6 +333,7 @@
 
             <div class="team-builder-actions">
                 <button class="btn btn--md btn--neutral" id="teamSwapFirstBtn">Swap which team throws first</button>
+                <button class="btn btn--md btn--neutral" id="teamRandomizeBtn">🎲 Randomize team order</button>
                 <button class="btn btn--md btn--neutral" id="teamLoadLastBtn">Load last team setup</button>
             </div>
 

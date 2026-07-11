@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-BlakeOut DEV overhaul test battery (v2.3-dev).
+BlakeOut DEV regression and layout test battery (v2.4-dev).
 
 Lives under /dev/tests/ — tests the dev build only. Modeled on
 scripts/headless_test.py but covers the v2.3 overhaul features:
@@ -20,6 +20,11 @@ scripts/headless_test.py but covers the v2.3 overhaul features:
     resume_target_game — regression: baseball state survives save/restore
     core_cricket       — no regression: standard cricket scoring flow
     core_x01           — no regression: 501 scoring + winner modal
+    setup_throw_order  — drag, arrow, randomize, match/play-again order
+    team_throw_order   — within-team drag/randomize + first-team order
+    multiplayer_score_visibility — 3/4-player scores across phones,
+                         tablets, orientations and UI-scale extremes
+    multiplayer_cricket_grid_fit — compact max-scale cricket variants
 
 Usage:
     python3 dev/tests/dev_test.py                # run all
@@ -61,6 +66,33 @@ async def get_state(page, expr):
     return await page.evaluate(
         f"(async () => {{ const m = await import('./js/state.js'); return {expr}; }})()"
     )
+
+
+async def set_ui_scale(page, value):
+    await page.evaluate(
+        """value => {
+            const slider = document.getElementById('uiScale');
+            slider.value = String(value);
+            slider.dispatchEvent(new Event('input', { bubbles: true }));
+        }""",
+        value,
+    )
+
+
+async def drag_locator_to(page, source, target, target_y_ratio=0.5):
+    source_box = await source.bounding_box()
+    target_box = await target.bounding_box()
+    assert source_box and target_box, "drag source/target must be visible"
+    sx = source_box["x"] + source_box["width"] / 2
+    sy = source_box["y"] + source_box["height"] / 2
+    tx = target_box["x"] + target_box["width"] / 2
+    ty = target_box["y"] + target_box["height"] * target_y_ratio
+    await page.mouse.move(sx, sy)
+    await page.mouse.down()
+    await page.mouse.move((sx + tx) / 2, (sy + ty) / 2, steps=4)
+    await page.mouse.move(tx, ty, steps=4)
+    await page.mouse.up()
+    await page.wait_for_timeout(120)
 
 
 # ---------------------------------------------------------------- tests
@@ -312,7 +344,7 @@ async def test_settings_modal(page):
     await page.wait_for_timeout(100)
     var = await page.evaluate(
         "document.documentElement.style.getPropertyValue('--app-wallpaper')")
-    assert "felt.svg" in var, f"wallpaper var not applied: {var!r}"
+    assert "../assets/wallpapers/felt.svg" in var, f"wallpaper var not applied: {var!r}"
     saved = await page.evaluate("JSON.parse(localStorage.getItem('blakeout_wallpaper'))")
     assert saved == {"type": "preset", "id": "felt"}, f"saved = {saved}"
     active = await page.locator(".wallpaper-choice.active").get_attribute("data-wallpaper-id")
@@ -323,7 +355,16 @@ async def test_settings_modal(page):
     await page.wait_for_timeout(500)
     var2 = await page.evaluate(
         "document.documentElement.style.getPropertyValue('--app-wallpaper')")
-    assert "felt.svg" in var2, f"wallpaper lost on reload: {var2!r}"
+    assert "../assets/wallpapers/felt.svg" in var2, f"wallpaper lost on reload: {var2!r}"
+    loaded = await page.evaluate("""
+        () => new Promise(resolve => {
+            const image = new Image();
+            image.onload = () => resolve(true);
+            image.onerror = () => resolve(false);
+            image.src = 'assets/wallpapers/felt.svg';
+        })
+    """)
+    assert loaded, "felt wallpaper asset failed to load"
 
     # UI scale slider lives in the modal now
     await page.click("#settingsBtnSetup")
@@ -610,6 +651,271 @@ async def test_cricket_pending_mark_count(page):
     pending2 = (await page.locator("#pendingText").inner_text()).strip()
     assert "1 mark" in pending2 and "1 marks" not in pending2, f"singular broken: {pending2!r}"
     return {"pending": pending}
+
+
+async def test_setup_throw_order(page):
+    # a9: standard-player order supports pointer drag, accessible arrows,
+    # deterministic randomization, and survives beginMatch + Play Again.
+    await fresh(page)
+    await page.select_option("#numPlayers", "4")
+    names = ["Alpha", "Bravo", "Charlie", "Delta"]
+    for index, name in enumerate(names, 1):
+        await page.fill(f"#player{index}", name)
+
+    labels = await page.eval_on_selector_all(
+        "[data-player-order-label]", "els => els.map(el => el.textContent.trim())")
+    assert labels == ["Throws 1st", "Throws 2nd", "Throws 3rd", "Throws 4th"], labels
+
+    # Drag Alpha from first to third. Drop in the upper half of slot 3 so
+    # the insertion index is exactly 2.
+    await drag_locator_to(
+        page,
+        page.locator("[data-player-drag-index='0']"),
+        page.locator("#player3Group"),
+        target_y_ratio=0.25,
+    )
+    dragged = [await page.input_value(f"#player{i}") for i in range(1, 5)]
+    assert dragged == ["Bravo", "Charlie", "Alpha", "Delta"], f"drag order = {dragged}"
+
+    # Arrow fallback moves Alpha one place earlier.
+    await page.click("#player3Group [data-player-order-action='up']")
+    arrowed = [await page.input_value(f"#player{i}") for i in range(1, 5)]
+    assert arrowed == ["Bravo", "Alpha", "Charlie", "Delta"], f"arrow order = {arrowed}"
+
+    # Restore a known order, then force Fisher-Yates picks to index 0.
+    for index, name in enumerate(names, 1):
+        await page.fill(f"#player{index}", name)
+    await page.evaluate("window.__testRandom = Math.random; Math.random = () => 0")
+    await page.click("#randomizePlayersBtn")
+    await page.evaluate("Math.random = window.__testRandom; delete window.__testRandom")
+    randomized = [await page.input_value(f"#player{i}") for i in range(1, 5)]
+    assert randomized == ["Bravo", "Charlie", "Delta", "Alpha"], randomized
+
+    await start_game(page, "501", num_players="4")
+    started = await get_state(page, "m.game.players.map(p => p.name)")
+    assert started == randomized, f"beginMatch lost order: {started}"
+
+    saved_order = await page.evaluate(
+        "JSON.parse(localStorage.getItem('blakeout_configs')).lastConfig")
+    assert [saved_order[f"player{i}"] for i in range(1, 5)] == randomized, \
+        f"last config lost order: {saved_order}"
+
+    await page.evaluate("(async () => (await import('./js/setup.js')).playAgain())()")
+    await page.wait_for_timeout(350)
+    replayed = await get_state(page, "m.game.players.map(p => p.name)")
+    assert replayed == randomized, f"Play Again lost order: {replayed}"
+    return {"dragged": dragged, "randomized": randomized, "replayed": replayed}
+
+
+async def test_team_throw_order(page):
+    # Team randomization is constrained to each team's members, while the
+    # independent Home/Away first-team selection remains intact.
+    await fresh(page)
+    await page.select_option("#gameType", "501")
+    await page.check("#teamMode")
+    await page.click("#startGameBtn")
+    await page.wait_for_selector("#teamBuilderScreen", state="visible")
+
+    for name in ("Alpha", "Bravo", "Charlie", "Delta"):
+        await page.fill("#teamAddName", name)
+        await page.click("#teamAddBtn")
+
+    async def assign(name, zone):
+        await page.locator(".team-chip", has_text=name).click()
+        await page.click(f"#teamZone{zone}Label")
+
+    await assign("Alpha", 0)
+    await assign("Bravo", 0)
+    await assign("Charlie", 1)
+    await assign("Delta", 1)
+
+    # Same-zone pointer drag: Alpha below Bravo. Previously same-zone drops
+    # were ignored and only the arrow fallback could reorder a team.
+    zone0_members = page.locator("#teamZone0Members .team-zone-member")
+    await drag_locator_to(page, zone0_members.nth(0), zone0_members.nth(1), target_y_ratio=0.85)
+    home_after_drag = await page.eval_on_selector_all(
+        "#teamZone0Members .team-zone-member-name",
+        "els => els.map(el => el.textContent.replace(/^\\s*\\d+\\.\\s*/, '').trim())",
+    )
+    assert home_after_drag == ["Bravo", "Alpha"], f"same-team drag = {home_after_drag}"
+
+    # Away throws first; randomization must not change that choice or move
+    # anyone between Home and Away.
+    await page.click("#teamSwapFirstBtn")
+    await page.evaluate("window.__testRandom = Math.random; Math.random = () => 0")
+    await page.click("#teamRandomizeBtn")
+    await page.evaluate("Math.random = window.__testRandom; delete window.__testRandom")
+
+    await page.click("#teamStartMatchBtn")
+    await page.wait_for_timeout(350)
+    state = await get_state(page, "({players:m.game.players.map(p=>p.name), teams:m.game.teams})")
+    assert state["players"] == ["Away", "Home"], f"first-team choice lost: {state['players']}"
+    away_members = [p["name"] for p in state["teams"][0]["members"]]
+    home_members = [p["name"] for p in state["teams"][1]["members"]]
+    assert away_members == ["Delta", "Charlie"], away_members
+    assert home_members == ["Alpha", "Bravo"], home_members
+
+    # Rotation and Play Again must not mutate the selected member order.
+    await page.evaluate("""
+        (async () => {
+            const teams = await import('./js/teams.js');
+            teams.advanceRotation(0);
+            teams.advanceRotation(1);
+            (await import('./js/setup.js')).playAgain();
+        })()
+    """)
+    await page.wait_for_timeout(350)
+    replay = await get_state(page, "m.game.teams")
+    assert [p["name"] for p in replay[0]["members"]] == away_members
+    assert [p["name"] for p in replay[1]["members"]] == home_members
+    assert [team["rotationIndex"] for team in replay] == [0, 0]
+    return {"away_first": away_members, "home_second": home_members}
+
+
+async def test_multiplayer_score_visibility(page):
+    # Representative responsive matrix: compact phone through large tablet,
+    # portrait + landscape, both engines, 3/4 players, and scale extremes.
+    scenarios = [
+        (390, 844, 1.5, 4, "cricket"),
+        (390, 844, 1.5, 4, "501"),
+        (600, 960, 1.5, 3, "cricket"),
+        (744, 1133, 0.7, 3, "501"),
+        (744, 1133, 1.0, 4, "501"),
+        (900, 1200, 1.5, 4, "cricket"),
+        (1024, 700, 1.5, 4, "501"),
+    ]
+    checked = []
+
+    for width, height, scale, count, game_type in scenarios:
+        await page.set_viewport_size({"width": width, "height": height})
+        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_timeout(250)
+        await page.select_option("#numPlayers", str(count))
+        for index in range(1, count + 1):
+            await page.fill(f"#player{index}", f"Long Player Name Number {index}")
+        await set_ui_scale(page, scale)
+        await start_game(page, game_type, num_players=str(count))
+
+        # Include four digits so this guard also covers planned 901/1101/1501.
+        score_ids = ["homeScore", "awayScore", "player3Score", "player4Score"][:count]
+        score_values = ["1501", "1000", "999", "180"][:count]
+        await page.evaluate(
+            """pairs => pairs.forEach(([id, value]) => {
+                document.getElementById(id).textContent = value;
+            })""",
+            list(zip(score_ids, score_values)),
+        )
+
+        metrics = await page.evaluate(
+            """({ count, gameType }) => {
+                const scoreIds = ['homeScore','awayScore','player3Score','player4Score'].slice(0, count);
+                const headerIds = ['homeHeader','awayHeader','player3Header','player4Header'].slice(0, count);
+                const rect = el => {
+                    const r = el.getBoundingClientRect();
+                    return { left:r.left, right:r.right, top:r.top, bottom:r.bottom,
+                             width:r.width, height:r.height };
+                };
+                const scores = scoreIds.map((id, index) => {
+                    const el = document.getElementById(id);
+                    const owner = document.getElementById(headerIds[index]);
+                    const style = getComputedStyle(el);
+                    return { id, box:rect(el), owner:rect(owner), clientWidth:el.clientWidth,
+                             scrollWidth:el.scrollWidth, fontSize:parseFloat(style.fontSize),
+                             display:style.display, visibility:style.visibility };
+                });
+                const header = document.getElementById('scoreHeader');
+                const visibleChildren = [...header.children]
+                    .filter(el => getComputedStyle(el).display !== 'none')
+                    .map(el => ({ id:el.id || el.className, box:rect(el) }))
+                    .sort((a,b) => a.box.left - b.box.left);
+                const main = document.getElementById(gameType === '501' ? 'x01Main' : 'cricketMain');
+                return {
+                    scores, visibleChildren, header:rect(header), main:rect(main),
+                    innerWidth:window.innerWidth, innerHeight:window.innerHeight,
+                    documentWidth:document.documentElement.scrollWidth
+                };
+            }""",
+            {"count": count, "gameType": game_type},
+        )
+        tag = f"{game_type}/{count}p/{width}x{height}/{scale}x"
+        for score in metrics["scores"]:
+            assert score["display"] != "none" and score["visibility"] != "hidden", \
+                f"{tag} {score['id']} hidden"
+            assert score["box"]["width"] > 0 and score["box"]["height"] > 0, \
+                f"{tag} {score['id']} has no size"
+            assert score["scrollWidth"] <= score["clientWidth"] + 1, \
+                f"{tag} {score['id']} text clips: {score}"
+            assert score["fontSize"] >= 18, f"{tag} {score['id']} too small: {score['fontSize']}px"
+            assert score["box"]["left"] >= score["owner"]["left"] - 1 \
+                and score["box"]["right"] <= score["owner"]["right"] + 1, \
+                f"{tag} {score['id']} escaped player header: {score}"
+
+        children = metrics["visibleChildren"]
+        for left, right in zip(children, children[1:]):
+            assert left["box"]["right"] <= right["box"]["left"] + 1, \
+                f"{tag} header columns overlap: {left} vs {right}"
+        assert metrics["header"]["left"] >= -1 and metrics["header"]["right"] <= width + 1, \
+            f"{tag} header outside viewport: {metrics['header']}"
+        assert metrics["header"]["height"] <= height * 0.35, \
+            f"{tag} header consumes too much height: {metrics['header']['height']}"
+        assert metrics["main"]["height"] >= 80, f"{tag} scoring area collapsed: {metrics['main']}"
+        assert metrics["documentWidth"] <= metrics["innerWidth"] + 1, \
+            f"{tag} horizontal page overflow: {metrics['documentWidth']} > {metrics['innerWidth']}"
+        checked.append(tag)
+
+    return {"scenarios": checked}
+
+
+async def test_multiplayer_cricket_grid_fit(page):
+    # At the hardest supported layout (compact phone, four players, 1.5x),
+    # each cricket variant must keep buttons in the center lane and marks in
+    # their own player cells. Scrolling vertically is allowed for long boards.
+    await page.set_viewport_size({"width": 390, "height": 844})
+    checked = {}
+    for game_type in ("cricket", "spanish", "minnesota"):
+        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_timeout(250)
+        await set_ui_scale(page, 1.5)
+        await start_game(page, game_type, num_players="4")
+        layout = await page.evaluate("""
+            () => {
+                const rect = el => {
+                    const r = el.getBoundingClientRect();
+                    return {left:r.left, right:r.right, top:r.top, bottom:r.bottom,
+                            width:r.width, height:r.height};
+                };
+                const failures = [];
+                document.querySelectorAll('.cricket-row').forEach((row, rowIndex) => {
+                    const lane = row.querySelector('.buttons-container') || row.querySelector('.cricket-buttons');
+                    const laneRect = rect(lane);
+                    row.querySelectorAll('.cricket-buttons button:not(.fake-spacer)').forEach(button => {
+                        const box = rect(button);
+                        if (box.left < laneRect.left - 1 || box.right > laneRect.right + 1) {
+                            failures.push({kind:'button', row:rowIndex, box, lane:laneRect});
+                        }
+                    });
+                    row.querySelectorAll('.cricket-cell .mark').forEach(mark => {
+                        const box = rect(mark);
+                        const cell = rect(mark.closest('.cricket-cell'));
+                        if (box.left < cell.left - 1 || box.right > cell.right + 1) {
+                            failures.push({kind:'mark', row:rowIndex, box, cell});
+                        }
+                    });
+                });
+                const main = document.getElementById('cricketMain');
+                const controls = document.getElementById('cricketControls');
+                return {failures, rows:document.querySelectorAll('.cricket-row').length,
+                        main:rect(main), controls:rect(controls), innerHeight:window.innerHeight};
+            }
+        """)
+        assert not layout["failures"], f"{game_type} compact overlap: {layout['failures'][:3]}"
+        assert layout["main"]["height"] >= 80, f"{game_type} main collapsed: {layout['main']}"
+        assert layout["controls"]["bottom"] <= layout["innerHeight"] + 1, \
+            f"{game_type} controls clipped: {layout['controls']}"
+        checked[game_type] = layout["rows"]
+    return {"rows": checked}
 
 
 async def test_header_fit_four_player(page):

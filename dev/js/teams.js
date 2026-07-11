@@ -128,13 +128,16 @@ function render() {
     const loadLastBtn = document.getElementById('teamLoadLastBtn');
     if (loadLastBtn) loadLastBtn.disabled = !hasSavedSetup();
 
+    const randomizeBtn = document.getElementById('teamRandomizeBtn');
+    if (randomizeBtn) randomizeBtn.disabled = !teamMembers.some(zone => zone.length > 1);
+
     const hint = document.getElementById('teamBuilderHint');
     if (hint) {
         if (selectedChipId) {
             hint.textContent = 'Now tap Home or Away.';
         } else if (ready) {
             const firstName = firstTeam === 0 ? 'Home' : 'Away';
-            hint.textContent = `${teamMembers[0].length} vs ${teamMembers[1].length}. ${firstName} throws first. Use ⇄ to swap a member to the other team, ▲▼ to reorder within a team.`;
+            hint.textContent = `${teamMembers[0].length} vs ${teamMembers[1].length}. ${firstName} throws first. Drag or use ▲▼ to reorder within a team; ⇄ moves a member across.`;
         } else {
             hint.textContent = 'Drag a player into Home or Away (or tap a chip then tap a zone). Drag a member back to the tray to undo.';
         }
@@ -183,7 +186,7 @@ function startPointerTrack(e, chipId, sourceZone) {
         pointerId: e.pointerId,
         startX: e.clientX, startY: e.clientY,
         isDragging: false, ghost: null,
-        hoverZone: null, overTray: false
+        hoverZone: null, insertIndex: null, overTray: false
     };
     document.addEventListener('pointermove', onPointerMove);
     document.addEventListener('pointerup', onPointerUp);
@@ -235,13 +238,34 @@ function rectContains(el, x, y) {
     return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
 }
 
+function clearDropIndicators() {
+    document.querySelectorAll('.team-zone-member.drop-before, .team-zone-member.drop-after').forEach(el => {
+        el.classList.remove('drop-before', 'drop-after');
+    });
+}
+
+function insertionIndexFor(zoneIdx, y) {
+    const members = Array.from(document.querySelectorAll(`#teamZone${zoneIdx}Members .team-zone-member`))
+        .filter(el => !(drag?.sourceZone === zoneIdx && el.dataset.zoneMemberId === drag?.chipId));
+    let index = 0;
+    while (index < members.length) {
+        const rect = members[index].getBoundingClientRect();
+        if (y < rect.top + rect.height / 2) break;
+        index++;
+    }
+    return { index, members };
+}
+
 function updateHover(x, y) {
     let hover = null;
     if (rectContains(document.getElementById('teamZone0'), x, y)) hover = 0;
     else if (rectContains(document.getElementById('teamZone1'), x, y)) hover = 1;
     const overTray = drag.sourceZone != null && rectContains(document.getElementById('teamTray'), x, y);
-    if (hover === drag.hoverZone && overTray === drag.overTray) return;
+    const insertion = hover == null ? null : insertionIndexFor(hover, y);
+    const insertIndex = insertion?.index ?? null;
+    if (hover === drag.hoverZone && insertIndex === drag.insertIndex && overTray === drag.overTray) return;
     drag.hoverZone = hover;
+    drag.insertIndex = insertIndex;
     drag.overTray = overTray;
     [0, 1].forEach(idx => {
         const z = document.getElementById(`teamZone${idx}`);
@@ -249,6 +273,15 @@ function updateHover(x, y) {
     });
     const tray = document.getElementById('teamTray');
     if (tray) tray.classList.toggle('drop-hover', overTray);
+
+    clearDropIndicators();
+    if (insertion?.members.length) {
+        if (insertIndex < insertion.members.length) {
+            insertion.members[insertIndex].classList.add('drop-before');
+        } else {
+            insertion.members[insertion.members.length - 1].classList.add('drop-after');
+        }
+    }
 }
 
 function onPointerUp(e) {
@@ -258,11 +291,12 @@ function onPointerUp(e) {
     const droppedOnTray = drag.overTray;
     const chipId = drag.chipId;
     const sourceZone = drag.sourceZone;
+    const insertIndex = drag.insertIndex;
     cleanupDrag();
 
     if (wasDragging) {
-        if (target != null && target !== sourceZone) {
-            moveChip(chipId, sourceZone, target);
+        if (target != null) {
+            moveChip(chipId, sourceZone, target, insertIndex);
         } else if (droppedOnTray && sourceZone != null) {
             moveChipToTray(chipId, sourceZone);
         } else {
@@ -295,22 +329,27 @@ function cleanupDrag() {
         });
         const tray = document.getElementById('teamTray');
         if (tray) tray.classList.remove('drop-hover', 'drop-ready');
+        clearDropIndicators();
     }
     drag = null;
 }
 
-function moveChip(chipId, sourceZone, targetZone) {
+function moveChip(chipId, sourceZone, targetZone, insertIndex = null) {
     let person;
     if (sourceZone == null) {
         person = trayPeople.find(p => p.id === chipId);
         if (!person) return;
         trayPeople = trayPeople.filter(p => p.id !== chipId);
     } else {
-        person = teamMembers[sourceZone].find(p => p.id === chipId);
-        if (!person) return;
-        teamMembers[sourceZone] = teamMembers[sourceZone].filter(p => p.id !== chipId);
+        const sourceIndex = teamMembers[sourceZone].findIndex(p => p.id === chipId);
+        if (sourceIndex < 0) return;
+        [person] = teamMembers[sourceZone].splice(sourceIndex, 1);
     }
-    teamMembers[targetZone].push(person);
+    const target = teamMembers[targetZone];
+    const safeIndex = insertIndex == null
+        ? target.length
+        : Math.max(0, Math.min(target.length, insertIndex));
+    target.splice(safeIndex, 0, person);
     selectedChipId = null;
     render();
 }
@@ -320,6 +359,24 @@ function moveChipToTray(chipId, sourceZone) {
     if (!person) return;
     teamMembers[sourceZone] = teamMembers[sourceZone].filter(p => p.id !== chipId);
     trayPeople.push(person);
+    selectedChipId = null;
+    render();
+}
+
+function shuffleMembers(list) {
+    if (list.length < 2) return;
+    const originalIds = list.map(person => person.id);
+    for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+    }
+    if (list.every((person, index) => person.id === originalIds[index])) {
+        list.push(list.shift());
+    }
+}
+
+function randomizeTeamOrder() {
+    teamMembers.forEach(shuffleMembers);
     selectedChipId = null;
     render();
 }
@@ -455,6 +512,9 @@ export function initTeamBuilder() {
         firstTeam = 1 - firstTeam;
         render();
     });
+
+    const randomizeBtn = document.getElementById('teamRandomizeBtn');
+    if (randomizeBtn) randomizeBtn.addEventListener('click', randomizeTeamOrder);
 
     const loadLastBtn = document.getElementById('teamLoadLastBtn');
     if (loadLastBtn) loadLastBtn.addEventListener('click', loadSavedSetup);

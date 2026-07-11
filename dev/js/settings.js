@@ -56,7 +56,9 @@ export function applyWallpaper(wp = getWallpaper()) {
     } else if (wp.type === 'none') {
         root.style.setProperty('--app-wallpaper', 'none');
     } else if (wp.type === 'preset') {
-        root.style.setProperty('--app-wallpaper', `url('assets/wallpapers/${wp.id}.svg')`);
+        // This custom property is consumed in css/layout.css, so its URL is
+        // resolved relative to /css/ rather than relative to index.html.
+        root.style.setProperty('--app-wallpaper', `url('../assets/wallpapers/${wp.id}.svg')`);
     } else if (wp.type === 'custom' && wp.dataUrl) {
         root.style.setProperty('--app-wallpaper', `url('${wp.dataUrl}')`);
     }
