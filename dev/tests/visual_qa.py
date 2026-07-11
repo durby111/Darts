@@ -107,6 +107,30 @@ async def main():
                 viewport={"width": 1024, "height": 700}, scale="1.5")
             await page.screenshot(path=str(OUT / "game_1501_4p_arctic_maxscale.png"))
 
+            # Four-player Cricket with populated slash/X/O marks at max scale.
+            # This catches clipped marks, boxed active lanes and stray column
+            # separators that an empty-board screenshot cannot reveal.
+            await open_standard_game(
+                "cricket", "blue", players="4",
+                viewport={"width": 744, "height": 1133}, scale="1.5")
+            await page.evaluate("""
+                async () => {
+                    const state = await import('./js/state.js');
+                    const cricket = await import('./js/cricket.js');
+                    state.game.players.forEach((player, playerIndex) => {
+                        state.game.cricketTargets.forEach((target, targetIndex) => {
+                            const marks = (playerIndex + targetIndex) % 4;
+                            const data = player.cricketData[target];
+                            data.marks = marks;
+                            data.closed = marks >= 3;
+                            data.closedInOneTurn = marks >= 3;
+                        });
+                    });
+                    cricket.updateCricketDisplay();
+                }
+            """)
+            await page.screenshot(path=str(OUT / "game_cricket_4p_marks_maxscale.png"))
+
             # Official 2v2 Team Cricket board with all four individual mark
             # columns visible around the shared target lane.
             await page.set_viewport_size({"width": 900, "height": 1600})

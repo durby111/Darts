@@ -45,7 +45,7 @@
 
             <button class="btn btn--lg btn--success btn--block hidden" id="backToGameBtn" style="margin-bottom:var(--space-lg);">Back to Game</button>
 
-            <div class="setup-section">
+            <section class="setup-section setup-panel" id="gamePickerSection">
                 <div class="setup-section-label">Game</div>
                 <div class="picker-toolbar">
                     <input type="search" id="gameSearchInput" class="picker-search" placeholder="Search games…" autocomplete="off" aria-label="Search games">
@@ -87,7 +87,10 @@
                     <option value="doubledown">Double Down Cricket</option>
                     <option value="teamcricket">Team Cricket/400</option>
                 </select>
-            </div>
+            </section>
+
+            <section class="setup-section setup-panel setup-options-panel" id="gameOptionsSection">
+                <div class="setup-section-label">Game Options</div>
 
             <div class="form-group hidden" id="game121Options">
                 <label>Darts Per Leg</label>
@@ -203,12 +206,13 @@
                     <option value="double-in-out">Double In/Double Out</option>
                 </select>
             </div>
+            </section>
 
             <!-- Roster autocomplete: typing a roster name attributes the
                  game to that player; otherwise it's a one-off guest entry. -->
             <datalist id="rosterDatalist"></datalist>
 
-            <div class="setup-section">
+            <section class="setup-section setup-panel" id="playersSection">
                 <div class="setup-section-label">Players</div>
                 <div class="form-group" id="numPlayersGroup">
                     <label>Number of Players</label>
@@ -268,9 +272,9 @@
                         <button type="button" data-player-order-action="down" data-player-index="3" aria-label="Move fourth player later" disabled>▼</button>
                     </span>
                 </div>
-            </div>
+            </section>
 
-            <details class="setup-section setup-section--collapsible">
+            <details class="setup-section setup-panel setup-section--collapsible" id="presetsSection">
                 <summary class="setup-section-label">Presets</summary>
                 <div class="form-group">
                     <div class="config-row">
@@ -281,17 +285,23 @@
                 </div>
             </details>
 
-            <div class="setup-action-row">
-                <button class="btn btn--lg btn--primary btn--block btn--hero" id="startGameBtn">Start Game</button>
-                <button class="btn btn--lg btn--success btn--block hidden" id="resumeGameBtn">Resume Game</button>
-            </div>
+            <section class="setup-section setup-panel setup-play-panel" id="playSection">
+                <div class="setup-section-label">Play</div>
+                <div class="setup-action-row">
+                    <button class="btn btn--lg btn--primary btn--block btn--hero" id="startGameBtn">Start Game</button>
+                    <button class="btn btn--lg btn--success btn--block hidden" id="resumeGameBtn">Resume Game</button>
+                </div>
+            </section>
 
-            <button class="btn btn--md btn--neutral btn--block" id="updateAppBtn" style="margin-top:var(--space-lg);">Check for Updates</button>
-            <div id="updateStatus" style="text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);margin-top:var(--space-xs);"></div>
+            <section class="setup-section setup-panel setup-maintenance-panel" id="maintenanceSection">
+                <div class="setup-section-label">App Maintenance</div>
+                <button class="btn btn--md btn--neutral btn--block" id="updateAppBtn">Check for Updates</button>
+                <div id="updateStatus" style="text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);margin-top:var(--space-xs);"></div>
+            </section>
 
             <!-- Roster manager — collapsible. Players added here sync to
                  Firestore so their lifetime stats follow them across devices. -->
-            <details class="roster-section" id="rosterSection" style="margin-top:var(--space-xl);">
+            <details class="roster-section" id="rosterSection">
                 <summary>Manage Players <span class="roster-status" id="rosterStatus"></span></summary>
                 <div class="roster-body">
                     <div class="roster-list" id="rosterList"></div>

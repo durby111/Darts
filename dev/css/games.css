@@ -6,6 +6,7 @@
 /* === Cricket Grid Rows === */
 .cricket-row {
     display: grid;
+    grid-template-rows: minmax(0, 1fr);
     align-items: center;
     min-height: clamp(50px, 8dvh, 90px);
     padding: 0 var(--space-xs);
@@ -21,11 +22,11 @@
 }
 
 .cricket-row.three-player {
-    grid-template-columns: 1fr 1fr var(--cricket-center-col) 2fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--cricket-center-col) minmax(0, 2fr);
 }
 
 .cricket-row.four-player {
-    grid-template-columns: 1fr 1fr var(--cricket-center-col) 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--cricket-center-col) minmax(0, 1fr) minmax(0, 1fr);
 }
 
 /* Spanish rows — slightly compact */
@@ -47,10 +48,10 @@
     grid-template-columns: 1fr var(--minnesota-center-col) 1fr;
 }
 .cricket-row.minnesota.three-player {
-    grid-template-columns: 1fr 1fr var(--minnesota-center-col) 2fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--minnesota-center-col) minmax(0, 2fr);
 }
 .cricket-row.minnesota.four-player {
-    grid-template-columns: 1fr 1fr var(--minnesota-center-col) 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--minnesota-center-col) minmax(0, 1fr) minmax(0, 1fr);
 }
 
 /* Pad buttons so they sit inside the separator lines */
@@ -87,22 +88,15 @@
     height: calc(clamp(36px, 5.6dvh, 68px) * var(--ui-scale));
 }
 
-/* In 3/4-player layouts each mark owns a much narrower grid cell. Keep
-   scale changes from pushing the SVG into the neighboring player's lane. */
-.cricket-row.three-player .mark,
-.cricket-row.four-player .mark {
-    max-width: calc(100% - 4px);
-    height: auto;
-    aspect-ratio: 1;
-}
-
 /* Cricket cell — centers marks and scores */
 .cricket-cell {
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    min-height: 100%;
+    align-self: stretch;
+    min-height: 0;
+    min-width: 0;
 }
 
 /* Active player column highlight — bold stripe */
@@ -126,6 +120,15 @@
         inset -6px 0 0 var(--color-primary-light);
 }
 
+/* With 3–4 players the header already gives a strong active-player cue.
+   Per-row fills turn into stacked colored boxes and obscure enlarged chalk
+   marks, so keep the multiplayer board itself clean. */
+.cricket-row.three-player > .cricket-cell.active,
+.cricket-row.four-player > .cricket-cell.active {
+    background: transparent;
+    box-shadow: none;
+}
+
 /* === Player Column Separators ===
    Borders go on player cells (fixed 1fr columns), NOT on the button
    container, so they align perfectly even when center column is auto-sized. */
@@ -138,30 +141,8 @@
     border-left: 1px solid var(--color-border);
 }
 
-/* 3-player: [P1 | P2 | buttons | P3] */
-.cricket-row.three-player > .cricket-cell:nth-child(1) {
-    border-right: 1px solid var(--color-border);
-}
-.cricket-row.three-player > .cricket-cell:nth-child(2) {
-    border-right: 1px solid var(--color-border);
-}
-.cricket-row.three-player > .cricket-cell:last-child {
-    border-left: 1px solid var(--color-border);
-}
-
-/* 4-player: [P1 | P2 | buttons | P3 | P4] */
-.cricket-row.four-player > .cricket-cell:nth-child(1) {
-    border-right: 1px solid var(--color-border);
-}
-.cricket-row.four-player > .cricket-cell:nth-child(2) {
-    border-right: 1px solid var(--color-border);
-}
-.cricket-row.four-player > .cricket-cell:nth-child(4) {
-    border-left: 1px solid var(--color-border);
-}
-.cricket-row.four-player > .cricket-cell:last-child {
-    border-left: 1px solid var(--color-border);
-}
+/* 3/4-player boards intentionally have no full-height column rules. At high
+   UI scale those rules cut through enlarged marks and read as stray lines. */
 
 /* Cricket buttons column */
 .cricket-buttons {
@@ -683,4 +664,25 @@
         width: clamp(48px, 7.5dvh, 78px);
         height: clamp(48px, 7.5dvh, 78px);
     }
+}
+
+/* Multiplayer chalk marks must fit BOTH their narrow player lane and their
+   row. The old width-only max let UI scale 1.1–1.5 make marks overlap rows,
+   clip at column edges, and force grid tracks wider than the viewport. */
+.cricket-row.three-player .mark,
+.cricket-row.four-player .mark {
+    --multiplayer-mark-size: clamp(38px, 5dvh, 72px);
+    width: min(calc(var(--multiplayer-mark-size) * var(--ui-scale)), calc(100% - 10px));
+    height: min(calc(var(--multiplayer-mark-size) * var(--ui-scale)), calc(100% - 10px));
+    max-width: calc(100% - 10px);
+    max-height: calc(100% - 10px);
+    aspect-ratio: 1;
+    flex: 0 1 auto;
+}
+
+.cricket-row.three-player .mark.spanish,
+.cricket-row.four-player .mark.spanish,
+.cricket-row.three-player .mark.minnesota,
+.cricket-row.four-player .mark.minnesota {
+    --multiplayer-mark-size: clamp(30px, 4.2dvh, 58px);
 }

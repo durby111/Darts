@@ -298,7 +298,9 @@ export function initSetupControls() {
                 teamModeCb.dispatchEvent(new Event('change'));
             }
         }
+        updateGameOptionsSection();
     });
+    updateGameOptionsSection();
 
     // Baseball variant hint updater
     const baseballHints = {
@@ -550,6 +552,15 @@ function applyTeamModeVisibility() {
         document.getElementById('player4Group').classList.toggle('hidden', count < 4);
     }
     renderPlayerOrderControls();
+}
+
+function updateGameOptionsSection() {
+    const section = document.getElementById('gameOptionsSection');
+    if (!section) return;
+    const hasVisibleOptions = Array.from(section.children).some(child =>
+        child.classList.contains('form-group') && !child.classList.contains('hidden'));
+    section.classList.toggle('hidden', !hasVisibleOptions);
+    section.setAttribute('aria-hidden', String(!hasVisibleOptions));
 }
 
 function startGame() {

@@ -1238,6 +1238,58 @@ async def test_settings_modal(page):
     return {"wallpaper": saved, "choices": n_wall}
 
 
+async def test_setup_section_separation(page):
+    # Main setup choices should read as distinct, consistently styled panels
+    # on both tablets and phones. Game Options disappears when irrelevant.
+    await fresh(page)
+    panel_ids = [
+        "gamePickerSection", "gameOptionsSection", "playersSection",
+        "presetsSection", "playSection", "maintenanceSection"
+    ]
+    labels = await page.eval_on_selector_all(
+        ".setup-card > .setup-panel > .setup-section-label",
+        "elements => elements.map(element => element.textContent.trim())")
+    assert labels == ["Game", "Game Options", "Players", "Presets", "Play", "App Maintenance"], labels
+
+    metrics = await page.evaluate("""
+        ids => ids.map(id => {
+            const element = document.getElementById(id);
+            const style = getComputedStyle(element);
+            const box = element.getBoundingClientRect();
+            return {id, visible:style.display !== 'none', top:box.top, bottom:box.bottom,
+                    borderLeft:parseFloat(style.borderLeftWidth),
+                    radius:parseFloat(style.borderTopLeftRadius),
+                    background:style.backgroundColor};
+        })
+    """, panel_ids)
+    for panel in metrics:
+        assert panel["visible"], f"default 501 panel hidden: {panel}"
+        assert panel["borderLeft"] >= 4 and panel["radius"] > 0, f"panel separator missing: {panel}"
+        assert panel["background"] != "rgba(0, 0, 0, 0)", f"panel background missing: {panel}"
+    for previous, current in zip(metrics, metrics[1:]):
+        assert current["top"] >= previous["bottom"] + 8, \
+            f"panels run together: {previous['id']} -> {current['id']}"
+
+    await page.select_option("#gameType", "countup")
+    assert not await page.locator("#gameOptionsSection").is_visible(), \
+        "empty Game Options panel should hide for Count Up"
+    await page.select_option("#gameType", "cricket")
+    assert await page.locator("#gameOptionsSection").is_visible(), \
+        "Game Options panel should return for Cricket"
+
+    await page.set_viewport_size({"width": 390, "height": 844})
+    compact = await page.evaluate("""
+        () => ({documentWidth:document.documentElement.scrollWidth,
+               viewportWidth:window.innerWidth,
+               panelWidths:[...document.querySelectorAll('.setup-card > .setup-panel')]
+                   .filter(element => getComputedStyle(element).display !== 'none')
+                   .map(element => element.getBoundingClientRect().width)})
+    """)
+    assert compact["documentWidth"] <= compact["viewportWidth"] + 1, compact
+    assert all(width > 250 for width in compact["panelWidths"]), compact
+    return {"labels": labels, "tablet": metrics, "compact": compact}
+
+
 async def test_play_again_target(page):
     # Regression: playAgain() used to corrupt target games (left stale
     # baseball state + stamped cricketData on players).
@@ -1811,6 +1863,94 @@ async def test_multiplayer_cricket_grid_fit(page):
             f"{game_type} controls clipped: {layout['controls']}"
         checked[game_type] = layout["rows"]
     return {"rows": checked}
+
+
+async def test_multiplayer_cricket_marks_visible(page):
+    # Regression: real slash/X/O marks used to enlarge beyond their rows and
+    # columns at >1x scale. The active lane also rendered as stacked colored
+    # boxes, while separator borders cut through the center of the play area.
+    scenarios = [
+        (390, 844, 4, "cricket"),
+        (744, 1133, 3, "cricket"),
+        (744, 1133, 4, "cricket"),
+        (744, 1133, 4, "spanish"),
+        (744, 1133, 4, "minnesota"),
+        (1133, 744, 4, "cricket"),
+    ]
+    checked = []
+    for width, height, count, game_type in scenarios:
+        await page.set_viewport_size({"width": width, "height": height})
+        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_timeout(250)
+        await set_ui_scale(page, 1.5)
+        await start_game(page, game_type, num_players=str(count))
+        await page.evaluate("""
+            async () => {
+                const state = await import('./js/state.js');
+                const cricket = await import('./js/cricket.js');
+                state.game.players.forEach((player, playerIndex) => {
+                    state.game.cricketTargets.forEach((target, targetIndex) => {
+                        const marks = (playerIndex + targetIndex) % 4;
+                        const data = player.cricketData[target];
+                        data.marks = marks;
+                        data.closed = marks >= 3;
+                        data.closedInOneTurn = marks >= 3;
+                        data.marksBeforeClose = 0;
+                    });
+                });
+                cricket.updateCricketDisplay();
+            }
+        """)
+        metrics = await page.evaluate("""
+            () => {
+                const rect = element => {
+                    const box = element.getBoundingClientRect();
+                    return {left:box.left, right:box.right, top:box.top,
+                            bottom:box.bottom, width:box.width, height:box.height};
+                };
+                const failures = [];
+                document.querySelectorAll('.cricket-row').forEach((row, rowIndex) => {
+                    const rowBox = rect(row);
+                    row.querySelectorAll('.cricket-cell').forEach((cell, cellIndex) => {
+                        const cellBox = rect(cell);
+                        const style = getComputedStyle(cell);
+                        if (parseFloat(style.borderLeftWidth) || parseFloat(style.borderRightWidth)) {
+                            failures.push({kind:'separator', row:rowIndex, cell:cellIndex,
+                                           left:style.borderLeftWidth, right:style.borderRightWidth});
+                        }
+                        if (cell.classList.contains('active')) {
+                            if (style.backgroundImage !== 'none'
+                                    || style.backgroundColor !== 'rgba(0, 0, 0, 0)'
+                                    || style.boxShadow !== 'none') {
+                                failures.push({kind:'active-box', row:rowIndex, cell:cellIndex,
+                                               background:style.backgroundColor,
+                                               image:style.backgroundImage, shadow:style.boxShadow});
+                            }
+                        }
+                        cell.querySelectorAll('.mark:not(:empty)').forEach(mark => {
+                            const box = rect(mark);
+                            if (box.left < cellBox.left - 1 || box.right > cellBox.right + 1
+                                    || box.top < rowBox.top - 1 || box.bottom > rowBox.bottom + 1) {
+                                failures.push({kind:'clipped-mark', row:rowIndex, cell:cellIndex,
+                                               box, cellBox, rowBox});
+                            }
+                            if (box.width < 20 || box.height < 20) {
+                                failures.push({kind:'tiny-mark', row:rowIndex, cell:cellIndex, box});
+                            }
+                        });
+                    });
+                });
+                return {failures, documentWidth:document.documentElement.scrollWidth,
+                        viewportWidth:window.innerWidth};
+            }
+        """)
+        tag = f"{game_type}/{count}p/{width}x{height}/1.5x"
+        assert not metrics["failures"], f"{tag}: {metrics['failures'][:4]}"
+        assert metrics["documentWidth"] <= metrics["viewportWidth"] + 1, \
+            f"{tag}: horizontal overflow {metrics}"
+        checked.append(tag)
+    return {"scenarios": checked}
 
 
 async def test_header_fit_four_player(page):

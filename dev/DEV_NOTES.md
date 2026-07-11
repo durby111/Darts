@@ -138,6 +138,25 @@ reads/writes it and fires `change`.
   `target_game.js`, so Baseball, Bermuda, Golf, Shanghai, Hammer, and Robin
   Hood all rotate members consistently instead of only alternating team scores.
 
+## Multiplayer Cricket visual fix
+
+- 3/4-player grid tracks now use shrinkable `minmax(0, …)` lanes, and chalk
+  marks are constrained by both their row height and player-column width at
+  1.1×–1.5× scale. This prevents clipping, row overlap, and horizontal overflow.
+- Removed the stacked active-player background boxes and full-height separator
+  lines from 3/4-player Cricket boards; the active header remains the clear cue.
+- A populated-mark responsive matrix covers 3/4 players, portrait/landscape,
+  390–1133px viewports, Cricket/Spanish/Minnesota, and 1.5× scale.
+
+## Setup-menu section clarity
+
+- Game, Game Options, Players, Presets, Play, and App Maintenance now render as
+  separate surface panels with consistent spacing, accent rails, and divider
+  headings. Manage Players uses the same visual language.
+- The Game Options panel automatically disappears for modes with no options,
+  avoiding an empty section. Presets has an explicit open/closed arrow.
+- Responsive tests verify panel separation and no horizontal overflow at 390px.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
@@ -175,7 +194,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 38-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 40-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.
