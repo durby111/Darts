@@ -109,6 +109,13 @@ reads/writes it and fires `change`.
   Bull = 200; Triple is disabled. Highest score after round 10 wins, including
   tied winners. Team thrower rotation, undo, persistence and resume are wired.
 
+**Double Down Cricket** (`doubledown.js`, dedicated engine)
+- Shared random pair from D2–D14 starts the match. Each side must hit both,
+  then close 15–20 with standard 1/2/3 marks, then hit D1 to win.
+- The board moves between phases immediately inside a turn, supports explicit
+  misses, per-dart undo, player/team rotation, progress summaries, persistence
+  and resume. Header values show completed challenges out of 9.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
@@ -146,7 +153,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 33-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 34-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.

@@ -101,12 +101,12 @@ async def test_registry_picker(page):
     await dismiss_onboard(page)
     # Registry card count grows deliberately as game batches land.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 27, f"expected 27 game cards, got {cards}"
+    assert cards == 28, f"expected 28 game cards, got {cards}"
 
     # New games present
     for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup",
                 "quickie", "cutthroat", "wildcard", "gotcha", "hammer", "teamhammer",
-                "sharktank", "tictactoe", "robinhood"):
+                "sharktank", "tictactoe", "robinhood", "doubledown"):
         n = await page.locator(f".game-card[data-game-value='{gid}']").count()
         assert n == 1, f"{gid} card missing"
 
@@ -125,7 +125,7 @@ async def test_registry_picker(page):
         ".game-card[data-game-value]", "els => els.map(e => e.dataset.gameValue)")
     assert set(cricket_cards) == {
         "cricket", "spanish", "minnesota", "chaos",
-        "quickie", "cutthroat", "wildcard", "hammer", "teamhammer"
+        "quickie", "cutthroat", "wildcard", "hammer", "teamhammer", "doubledown"
     }, \
         f"cricket category shows {cricket_cards}"
     await page.click(".picker-chip[data-category='all']")
@@ -554,6 +554,58 @@ async def test_robin_hood(page):
         "JSON.parse(localStorage.getItem('blakeout_active_game')).robinHood.round")
     assert stored == 10, stored
     return {"turn": live, "final": state, "winner": winner}
+
+
+async def test_double_down_cricket(page):
+    # Two unique random doubles (D2–D14) gate the Cricket phase; 15–20 need
+    # three marks each; only D1 wins after those challenges are complete.
+    await fresh(page)
+    await start_game(page, "doubledown", num_players="2")
+    await page.wait_for_selector("#doubleDownMain", state="visible", timeout=3000)
+    required = await get_state(page, "m.game.doubleDown.requiredDoubles")
+    assert len(required) == 2 and len(set(required)) == 2, required
+    assert all(2 <= value <= 14 for value in required), required
+    phase = (await page.locator("#doubleDownPhase").inner_text()).strip()
+    assert phase == "DOUBLE IN", phase
+
+    # Hit both required doubles; the same turn immediately exposes Cricket.
+    await page.locator("[data-double-down-kind='double-in']").nth(0).click()
+    await page.locator("[data-double-down-kind='double-in']").nth(1).click()
+    await page.wait_for_timeout(100)
+    assert (await page.locator("#doubleDownPhase").inner_text()).strip() == "CLOSE 15–20"
+    await page.locator("[data-double-down-kind='cricket'][data-target='20'][data-marks='3']").click()
+    await page.click("#doubleDownEndTurnBtn")
+    await page.wait_for_timeout(250)
+    progress = await get_state(page, "m.game.doubleDown.progress[0]")
+    assert progress["doubles"] == [True, True], progress
+    assert progress["cricket"]["20"] == 3, progress
+    stored = await page.evaluate(
+        "JSON.parse(localStorage.getItem('blakeout_active_game')).doubleDown.progress[0]")
+    assert stored["doubles"] == [True, True] and stored["cricket"]["20"] == 3, stored
+
+    # Prepare Home with both doubles and all six Cricket numbers closed.
+    # The phase must become D1, and recording D1 wins on commit.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.currentPlayer = 0;
+            const progress = state.game.doubleDown.progress[0];
+            progress.doubles = [true, true];
+            Object.keys(progress.cricket).forEach(target => { progress.cricket[target] = 3; });
+            state.game.pendingDarts = [];
+            (await import('./js/doubledown.js')).updateDoubleDownDisplay();
+        })()
+    """)
+    assert (await page.locator("#doubleDownPhase").inner_text()).strip() == "DOUBLE DOWN"
+    await page.click("[data-double-down-kind='double-one']")
+    await page.click("#doubleDownEndTurnBtn")
+    await page.wait_for_timeout(300)
+    assert await page.locator("#winnerModal").is_visible(), "D1 did not win Double Down"
+    winner = (await page.locator("#winnerName").inner_text()).strip()
+    assert winner == "Home", winner
+    final = await get_state(page, "m.game.doubleDown.progress[0]")
+    assert final["doubleOne"] is True, final
+    return {"required": required, "first_turn": progress, "winner": winner}
 
 
 async def test_game_rules_tooltip(page):
@@ -1043,11 +1095,11 @@ async def test_all_games_boot(page):
     games = await page.evaluate(
         "(async () => { const r = await import('./js/registry.js');"
         " return r.listGames().map(g => ({id:g.id, engine:g.engine, requiresTeamMode:!!g.requiresTeamMode})); })()")
-    assert len(games) >= 27, f"registry shrank? {len(games)} games"
+    assert len(games) >= 28, f"registry shrank? {len(games)} games"
     panels = {
         "cricket": "#cricketMain", "x01": "#x01Main",
         "score": "#x01Main", "target": "#targetGameMain",
-        "tictactoe": "#ticTacToeMain"
+        "tictactoe": "#ticTacToeMain", "doubledown": "#doubleDownMain"
     }
     booted = []
     for g in games:

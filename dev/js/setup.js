@@ -17,6 +17,7 @@ import { initShanghaiState } from './shanghai.js';
 import { initHammerState } from './hammer.js';
 import { initTicTacToeState, resetTicTacToeInput } from './tictactoe.js';
 import { initRobinHoodState } from './robinhood.js';
+import { initDoubleDownState } from './doubledown.js';
 import { initThemePickerUI } from './theme.js';
 import { getGame, isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
@@ -605,6 +606,7 @@ function beginMatch(playerSeeds, teams) {
     const isSharkTank = gameType === 'sharktank';
     const isTicTacToe = gameType === 'tictactoe';
     const isRobinHood = gameType === 'robinhood';
+    const isDoubleDown = gameType === 'doubledown';
 
     Object.assign(game, {
         type: gameType,
@@ -659,6 +661,7 @@ function beginMatch(playerSeeds, teams) {
         } : null,
         ticTacToe: isTicTacToe ? initTicTacToeState() : null,
         robinHood: isRobinHood ? initRobinHoodState() : null,
+        doubleDown: isDoubleDown ? initDoubleDownState(playerSeeds.length) : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,
@@ -687,7 +690,7 @@ function beginMatch(playerSeeds, teams) {
             player.score = parseInt(gameType);
         } else if (isScoreGame(gameType)) {
             // Score-entry games such as Count Up accumulate from zero.
-        } else if (isTargetGame(gameType) || isTicTacToe) {
+        } else if (isTargetGame(gameType) || isTicTacToe || isDoubleDown) {
             // score stays at 0; target games accumulate runs/points/strokes
         } else {
             player.cricketData = initCricket(gameType, includeBulls);

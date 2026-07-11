@@ -15,6 +15,7 @@
             - engine 'score'   → turn-total entry through x01.js (Count Up,
                                                      future Gotcha-style games)
             - engine 'tictactoe' → dedicated 3×3 mark-and-claim board
+            - engine 'doubledown' → random doubles → Cricket → D1 progression
       - engine 'target'  → implement currentTarget / describeHitButtons /
                            pointsForHit / commitTurn and wire it into
                            target_game.js's dispatcher
@@ -228,6 +229,13 @@ export const GAME_REGISTRY = [
         tags: ['robin hood', 'bullseye', 'bulls', '10 rounds', 'practice', 'new'],
         desc: 'Ten rounds of bullseyes. Outer Bull = 100; Inner Bull = 200.',
         rules: 'Throw 3 darts at the bull for 10 rounds. Each Outer Bull scores 100 and each Inner Bull scores 200; misses score nothing. Highest total after every player completes round 10 wins.'
+    },
+    {
+        id: 'doubledown', label: 'Double Down', sub: 'Doubles → Cricket → D1', icon: '⏬',
+        engine: 'doubledown', category: 'cricket', isNew: true,
+        tags: ['double down', 'cricket', 'doubles', 'double 1', 'no points', 'new'],
+        desc: 'Hit two random doubles, close 15–20, then land Double 1 to win.',
+        rules: 'First hit two random doubles from D2–D14. Then close 15–20 with standard marks (Single 1, Double 2, Triple 3); there are no points or Bulls. Once all six close, hit Double 1 to win.'
     }
 ];
 

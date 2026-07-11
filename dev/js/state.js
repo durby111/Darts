@@ -28,6 +28,7 @@ export let game = {
     sharkTank: null,
     ticTacToe: null,
     robinHood: null,
+    doubleDown: null,
     // Team mode (Phase 2). When teamMode is true, game.players[] still has
     // exactly two entries — Home and Away — which the scoring engine treats
     // as the two "players". The actual humans throwing live in
@@ -65,6 +66,7 @@ function snapshot() {
         sharkTank: game.sharkTank ? deepClone(game.sharkTank) : null,
         ticTacToe: game.ticTacToe ? deepClone(game.ticTacToe) : null,
         robinHood: game.robinHood ? deepClone(game.robinHood) : null,
+        doubleDown: game.doubleDown ? deepClone(game.doubleDown) : null,
         chicago: game.chicago ? deepClone(game.chicago) : null,
         game121: game.game121 ? deepClone(game.game121) : null,
         baseball: game.baseball ? deepClone(game.baseball) : null,
@@ -90,6 +92,7 @@ function restore(state) {
     if (state.sharkTank !== undefined) game.sharkTank = state.sharkTank;
     if (state.ticTacToe !== undefined) game.ticTacToe = state.ticTacToe;
     if (state.robinHood !== undefined) game.robinHood = state.robinHood;
+    if (state.doubleDown !== undefined) game.doubleDown = state.doubleDown;
     ['chicago', 'game121', 'baseball', 'bermuda', 'golf', 'shanghai'].forEach(key => {
         if (state[key] !== undefined) game[key] = state[key];
     });
@@ -233,6 +236,7 @@ export function saveActiveGame() {
         sharkTank: game.sharkTank ? deepClone(game.sharkTank) : null,
         ticTacToe: game.ticTacToe ? deepClone(game.ticTacToe) : null,
         robinHood: game.robinHood ? deepClone(game.robinHood) : null,
+        doubleDown: game.doubleDown ? deepClone(game.doubleDown) : null,
         teamMode: game.teamMode || false,
         teams: game.teams ? deepClone(game.teams) : null,
         timestamp: Date.now()
@@ -283,6 +287,7 @@ export function restoreActiveGame(snapshot) {
         sharkTank: snapshot.sharkTank || null,
         ticTacToe: snapshot.ticTacToe || null,
         robinHood: snapshot.robinHood || null,
+        doubleDown: snapshot.doubleDown || null,
         teamMode: snapshot.teamMode || false,
         teams: snapshot.teams || null
     });

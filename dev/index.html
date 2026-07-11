@@ -84,6 +84,7 @@
                     <option value="sharktank">Shark Tank</option>
                     <option value="tictactoe">Tic Tac Toe</option>
                     <option value="robinhood">Robin Hood</option>
+                    <option value="doubledown">Double Down Cricket</option>
                 </select>
             </div>
 
@@ -429,6 +430,14 @@
             <div class="tic-grid" id="ticTacToeGrid"></div>
         </div>
 
+        <!-- Double Down Cricket -->
+        <div class="double-down-main hidden" id="doubleDownMain">
+            <div class="double-down-phase" id="doubleDownPhase">DOUBLE IN</div>
+            <div class="double-down-hint" id="doubleDownHint"></div>
+            <div class="double-down-board" id="doubleDownBoard"></div>
+            <div class="double-down-players" id="doubleDownPlayers"></div>
+        </div>
+
         <!-- Bottom Controls (Cricket) -->
         <div class="bottom-controls hidden" id="cricketControls">
             <div class="cricket-controls-left">
@@ -528,6 +537,15 @@
             <div class="tic-bottom-row">
                 <button class="btn btn--md btn--undo" id="ticUndoBtn" disabled>UNDO</button>
                 <button class="btn btn--lg btn--success" id="ticEndTurnBtn">END TURN</button>
+            </div>
+        </div>
+
+        <div class="controls-area double-down-controls hidden" id="doubleDownControls">
+            <div class="double-down-pending" id="doubleDownPending">Record up to three darts, then end the turn.</div>
+            <div class="double-down-bottom-row">
+                <button class="btn btn--md btn--undo" id="doubleDownUndoBtn" disabled>UNDO</button>
+                <button class="btn btn--md btn--miss" id="doubleDownMissBtn">MISS DART</button>
+                <button class="btn btn--lg btn--success" id="doubleDownEndTurnBtn">END TURN</button>
             </div>
         </div>
     </div>
