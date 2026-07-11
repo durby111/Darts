@@ -76,6 +76,18 @@ reads/writes it and fires `change`.
 - Gotcha state, bombed opponents, overshoots, undo and active-game resume are
   persisted; X01-only Bust/checkout/remaining-entry controls are suppressed.
 
+**Hammer Cricket + Team Hammer** (`hammer.js`, target engine)
+- Official 8-round sequence: 20, 19, 18, Wild, 17, 16, 15, Wild; Wild is
+  random 12–20 or Bull. Dart positions multiply ×1/×2/×3, with ×1/×3/×5
+  in the final round. All-miss turns subtract triple the target.
+- An explicit Miss Dart button preserves dart position. A tied top score gets
+  a Wild tie-break round; remaining ties use MPR, with true ties supported.
+- Team Hammer forces exactly 2 members per side through registry team metadata;
+  members rotate full turns while sharing team score and hammer penalties.
+- Undo snapshots now include every engine's stage state, so cross-turn undo
+  restores Hammer rounds and also fixes stage restoration for existing target
+  games rather than restoring scores alone.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
@@ -113,7 +125,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 28-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 30-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.

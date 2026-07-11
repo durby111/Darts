@@ -24,6 +24,7 @@ export let game = {
     shanghai: null,
     countUp: null,
     gotcha: null,
+    hammer: null,
     // Team mode (Phase 2). When teamMode is true, game.players[] still has
     // exactly two entries — Home and Away — which the scoring engine treats
     // as the two "players". The actual humans throwing live in
@@ -57,6 +58,13 @@ function snapshot() {
         cricketTargets: deepClone(game.cricketTargets),
         countUp: game.countUp ? deepClone(game.countUp) : null,
         gotcha: game.gotcha ? deepClone(game.gotcha) : null,
+        hammer: game.hammer ? deepClone(game.hammer) : null,
+        chicago: game.chicago ? deepClone(game.chicago) : null,
+        game121: game.game121 ? deepClone(game.game121) : null,
+        baseball: game.baseball ? deepClone(game.baseball) : null,
+        bermuda: game.bermuda ? deepClone(game.bermuda) : null,
+        golf: game.golf ? deepClone(game.golf) : null,
+        shanghai: game.shanghai ? deepClone(game.shanghai) : null,
         // Snapshot teams so undo rolls back rotationIndex too.
         teams: game.teams ? deepClone(game.teams) : null,
         timestamp: Date.now()
@@ -72,6 +80,10 @@ function restore(state) {
     if (state.cricketTargets !== undefined) game.cricketTargets = state.cricketTargets;
     if (state.countUp !== undefined) game.countUp = state.countUp;
     if (state.gotcha !== undefined) game.gotcha = state.gotcha;
+    if (state.hammer !== undefined) game.hammer = state.hammer;
+    ['chicago', 'game121', 'baseball', 'bermuda', 'golf', 'shanghai'].forEach(key => {
+        if (state[key] !== undefined) game[key] = state[key];
+    });
     if (state.teams !== undefined) game.teams = state.teams;
 }
 
@@ -208,6 +220,7 @@ export function saveActiveGame() {
         shanghai: game.shanghai ? deepClone(game.shanghai) : null,
         countUp: game.countUp ? deepClone(game.countUp) : null,
         gotcha: game.gotcha ? deepClone(game.gotcha) : null,
+        hammer: game.hammer ? deepClone(game.hammer) : null,
         teamMode: game.teamMode || false,
         teams: game.teams ? deepClone(game.teams) : null,
         timestamp: Date.now()
@@ -254,6 +267,7 @@ export function restoreActiveGame(snapshot) {
         shanghai: snapshot.shanghai || null,
         countUp: snapshot.countUp || null,
         gotcha: snapshot.gotcha || null,
+        hammer: snapshot.hammer || null,
         teamMode: snapshot.teamMode || false,
         teams: snapshot.teams || null
     });

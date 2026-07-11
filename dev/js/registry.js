@@ -133,6 +133,22 @@ export const GAME_REGISTRY = [
         rules: 'Standard Cricket scoring on six random numbers from 7–20 plus Bull. After every turn, each number nobody has marked changes to a new value. As soon as anyone marks a number, that row locks for the rest of the game. Bull is always fixed.'
     },
     {
+        id: 'hammer', label: 'Hammer Cricket', sub: 'Don’t miss', icon: '🔨',
+        engine: 'target', category: 'cricket', isNew: true,
+        minPlayers: 2, maxPlayers: 4,
+        tags: ['hammer', 'cricket', 'count up', 'wild rounds', 'penalty', 'new'],
+        desc: 'Eight target rounds with escalating dart multipliers. Miss all three and the hammer falls.',
+        rules: 'Rounds target 20, 19, 18, Wild, 17, 16, 15, Wild. A hit scores its segment value × dart position (×1, ×2, ×3); the final round uses ×1, ×3, ×5. Miss all three and subtract triple the target. Highest score wins.'
+    },
+    {
+        id: 'teamhammer', label: 'Team Hammer', sub: '2 vs 2', icon: '🔨',
+        engine: 'target', category: 'cricket', isNew: true,
+        requiresTeamMode: true, teamMembers: 2,
+        tags: ['hammer', 'team', '2 vs 2', 'cricket', 'count up', 'new'],
+        desc: 'Official Team Hammer: two pairs share scores and penalties.',
+        rules: 'Two teams of two play Hammer Cricket. Team members alternate full turns and share one total. Hits use the normal Hammer dart-position multipliers; an all-miss turn subtracts triple the target from that team. Highest team score wins.'
+    },
+    {
         id: 'chicago', label: 'Chicago', sub: 'Best of 3', icon: '🌆',
         engine: 'special', category: 'party',
         tags: ['combo', 'cricket', 'x01', 'match', 'best of 3'],

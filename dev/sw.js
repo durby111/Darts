@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v16';
+const CACHE_NAME = 'blakeout-dev-v17';
 const ASSETS = [
     './',
     './index.html',
@@ -22,6 +22,7 @@ const ASSETS = [
     './js/bermuda.js',
     './js/golf.js',
     './js/shanghai.js',
+    './js/hammer.js',
     './js/target_game.js',
     './js/theme.js',
     './js/settings.js',

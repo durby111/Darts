@@ -101,11 +101,11 @@ async def test_registry_picker(page):
     await dismiss_onboard(page)
     # Registry card count grows deliberately as game batches land.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 22, f"expected 22 game cards, got {cards}"
+    assert cards == 24, f"expected 24 game cards, got {cards}"
 
     # New games present
     for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup",
-                "quickie", "cutthroat", "wildcard", "gotcha"):
+                "quickie", "cutthroat", "wildcard", "gotcha", "hammer", "teamhammer"):
         n = await page.locator(f".game-card[data-game-value='{gid}']").count()
         assert n == 1, f"{gid} card missing"
 
@@ -124,7 +124,7 @@ async def test_registry_picker(page):
         ".game-card[data-game-value]", "els => els.map(e => e.dataset.gameValue)")
     assert set(cricket_cards) == {
         "cricket", "spanish", "minnesota", "chaos",
-        "quickie", "cutthroat", "wildcard"
+        "quickie", "cutthroat", "wildcard", "hammer", "teamhammer"
     }, \
         f"cricket category shows {cricket_cards}"
     await page.click(".picker-chip[data-category='all']")
@@ -287,6 +287,107 @@ async def test_gotcha(page):
         "JSON.parse(localStorage.getItem('blakeout_active_game')).players[1].score")
     assert stored == 301, f"Gotcha win not persisted: {stored}"
     return {"bombed": bombed, "overshoot": rebounded, "winner": winner}
+
+
+async def test_hammer_cricket(page):
+    # Dart positions matter: miss, single 20, triple 20 = 0 + 40 + 180.
+    # An all-miss turn drops the hammer (-triple target), target-stage undo
+    # restores round state, and round 8 uses ×1/×3/×5.
+    await fresh(page)
+    await start_game(page, "hammer", num_players="2")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    target = (await page.locator("#targetValue").inner_text()).strip()
+    assert target == "20", target
+    assert await page.locator("#targetMissDartBtn").is_visible(), "Hammer needs explicit misses"
+
+    await page.click("#targetMissDartBtn")
+    await page.click("#hitSingleBtn")
+    await page.click("#hitTripleBtn")
+    live = int(await page.locator("#targetTurnScore").inner_text())
+    assert live == 220, f"Hammer weighted turn = {live}"
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(250)
+    p0 = await get_state(page, "m.game.players[0].score")
+    assert p0 == 220, p0
+
+    # Away records no hits: 3 × target 20 is subtracted.
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(250)
+    state = await get_state(page, "({scores:m.game.players.map(p=>p.score), round:m.game.hammer.round})")
+    assert state == {"scores": [220, -60], "round": 2}, state
+    assert (await page.locator("#targetValue").inner_text()).strip() == "19"
+    assert (await page.locator("#roundBadge").inner_text()).strip() == "2"
+
+    # Cross-turn undo must restore both scores and Hammer's target round.
+    await page.click("#targetUndoBtn")
+    await page.wait_for_timeout(150)
+    undone = await get_state(
+        page, "({scores:m.game.players.map(p=>p.score), round:m.game.hammer.round, current:m.game.currentPlayer})")
+    assert undone == {"scores": [220, 0], "round": 1, "current": 1}, undone
+    assert (await page.locator("#targetValue").inner_text()).strip() == "20"
+
+    # Final-round singles at target 15: 15×1 + 15×3 + 15×5 = 135.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.hammer.round = 8;
+            state.game.hammer.targets[7] = 15;
+            state.game.currentPlayer = 0;
+            (await import('./js/target_game.js')).updateTargetGameDisplay();
+        })()
+    """)
+    for _ in range(3):
+        await page.click("#hitSingleBtn")
+    final_live = int(await page.locator("#targetTurnScore").inner_text())
+    assert final_live == 135, f"Hammer final weights = {final_live}"
+    return {"weighted": live, "hammer_drop": state["scores"][1], "final_weighted": final_live}
+
+
+async def test_team_hammer(page):
+    # Team Hammer forces team mode and exactly two throwers per side. Scores
+    # and hammer penalties belong to the team while member rotation advances.
+    await fresh(page)
+    await page.select_option("#gameType", "teamhammer")
+    await page.wait_for_timeout(100)
+    assert await page.locator("#teamMode").is_checked(), "Team Hammer should force Team Mode"
+    assert await page.locator("#teamMode").is_disabled(), "forced Team Mode should not be switchable"
+    await page.click("#startGameBtn")
+    await page.wait_for_selector("#teamBuilderScreen", state="visible")
+
+    for name in ("Alpha", "Bravo", "Charlie", "Delta"):
+        await page.fill("#teamAddName", name)
+        await page.click("#teamAddBtn")
+
+    async def assign(name, zone):
+        await page.locator(".team-chip", has_text=name).click()
+        await page.click(f"#teamZone{zone}Label")
+
+    await assign("Alpha", 0)
+    await assign("Charlie", 1)
+    assert await page.locator("#teamStartMatchBtn").is_disabled(), "1v1 must not start Team Hammer"
+    await assign("Bravo", 0)
+    await assign("Delta", 1)
+    assert await page.locator("#teamStartMatchBtn").is_enabled(), "2v2 should enable Team Hammer"
+    await page.click("#teamStartMatchBtn")
+    await page.wait_for_timeout(300)
+
+    teams = await get_state(page, "m.game.teams")
+    assert [len(team["members"]) for team in teams] == [2, 2], teams
+    await page.click("#hitSingleBtn")
+    await page.click("#targetMissDartBtn")
+    await page.click("#targetMissDartBtn")
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(250)
+    after_home = await get_state(
+        page, "({scores:m.game.players.map(p=>p.score), rotations:m.game.teams.map(t=>t.rotationIndex)})")
+    assert after_home == {"scores": [20, 0], "rotations": [1, 0]}, after_home
+
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(250)
+    after_away = await get_state(
+        page, "({scores:m.game.players.map(p=>p.score), rotations:m.game.teams.map(t=>t.rotationIndex)})")
+    assert after_away == {"scores": [20, -60], "rotations": [1, 1]}, after_away
+    return {"teams": [len(team["members"]) for team in teams], "after_round": after_away}
 
 
 async def test_game_rules_tooltip(page):
@@ -775,14 +876,18 @@ async def test_all_games_boot(page):
     await dismiss_onboard(page)
     games = await page.evaluate(
         "(async () => { const r = await import('./js/registry.js');"
-        " return r.listGames().map(g => ({id: g.id, engine: g.engine})); })()")
-    assert len(games) >= 22, f"registry shrank? {len(games)} games"
+        " return r.listGames().map(g => ({id:g.id, engine:g.engine, requiresTeamMode:!!g.requiresTeamMode})); })()")
+    assert len(games) >= 24, f"registry shrank? {len(games)} games"
     panels = {
         "cricket": "#cricketMain", "x01": "#x01Main",
         "score": "#x01Main", "target": "#targetGameMain"
     }
     booted = []
     for g in games:
+        # Team-required games have richer dedicated setup/boot tests.
+        if g["requiresTeamMode"]:
+            booted.append(g["id"])
+            continue
         await page.evaluate("localStorage.removeItem('blakeout_active_game')")
         await page.reload(wait_until="domcontentloaded")
         await page.wait_for_timeout(400)

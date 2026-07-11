@@ -14,6 +14,7 @@ import { initBaseballState } from './baseball.js';
 import { initBermudaState } from './bermuda.js';
 import { initGolfState } from './golf.js';
 import { initShanghaiState } from './shanghai.js';
+import { initHammerState } from './hammer.js';
 import { initThemePickerUI } from './theme.js';
 import { getGame, isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
@@ -276,6 +277,20 @@ export function initSetupControls() {
         } else if (count && parseInt(count.value) > maxPlayers) {
             count.value = String(maxPlayers);
             count.dispatchEvent(new Event('change'));
+        }
+
+        if (teamModeCb) {
+            if (gameDef?.requiresTeamMode) {
+                teamModeCb.checked = true;
+                teamModeCb.disabled = true;
+                teamModeCb.dataset.forcedByGame = 'true';
+                teamModeCb.dispatchEvent(new Event('change'));
+            } else if (teamModeCb.dataset.forcedByGame === 'true') {
+                teamModeCb.checked = false;
+                teamModeCb.disabled = false;
+                delete teamModeCb.dataset.forcedByGame;
+                teamModeCb.dispatchEvent(new Event('change'));
+            }
         }
     });
 
@@ -584,6 +599,7 @@ function beginMatch(playerSeeds, teams) {
     const isShanghai = gameType === 'shanghai';
     const isCountUp = gameType === 'countup';
     const isGotcha = gameType === 'gotcha';
+    const isHammer = gameType === 'hammer' || gameType === 'teamhammer';
 
     Object.assign(game, {
         type: gameType,
@@ -629,6 +645,7 @@ function beginMatch(playerSeeds, teams) {
         shanghai: isShanghai ? initShanghaiState(document.getElementById('shanghaiVariant')?.value) : null,
         countUp: isCountUp ? { totalRounds: 8 } : null,
         gotcha: isGotcha ? { target: 301 } : null,
+        hammer: isHammer ? initHammerState() : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,

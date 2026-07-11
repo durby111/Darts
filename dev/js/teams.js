@@ -14,6 +14,7 @@
 
 import { game } from './state.js';
 import { getRosterCache, findPlayerByName } from './firebase.js';
+import { getGame } from './registry.js';
 
 const STORAGE_KEY = 'blakeout_last_team_setup';
 
@@ -69,6 +70,11 @@ function makeId() {
     return Math.random().toString(36).slice(2, 10);
 }
 
+function requiredTeamSize() {
+    const gameType = document.getElementById('gameType')?.value;
+    return getGame(gameType)?.teamMembers || null;
+}
+
 function escapeHtml(str) {
     return String(str).replace(/[&<>"']/g, c =>
         ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])
@@ -121,7 +127,10 @@ function render() {
         }
     });
 
-    const ready = teamMembers[0].length > 0 && teamMembers[1].length > 0;
+    const required = requiredTeamSize();
+    const ready = required
+        ? teamMembers[0].length === required && teamMembers[1].length === required
+        : teamMembers[0].length > 0 && teamMembers[1].length > 0;
     const startBtn = document.getElementById('teamStartMatchBtn');
     if (startBtn) startBtn.disabled = !ready;
 
@@ -139,13 +148,17 @@ function render() {
             const firstName = firstTeam === 0 ? 'Home' : 'Away';
             hint.textContent = `${teamMembers[0].length} vs ${teamMembers[1].length}. ${firstName} throws first. Drag or use ▲▼ to reorder within a team; ⇄ moves a member across.`;
         } else {
-            hint.textContent = 'Drag a player into Home or Away (or tap a chip then tap a zone). Drag a member back to the tray to undo.';
+            hint.textContent = required
+                ? `This game requires exactly ${required} players on each team. Drag or tap players into Home and Away.`
+                : 'Drag a player into Home or Away (or tap a chip then tap a zone). Drag a member back to the tray to undo.';
         }
     }
 }
 
 function assignSelectedTo(zoneIdx) {
     if (!selectedChipId) return;
+    const required = requiredTeamSize();
+    if (required && teamMembers[zoneIdx].length >= required) return;
     const person = trayPeople.find(p => p.id === selectedChipId);
     if (!person) return;
     trayPeople = trayPeople.filter(p => p.id !== selectedChipId);
@@ -165,6 +178,8 @@ function reorderMember(zoneIdx, memberId, direction) {
 }
 
 function swapToOtherTeam(zoneIdx, memberId) {
+    const required = requiredTeamSize();
+    if (required && teamMembers[1 - zoneIdx].length >= required) return;
     const i = teamMembers[zoneIdx].findIndex(p => p.id === memberId);
     if (i < 0) return;
     const [person] = teamMembers[zoneIdx].splice(i, 1);
@@ -335,6 +350,8 @@ function cleanupDrag() {
 }
 
 function moveChip(chipId, sourceZone, targetZone, insertIndex = null) {
+    const required = requiredTeamSize();
+    if (required && sourceZone !== targetZone && teamMembers[targetZone].length >= required) return;
     let person;
     if (sourceZone == null) {
         person = trayPeople.find(p => p.id === chipId);
@@ -423,7 +440,12 @@ function loadSavedSetup() {
 // --- Confirm + exit ---
 
 function confirmTeams() {
-    if (!teamMembers[0].length || !teamMembers[1].length) return;
+    const required = requiredTeamSize();
+    if (required) {
+        if (teamMembers[0].length !== required || teamMembers[1].length !== required) return;
+    } else if (!teamMembers[0].length || !teamMembers[1].length) {
+        return;
+    }
     saveSetup();
     // Build teams in throwing order: first-team-index goes to slot 0.
     const order = firstTeam === 0 ? [0, 1] : [1, 0];

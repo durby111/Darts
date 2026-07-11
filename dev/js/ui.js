@@ -313,6 +313,8 @@ export function updateRoundBadge() {
         badge.textContent = Math.min(game.completedRounds + 1, game.countUp.totalRounds || 8);
     } else if (game.type === 'quickie') {
         badge.textContent = Math.min(game.completedRounds + 1, 10);
+    } else if (game.hammer) {
+        badge.textContent = game.hammer.tiebreaker ? 'TB' : game.hammer.round;
     } else {
         badge.textContent = game.completedRounds + 1;
     }

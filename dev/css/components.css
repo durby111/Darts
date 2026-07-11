@@ -1031,6 +1031,16 @@
     margin-bottom: var(--space-sm);
 }
 
+.target-hit-buttons.has-miss {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 600px) {
+    .target-hit-buttons.has-miss {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .target-hit-buttons .btn:disabled {
     opacity: 0.35;
     pointer-events: none;
