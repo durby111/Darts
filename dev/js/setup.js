@@ -15,6 +15,7 @@ import { initBermudaState } from './bermuda.js';
 import { initGolfState } from './golf.js';
 import { initShanghaiState } from './shanghai.js';
 import { initHammerState } from './hammer.js';
+import { initTicTacToeState, resetTicTacToeInput } from './tictactoe.js';
 import { initThemePickerUI } from './theme.js';
 import { getGame, isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
@@ -601,6 +602,7 @@ function beginMatch(playerSeeds, teams) {
     const isGotcha = gameType === 'gotcha';
     const isHammer = gameType === 'hammer' || gameType === 'teamhammer';
     const isSharkTank = gameType === 'sharktank';
+    const isTicTacToe = gameType === 'tictactoe';
 
     Object.assign(game, {
         type: gameType,
@@ -653,6 +655,7 @@ function beginMatch(playerSeeds, teams) {
             eliminated: playerSeeds.map(() => false),
             roundScores: playerSeeds.map(() => null)
         } : null,
+        ticTacToe: isTicTacToe ? initTicTacToeState() : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,
@@ -681,7 +684,7 @@ function beginMatch(playerSeeds, teams) {
             player.score = parseInt(gameType);
         } else if (isScoreGame(gameType)) {
             // Score-entry games such as Count Up accumulate from zero.
-        } else if (isTargetGame(gameType)) {
+        } else if (isTargetGame(gameType) || isTicTacToe) {
             // score stays at 0; target games accumulate runs/points/strokes
         } else {
             player.cricketData = initCricket(gameType, includeBulls);
@@ -707,6 +710,7 @@ function beginMatch(playerSeeds, teams) {
     // the X01 input display (win path skips clearInput) — wipe all input
     // state at every match start.
     resetX01Input();
+    resetTicTacToeInput();
 
     clearActiveGame();
     const scaleSlider = document.getElementById('uiScale');

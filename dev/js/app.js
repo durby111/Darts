@@ -14,6 +14,7 @@ import { initTargetGameControls, updateTargetGameDisplay } from './target_game.j
 import { init121SummaryControls } from './game121.js';
 import { isCricketGame, isTargetGame } from './registry.js';
 import { initSettings } from './settings.js';
+import { initTicTacToeControls, updateTicTacToeDisplay } from './tictactoe.js';
 // Side-effect import: applies the saved theme before any UI paints.
 import './theme.js';
 
@@ -31,21 +32,26 @@ function updateDisplay() {
     const effectiveType = game.chicago ? game.chicago.currentGameType : game.type;
     const isCricket = isCricketGame(effectiveType);
     const isTarget = isTargetGame(effectiveType);
+    const isTicTacToe = effectiveType === 'tictactoe';
 
     // Show/hide game areas
     const cricketMain = document.getElementById('cricketMain');
     cricketMain.classList.toggle('hidden', !isCricket);
     cricketMain.classList.toggle('minnesota-layout', effectiveType === 'minnesota');
-    document.getElementById('x01Main').classList.toggle('hidden', isCricket || isTarget);
+    document.getElementById('x01Main').classList.toggle('hidden', isCricket || isTarget || isTicTacToe);
     document.getElementById('targetGameMain').classList.toggle('hidden', !isTarget);
+    document.getElementById('ticTacToeMain').classList.toggle('hidden', !isTicTacToe);
     document.getElementById('cricketControls').classList.toggle('hidden', !isCricket);
-    document.getElementById('x01Controls').classList.toggle('hidden', isCricket || isTarget);
+    document.getElementById('x01Controls').classList.toggle('hidden', isCricket || isTarget || isTicTacToe);
     document.getElementById('targetGameControls').classList.toggle('hidden', !isTarget);
+    document.getElementById('ticTacToeControls').classList.toggle('hidden', !isTicTacToe);
 
     if (isCricket) {
         updateCricketDisplay();
     } else if (isTarget) {
         updateTargetGameDisplay();
+    } else if (isTicTacToe) {
+        updateTicTacToeDisplay();
     } else {
         updateX01Display();
     }
@@ -345,6 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('x01', initX01Controls);
     safeInit('chicago', initChicagoControls);
     safeInit('targetGame', () => initTargetGameControls(updateDisplay));
+    safeInit('ticTacToe', initTicTacToeControls);
     safeInit('game121Summary', () => init121SummaryControls(
         // "Play Again": go back to setup with all current settings preserved.
         // playAgain() doesn't re-init game121 state, so this is the safe path.

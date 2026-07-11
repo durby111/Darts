@@ -14,6 +14,7 @@
       - engine 'x01'     → handled by x01.js (numeric start score)
             - engine 'score'   → turn-total entry through x01.js (Count Up,
                                                      future Gotcha-style games)
+            - engine 'tictactoe' → dedicated 3×3 mark-and-claim board
       - engine 'target'  → implement currentTarget / describeHitButtons /
                            pointsForHit / commitTurn and wire it into
                            target_game.js's dispatcher
@@ -212,6 +213,14 @@ export const GAME_REGISTRY = [
         tags: ['shark tank', 'survival', 'count up', 'bites', 'elimination', 'new'],
         desc: 'Win each Count-Up round or let the shark chew through your six lives.',
         rules: 'Enter each 3-dart total; Bulls score 0. The sole high scorer is safe and everyone else takes a bite. Score half or less than the leader and take 2 bites. If the top score is tied, every surviving player takes 1 bite. Six bites eliminates you; last surfer wins.'
+    },
+    {
+        id: 'tictactoe', label: 'Tic Tac Toe', sub: 'Claim 3 in a row', icon: '❎',
+        engine: 'tictactoe', category: 'party', isNew: true,
+        minPlayers: 2, maxPlayers: 2,
+        tags: ['tic tac toe', 'tic tac darts', 'x and o', 'random numbers', 'party', 'new'],
+        desc: 'Claim dartboard squares with four marks and connect three in a row.',
+        rules: 'Bull is the center of a 3×3 board; eight random numbers fill the other squares. Single = 1 mark, Double = 2, Triple = 3 (Bull = 1/2). Four marks claims a square. First to claim 3 in a row wins; a full Cats board goes to the player with more squares.'
     }
 ];
 

@@ -82,6 +82,7 @@
                     <option value="countup">Count Up</option>
                     <option value="gotcha">Gotcha!</option>
                     <option value="sharktank">Shark Tank</option>
+                    <option value="tictactoe">Tic Tac Toe</option>
                 </select>
             </div>
 
@@ -421,6 +422,12 @@
             <div class="target-hint" id="targetHint">Throw 3 darts. Single = +1, Double = +2, Triple = +3.</div>
         </div>
 
+        <!-- Tic Tac Toe Darts -->
+        <div class="tic-tac-toe-main hidden" id="ticTacToeMain">
+            <div class="tic-game-hint">Four marks claims a square. Connect three in a row.</div>
+            <div class="tic-grid" id="ticTacToeGrid"></div>
+        </div>
+
         <!-- Bottom Controls (Cricket) -->
         <div class="bottom-controls hidden" id="cricketControls">
             <div class="cricket-controls-left">
@@ -506,6 +513,20 @@
                 <button class="btn btn--md btn--undo" id="targetUndoBtn" disabled>UNDO</button>
                 <button class="btn btn--md btn--miss" id="targetClearBtn">CLEAR</button>
                 <button class="btn btn--lg btn--success" id="targetEndTurnBtn">END TURN</button>
+            </div>
+        </div>
+
+        <div class="controls-area tic-controls hidden" id="ticTacToeControls">
+            <div class="tic-pending" id="ticPendingText">Choose Single, Double or Triple, then tap a square.</div>
+            <div class="tic-multiplier-row">
+                <button class="btn btn--lg btn--primary active" data-tic-mult="1">Single · 1 mark</button>
+                <button class="btn btn--lg btn--primary" data-tic-mult="2">Double · 2 marks</button>
+                <button class="btn btn--lg btn--primary" data-tic-mult="3">Triple · 3 marks</button>
+                <button class="btn btn--lg btn--miss" id="ticMissBtn">Miss</button>
+            </div>
+            <div class="tic-bottom-row">
+                <button class="btn btn--md btn--undo" id="ticUndoBtn" disabled>UNDO</button>
+                <button class="btn btn--lg btn--success" id="ticEndTurnBtn">END TURN</button>
             </div>
         </div>
     </div>

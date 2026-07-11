@@ -101,12 +101,12 @@ async def test_registry_picker(page):
     await dismiss_onboard(page)
     # Registry card count grows deliberately as game batches land.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 25, f"expected 25 game cards, got {cards}"
+    assert cards == 26, f"expected 26 game cards, got {cards}"
 
     # New games present
     for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup",
                 "quickie", "cutthroat", "wildcard", "gotcha", "hammer", "teamhammer",
-                "sharktank"):
+                "sharktank", "tictactoe"):
         n = await page.locator(f".game-card[data-game-value='{gid}']").count()
         assert n == 1, f"{gid} card missing"
 
@@ -452,6 +452,64 @@ async def test_shark_tank(page):
         "JSON.parse(localStorage.getItem('blakeout_active_game')).sharkTank.bites")
     assert stored == [0, 6, 6], f"Shark Tank state not persisted: {stored}"
     return {"tie_round": tied, "final": final, "winner": winner}
+
+
+async def test_tic_tac_toe(page):
+    # Two-player board: center Bull, 8 unique random numbers, four marks to
+    # claim, S/D/T mark values, and first three-in-a-row wins.
+    await fresh(page)
+    await page.select_option("#numPlayers", "4")
+    await page.select_option("#gameType", "tictactoe")
+    await page.wait_for_timeout(100)
+    assert await page.input_value("#numPlayers") == "2", "Tic Tac Toe must force two players"
+    await page.click("#startGameBtn")
+    await page.wait_for_selector("#ticTacToeMain", state="visible", timeout=3000)
+
+    targets = await get_state(page, "m.game.ticTacToe.targets")
+    assert len(targets) == 9 and targets[4] == "Bull", targets
+    numbers = [int(value) for index, value in enumerate(targets) if index != 4]
+    assert len(set(numbers)) == 8 and all(1 <= value <= 20 for value in numbers), targets
+    assert await page.locator(".tic-cell").count() == 9
+
+    # Triple + Single on square 0 claims it for Home.
+    await page.click("[data-tic-mult='3']")
+    await page.click("[data-tic-cell='0']")
+    await page.click("[data-tic-mult='1']")
+    await page.click("[data-tic-cell='0']")
+    preview = await page.locator("[data-tic-cell='0'] .tic-x").inner_text()
+    assert "4/4" in preview, preview
+    await page.click("#ticEndTurnBtn")
+    await page.wait_for_timeout(250)
+    owner = await get_state(page, "m.game.ticTacToe.cells[0].owner")
+    assert owner == 0, owner
+    stored_owner = await page.evaluate(
+        "JSON.parse(localStorage.getItem('blakeout_active_game')).ticTacToe.cells[0].owner")
+    assert stored_owner == 0, stored_owner
+
+    # Arrange Home one claimed square away from top-row victory, then claim
+    # square 2 with Double+Double.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.currentPlayer = 0;
+            state.game.ticTacToe.cells[0].owner = 0;
+            state.game.ticTacToe.cells[0].marks[0] = 4;
+            state.game.ticTacToe.cells[1].owner = 0;
+            state.game.ticTacToe.cells[1].marks[0] = 4;
+            (await import('./js/tictactoe.js')).updateTicTacToeDisplay();
+        })()
+    """)
+    await page.click("[data-tic-mult='2']")
+    await page.click("[data-tic-cell='2']")
+    await page.click("[data-tic-cell='2']")
+    await page.click("#ticEndTurnBtn")
+    await page.wait_for_timeout(300)
+    assert await page.locator("#winnerModal").is_visible(), "Tic Tac Toe line did not win"
+    winner = (await page.locator("#winnerName").inner_text()).strip()
+    assert winner == "Home", winner
+    owners = await get_state(page, "m.game.ticTacToe.cells.slice(0,3).map(c=>c.owner)")
+    assert owners == [0, 0, 0], owners
+    return {"targets": targets, "winner": winner, "top_row": owners}
 
 
 async def test_game_rules_tooltip(page):
@@ -941,10 +999,11 @@ async def test_all_games_boot(page):
     games = await page.evaluate(
         "(async () => { const r = await import('./js/registry.js');"
         " return r.listGames().map(g => ({id:g.id, engine:g.engine, requiresTeamMode:!!g.requiresTeamMode})); })()")
-    assert len(games) >= 25, f"registry shrank? {len(games)} games"
+    assert len(games) >= 26, f"registry shrank? {len(games)} games"
     panels = {
         "cricket": "#cricketMain", "x01": "#x01Main",
-        "score": "#x01Main", "target": "#targetGameMain"
+        "score": "#x01Main", "target": "#targetGameMain",
+        "tictactoe": "#ticTacToeMain"
     }
     booted = []
     for g in games:

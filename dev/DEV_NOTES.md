@@ -96,6 +96,14 @@ reads/writes it and fires `change`.
   eliminated surfers are skipped and the last survivor wins. Round scores,
   bite deltas, eliminations, undo and active-game resume are persisted.
 
+**Tic Tac Toe Darts** (`tictactoe.js`, dedicated engine)
+- Exactly 2 players. Bull is fixed in the center; 8 unique random numbers fill
+  the board. Single/Double/Triple = 1/2/3 marks (Bull supports 1/2 only).
+- Four marks claims a square; first line of three wins. A full Cats board is
+  awarded by squares claimed, with a true tie supported.
+- Dedicated high-contrast 3×3 touch board includes multiplier selection,
+  explicit misses, per-dart undo, player mark previews, persistence and resume.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
@@ -133,7 +141,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 31-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 32-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.

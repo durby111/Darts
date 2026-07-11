@@ -1052,6 +1052,113 @@
     gap: var(--space-sm);
 }
 
+/* === Tic Tac Toe Darts === */
+.tic-tac-toe-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    overflow-y: auto;
+}
+
+.tic-game-hint,
+.tic-pending {
+    color: var(--color-text-muted);
+    font-size: calc(var(--font-md) * var(--ui-scale));
+    text-align: center;
+}
+
+.tic-grid {
+    width: min(72dvh, 88vw, 680px);
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(4px, 1vw, 10px);
+}
+
+.tic-cell {
+    position: relative;
+    min-width: 0;
+    border: 3px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: var(--font-family);
+    cursor: pointer;
+    touch-action: none;
+    overflow: hidden;
+}
+
+.tic-cell.owner-0 {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 28%, var(--color-surface));
+}
+
+.tic-cell.owner-1 {
+    border-color: var(--color-success);
+    background: color-mix(in srgb, var(--color-success) 24%, var(--color-surface));
+}
+
+.tic-target {
+    display: block;
+    font-size: calc(clamp(1.5rem, 6vmin, 3.5rem) * var(--ui-scale));
+    font-weight: 900;
+    line-height: 1;
+}
+
+.tic-owner {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+    font-size: calc(clamp(4rem, 14vmin, 9rem) * var(--ui-scale));
+    font-weight: 900;
+    opacity: 0.32;
+    line-height: 1;
+}
+
+.tic-marks {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    font-size: calc(var(--font-sm) * var(--ui-scale));
+    font-weight: 700;
+}
+
+.tic-x { color: var(--color-primary-light); }
+.tic-o { color: var(--color-success); }
+
+.tic-controls {
+    min-height: auto;
+    gap: var(--space-sm);
+}
+
+.tic-multiplier-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-sm);
+}
+
+.tic-multiplier-row .active {
+    outline: 3px solid var(--color-pending);
+    box-shadow: var(--shadow-glow);
+}
+
+.tic-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    gap: var(--space-sm);
+}
+
+@media (max-width: 600px) {
+    .tic-grid { width: min(60dvh, 94vw); }
+    .tic-multiplier-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* === Team-builder additions: first-team badge, reorder buttons === */
 .team-zone-first-badge {
     display: none;
