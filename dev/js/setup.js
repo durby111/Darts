@@ -600,6 +600,7 @@ function beginMatch(playerSeeds, teams) {
     const isCountUp = gameType === 'countup';
     const isGotcha = gameType === 'gotcha';
     const isHammer = gameType === 'hammer' || gameType === 'teamhammer';
+    const isSharkTank = gameType === 'sharktank';
 
     Object.assign(game, {
         type: gameType,
@@ -646,6 +647,12 @@ function beginMatch(playerSeeds, teams) {
         countUp: isCountUp ? { totalRounds: 8 } : null,
         gotcha: isGotcha ? { target: 301 } : null,
         hammer: isHammer ? initHammerState() : null,
+        sharkTank: isSharkTank ? {
+            round: 1,
+            bites: playerSeeds.map(() => 0),
+            eliminated: playerSeeds.map(() => false),
+            roundScores: playerSeeds.map(() => null)
+        } : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,

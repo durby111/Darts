@@ -101,11 +101,12 @@ async def test_registry_picker(page):
     await dismiss_onboard(page)
     # Registry card count grows deliberately as game batches land.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 24, f"expected 24 game cards, got {cards}"
+    assert cards == 25, f"expected 25 game cards, got {cards}"
 
     # New games present
     for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup",
-                "quickie", "cutthroat", "wildcard", "gotcha", "hammer", "teamhammer"):
+                "quickie", "cutthroat", "wildcard", "gotcha", "hammer", "teamhammer",
+                "sharktank"):
         n = await page.locator(f".game-card[data-game-value='{gid}']").count()
         assert n == 1, f"{gid} card missing"
 
@@ -388,6 +389,69 @@ async def test_team_hammer(page):
         page, "({scores:m.game.players.map(p=>p.score), rotations:m.game.teams.map(t=>t.rotationIndex)})")
     assert after_away == {"scores": [20, -60], "rotations": [1, 1]}, after_away
     return {"teams": [len(team["members"]) for team in teams], "after_round": after_away}
+
+
+async def test_shark_tank(page):
+    # A tied top score bites every surfer once. A unique leader is safe;
+    # players at half or less take two bites. Six bites eliminates and the
+    # final survivor wins.
+    await fresh(page)
+    await start_game(page, "sharktank", num_players="3")
+    await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
+    headers = [
+        int(await page.locator(f"#{score_id}").inner_text())
+        for score_id in ("homeScore", "awayScore", "player3Score")
+    ]
+    assert headers == [6, 6, 6], f"Shark lives header = {headers}"
+    assert not await page.locator("#x01BustBtn").is_visible(), "BUST should hide in Shark Tank"
+
+    # Home and Away tie at 100; Player 3 has 40. Everyone takes one bite.
+    await page.click("[data-quick='100']")
+    await page.wait_for_timeout(800)
+    await page.click("[data-quick='100']")
+    await page.wait_for_timeout(800)
+    await page.click("[data-quick='40']")
+    await page.wait_for_timeout(800)
+    tied = await get_state(
+        page, "({bites:m.game.sharkTank.bites, round:m.game.sharkTank.round, current:m.game.currentPlayer})")
+    assert tied == {"bites": [1, 1, 1], "round": 2, "current": 0}, tied
+    tied_headers = [
+        int(await page.locator(f"#{score_id}").inner_text())
+        for score_id in ("homeScore", "awayScore", "player3Score")
+    ]
+    assert tied_headers == [5, 5, 5], tied_headers
+
+    # Put rivals near elimination. Home's 100 is double Away's 50 (2 bites)
+    # but not double Player 3's 60 (1 bite): both reach six, Home survives.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.sharkTank.bites = [0, 4, 5];
+            state.game.sharkTank.eliminated = [false, false, false];
+            state.game.sharkTank.roundScores = [null, null, null];
+            state.game.currentPlayer = 0;
+            (await import('./js/x01.js')).updateX01Display();
+        })()
+    """)
+    await page.click("[data-quick='100']")
+    await page.wait_for_timeout(800)
+    for digit in "50":
+        await page.click(f"[data-digit='{digit}']")
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(800)
+    await page.click("[data-quick='60']")
+    await page.wait_for_timeout(500)
+
+    assert await page.locator("#winnerModal").is_visible(), "last Shark Tank surfer did not win"
+    winner = (await page.locator("#winnerName").inner_text()).strip()
+    assert winner == "Home", winner
+    final = await get_state(
+        page, "({bites:m.game.sharkTank.bites, eliminated:m.game.sharkTank.eliminated})")
+    assert final == {"bites": [0, 6, 6], "eliminated": [False, True, True]}, final
+    stored = await page.evaluate(
+        "JSON.parse(localStorage.getItem('blakeout_active_game')).sharkTank.bites")
+    assert stored == [0, 6, 6], f"Shark Tank state not persisted: {stored}"
+    return {"tie_round": tied, "final": final, "winner": winner}
 
 
 async def test_game_rules_tooltip(page):
@@ -877,7 +941,7 @@ async def test_all_games_boot(page):
     games = await page.evaluate(
         "(async () => { const r = await import('./js/registry.js');"
         " return r.listGames().map(g => ({id:g.id, engine:g.engine, requiresTeamMode:!!g.requiresTeamMode})); })()")
-    assert len(games) >= 24, f"registry shrank? {len(games)} games"
+    assert len(games) >= 25, f"registry shrank? {len(games)} games"
     panels = {
         "cricket": "#cricketMain", "x01": "#x01Main",
         "score": "#x01Main", "target": "#targetGameMain"

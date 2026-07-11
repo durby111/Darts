@@ -22,8 +22,12 @@ function isGotchaGame() {
     return game.type === 'gotcha' && !!game.gotcha;
 }
 
+function isSharkTankGame() {
+    return game.type === 'sharktank' && !!game.sharkTank;
+}
+
 function isAdditiveScoreGame() {
-    return isCountUpGame() || isGotchaGame();
+    return isCountUpGame() || isGotchaGame() || isSharkTankGame();
 }
 
 function makeHistoryEntry(score, bust = false, thrower = null, miss = false) {
@@ -380,6 +384,74 @@ function submitGotchaScore(score, opts, player, thrower) {
     updateUndoRedoButtons();
 }
 
+function submitSharkTankScore(score, opts, player, thrower) {
+    const shark = game.sharkTank;
+    const playerIndex = game.currentPlayer;
+    shark.roundScores[playerIndex] = score;
+    player.history.push({
+        score,
+        sharkRound: shark.round,
+        ...(opts.miss ? { miss: true } : {}),
+        ...(thrower ? { thrower } : {})
+    });
+    if (game.teamMode) advanceRotation(playerIndex);
+
+    const active = game.players
+        .map((_, index) => index)
+        .filter(index => !shark.eliminated[index]);
+    const pending = active.find(index => shark.roundScores[index] == null);
+    if (pending !== undefined) {
+        game.currentPlayer = pending;
+        clearInput();
+        saveActiveGame();
+        updateX01Display();
+        updateUndoRedoButtons();
+        return;
+    }
+
+    const high = Math.max(...active.map(index => shark.roundScores[index]));
+    const leaders = active.filter(index => shark.roundScores[index] === high);
+    const biteDeltas = game.players.map(() => 0);
+    if (leaders.length > 1) {
+        active.forEach(index => { biteDeltas[index] = 1; });
+    } else {
+        const leader = leaders[0];
+        active.forEach(index => {
+            if (index === leader) return;
+            biteDeltas[index] = high >= shark.roundScores[index] * 2 ? 2 : 1;
+        });
+    }
+
+    active.forEach(index => {
+        shark.bites[index] += biteDeltas[index];
+        if (shark.bites[index] >= 6) shark.eliminated[index] = true;
+        const entry = game.players[index].history.at(-1);
+        if (entry && typeof entry === 'object') entry.bites = biteDeltas[index];
+    });
+
+    const survivors = active.filter(index => !shark.eliminated[index]);
+    shark.roundScores = game.players.map(() => null);
+    game.completedRounds = shark.round;
+    shark.round++;
+    clearInput();
+
+    if (survivors.length <= 1) {
+        saveActiveGame();
+        updateX01Display();
+        updateUndoRedoButtons();
+        const winnerNames = survivors.length
+            ? [game.players[survivors[0]].name]
+            : active.map(index => game.players[index].name);
+        showWinner(winnerNames.join(' & '), false, true);
+        return;
+    }
+
+    game.currentPlayer = survivors[0];
+    saveActiveGame();
+    updateX01Display();
+    updateUndoRedoButtons();
+}
+
 // --- Core Score Submission (with bug fixes) ---
 
 function submitScore(opts = {}) {
@@ -436,6 +508,10 @@ function submitScore(opts = {}) {
     }
     if (isGotchaGame()) {
         submitGotchaScore(score, opts, player, thrower);
+        return;
+    }
+    if (isSharkTankGame()) {
+        submitSharkTankScore(score, opts, player, thrower);
         return;
     }
 
@@ -685,12 +761,15 @@ function updateCheckoutSuggestion() {
 
 function updateX01Display() {
     const numPlayers = game.players.length;
+    const displayScore = index => isSharkTankGame()
+        ? Math.max(0, 6 - (game.sharkTank.bites[index] || 0))
+        : game.players[index].score;
 
     // Update scores in header
-    document.getElementById('homeScore').textContent = game.players[0].score;
-    document.getElementById('awayScore').textContent = numPlayers >= 2 ? game.players[1].score : 0;
-    if (numPlayers >= 3) document.getElementById('player3Score').textContent = game.players[2].score;
-    if (numPlayers >= 4) document.getElementById('player4Score').textContent = game.players[3].score;
+    document.getElementById('homeScore').textContent = displayScore(0);
+    document.getElementById('awayScore').textContent = numPlayers >= 2 ? displayScore(1) : 0;
+    if (numPlayers >= 3) document.getElementById('player3Score').textContent = displayScore(2);
+    if (numPlayers >= 4) document.getElementById('player4Score').textContent = displayScore(3);
 
     // Hide MPR displays in X01 (not relevant)
     const mprIds = ['homeMPR', 'homeMPR2', 'awayMPR', 'awayMPR2', 'player3MPR', 'player3MPR2', 'player4MPR', 'player4MPR2'];
@@ -716,6 +795,10 @@ function updateX01Display() {
         const needed = (game.gotcha.target || 301) - currentPlayer.score;
         finishIndicator.textContent = `${needed} TO 301 — MATCH A RIVAL TO BOMB THEM`;
         finishIndicator.style.color = 'var(--color-warning)';
+    } else if (isSharkTankGame()) {
+        const bites = game.sharkTank.bites[game.currentPlayer] || 0;
+        finishIndicator.textContent = `ROUND ${game.sharkTank.round} — ${6 - bites} BITES LEFT — BULLS SCORE 0`;
+        finishIndicator.style.color = bites >= 4 ? 'var(--color-danger)' : 'var(--color-primary-light)';
     } else if (game.game121) {
         const dartsLeft = game.game121.dartsPerLeg - game.game121.dartsThrown;
         finishIndicator.textContent = `${dartsLeft} dart${dartsLeft !== 1 ? 's' : ''} left | Start: ${game.game121.startingScore}`;

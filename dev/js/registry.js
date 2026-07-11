@@ -204,6 +204,14 @@ export const GAME_REGISTRY = [
         tags: ['gotcha', '301', 'count up', 'bomb', 'party', 'new'],
         desc: 'Race from 0 to exactly 301. Match a rival’s score to bomb them back to 0.',
         rules: 'Be first to reach exactly 301. Land on an opponent’s exact score to bomb that player back to 0. If a turn takes you over 301, subtract the amount you exceeded 301 from the score you had before that turn; overshoots do not trigger bombs.'
+    },
+    {
+        id: 'sharktank', label: 'Shark Tank', sub: 'Survival Count-Up', icon: '🦈',
+        engine: 'score', category: 'party', isNew: true,
+        minPlayers: 2, maxPlayers: 4,
+        tags: ['shark tank', 'survival', 'count up', 'bites', 'elimination', 'new'],
+        desc: 'Win each Count-Up round or let the shark chew through your six lives.',
+        rules: 'Enter each 3-dart total; Bulls score 0. The sole high scorer is safe and everyone else takes a bite. Score half or less than the leader and take 2 bites. If the top score is tied, every surviving player takes 1 bite. Six bites eliminates you; last surfer wins.'
     }
 ];
 

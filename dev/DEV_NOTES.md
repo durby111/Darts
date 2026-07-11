@@ -88,6 +88,14 @@ reads/writes it and fires `change`.
   restores Hammer rounds and also fixes stage restoration for existing target
   games rather than restoring scores alone.
 
+**Shark Tank** (`sharktank`, score engine)
+- 2–4 surfers enter 3-dart totals (Bulls count 0). The unique round leader is
+  safe; lower scores take 1 bite, or 2 when the leader scored at least double.
+  A tied top score bites every active player.
+- Headers show surfboard lives remaining (6→0). Six bites eliminates a player;
+  eliminated surfers are skipped and the last survivor wins. Round scores,
+  bite deltas, eliminations, undo and active-game resume are persisted.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
@@ -125,7 +133,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 30-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 31-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.
