@@ -1290,6 +1290,129 @@
     .double-down-player { grid-template-columns: 1fr 1fr; }
 }
 
+/* === Team Cricket / 400 === */
+.team-cricket-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-xs);
+    overflow-y: auto;
+}
+
+.team-cricket-rules-label,
+.team-cricket-pending {
+    color: var(--color-text-muted);
+    font-size: calc(var(--font-sm) * var(--ui-scale));
+    text-align: center;
+    padding: var(--space-xs);
+}
+
+.team-cricket-headings,
+.team-cricket-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr minmax(120px, 24vw) 1fr 1fr;
+    align-items: center;
+    gap: 2px;
+}
+
+.team-cricket-member-heading {
+    min-width: 0;
+    padding: var(--space-xs) 2px;
+    background: var(--color-surface-alt);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    overflow: hidden;
+}
+
+.team-cricket-member-heading.active {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.team-cricket-member-heading span,
+.team-cricket-member-heading small {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.team-cricket-member-heading span { font-weight: 800; }
+.team-cricket-member-heading small { font-size: var(--font-xs); opacity: 0.75; }
+.team-cricket-center-heading { text-align: center; color: var(--color-text-muted); font-size: var(--font-xs); }
+
+.team-cricket-grid {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.team-cricket-row {
+    flex: 1 1 0;
+    min-height: clamp(54px, 8dvh, 92px);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.team-cricket-mark-cell {
+    height: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.team-cricket-mark-cell.active {
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    box-shadow: inset 3px 0 var(--color-primary), inset -3px 0 var(--color-primary);
+}
+
+.team-cricket-mark-cell .mark {
+    width: min(calc(clamp(48px, 8dvh, 82px) * var(--ui-scale)), calc(100% - 4px));
+    height: auto;
+    aspect-ratio: 1;
+}
+
+.team-cricket-target-buttons {
+    display: grid;
+    grid-template-columns: 0.7fr 1fr 0.7fr;
+    align-items: center;
+    gap: 2px;
+    padding: 0 2px;
+}
+
+.team-cricket-target-buttons button {
+    min-width: 0;
+    min-height: clamp(38px, 5dvh, 58px);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: calc(var(--font-lg) * var(--ui-scale));
+    font-weight: 900;
+    touch-action: none;
+}
+
+.team-cricket-button-spacer { display: block; }
+.team-cricket-controls { min-height: auto; gap: var(--space-xs); }
+.team-cricket-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr;
+    gap: var(--space-sm);
+}
+
+@media (max-width: 600px) {
+    .team-cricket-headings,
+    .team-cricket-row {
+        grid-template-columns: 1fr 1fr minmax(96px, 26vw) 1fr 1fr;
+    }
+    .team-cricket-member-heading { font-size: 0.72rem; }
+    .team-cricket-mark-cell .mark { width: min(52px, calc(100% - 2px)); }
+    .team-cricket-target-buttons button { font-size: 0.9rem; }
+}
+
 /* === Team-builder additions: first-team badge, reorder buttons === */
 .team-zone-first-badge {
     display: none;

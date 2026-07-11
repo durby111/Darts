@@ -16,6 +16,7 @@
                                                      future Gotcha-style games)
             - engine 'tictactoe' → dedicated 3×3 mark-and-claim board
             - engine 'doubledown' → random doubles → Cricket → D1 progression
+            - engine 'teamcricket' → four individual mark boards, two shared scores
       - engine 'target'  → implement currentTarget / describeHitButtons /
                            pointsForHit / commitTurn and wire it into
                            target_game.js's dispatcher
@@ -236,6 +237,14 @@ export const GAME_REGISTRY = [
         tags: ['double down', 'cricket', 'doubles', 'double 1', 'no points', 'new'],
         desc: 'Hit two random doubles, close 15–20, then land Double 1 to win.',
         rules: 'First hit two random doubles from D2–D14. Then close 15–20 with standard marks (Single 1, Double 2, Triple 3); there are no points or Bulls. Once all six close, hit Double 1 to win.'
+    },
+    {
+        id: 'teamcricket', label: 'Team Cricket/400', sub: 'Official 2 vs 2', icon: '👥',
+        engine: 'teamcricket', category: 'cricket', isNew: true,
+        requiresTeamMode: true, teamMembers: 2,
+        tags: ['team cricket', 'cricket 400', '2 vs 2', 'shared score', '400 spread', 'new'],
+        desc: 'Four individual mark boards, two shared team scores, and a 400-point spread cap.',
+        rules: 'Exactly 2 vs 2. Each person owns marks, but partners share a score. Both partners must close a target before either scores on it. The lead is capped at 400 points. Traditional rules require both partners to close the board; New rules require one.'
     }
 ];
 

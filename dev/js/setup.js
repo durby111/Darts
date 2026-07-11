@@ -18,6 +18,7 @@ import { initHammerState } from './hammer.js';
 import { initTicTacToeState, resetTicTacToeInput } from './tictactoe.js';
 import { initRobinHoodState } from './robinhood.js';
 import { initDoubleDownState } from './doubledown.js';
+import { initTeamCricketState } from './teamcricket.js';
 import { initThemePickerUI } from './theme.js';
 import { getGame, isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
@@ -242,6 +243,7 @@ export function initSetupControls() {
         const isShanghai = this.value === 'shanghai';
         const isChaos = this.value === 'chaos';
         const isCutThroat = this.value === 'cutthroat';
+        const isTeamCricket = this.value === 'teamcricket';
         document.getElementById('cricketOptions').classList.toggle('hidden', !isCricket);
         document.getElementById('spanishBullsOption').classList.toggle('hidden', !isSpanish);
         document.getElementById('chaosOptions')?.classList.toggle('hidden', !isChaos);
@@ -251,6 +253,7 @@ export function initSetupControls() {
         document.getElementById('golfOptions').classList.toggle('hidden', !isGolf);
         document.getElementById('shanghaiOptions')?.classList.toggle('hidden', !isShanghai);
         document.getElementById('finishTypeOptions').classList.toggle('hidden', !isX01 && !isChicago && !is121);
+        document.getElementById('teamCricketOptions')?.classList.toggle('hidden', !isTeamCricket);
 
         // Cut-Throat always sends points to open opponents and requires at
         // least two sides. Restore the normal configurable control when the
@@ -607,6 +610,7 @@ function beginMatch(playerSeeds, teams) {
     const isTicTacToe = gameType === 'tictactoe';
     const isRobinHood = gameType === 'robinhood';
     const isDoubleDown = gameType === 'doubledown';
+    const isTeamCricket = gameType === 'teamcricket';
 
     Object.assign(game, {
         type: gameType,
@@ -662,6 +666,9 @@ function beginMatch(playerSeeds, teams) {
         ticTacToe: isTicTacToe ? initTicTacToeState() : null,
         robinHood: isRobinHood ? initRobinHoodState() : null,
         doubleDown: isDoubleDown ? initDoubleDownState(playerSeeds.length) : null,
+        teamCricket: isTeamCricket && teams
+            ? initTeamCricketState(teams, document.getElementById('teamCricketRules')?.value)
+            : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,
@@ -690,7 +697,7 @@ function beginMatch(playerSeeds, teams) {
             player.score = parseInt(gameType);
         } else if (isScoreGame(gameType)) {
             // Score-entry games such as Count Up accumulate from zero.
-        } else if (isTargetGame(gameType) || isTicTacToe || isDoubleDown) {
+        } else if (isTargetGame(gameType) || isTicTacToe || isDoubleDown || isTeamCricket) {
             // score stays at 0; target games accumulate runs/points/strokes
         } else {
             player.cricketData = initCricket(gameType, includeBulls);

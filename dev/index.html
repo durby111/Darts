@@ -85,6 +85,7 @@
                     <option value="tictactoe">Tic Tac Toe</option>
                     <option value="robinhood">Robin Hood</option>
                     <option value="doubledown">Double Down Cricket</option>
+                    <option value="teamcricket">Team Cricket/400</option>
                 </select>
             </div>
 
@@ -183,6 +184,15 @@
                     <input type="checkbox" id="spanishBulls">
                     <span>Include Bulls (20-10 + Bull)</span>
                 </label>
+            </div>
+
+            <div class="form-group hidden" id="teamCricketOptions">
+                <label>Team Cricket Rules</label>
+                <select id="teamCricketRules">
+                    <option value="traditional" selected>Traditional — both teammates close</option>
+                    <option value="new">New — one teammate closes</option>
+                </select>
+                <div class="form-hint">Both teammates must close a target before the team can score on it. Team lead is capped at 400 points.</div>
             </div>
 
             <div class="form-group" id="finishTypeOptions">
@@ -438,6 +448,13 @@
             <div class="double-down-players" id="doubleDownPlayers"></div>
         </div>
 
+        <!-- Official Team Cricket / 400 -->
+        <div class="team-cricket-main hidden" id="teamCricketMain">
+            <div class="team-cricket-rules-label" id="teamCricketRulesLabel"></div>
+            <div class="team-cricket-headings" id="teamCricketHeadings"></div>
+            <div class="team-cricket-grid" id="teamCricketGrid"></div>
+        </div>
+
         <!-- Bottom Controls (Cricket) -->
         <div class="bottom-controls hidden" id="cricketControls">
             <div class="cricket-controls-left">
@@ -546,6 +563,15 @@
                 <button class="btn btn--md btn--undo" id="doubleDownUndoBtn" disabled>UNDO</button>
                 <button class="btn btn--md btn--miss" id="doubleDownMissBtn">MISS DART</button>
                 <button class="btn btn--lg btn--success" id="doubleDownEndTurnBtn">END TURN</button>
+            </div>
+        </div>
+
+        <div class="controls-area team-cricket-controls hidden" id="teamCricketControls">
+            <div class="team-cricket-pending" id="teamCricketPending"></div>
+            <div class="team-cricket-bottom-row">
+                <button class="btn btn--md btn--undo" id="teamCricketUndoBtn" disabled>UNDO</button>
+                <button class="btn btn--md btn--miss" id="teamCricketMissBtn">MISS TURN</button>
+                <button class="btn btn--lg btn--success" id="teamCricketEnterBtn">ENTER</button>
             </div>
         </div>
     </div>

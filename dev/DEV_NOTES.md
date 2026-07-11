@@ -116,6 +116,17 @@ reads/writes it and fires `change`.
   misses, per-dart undo, player/team rotation, progress summaries, persistence
   and resume. Header values show completed challenges out of 9.
 
+**Team Cricket / 400** (`teamcricket.js`, dedicated engine)
+- Forces exactly 2 vs 2. All four humans own separate 15–20 + Bull marks;
+  each pair shares one header score. Turns rotate A1/B1/A2/B2.
+- Both teammates must close a target before excess marks score, and scoring
+  stops once both opponents close it. The lead is hard-capped at 400 points.
+- Traditional rules require both teammates to close the board; New rules need
+  one closer. Both require equal or more team points. The setup option persists
+  in presets; member marks, team score, rotation, undo and resume all persist.
+- Compact max-scale coverage verifies all four mark columns stay visible at
+  390×844 and 1.5× UI scale.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
@@ -153,7 +164,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 34-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 36-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.

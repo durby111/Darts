@@ -101,12 +101,12 @@ async def test_registry_picker(page):
     await dismiss_onboard(page)
     # Registry card count grows deliberately as game batches land.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 28, f"expected 28 game cards, got {cards}"
+    assert cards == 29, f"expected 29 game cards, got {cards}"
 
     # New games present
     for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup",
                 "quickie", "cutthroat", "wildcard", "gotcha", "hammer", "teamhammer",
-                "sharktank", "tictactoe", "robinhood", "doubledown"):
+                "sharktank", "tictactoe", "robinhood", "doubledown", "teamcricket"):
         n = await page.locator(f".game-card[data-game-value='{gid}']").count()
         assert n == 1, f"{gid} card missing"
 
@@ -125,7 +125,8 @@ async def test_registry_picker(page):
         ".game-card[data-game-value]", "els => els.map(e => e.dataset.gameValue)")
     assert set(cricket_cards) == {
         "cricket", "spanish", "minnesota", "chaos",
-        "quickie", "cutthroat", "wildcard", "hammer", "teamhammer", "doubledown"
+        "quickie", "cutthroat", "wildcard", "hammer", "teamhammer", "doubledown",
+        "teamcricket"
     }, \
         f"cricket category shows {cricket_cards}"
     await page.click(".picker-chip[data-category='all']")
@@ -606,6 +607,176 @@ async def test_double_down_cricket(page):
     final = await get_state(page, "m.game.doubleDown.progress[0]")
     assert final["doubleOne"] is True, final
     return {"required": required, "first_turn": progress, "winner": winner}
+
+
+async def test_team_cricket_400(page):
+    # Official 2v2 model: members own marks, teams share points. Both partners
+    # must close a target before scoring; turns rotate A1/B1/A2/B2; the lead
+    # cannot exceed 400; Traditional rules require both full boards.
+    await fresh(page)
+    await page.select_option("#gameType", "teamcricket")
+    await page.wait_for_timeout(100)
+    assert await page.locator("#teamMode").is_checked()
+    assert await page.locator("#teamMode").is_disabled()
+    assert await page.locator("#teamCricketOptions").is_visible()
+    await page.click("#startGameBtn")
+    await page.wait_for_selector("#teamBuilderScreen", state="visible")
+
+    for name in ("Alpha", "Bravo", "Charlie", "Delta"):
+        await page.fill("#teamAddName", name)
+        await page.click("#teamAddBtn")
+
+    async def assign(name, zone):
+        await page.locator(".team-chip", has_text=name).click()
+        await page.click(f"#teamZone{zone}Label")
+
+    await assign("Alpha", 0)
+    await assign("Charlie", 1)
+    assert await page.locator("#teamStartMatchBtn").is_disabled()
+    await assign("Bravo", 0)
+    await assign("Delta", 1)
+    assert await page.locator("#teamStartMatchBtn").is_enabled()
+    await page.click("#teamStartMatchBtn")
+    await page.wait_for_timeout(300)
+    await page.wait_for_selector("#teamCricketMain", state="visible")
+    members = await get_state(page, "m.game.teamCricket.memberMarks.map(team=>team.length)")
+    assert members == [2, 2], members
+    assert await page.locator(".team-cricket-member-heading").count() == 4
+
+    # Four individual mark columns must remain contained on a compact phone
+    # at maximum UI scale, not only on the default tablet viewport.
+    await page.set_viewport_size({"width": 390, "height": 844})
+    await set_ui_scale(page, 1.5)
+    fit = await page.evaluate("""
+        () => {
+            const failures = [];
+            document.querySelectorAll('.team-cricket-mark-cell .mark').forEach(mark => {
+                const box = mark.getBoundingClientRect();
+                const cell = mark.closest('.team-cricket-mark-cell').getBoundingClientRect();
+                if (box.left < cell.left - 1 || box.right > cell.right + 1) failures.push({box, cell});
+            });
+            return {failures, width:document.documentElement.scrollWidth, inner:window.innerWidth};
+        }
+    """)
+    assert not fit["failures"] and fit["width"] <= fit["inner"] + 1, f"compact Team Cricket overflow: {fit}"
+    await page.set_viewport_size({"width": 900, "height": 1600})
+    await set_ui_scale(page, 1.0)
+
+    # Alpha is closed on 20, Bravo has 2 marks. Alpha's T20 cannot score yet
+    # because both partners were not closed when Alpha threw.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.teamCricket.memberMarks[0][0]['20'] = 3;
+            state.game.teamCricket.memberMarks[0][1]['20'] = 2;
+            (await import('./js/teamcricket.js')).updateTeamCricketDisplay();
+        })()
+    """)
+    await page.locator("[data-team-cricket-target='20'][data-team-cricket-mult='3']").click()
+    await page.click("#teamCricketEnterBtn")
+    await page.wait_for_timeout(200)
+    no_points = await get_state(
+        page, "({scores:m.game.players.map(p=>p.score), rotations:m.game.teams.map(t=>t.rotationIndex), current:m.game.currentPlayer})")
+    assert no_points == {"scores": [0, 0], "rotations": [1, 0], "current": 1}, no_points
+
+    # Charlie misses, bringing up Bravo. Bravo closes 20 with a Triple; the
+    # two excess marks now earn 40 shared team points.
+    await page.click("#teamCricketMissBtn")
+    await page.wait_for_timeout(150)
+    thrower = (await page.locator("#homeThrower").inner_text()).strip()
+    assert "Bravo" in thrower, thrower
+    await page.locator("[data-team-cricket-target='20'][data-team-cricket-mult='3']").click()
+    preview = int(await page.locator("#homeScore").inner_text())
+    assert preview == 40, f"Team Cricket preview = {preview}"
+    await page.click("#teamCricketEnterBtn")
+    await page.wait_for_timeout(200)
+    score = await get_state(page, "m.game.players[0].score")
+    assert score == 40, score
+
+    # The 400 spread cap clips a T20 from 60 down to 10 at a 390–0 score.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.currentPlayer = 0;
+            state.game.players[0].score = 390;
+            state.game.players[1].score = 0;
+            state.game.teams[0].rotationIndex = 0;
+            state.game.teamCricket.memberMarks[0][0]['20'] = 3;
+            state.game.teamCricket.memberMarks[0][1]['20'] = 3;
+            (await import('./js/teamcricket.js')).updateTeamCricketDisplay();
+        })()
+    """)
+    await page.locator("[data-team-cricket-target='20'][data-team-cricket-mult='3']").click()
+    capped_preview = int(await page.locator("#homeScore").inner_text())
+    assert capped_preview == 400, capped_preview
+    await page.click("#teamCricketEnterBtn")
+    await page.wait_for_timeout(200)
+    capped = await get_state(page, "m.game.players[0].score")
+    assert capped == 400, capped
+
+    # Traditional win: both Home members close every target and hold the lead.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.currentPlayer = 0;
+            state.game.teams[0].rotationIndex = 0;
+            state.game.teamCricket.memberMarks[0].forEach(member => {
+                Object.keys(member).forEach(target => { member[target] = 3; });
+            });
+            (await import('./js/teamcricket.js')).updateTeamCricketDisplay();
+        })()
+    """)
+    await page.locator("[data-team-cricket-target='20'][data-team-cricket-mult='1']").click()
+    await page.click("#teamCricketEnterBtn")
+    await page.wait_for_timeout(300)
+    assert await page.locator("#winnerModal").is_visible(), "Traditional Team Cricket did not win"
+    winner = (await page.locator("#winnerName").inner_text()).strip()
+    assert winner == "Home", winner
+    stored = await page.evaluate(
+        "JSON.parse(localStorage.getItem('blakeout_active_game')).teamCricket.memberMarks[0][1]['Bull']")
+    assert stored == 3, f"Team Cricket state not persisted: {stored}"
+    return {"members": members, "scored": score, "capped": capped, "winner": winner}
+
+
+async def test_team_cricket_new_rules(page):
+    # New Team Cricket still requires both partners to close a target before
+    # scoring, but only one partner needs the whole board closed to win.
+    await fresh(page)
+    await page.select_option("#gameType", "teamcricket")
+    await page.select_option("#teamCricketRules", "new")
+    await page.click("#startGameBtn")
+    await page.wait_for_selector("#teamBuilderScreen", state="visible")
+    for name in ("Alpha", "Bravo", "Charlie", "Delta"):
+        await page.fill("#teamAddName", name)
+        await page.click("#teamAddBtn")
+    for name, zone in (("Alpha", 0), ("Bravo", 0), ("Charlie", 1), ("Delta", 1)):
+        await page.locator(".team-chip", has_text=name).click()
+        await page.click(f"#teamZone{zone}Label")
+    await page.click("#teamStartMatchBtn")
+    await page.wait_for_timeout(300)
+    rules = await get_state(page, "m.game.teamCricket.rules")
+    assert rules == "new", rules
+    config_rules = await page.evaluate(
+        "JSON.parse(localStorage.getItem('blakeout_configs')).lastConfig.teamCricketRules")
+    assert config_rules == "new", config_rules
+
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.currentPlayer = 0;
+            Object.keys(state.game.teamCricket.memberMarks[0][0]).forEach(target => {
+                state.game.teamCricket.memberMarks[0][0][target] = 3;
+            });
+            (await import('./js/teamcricket.js')).updateTeamCricketDisplay();
+        })()
+    """)
+    await page.locator("[data-team-cricket-target='20'][data-team-cricket-mult='1']").click()
+    await page.click("#teamCricketEnterBtn")
+    await page.wait_for_timeout(300)
+    assert await page.locator("#winnerModal").is_visible(), "New Team Cricket should allow one closer"
+    winner = (await page.locator("#winnerName").inner_text()).strip()
+    assert winner == "Home", winner
+    return {"rules": rules, "winner": winner}
 
 
 async def test_game_rules_tooltip(page):
@@ -1095,7 +1266,7 @@ async def test_all_games_boot(page):
     games = await page.evaluate(
         "(async () => { const r = await import('./js/registry.js');"
         " return r.listGames().map(g => ({id:g.id, engine:g.engine, requiresTeamMode:!!g.requiresTeamMode})); })()")
-    assert len(games) >= 28, f"registry shrank? {len(games)} games"
+    assert len(games) >= 29, f"registry shrank? {len(games)} games"
     panels = {
         "cricket": "#cricketMain", "x01": "#x01Main",
         "score": "#x01Main", "target": "#targetGameMain",
