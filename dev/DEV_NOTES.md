@@ -104,6 +104,11 @@ reads/writes it and fires `change`.
 - Dedicated high-contrast 3×3 touch board includes multiplier selection,
   explicit misses, per-dart undo, player mark previews, persistence and resume.
 
+**Robin Hood** (`robinhood.js`, target engine)
+- Ten rounds, three darts per player at the Bull. Outer Bull = 100 and Inner
+  Bull = 200; Triple is disabled. Highest score after round 10 wins, including
+  tied winners. Team thrower rotation, undo, persistence and resume are wired.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
@@ -141,7 +146,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 32-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 33-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.

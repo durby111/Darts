@@ -16,6 +16,7 @@ import { initGolfState } from './golf.js';
 import { initShanghaiState } from './shanghai.js';
 import { initHammerState } from './hammer.js';
 import { initTicTacToeState, resetTicTacToeInput } from './tictactoe.js';
+import { initRobinHoodState } from './robinhood.js';
 import { initThemePickerUI } from './theme.js';
 import { getGame, isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
@@ -603,6 +604,7 @@ function beginMatch(playerSeeds, teams) {
     const isHammer = gameType === 'hammer' || gameType === 'teamhammer';
     const isSharkTank = gameType === 'sharktank';
     const isTicTacToe = gameType === 'tictactoe';
+    const isRobinHood = gameType === 'robinhood';
 
     Object.assign(game, {
         type: gameType,
@@ -656,6 +658,7 @@ function beginMatch(playerSeeds, teams) {
             roundScores: playerSeeds.map(() => null)
         } : null,
         ticTacToe: isTicTacToe ? initTicTacToeState() : null,
+        robinHood: isRobinHood ? initRobinHoodState() : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,

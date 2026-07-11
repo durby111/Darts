@@ -46,6 +46,12 @@ import {
     turnScore as hammerTurnScore,
     commitTurn as hammerCommit
 } from './hammer.js';
+import {
+    currentTarget as robinTarget,
+    describeHitButtons as robinButtons,
+    pointsForHit as robinPoints,
+    commitTurn as robinCommit
+} from './robinhood.js';
 
 const DARTS_PER_TURN = 3;
 
@@ -59,6 +65,7 @@ function isShanghai() { return game.type === 'shanghai' && !!game.shanghai; }
 function isHammer() {
     return (game.type === 'hammer' || game.type === 'teamhammer') && !!game.hammer;
 }
+function isRobinHood() { return game.type === 'robinhood' && !!game.robinHood; }
 
 function currentTarget() {
     if (isBaseball()) return bbTarget();
@@ -66,6 +73,7 @@ function currentTarget() {
     if (isGolf()) return golfTarget();
     if (isShanghai()) return shTarget();
     if (isHammer()) return hammerTarget();
+    if (isRobinHood()) return robinTarget();
     return null;
 }
 
@@ -75,6 +83,7 @@ function describeButtons() {
     if (isGolf()) return golfButtons();
     if (isShanghai()) return shButtons();
     if (isHammer()) return hammerButtons();
+    if (isRobinHood()) return robinButtons();
     return { single: 'Single', double: 'Double', triple: 'Triple', tripleEnabled: true };
 }
 
@@ -164,6 +173,11 @@ function applyHit(kind) {
 
     if (isHammer()) {
         recordHit(kind, hammerPoints(kind));
+        return;
+    }
+
+    if (isRobinHood()) {
+        recordHit(kind, robinPoints(kind));
     }
 }
 
@@ -195,6 +209,8 @@ function endTurn() {
         result = shCommit(total, hits);
     } else if (isHammer()) {
         result = hammerCommit(total, hits);
+    } else if (isRobinHood()) {
+        result = robinCommit(total, hits);
     }
     clearTurn();
     saveActiveGame();
@@ -321,6 +337,8 @@ function refresh() {
             const finalRound = game.hammer && (game.hammer.round === 8 || game.hammer.tiebreaker);
             const weights = finalRound ? '×1 / ×3 / ×5' : '×1 / ×2 / ×3';
             hint.textContent = `Aim for ${targetValue}. Dart positions score ${weights}. Tap Miss Dart to preserve the position; miss all three and subtract triple the target. ${dartsLine}`;
+        } else if (isRobinHood()) {
+            hint.textContent = `Bulls only: Outer Bull = 100, Inner Bull = 200. Highest total after round 10 wins. ${dartsLine}`;
         }
     }
 

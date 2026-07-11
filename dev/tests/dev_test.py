@@ -101,12 +101,12 @@ async def test_registry_picker(page):
     await dismiss_onboard(page)
     # Registry card count grows deliberately as game batches land.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 26, f"expected 26 game cards, got {cards}"
+    assert cards == 27, f"expected 27 game cards, got {cards}"
 
     # New games present
     for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup",
                 "quickie", "cutthroat", "wildcard", "gotcha", "hammer", "teamhammer",
-                "sharktank", "tictactoe"):
+                "sharktank", "tictactoe", "robinhood"):
         n = await page.locator(f".game-card[data-game-value='{gid}']").count()
         assert n == 1, f"{gid} card missing"
 
@@ -510,6 +510,50 @@ async def test_tic_tac_toe(page):
     owners = await get_state(page, "m.game.ticTacToe.cells.slice(0,3).map(c=>c.owner)")
     assert owners == [0, 0, 0], owners
     return {"targets": targets, "winner": winner, "top_row": owners}
+
+
+async def test_robin_hood(page):
+    # Bulls score the official high values (100/200), triples are disabled,
+    # and the highest total after every player finishes round 10 wins.
+    await fresh(page)
+    await start_game(page, "robinhood", num_players="2")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    assert (await page.locator("#targetValue").inner_text()).strip() == "Bull"
+    assert await page.locator("#hitTripleBtn").is_disabled(), "Robin Hood has no triple Bull"
+
+    await page.click("#hitSingleBtn")
+    await page.click("#hitDoubleBtn")
+    live = int(await page.locator("#targetTurnScore").inner_text())
+    assert live == 300, f"Robin Hood bull total = {live}"
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(250)
+    assert await get_state(page, "m.game.players[0].score") == 300
+
+    # Final player, final round. Away adds 200 but remains below Home.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.robinHood.round = 10;
+            state.game.completedRounds = 9;
+            state.game.currentPlayer = 1;
+            state.game.players[0].score = 500;
+            state.game.players[1].score = 200;
+            (await import('./js/target_game.js')).updateTargetGameDisplay();
+        })()
+    """)
+    await page.click("#hitDoubleBtn")
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(300)
+    assert await page.locator("#winnerModal").is_visible(), "Robin Hood did not finish round 10"
+    winner = (await page.locator("#winnerName").inner_text()).strip()
+    assert winner == "Home", winner
+    state = await get_state(
+        page, "({scores:m.game.players.map(p=>p.score), rounds:m.game.completedRounds})")
+    assert state == {"scores": [500, 400], "rounds": 10}, state
+    stored = await page.evaluate(
+        "JSON.parse(localStorage.getItem('blakeout_active_game')).robinHood.round")
+    assert stored == 10, stored
+    return {"turn": live, "final": state, "winner": winner}
 
 
 async def test_game_rules_tooltip(page):
@@ -999,7 +1043,7 @@ async def test_all_games_boot(page):
     games = await page.evaluate(
         "(async () => { const r = await import('./js/registry.js');"
         " return r.listGames().map(g => ({id:g.id, engine:g.engine, requiresTeamMode:!!g.requiresTeamMode})); })()")
-    assert len(games) >= 26, f"registry shrank? {len(games)} games"
+    assert len(games) >= 27, f"registry shrank? {len(games)} games"
     panels = {
         "cricket": "#cricketMain", "x01": "#x01Main",
         "score": "#x01Main", "target": "#targetGameMain",

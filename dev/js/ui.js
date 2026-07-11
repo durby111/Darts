@@ -317,6 +317,8 @@ export function updateRoundBadge() {
         badge.textContent = game.hammer.tiebreaker ? 'TB' : game.hammer.round;
     } else if (game.sharkTank) {
         badge.textContent = game.sharkTank.round;
+    } else if (game.robinHood) {
+        badge.textContent = game.robinHood.round;
     } else {
         badge.textContent = game.completedRounds + 1;
     }

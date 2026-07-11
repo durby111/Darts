@@ -221,6 +221,13 @@ export const GAME_REGISTRY = [
         tags: ['tic tac toe', 'tic tac darts', 'x and o', 'random numbers', 'party', 'new'],
         desc: 'Claim dartboard squares with four marks and connect three in a row.',
         rules: 'Bull is the center of a 3×3 board; eight random numbers fill the other squares. Single = 1 mark, Double = 2, Triple = 3 (Bull = 1/2). Four marks claims a square. First to claim 3 in a row wins; a full Cats board goes to the player with more squares.'
+    },
+    {
+        id: 'robinhood', label: 'Robin Hood', sub: 'Bulls worth 100/200', icon: '🏹',
+        engine: 'target', category: 'numbers', isNew: true,
+        tags: ['robin hood', 'bullseye', 'bulls', '10 rounds', 'practice', 'new'],
+        desc: 'Ten rounds of bullseyes. Outer Bull = 100; Inner Bull = 200.',
+        rules: 'Throw 3 darts at the bull for 10 rounds. Each Outer Bull scores 100 and each Inner Bull scores 200; misses score nothing. Highest total after every player completes round 10 wins.'
     }
 ];
 
