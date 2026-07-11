@@ -1,9 +1,9 @@
 /* ============================================
-   X01 Games (301, 501, 701, 801)
+    X01 Games + round-based total-score entry (Count Up)
    Checkout chart, calculator mode, score history
    ============================================ */
 
-import { game, saveGameState, undoWithCooldown, redoWithCooldown } from './state.js';
+import { game, saveGameState, saveActiveGame, undoWithCooldown, redoWithCooldown } from './state.js';
 import { updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner, show121MatchSummary } from './ui.js';
 import { handle121LegEnd, record121Round } from './game121.js';
 import { currentThrower, advanceRotation } from './teams.js';
@@ -12,6 +12,10 @@ function activeThrowerName() {
     if (!game.teamMode) return null;
     const t = currentThrower(game.currentPlayer);
     return t ? t.name : null;
+}
+
+function isCountUpGame() {
+    return game.type === 'countup' && !!game.countUp;
 }
 
 function makeHistoryEntry(score, bust = false, thrower = null, miss = false) {
@@ -96,6 +100,7 @@ let expressionStr = '';
 let remainingMode = false;
 
 function setRemainingMode(on) {
+    if (isCountUpGame()) return;
     remainingMode = on;
     updateInputDisplay();
 }
@@ -205,7 +210,7 @@ function updateMissEnterVisibility() {
     const hasInput = expressionStr.length > 0;
     if (missBtn) missBtn.style.display = hasInput ? 'none' : '';
     if (enterBtn) enterBtn.style.display = hasInput ? '' : 'none';
-    if (bustBtn) bustBtn.style.display = '';
+    if (bustBtn) bustBtn.style.display = isCountUpGame() ? 'none' : '';
 }
 
 function quickScore(score) {
@@ -263,6 +268,7 @@ function x01Miss() {
 }
 
 function x01Bust() {
+    if (isCountUpGame()) return;
     if (turnCommitLocked) return;
     lockTurnCommit();
     saveGameState();
@@ -286,6 +292,34 @@ function x01Bust() {
         game.completedRounds++;
     }
     clearInput();
+    saveActiveGame();
+    updateX01Display();
+    updateUndoRedoButtons();
+}
+
+function submitCountUpScore(score, opts, player, thrower) {
+    player.score += score;
+    player.history.push(makeHistoryEntry(score, false, thrower, !!opts.miss));
+
+    const isLastPlayer = game.currentPlayer === game.players.length - 1;
+    const totalRounds = game.countUp.totalRounds || 8;
+    if (isLastPlayer && game.completedRounds + 1 >= totalRounds) {
+        game.completedRounds = totalRounds;
+        clearInput();
+        saveActiveGame();
+        updateX01Display();
+        updateUndoRedoButtons();
+        const high = Math.max(...game.players.map(p => p.score));
+        const winners = game.players.filter(p => p.score === high).map(p => p.name);
+        showWinner(winners.join(' & '), false, true);
+        return;
+    }
+
+    if (game.teamMode) advanceRotation(game.currentPlayer);
+    game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
+    if (game.currentPlayer === 0) game.completedRounds++;
+    clearInput();
+    saveActiveGame();
     updateX01Display();
     updateUndoRedoButtons();
 }
@@ -339,6 +373,12 @@ function submitScore(opts = {}) {
 
     const thrower = activeThrowerName();
     const player = game.players[game.currentPlayer];
+
+    if (isCountUpGame()) {
+        submitCountUpScore(score, opts, player, thrower);
+        return;
+    }
+
     const newScore = player.score - score;
 
     // X01 rules at the dart-segment level (Double-In / Double-Out / what
@@ -369,6 +409,7 @@ function submitScore(opts = {}) {
         if (game.teamMode) advanceRotation(game.currentPlayer);
         game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
         if (game.currentPlayer === 0) game.completedRounds++;
+        saveActiveGame();
         updateX01Display();
         updateUndoRedoButtons();
         return;
@@ -391,6 +432,7 @@ function submitScore(opts = {}) {
             handle121LegEnd(true, score);
             return;
         }
+        saveActiveGame();
         showWinner(player.name);
         return;
     }
@@ -406,6 +448,7 @@ function submitScore(opts = {}) {
     game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
     if (game.currentPlayer === 0) game.completedRounds++;
 
+    saveActiveGame();
     updateX01Display();
     updateUndoRedoButtons();
 }
@@ -415,6 +458,8 @@ function submitScore(opts = {}) {
 function renderX01ScoreHistory() {
     const numPlayers = game.players.length;
     const x01Main = document.getElementById('x01Main');
+    const scoreMatchOver = isCountUpGame()
+        && game.completedRounds >= (game.countUp.totalRounds || 8);
 
     x01Main.classList.remove('three-player', 'four-player');
     if (numPlayers === 3) x01Main.classList.add('three-player');
@@ -458,10 +503,12 @@ function renderX01ScoreHistory() {
     // Build round numbers
     let roundHtml = '';
     for (let r = 1; r <= maxRounds; r++) {
-        const isCurrent = (r === maxRounds && game.players[game.currentPlayer].history.length < maxRounds);
+        const isCurrent = !scoreMatchOver
+            && r === maxRounds
+            && game.players[game.currentPlayer].history.length < maxRounds;
         roundHtml += `<div class="round-number${isCurrent ? ' current' : ''}">${r}</div>`;
     }
-    if (game.players[game.currentPlayer].history.length === maxRounds) {
+    if (!scoreMatchOver && game.players[game.currentPlayer].history.length === maxRounds) {
         roundHtml += `<div class="round-number current">${maxRounds + 1}</div>`;
     }
     roundCol.innerHTML = roundHtml;
@@ -472,11 +519,16 @@ function renderX01ScoreHistory() {
         if (!player) return '';
 
         let html = '';
-        const totalRounds = game.players[game.currentPlayer].history.length === maxRounds ? maxRounds + 1 : maxRounds;
+        const totalRounds = !scoreMatchOver
+            && game.players[game.currentPlayer].history.length === maxRounds
+            ? maxRounds + 1
+            : maxRounds;
 
         for (let r = 0; r < totalRounds; r++) {
             const entry = player.history[r];
-            const isCurrent = r === player.history.length && game.currentPlayer === playerIndex;
+            const isCurrent = !scoreMatchOver
+                && r === player.history.length
+                && game.currentPlayer === playerIndex;
             const arrow = isCurrent && isLeft ? ' ◄' : (isCurrent && !isLeft ? '► ' : '');
 
             if (entry !== undefined) {
@@ -526,6 +578,10 @@ function renderX01ScoreHistory() {
 
 function updateCheckoutSuggestion() {
     const suggestionEl = document.getElementById('checkoutSuggestion');
+    if (isCountUpGame()) {
+        suggestionEl.style.display = 'none';
+        return;
+    }
     const player = game.players[game.currentPlayer];
     const score = player.score;
     const finishType = game.finishType || 'open';
@@ -591,7 +647,12 @@ function updateX01Display() {
     const currentPlayer = game.players[game.currentPlayer];
     const finishType = game.finishType || 'open';
 
-    if (game.game121) {
+    if (isCountUpGame()) {
+        const totalRounds = game.countUp.totalRounds || 8;
+        const round = Math.min(game.completedRounds + 1, totalRounds);
+        finishIndicator.textContent = `ROUND ${round} OF ${totalRounds} — ENTER 3-DART TOTAL`;
+        finishIndicator.style.color = 'var(--color-primary-light)';
+    } else if (game.game121) {
         const dartsLeft = game.game121.dartsPerLeg - game.game121.dartsThrown;
         finishIndicator.textContent = `${dartsLeft} dart${dartsLeft !== 1 ? 's' : ''} left | Start: ${game.game121.startingScore}`;
         finishIndicator.style.color = dartsLeft <= 3 ? 'var(--color-undo)' : 'var(--color-primary-light)';
@@ -658,6 +719,7 @@ function initX01Controls() {
         el.addEventListener('pointerdown', (e) => {
             const controls = document.getElementById('x01Controls');
             if (!controls || controls.classList.contains('hidden')) return;
+            if (isCountUpGame()) return;
             if (idx !== game.currentPlayer) return;
             e.preventDefault();
             toggleRemainingMode();

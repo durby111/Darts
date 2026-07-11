@@ -15,7 +15,8 @@ Engines:
 | engine    | scoring module               | notes |
 |-----------|------------------------------|-------|
 | `cricket` | `cricket.js` + `state.js:initCricket()` | cricket, spanish, minnesota, **chaos** |
-| `x01`     | `x01.js`                     | 301 / 501 / 701 / 801 (id parses to start score) |
+| `x01`     | `x01.js`                     | 301–1501 variants (numeric id parses to start score) |
+| `score`   | `x01.js` turn-total keypad   | Count Up; reusable for future score-entry games |
 | `target`  | `target_game.js` dispatcher  | baseball, bermuda, golf, **shanghai** |
 | `special` | own module                   | chicago, 121 |
 
@@ -49,6 +50,13 @@ reads/writes it and fires `change`.
   score = face × multiplier. Single + Double + Triple in one turn = instant
   win (detected from the per-dart `hits` array passed by `target_game.js`).
   Otherwise highest total after the last round wins.
+
+**Long X01 + Count Up**
+- 901 / 1101 / 1501 are registry-driven X01 modes; numeric ids initialize
+  their starting score without extra engine code.
+- Count Up uses the shared numeric turn-total keypad through the `score`
+  engine. Scores add from zero for 8 rounds; highest score wins and ties are
+  supported. X01-only Bust, checkout, and remaining-score controls are hidden.
 
 ## Themes
 
@@ -87,7 +95,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 22-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 24-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.

@@ -22,6 +22,7 @@ export let game = {
     bermuda: null,
     golf: null,
     shanghai: null,
+    countUp: null,
     // Team mode (Phase 2). When teamMode is true, game.players[] still has
     // exactly two entries — Home and Away — which the scoring engine treats
     // as the two "players". The actual humans throwing live in
@@ -52,6 +53,7 @@ function snapshot() {
         completedRounds: game.completedRounds,
         pendingDarts: deepClone(game.pendingDarts),
         currentInput: game.currentInput,
+        countUp: game.countUp ? deepClone(game.countUp) : null,
         // Snapshot teams so undo rolls back rotationIndex too.
         teams: game.teams ? deepClone(game.teams) : null,
         timestamp: Date.now()
@@ -64,6 +66,7 @@ function restore(state) {
     game.completedRounds = state.completedRounds;
     game.pendingDarts = state.pendingDarts;
     game.currentInput = state.currentInput;
+    if (state.countUp !== undefined) game.countUp = state.countUp;
     if (state.teams !== undefined) game.teams = state.teams;
 }
 
@@ -181,6 +184,7 @@ export function saveActiveGame() {
         bermuda: game.bermuda ? deepClone(game.bermuda) : null,
         golf: game.golf ? deepClone(game.golf) : null,
         shanghai: game.shanghai ? deepClone(game.shanghai) : null,
+        countUp: game.countUp ? deepClone(game.countUp) : null,
         teamMode: game.teamMode || false,
         teams: game.teams ? deepClone(game.teams) : null,
         timestamp: Date.now()
@@ -225,6 +229,7 @@ export function restoreActiveGame(snapshot) {
         bermuda: snapshot.bermuda || null,
         golf: snapshot.golf || null,
         shanghai: snapshot.shanghai || null,
+        countUp: snapshot.countUp || null,
         teamMode: snapshot.teamMode || false,
         teams: snapshot.teams || null
     });

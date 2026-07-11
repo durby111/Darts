@@ -12,6 +12,8 @@
    4. Implement the engine hooks:
       - engine 'cricket' → targets come from state.js:initCricket()
       - engine 'x01'     → handled by x01.js (numeric start score)
+            - engine 'score'   → turn-total entry through x01.js (Count Up,
+                                                     future Gotcha-style games)
       - engine 'target'  → implement currentTarget / describeHitButtons /
                            pointsForHit / commitTurn and wire it into
                            target_game.js's dispatcher
@@ -59,6 +61,27 @@ export const GAME_REGISTRY = [
         tags: ['x01', 'countdown', 'endurance', 'teams'],
         desc: 'Endurance X01 — count down from 801.',
         rules: 'Start at 801. Same rules as 501: subtract each turn, reach exactly 0, finish per the out rule. Great for teams.'
+    },
+    {
+        id: '901', label: '901', sub: 'Marathon', icon: '🎯',
+        engine: 'x01', category: 'x01', isNew: true,
+        tags: ['x01', 'countdown', 'marathon', 'teams', 'new'],
+        desc: 'Marathon X01 — count down from 901.',
+        rules: 'Start at 901. Same rules as 501: subtract each turn, reach exactly 0, and finish per the selected out rule. Built for long matches and teams.'
+    },
+    {
+        id: '1101', label: '1101', sub: 'Team marathon', icon: '🎯',
+        engine: 'x01', category: 'x01', isNew: true,
+        tags: ['x01', 'countdown', 'marathon', 'teams', '1101', 'new'],
+        desc: 'Extra-long X01 — count down from 1101.',
+        rules: 'Start at 1101. Subtract each turn and reach exactly 0 under the selected out rule. A long-format game especially suited to rotating teams.'
+    },
+    {
+        id: '1501', label: '1501', sub: 'Ultra marathon', icon: '🎯',
+        engine: 'x01', category: 'x01', isNew: true,
+        tags: ['x01', 'countdown', 'ultra', 'marathon', 'teams', '1501', 'new'],
+        desc: 'The longest X01 format — count down from 1501.',
+        rules: 'Start at 1501. Standard X01 rules apply: subtract each turn, avoid going below 0, and reach exactly 0 under the selected out rule.'
     },
     {
         id: 'cricket', label: 'Cricket', sub: '15–20 + Bull', icon: '✕',
@@ -129,6 +152,13 @@ export const GAME_REGISTRY = [
         tags: ['shanghai', 'rounds', 'instant win', 'party', 'new'],
         desc: 'Hit the round number. Score face × multiplier — land Single + Double + Triple in one turn for an instant Shanghai win.',
         rules: 'Rounds 1→7 — only the round\u2019s number scores (face × multiplier). Hit a Single + Double + Triple of it in ONE turn for an instant Shanghai win; otherwise highest total after the last round wins.'
+    },
+    {
+        id: 'countup', label: 'Count Up', sub: '8 rounds', icon: '📈',
+        engine: 'score', category: 'party', isNew: true,
+        tags: ['count up', '8 rounds', 'highest score', 'beginner', 'practice', 'new'],
+        desc: 'Score every dart for 8 rounds. Highest total wins.',
+        rules: 'Everyone starts at 0 and plays 8 rounds of 3 darts. Enter each turn’s total; every segment scores its normal value. Highest score after all players finish round 8 wins.'
     }
 ];
 
@@ -156,6 +186,11 @@ export function isCricketGame(id) {
 export function isX01Game(id) {
     const g = BY_ID.get(id);
     return !!g && g.engine === 'x01';
+}
+
+export function isScoreGame(id) {
+    const g = BY_ID.get(id);
+    return !!g && g.engine === 'score';
 }
 
 export function isTargetGame(id) {

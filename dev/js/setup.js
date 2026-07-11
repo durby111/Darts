@@ -15,7 +15,7 @@ import { initBermudaState } from './bermuda.js';
 import { initGolfState } from './golf.js';
 import { initShanghaiState } from './shanghai.js';
 import { initThemePickerUI } from './theme.js';
-import { isCricketGame, isX01Game, isTargetGame } from './registry.js';
+import { isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
 import { resetX01Input } from './x01.js';
 
@@ -549,6 +549,7 @@ function beginMatch(playerSeeds, teams) {
     const isBermuda = gameType === 'bermuda';
     const isGolf = gameType === 'golf';
     const isShanghai = gameType === 'shanghai';
+    const isCountUp = gameType === 'countup';
 
     Object.assign(game, {
         type: gameType,
@@ -592,6 +593,7 @@ function beginMatch(playerSeeds, teams) {
         bermuda: isBermuda ? initBermudaState(document.getElementById('bermudaVariant').value) : null,
         golf: isGolf ? initGolfState(document.getElementById('golfVariant').value) : null,
         shanghai: isShanghai ? initShanghaiState(document.getElementById('shanghaiVariant')?.value) : null,
+        countUp: isCountUp ? { totalRounds: 8 } : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,
@@ -618,6 +620,8 @@ function beginMatch(playerSeeds, teams) {
             game.game121.legsWon.push(0);
         } else if (isX01Game(gameType)) {
             player.score = parseInt(gameType);
+        } else if (isScoreGame(gameType)) {
+            // Score-entry games such as Count Up accumulate from zero.
         } else if (isTargetGame(gameType)) {
             // score stays at 0; target games accumulate runs/points/strokes
         } else {

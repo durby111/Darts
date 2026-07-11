@@ -5,7 +5,7 @@ BlakeOut DEV regression and layout test battery (v2.4-dev).
 Lives under /dev/tests/ — tests the dev build only. Modeled on
 scripts/headless_test.py but covers the v2.3 overhaul features:
 
-    registry_picker    — 14 game cards render from registry, search filters,
+    registry_picker    — all game cards render from registry, search filters,
                          category chips filter, hidden select syncs
     favorites_recents  — star toggles favorites, favorites chip appears,
                          recents recorded after a game start
@@ -99,12 +99,12 @@ async def drag_locator_to(page, source, target, target_y_ratio=0.5):
 
 async def test_registry_picker(page):
     await dismiss_onboard(page)
-    # 14 cards from the registry
+    # Registry card count grows deliberately as game batches land.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 14, f"expected 14 game cards, got {cards}"
+    assert cards == 18, f"expected 18 game cards, got {cards}"
 
     # New games present
-    for gid in ("chaos", "shanghai"):
+    for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup"):
         n = await page.locator(f".game-card[data-game-value='{gid}']").count()
         assert n == 1, f"{gid} card missing"
 
@@ -135,6 +135,80 @@ async def test_registry_picker(page):
         "el => el.classList.contains('hidden')")
     assert not sh_hidden, "shanghaiOptions hidden after picking shanghai"
     return {"cards": cards}
+
+
+async def test_long_x01_starts(page):
+    # Long X01 modes are registry-driven but must initialize at their full
+    # four-digit score and still subtract turns normally.
+    starts = {}
+    for game_type in ("901", "1101", "1501"):
+        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_timeout(250)
+        await start_game(page, game_type, num_players="4")
+        scores = await get_state(page, "m.game.players.map(p => p.score)")
+        expected = int(game_type)
+        assert scores == [expected] * 4, f"{game_type} starts = {scores}"
+        visible = [
+            int(await page.locator(f"#{score_id}").inner_text())
+            for score_id in ("homeScore", "awayScore", "player3Score", "player4Score")
+        ]
+        assert visible == scores, f"{game_type} header = {visible}"
+        await page.click("[data-quick='180']")
+        await page.wait_for_timeout(800)
+        after = await get_state(page, "m.game.players[0].score")
+        assert after == expected - 180, f"{game_type} after 180 = {after}"
+        starts[game_type] = after
+    return {"after_180": starts}
+
+
+async def test_count_up(page):
+    # Count Up reuses the numeric turn-total pad but adds scores for exactly
+    # eight rounds, hides X01-only controls, supports ties, and persists.
+    await fresh(page)
+    await start_game(page, "countup", num_players="2")
+    await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
+    scores = await get_state(page, "m.game.players.map(p => p.score)")
+    assert scores == [0, 0], scores
+    assert not await page.locator("#x01BustBtn").is_visible(), "BUST is not valid in Count Up"
+    assert not await page.locator("#checkoutSuggestion").is_visible(), "checkout hint leaked into Count Up"
+    indicator = (await page.locator("#finishIndicator").inner_text()).strip()
+    assert "ROUND 1 OF 8" in indicator, indicator
+
+    await page.click("[data-quick='100']")
+    await page.wait_for_timeout(800)
+    first = await get_state(page, "m.game.players[0].score")
+    assert first == 100, f"Count Up should add 100, got {first}"
+    stored = await page.evaluate(
+        "JSON.parse(localStorage.getItem('blakeout_active_game')).players[0].score")
+    assert stored == 100, f"committed Count Up turn not persisted: {stored}"
+
+    # Put both players at their final turn. P1 reaches 180; P2 ties it, so
+    # the winner modal should name both and no phantom round 9 should render.
+    await page.evaluate("""
+        (async () => {
+            const s = await import('./js/state.js');
+            s.game.completedRounds = 7;
+            s.game.currentPlayer = 0;
+            s.game.players[0].score = 120;
+            s.game.players[1].score = 140;
+            s.game.players[0].history = Array(7).fill(0);
+            s.game.players[1].history = Array(7).fill(0);
+            (await import('./js/x01.js')).updateX01Display();
+        })()
+    """)
+    await page.click("[data-quick='60']")
+    await page.wait_for_timeout(800)
+    await page.click("[data-quick='40']")
+    await page.wait_for_timeout(800)
+    assert await page.locator("#winnerModal").is_visible(), "Count Up did not end after round 8"
+    winner = (await page.locator("#winnerName").inner_text()).strip()
+    assert "Home" in winner and "Away" in winner, f"tie winners = {winner!r}"
+    final = await get_state(page, "({scores:m.game.players.map(p=>p.score), rounds:m.game.completedRounds})")
+    assert final == {"scores": [180, 180], "rounds": 8}, final
+    rounds = await page.locator("#roundNumCol .round-number").count()
+    assert rounds == 8, f"phantom Count Up round rendered: {rounds}"
+    return {"first_turn": first, "final": final, "winner": winner}
 
 
 async def test_game_rules_tooltip(page):
@@ -497,8 +571,11 @@ async def test_all_games_boot(page):
     games = await page.evaluate(
         "(async () => { const r = await import('./js/registry.js');"
         " return r.listGames().map(g => ({id: g.id, engine: g.engine})); })()")
-    assert len(games) >= 14, f"registry shrank? {len(games)} games"
-    panels = {"cricket": "#cricketMain", "x01": "#x01Main", "target": "#targetGameMain"}
+    assert len(games) >= 18, f"registry shrank? {len(games)} games"
+    panels = {
+        "cricket": "#cricketMain", "x01": "#x01Main",
+        "score": "#x01Main", "target": "#targetGameMain"
+    }
     booted = []
     for g in games:
         await page.evaluate("localStorage.removeItem('blakeout_active_game')")
