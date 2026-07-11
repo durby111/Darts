@@ -5,7 +5,9 @@
 
 /* === Card === */
 .card {
-    background: rgba(26, 26, 26, 0.95);
+    /* Track the theme surface (was hardcoded near-black, which broke the
+       light Arctic theme). color-mix keeps the slight translucency. */
+    background: color-mix(in srgb, var(--color-surface) 95%, transparent);
     border-radius: var(--radius-lg);
     padding: var(--space-2xl);
     border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
@@ -77,17 +79,17 @@
 /* Button Variants */
 .btn--primary {
     background: var(--color-primary);
-    color: var(--color-text);
+    color: var(--color-on-primary);
 }
 
 .btn--primary-dark {
     background: var(--color-primary-dark);
-    color: var(--color-text);
+    color: var(--color-on-primary);
 }
 
 .btn--success {
     background: var(--color-success);
-    color: var(--color-text);
+    color: var(--color-on-success);
 }
 
 .btn--success-dark {
@@ -290,10 +292,13 @@
 
 /* === Roster manager (collapsible) === */
 .roster-section {
+    margin: 0 0 var(--space-lg);
     background: var(--color-surface-alt, var(--color-surface));
     border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-primary);
     border-radius: var(--radius-md);
     padding: var(--space-md);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
 }
 
 .roster-section > summary {
@@ -463,6 +468,7 @@
 .team-chip.selected {
     background: var(--color-primary);
     border-color: var(--color-primary-light, var(--color-primary));
+    color: var(--color-on-primary);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
@@ -724,8 +730,21 @@
     margin-bottom: var(--space-lg);
 }
 
+.setup-panel {
+    width: 100%;
+    padding: clamp(10px, 2.2vw, var(--space-lg));
+    background: color-mix(in srgb, var(--color-surface-alt) 86%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-border-light) 78%, transparent);
+    border-left: 4px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+}
+
 .setup-section-label {
-    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    color: var(--color-primary-light, var(--color-primary));
     font-size: var(--font-xs);
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -733,11 +752,17 @@
     font-weight: 700;
 }
 
+.setup-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--color-primary) 55%, transparent),
+        transparent);
+}
+
 .setup-section--collapsible {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-    background: var(--color-surface-alt);
+    background: color-mix(in srgb, var(--color-surface-alt) 86%, transparent);
 }
 
 .setup-section--collapsible > summary {
@@ -745,6 +770,21 @@
     list-style: none;
     padding: 0;
     margin: 0 0 var(--space-sm);
+}
+
+.setup-section--collapsible > summary::-webkit-details-marker {
+    display: none;
+}
+
+.setup-section--collapsible > summary::before {
+    content: '▸';
+    display: inline-block;
+    color: var(--color-primary);
+    transition: transform var(--transition-fast);
+}
+
+.setup-section--collapsible[open] > summary::before {
+    transform: rotate(90deg);
 }
 
 .setup-section--collapsible[open] > summary {
@@ -811,12 +851,30 @@
 }
 
 /* Player rows */
+.player-order-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.player-order-hint {
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    line-height: 1.3;
+}
+
 .player-row {
     display: grid;
-    grid-template-columns: 90px 1fr;
+    grid-template-columns: 36px minmax(68px, auto) minmax(0, 1fr) 30px;
     align-items: center;
-    gap: var(--space-md);
+    gap: var(--space-sm);
     margin-bottom: var(--space-sm);
+    padding: 3px;
+    border: 2px solid transparent;
+    border-radius: var(--radius-md);
+    transition: opacity var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
 }
 
 .player-row label {
@@ -846,6 +904,56 @@
     box-shadow: var(--shadow-glow);
 }
 
+.player-order-drag {
+    width: 36px;
+    min-height: 42px;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-alt);
+    color: var(--color-text-muted);
+    font-size: var(--font-lg);
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.player-order-drag:active {
+    cursor: grabbing;
+}
+
+.player-order-stepper {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.player-order-stepper button {
+    width: 28px;
+    height: 22px;
+    padding: 0;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+    line-height: 1;
+    cursor: pointer;
+}
+
+.player-order-stepper button:disabled {
+    opacity: 0.28;
+    cursor: default;
+}
+
+.player-row--dragging {
+    opacity: 0.55;
+    transform: scale(0.99);
+}
+
+.player-row--drop-target {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
 .ui-scale-row {
     display: flex;
     align-items: center;
@@ -870,6 +978,14 @@
     display: flex;
     flex-direction: column;
     gap: var(--space-md);
+}
+
+.setup-play-panel .setup-action-row {
+    margin-top: 0;
+}
+
+.setup-maintenance-panel {
+    border-left-color: var(--color-border-light);
 }
 
 .btn--hero {
@@ -960,6 +1076,16 @@
     margin-bottom: var(--space-sm);
 }
 
+.target-hit-buttons.has-miss {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 600px) {
+    .target-hit-buttons.has-miss {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .target-hit-buttons .btn:disabled {
     opacity: 0.35;
     pointer-events: none;
@@ -969,6 +1095,370 @@
     display: grid;
     grid-template-columns: 1fr 1fr 2fr;
     gap: var(--space-sm);
+}
+
+/* === Tic Tac Toe Darts === */
+.tic-tac-toe-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    overflow-y: auto;
+}
+
+.tic-game-hint,
+.tic-pending {
+    color: var(--color-text-muted);
+    font-size: calc(var(--font-md) * var(--ui-scale));
+    text-align: center;
+}
+
+.tic-grid {
+    width: min(72dvh, 88vw, 680px);
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(4px, 1vw, 10px);
+}
+
+.tic-cell {
+    position: relative;
+    min-width: 0;
+    border: 3px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: var(--font-family);
+    cursor: pointer;
+    touch-action: none;
+    overflow: hidden;
+}
+
+.tic-cell.owner-0 {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 28%, var(--color-surface));
+}
+
+.tic-cell.owner-1 {
+    border-color: var(--color-success);
+    background: color-mix(in srgb, var(--color-success) 24%, var(--color-surface));
+}
+
+.tic-target {
+    display: block;
+    font-size: calc(clamp(1.5rem, 6vmin, 3.5rem) * var(--ui-scale));
+    font-weight: 900;
+    line-height: 1;
+}
+
+.tic-owner {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+    font-size: calc(clamp(4rem, 14vmin, 9rem) * var(--ui-scale));
+    font-weight: 900;
+    opacity: 0.32;
+    line-height: 1;
+}
+
+.tic-marks {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    font-size: calc(var(--font-sm) * var(--ui-scale));
+    font-weight: 700;
+}
+
+.tic-x { color: var(--color-primary-light); }
+.tic-o { color: var(--color-success); }
+
+.tic-controls {
+    min-height: auto;
+    gap: var(--space-sm);
+}
+
+.tic-multiplier-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-sm);
+}
+
+.tic-multiplier-row .active {
+    outline: 3px solid var(--color-pending);
+    box-shadow: var(--shadow-glow);
+}
+
+.tic-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    gap: var(--space-sm);
+}
+
+@media (max-width: 600px) {
+    .tic-grid { width: min(60dvh, 94vw); }
+    .tic-multiplier-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* === Double Down Cricket === */
+.double-down-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    overflow-y: auto;
+}
+
+.double-down-phase {
+    color: var(--color-pending);
+    font-size: calc(var(--font-2xl) * var(--ui-scale));
+    font-weight: 900;
+    letter-spacing: 0.12em;
+}
+
+.double-down-hint,
+.double-down-pending {
+    color: var(--color-text-muted);
+    font-size: calc(var(--font-md) * var(--ui-scale));
+    text-align: center;
+}
+
+.double-down-board {
+    width: min(90vw, 680px);
+}
+
+.double-down-targets {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-md);
+}
+
+.double-down-target {
+    min-height: clamp(100px, 18dvh, 190px);
+    border: 3px solid var(--color-primary);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    color: var(--color-text);
+    font-family: var(--font-family);
+    touch-action: none;
+}
+
+.double-down-target span {
+    display: block;
+    font-size: calc(clamp(3rem, 10vmin, 6rem) * var(--ui-scale));
+    font-weight: 900;
+}
+
+.double-down-target small { color: var(--color-text-muted); }
+.double-down-target.complete { border-color: var(--color-success); opacity: 0.7; }
+.double-one-target { grid-column: 1 / -1; }
+
+.double-down-cricket-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.double-down-cricket-row {
+    display: grid;
+    grid-template-columns: 70px 70px 1fr;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.double-down-cricket-row.complete { border-color: var(--color-success); }
+.double-down-number { font-size: var(--font-xl); font-weight: 900; text-align: center; }
+.double-down-marks { color: var(--color-pending); font-weight: 800; text-align: center; }
+
+.double-down-hit-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-xs);
+}
+
+.double-down-hit-buttons button {
+    min-height: 42px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: var(--font-lg);
+    font-weight: 900;
+    touch-action: none;
+}
+
+.double-down-players {
+    width: min(90vw, 760px);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: var(--space-sm);
+}
+
+.double-down-player {
+    display: grid;
+    grid-template-columns: 1.2fr 1.4fr 1fr 0.7fr;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-alt);
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+}
+
+.double-down-player.active {
+    background: color-mix(in srgb, var(--color-primary) 28%, var(--color-surface));
+    color: var(--color-text);
+}
+
+.double-down-controls { min-height: auto; gap: var(--space-sm); }
+.double-down-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr;
+    gap: var(--space-sm);
+}
+
+@media (max-width: 600px) {
+    .double-down-cricket-row { grid-template-columns: 45px 48px 1fr; }
+    .double-down-player { grid-template-columns: 1fr 1fr; }
+}
+
+/* === Team Cricket / 400 === */
+.team-cricket-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-xs);
+    overflow-y: auto;
+}
+
+.team-cricket-rules-label,
+.team-cricket-pending {
+    color: var(--color-text-muted);
+    font-size: calc(var(--font-sm) * var(--ui-scale));
+    text-align: center;
+    padding: var(--space-xs);
+}
+
+.team-cricket-headings,
+.team-cricket-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr minmax(120px, 24vw) 1fr 1fr;
+    align-items: center;
+    gap: 2px;
+}
+
+.team-cricket-member-heading {
+    min-width: 0;
+    padding: var(--space-xs) 2px;
+    background: var(--color-surface-alt);
+    border-radius: var(--radius-sm);
+    text-align: center;
+    overflow: hidden;
+}
+
+.team-cricket-member-heading.active {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.team-cricket-member-heading span,
+.team-cricket-member-heading small {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.team-cricket-member-heading span { font-weight: 800; }
+.team-cricket-member-heading small { font-size: var(--font-xs); opacity: 0.75; }
+.team-cricket-center-heading { text-align: center; color: var(--color-text-muted); font-size: var(--font-xs); }
+
+.team-cricket-grid {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.team-cricket-row {
+    flex: 1 1 0;
+    min-height: clamp(54px, 8dvh, 92px);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.team-cricket-mark-cell {
+    height: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+    border-left: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+}
+
+.team-cricket-mark-cell.active {
+    background: color-mix(in srgb, var(--color-primary) 20%, transparent);
+    box-shadow: inset 3px 0 var(--color-primary), inset -3px 0 var(--color-primary);
+}
+
+.team-cricket-mark-cell .mark {
+    width: min(calc(clamp(48px, 8dvh, 82px) * var(--ui-scale)), calc(100% - 4px));
+    height: auto;
+    aspect-ratio: 1;
+}
+
+.team-cricket-target-buttons {
+    display: grid;
+    grid-template-columns: 0.7fr 1fr 0.7fr;
+    align-items: center;
+    gap: 2px;
+    padding: 0 2px;
+}
+
+.team-cricket-target-buttons button {
+    min-width: 0;
+    min-height: clamp(38px, 5dvh, 58px);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: calc(var(--font-lg) * var(--ui-scale));
+    font-weight: 900;
+    touch-action: none;
+}
+
+.team-cricket-button-spacer { display: block; }
+.team-cricket-controls { min-height: auto; gap: var(--space-xs); }
+.team-cricket-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 2fr;
+    gap: var(--space-sm);
+}
+
+@media (max-width: 600px) {
+    .team-cricket-headings,
+    .team-cricket-row {
+        grid-template-columns: 1fr 1fr minmax(96px, 26vw) 1fr 1fr;
+    }
+    .team-cricket-member-heading { font-size: 0.72rem; }
+    .team-cricket-mark-cell .mark { width: min(52px, calc(100% - 2px)); }
+    .team-cricket-target-buttons button { font-size: 0.9rem; }
 }
 
 /* === Team-builder additions: first-team badge, reorder buttons === */
@@ -1002,6 +1492,14 @@
     color: var(--color-text);
     touch-action: none;
     user-select: none;
+}
+
+.team-zone-member.drop-before {
+    box-shadow: 0 -4px 0 var(--color-success);
+}
+
+.team-zone-member.drop-after {
+    box-shadow: 0 4px 0 var(--color-success);
 }
 
 .team-zone-member-name {
@@ -1077,6 +1575,7 @@
 
 .face-picker-grid button:active {
     background: var(--color-primary);
+    color: var(--color-on-primary);
     border-color: var(--color-primary-light);
 }
 
@@ -1132,4 +1631,306 @@
     background: var(--color-success-dark, var(--color-success));
     color: var(--color-text);
     font-weight: 700;
+}
+
+/* ============================================
+   Game Picker (search / chips / recents / favs)
+   ============================================ */
+
+.picker-toolbar {
+    margin-bottom: var(--space-sm);
+}
+
+.picker-search {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface-alt);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: var(--font-md);
+    font-family: inherit;
+    outline: none;
+}
+
+.picker-search:focus {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.picker-search::placeholder {
+    color: var(--color-text-dim);
+}
+
+.picker-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.picker-chip {
+    padding: 5px 12px;
+    background: var(--color-surface-alt);
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.picker-chip:hover {
+    border-color: var(--color-border-light);
+    color: var(--color-text);
+}
+
+.picker-chip.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.picker-recents {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs);
+    margin-bottom: var(--space-sm);
+}
+
+.picker-recents-label {
+    color: var(--color-text-dim);
+    font-size: var(--font-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-right: 2px;
+}
+
+.picker-recent-chip {
+    padding: 5px 10px;
+    background: var(--color-surface);
+    border: 1.5px dashed var(--color-border-light);
+    border-radius: var(--radius-pill);
+    color: var(--color-text);
+    font-size: var(--font-xs);
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.picker-recent-chip:hover {
+    border-color: var(--color-primary);
+}
+
+.picker-quickstart {
+    border-style: solid;
+    border-color: var(--color-success);
+    color: var(--color-success);
+}
+
+.picker-description {
+    margin-top: var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--font-xs);
+    line-height: 1.4;
+    min-height: 1.4em;
+}
+
+.picker-empty {
+    grid-column: 1 / -1;
+    padding: var(--space-xl);
+    text-align: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+}
+
+/* Card + favorite star wrapper */
+.game-card-wrap {
+    position: relative;
+}
+
+.game-card-wrap .game-card {
+    width: 100%;
+    height: 100%;
+}
+
+.game-card-fav {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-dim);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    opacity: 0.7;
+}
+
+.game-card-fav.faved {
+    color: var(--color-warning);
+    opacity: 1;
+}
+
+/* ⓘ rules badge — bottom-right of each card */
+.game-card-info {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--color-text-dim);
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    opacity: 0.7;
+}
+
+/* Rules popover — anchored to the tapped card */
+.game-rules-pop {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 4px);
+    transform: translateX(-50%);
+    width: min(300px, 78vw);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-surface-alt);
+    border: 1.5px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-sm);
+    line-height: 1.4;
+    text-align: left;
+    z-index: var(--z-overlay);
+}
+
+.game-rules-pop strong {
+    display: block;
+    color: var(--color-text);
+    margin-bottom: 3px;
+}
+
+.game-card-new {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    padding: 1px 5px;
+    background: var(--color-success);
+    color: var(--color-on-success);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+/* ============================================
+   Setup header side column (theme picker)
+   ============================================ */
+
+.setup-header-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+/* 12 themes — wrap into rows, right-aligned, capped width */
+.theme-picker {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 240px;
+}
+
+/* ============================================
+   Unified Settings modal
+   ============================================ */
+
+.settings-modal-content {
+    max-width: 420px;
+    text-align: left;
+}
+
+.settings-section {
+    margin-top: var(--space-lg);
+}
+
+.settings-section-label {
+    font-size: var(--font-sm);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-bottom: var(--space-sm);
+}
+
+/* Inside the modal the picker can spread out */
+.settings-modal-content .theme-picker {
+    max-width: none;
+    justify-content: flex-start;
+}
+
+.wallpaper-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: var(--space-sm);
+    margin-bottom: var(--space-sm);
+}
+
+.wallpaper-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: var(--space-xs);
+    background: transparent;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.wallpaper-choice.active {
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.wallpaper-thumb {
+    display: block;
+    width: 100%;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    background-position: center;
+}
+
+.wallpaper-label {
+    font-size: var(--font-xs);
+    color: var(--color-text-muted);
+}
+
+.wallpaper-upload-btn {
+    display: inline-block;
+    cursor: pointer;
 }

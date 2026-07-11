@@ -36,7 +36,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background-image: url('../assets/background.png');
+    background-image: var(--app-wallpaper, url('../assets/background.jpg'));
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -51,7 +51,9 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
+    /* Theme-driven scrim over the background photo (light themes need a
+       light scrim, not the old hardcoded black). */
+    background: var(--bg-image-overlay, rgba(0, 0, 0, 0.75));
     z-index: 0;
 }
 
@@ -132,10 +134,15 @@ body {
     text-align: center;
     transition: background-color var(--transition-normal), opacity var(--transition-normal);
     min-width: 0;
+    overflow: hidden;
+    /* Lets multi-player scores use cqi units so the font is bounded by
+       its real grid column, not only by the full viewport width. */
+    container-type: inline-size;
 }
 
 .player-header.active {
     background: var(--color-active-player);
+    color: var(--color-on-primary);
 }
 
 .player-header.inactive {
@@ -173,6 +180,8 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0;
+    width: 100%;
+    min-width: 0;
 }
 
 .score-big {
@@ -198,6 +207,40 @@ body {
 /* Hide duplicate MPR (second copy was for side-by-side layout, now stacked) */
 .score-display-header .avg-small:last-child {
     display: none;
+}
+
+/* 3-4 player headers: two score boxes share a side, so the full-size
+   score font (14vw) overflows and the numbers run together. Shrink the
+   score box and name to fit the narrower columns, and add a hairline
+   gap between adjacent headers so the boxes stay visually separate. */
+.score-header.three-player,
+.score-header.four-player {
+    column-gap: 2px;
+}
+
+.score-header.three-player .player-header,
+.score-header.four-player .player-header {
+    padding-inline: clamp(2px, 0.8vw, var(--space-sm));
+}
+
+.score-header.three-player .player-name,
+.score-header.four-player .player-name {
+    font-size: clamp(0.75rem, calc(2.2vw * var(--ui-scale)), 1.25rem);
+}
+
+.score-header.three-player .score-big,
+.score-header.four-player .score-big {
+    /* Fallback first; supported browsers then cap against 34% of the
+       actual player column. That keeps four-digit future X01 scores and
+       max UI scale inside narrow 3/4-player headers. */
+    font-size: clamp(1.2rem, calc(5vw * var(--ui-scale)), 4rem);
+    font-size: clamp(1.2rem, min(calc(6vw * var(--ui-scale)), 34cqi), 4.5rem);
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    padding: var(--space-xs) var(--space-sm);
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 /* === Center Logo / Round Badge === */
@@ -228,7 +271,7 @@ body {
 
 .round-badge {
     background: var(--color-primary);
-    color: var(--color-text);
+    color: var(--color-on-primary);
     font-size: calc(var(--font-2xl) * var(--ui-scale));
     font-weight: bold;
     width: calc(clamp(50px, 8vw, 75px) * var(--ui-scale));
@@ -366,5 +409,47 @@ body {
     .bottom-controls,
     .controls-area {
         padding: var(--space-xs);
+    }
+}
+
+/* Compact phones still support 3/4-player games. Tighten the fixed center
+   lane and header chrome while preserving a readable 19px score floor. */
+@media (max-width: 600px) {
+    :root {
+        --cricket-center-col: clamp(104px, 26vw, 150px);
+        --minnesota-center-col: clamp(118px, 29vw, 165px);
+    }
+
+    .score-header.three-player,
+    .score-header.four-player {
+        column-gap: 1px;
+    }
+
+    .score-header.three-player .player-header,
+    .score-header.four-player .player-header {
+        padding: 2px;
+    }
+
+    .score-header.three-player .score-big,
+    .score-header.four-player .score-big {
+        padding: 2px;
+        border-radius: var(--radius-sm);
+    }
+
+    .center-logo {
+        padding: 2px;
+    }
+
+    .end-game-btn {
+        min-width: 48px;
+        min-height: 30px;
+        padding: 3px 5px;
+        font-size: 0.75rem;
+    }
+
+    .round-badge {
+        width: 36px;
+        height: 36px;
+        font-size: var(--font-md);
     }
 }

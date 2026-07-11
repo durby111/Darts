@@ -139,12 +139,12 @@ async def test_bermuda_picker(page):
 
 
 async def test_golf(page):
-    # Game grid should now show 12 cards (Golf added), Golf select option
+    # Full v2.4 registry should show 29 cards; Golf select option
     # exists, picking Golf reveals #golfOptions with 3 variants.
     opts = await page.eval_on_selector_all("#gameType option", "els => els.map(e => e.value)")
     assert "golf" in opts, f"golf missing from gameType: {opts}"
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 12, f"expected 12 game cards (Golf added), got {cards}"
+    assert cards == 29, f"expected 29 game cards, got {cards}"
 
     await page.click(".game-card[data-game-value='golf']")
     await page.wait_for_timeout(80)
@@ -366,10 +366,12 @@ async def test_solo_spanish(page):
 
 
 async def test_theme_picker(page):
-    # Three swatches render; default is blue. Click each one and confirm
-    # data-theme on <html> updates + localStorage persists it.
+    # Theme picker lives in Settings. All 12 swatches render; click the three
+    # original themes and confirm application + persistence.
+    await page.click("#settingsBtnSetup")
+    await page.wait_for_timeout(400)
     swatches = await page.locator(".theme-swatch[data-theme-choice]").count()
-    assert swatches == 3, f"expected 3 theme swatches, got {swatches}"
+    assert swatches == 12, f"expected 12 theme swatches, got {swatches}"
     initial = await page.evaluate("document.documentElement.getAttribute('data-theme')")
     assert initial == "blue", f"default theme was {initial!r}, expected 'blue'"
 
@@ -384,12 +386,13 @@ async def test_theme_picker(page):
 
 
 async def test_game_grid(page):
-    # 11 game cards render, default-active is 501, click cricket → active swaps
-    # and the hidden <select> mirrors the new value.
+    # 29 game cards render; the active card mirrors the hidden select (which
+    # may restore the last-used config), then clicking Cricket updates both.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 12, f"expected 12 game cards, got {cards}"
+    assert cards == 29, f"expected 29 game cards, got {cards}"
     active = await page.locator(".game-card.active").get_attribute("data-game-value")
-    assert active == "501", f"default-active card was {active!r}"
+    initial_select = await page.eval_on_selector("#gameType", "el => el.value")
+    assert active == initial_select, f"active card {active!r} != selected game {initial_select!r}"
 
     await page.click(".game-card[data-game-value='cricket']")
     await page.wait_for_timeout(80)

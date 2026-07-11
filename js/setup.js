@@ -13,68 +13,199 @@ import { showTeamBuilder, setTeamsConfirmedCallback } from './teams.js';
 import { initBaseballState } from './baseball.js';
 import { initBermudaState } from './bermuda.js';
 import { initGolfState } from './golf.js';
+import { initShanghaiState } from './shanghai.js';
+import { initHammerState } from './hammer.js';
+import { initTicTacToeState, resetTicTacToeInput } from './tictactoe.js';
+import { initRobinHoodState } from './robinhood.js';
+import { initDoubleDownState } from './doubledown.js';
+import { initTeamCricketState } from './teamcricket.js';
 import { initThemePickerUI } from './theme.js';
-
-const GAME_META = {
-    '301':       { label: '301',        sub: 'Double out',        icon: '🎯' },
-    '501':       { label: '501',        sub: 'Standard',          icon: '🎯' },
-    '701':       { label: '701',        sub: 'Long form',         icon: '🎯' },
-    '801':       { label: '801',        sub: 'Endurance',         icon: '🎯' },
-    'cricket':   { label: 'Cricket',    sub: '15–20 + Bull',      icon: '✕' },
-    'spanish':   { label: 'Spanish',    sub: '20→10',             icon: '✕' },
-    'minnesota': { label: 'Minnesota',  sub: 'Cricket variant',   icon: '✕' },
-    'chicago':   { label: 'Chicago',    sub: 'Best of 3',         icon: '🌆' },
-    '121':       { label: '121',        sub: 'Limited darts',     icon: '⏱' },
-    'baseball':  { label: 'Baseball',   sub: '9 innings',         icon: '⚾' },
-    'bermuda':   { label: 'Bermuda',    sub: 'Triangle',          icon: '🔺' },
-    'golf':      { label: 'Golf',       sub: '18 holes',          icon: '⛳' }
-};
+import { getGame, isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
+import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
+import { resetX01Input } from './x01.js';
 
 let onGameStart = null;
 let overlayMode = false;
+
+const PLAYER_ORDER_DRAG_THRESHOLD = 8;
+let playerOrderDrag = null;
+
+function playerCount() {
+    const raw = parseInt(document.getElementById('numPlayers')?.value || '2');
+    return Math.max(1, Math.min(4, raw));
+}
+
+function ordinal(value) {
+    return value === 1 ? '1st' : value === 2 ? '2nd' : value === 3 ? '3rd' : `${value}th`;
+}
+
+function renderPlayerOrderControls() {
+    const count = playerCount();
+    for (let index = 0; index < 4; index++) {
+        const row = document.getElementById(`player${index + 1}Group`);
+        const input = document.getElementById(`player${index + 1}`);
+        if (!row || !input) continue;
+
+        const label = row.querySelector('[data-player-order-label]');
+        if (label) label.textContent = `Throws ${ordinal(index + 1)}`;
+
+        const displayName = input.value.trim() || `Player ${index + 1}`;
+        const handle = row.querySelector('[data-player-drag-index]');
+        if (handle) handle.setAttribute('aria-label', `Drag ${displayName} in throw order`);
+
+        const up = row.querySelector('[data-player-order-action="up"]');
+        const down = row.querySelector('[data-player-order-action="down"]');
+        if (up) {
+            up.disabled = index === 0 || index >= count;
+            up.setAttribute('aria-label', `Move ${displayName} earlier`);
+        }
+        if (down) {
+            down.disabled = index >= count - 1;
+            down.setAttribute('aria-label', `Move ${displayName} later`);
+        }
+    }
+
+    const randomize = document.getElementById('randomizePlayersBtn');
+    if (randomize) randomize.disabled = count < 2;
+}
+
+function movePlayerInOrder(fromIndex, toIndex) {
+    const count = playerCount();
+    if (fromIndex < 0 || fromIndex >= count || toIndex < 0 || toIndex >= count) return;
+    if (fromIndex === toIndex) {
+        renderPlayerOrderControls();
+        return;
+    }
+
+    const values = Array.from({ length: count }, (_, index) =>
+        document.getElementById(`player${index + 1}`).value
+    );
+    const [moved] = values.splice(fromIndex, 1);
+    values.splice(toIndex, 0, moved);
+    values.forEach((value, index) => {
+        document.getElementById(`player${index + 1}`).value = value;
+    });
+    renderPlayerOrderControls();
+}
+
+function shufflePlayerOrder() {
+    const count = playerCount();
+    if (count < 2) return;
+    const values = Array.from({ length: count }, (_, index) =>
+        document.getElementById(`player${index + 1}`).value
+    );
+    const original = values.slice();
+    for (let i = values.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [values[i], values[j]] = [values[j], values[i]];
+    }
+    // A random button that appears to do nothing feels broken. If the
+    // shuffle lands on the original order, rotate once instead.
+    if (values.every((value, index) => value === original[index])) {
+        values.push(values.shift());
+    }
+    values.forEach((value, index) => {
+        document.getElementById(`player${index + 1}`).value = value;
+    });
+    renderPlayerOrderControls();
+}
+
+function playerDropIndexAt(y) {
+    const rows = Array.from({ length: playerCount() }, (_, index) =>
+        document.getElementById(`player${index + 1}Group`)
+    ).filter(Boolean);
+    for (let index = 0; index < rows.length; index++) {
+        const rect = rows[index].getBoundingClientRect();
+        if (y < rect.top + rect.height / 2) return index;
+    }
+    return Math.max(0, rows.length - 1);
+}
+
+function clearPlayerOrderDragClasses() {
+    document.querySelectorAll('.player-row--dragging, .player-row--drop-target').forEach(row => {
+        row.classList.remove('player-row--dragging', 'player-row--drop-target');
+    });
+}
+
+function onPlayerOrderPointerMove(event) {
+    if (!playerOrderDrag || event.pointerId !== playerOrderDrag.pointerId) return;
+    const distance = Math.hypot(
+        event.clientX - playerOrderDrag.startX,
+        event.clientY - playerOrderDrag.startY
+    );
+    if (!playerOrderDrag.dragging && distance < PLAYER_ORDER_DRAG_THRESHOLD) return;
+    event.preventDefault();
+    playerOrderDrag.dragging = true;
+    playerOrderDrag.toIndex = playerDropIndexAt(event.clientY);
+    clearPlayerOrderDragClasses();
+    document.getElementById(`player${playerOrderDrag.fromIndex + 1}Group`)
+        ?.classList.add('player-row--dragging');
+    document.getElementById(`player${playerOrderDrag.toIndex + 1}Group`)
+        ?.classList.add('player-row--drop-target');
+}
+
+function finishPlayerOrderDrag(event, cancelled = false) {
+    if (!playerOrderDrag || event.pointerId !== playerOrderDrag.pointerId) return;
+    const finished = playerOrderDrag;
+    playerOrderDrag = null;
+    document.removeEventListener('pointermove', onPlayerOrderPointerMove);
+    document.removeEventListener('pointerup', onPlayerOrderPointerUp);
+    document.removeEventListener('pointercancel', onPlayerOrderPointerCancel);
+    clearPlayerOrderDragClasses();
+    if (!cancelled && finished.dragging) {
+        movePlayerInOrder(finished.fromIndex, finished.toIndex);
+    }
+}
+
+function onPlayerOrderPointerUp(event) {
+    finishPlayerOrderDrag(event);
+}
+
+function onPlayerOrderPointerCancel(event) {
+    finishPlayerOrderDrag(event, true);
+}
+
+function initPlayerOrderControls() {
+    document.querySelectorAll('[data-player-drag-index]').forEach(handle => {
+        handle.addEventListener('pointerdown', event => {
+            if (event.button !== undefined && event.button !== 0) return;
+            event.preventDefault();
+            playerOrderDrag = {
+                pointerId: event.pointerId,
+                fromIndex: parseInt(handle.dataset.playerDragIndex),
+                toIndex: parseInt(handle.dataset.playerDragIndex),
+                startX: event.clientX,
+                startY: event.clientY,
+                dragging: false
+            };
+            document.addEventListener('pointermove', onPlayerOrderPointerMove, { passive: false });
+            document.addEventListener('pointerup', onPlayerOrderPointerUp);
+            document.addEventListener('pointercancel', onPlayerOrderPointerCancel);
+        });
+    });
+
+    document.querySelectorAll('[data-player-order-action]').forEach(button => {
+        button.addEventListener('click', () => {
+            const index = parseInt(button.dataset.playerIndex);
+            const offset = button.dataset.playerOrderAction === 'up' ? -1 : 1;
+            movePlayerInOrder(index, index + offset);
+        });
+    });
+    document.getElementById('randomizePlayersBtn')?.addEventListener('click', shufflePlayerOrder);
+    for (let index = 1; index <= 4; index++) {
+        document.getElementById(`player${index}`)?.addEventListener('input', renderPlayerOrderControls);
+    }
+    renderPlayerOrderControls();
+}
 
 export function setGameStartCallback(callback) {
     onGameStart = callback;
 }
 
-function renderGameGrid() {
-    const grid = document.getElementById('gameTypeGrid');
-    const select = document.getElementById('gameType');
-    if (!grid || !select) return;
-    const current = select.value;
-    const cards = Array.from(select.options).map(opt => {
-        const meta = GAME_META[opt.value] || { label: opt.text, sub: '', icon: '🎯' };
-        const isActive = opt.value === current;
-        return `
-            <button type="button" class="game-card${isActive ? ' active' : ''}" data-game-value="${opt.value}">
-                <span class="game-card-icon" aria-hidden="true">${meta.icon}</span>
-                <span class="game-card-label">${meta.label}</span>
-                ${meta.sub ? `<span class="game-card-sub">${meta.sub}</span>` : ''}
-            </button>
-        `;
-    }).join('');
-    grid.innerHTML = cards;
-}
-
-function bindGameGrid() {
-    const grid = document.getElementById('gameTypeGrid');
-    const select = document.getElementById('gameType');
-    if (!grid || !select) return;
-    grid.addEventListener('click', e => {
-        const card = e.target.closest('[data-game-value]');
-        if (!card) return;
-        const value = card.dataset.gameValue;
-        if (select.value === value) return;
-        select.value = value;
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-        renderGameGrid();   // re-paint the active state
-    });
-}
-
 export function initSetupControls() {
     initThemePickerUI();
-    renderGameGrid();
-    bindGameGrid();
+    initGamePicker(quickStartLastGame);
+    initPlayerOrderControls();
 
     // Player count change
     document.getElementById('numPlayers').addEventListener('change', function () {
@@ -82,6 +213,7 @@ export function initSetupControls() {
         document.getElementById('player2Group').classList.toggle('hidden', count < 2);
         document.getElementById('player3Group').classList.toggle('hidden', count < 3);
         document.getElementById('player4Group').classList.toggle('hidden', count < 4);
+        renderPlayerOrderControls();
     });
 
     // Team Mode toggle — hides per-player inputs and the count selector;
@@ -98,24 +230,77 @@ export function initSetupControls() {
         beginMatchFromTeams(teams);
     });
 
-    // Game type change
+    // Game type change — option-panel visibility is registry-driven.
     document.getElementById('gameType').addEventListener('change', function () {
-        const isCricket = ['cricket', 'spanish', 'minnesota'].includes(this.value);
-        const isX01 = ['301', '501', '701', '801'].includes(this.value);
+        const isCricket = isCricketGame(this.value);
+        const isX01 = isX01Game(this.value);
         const isChicago = this.value === 'chicago';
         const isSpanish = this.value === 'spanish';
         const is121 = this.value === '121';
         const isBaseball = this.value === 'baseball';
         const isBermuda = this.value === 'bermuda';
         const isGolf = this.value === 'golf';
+        const isShanghai = this.value === 'shanghai';
+        const isChaos = this.value === 'chaos';
+        const isCutThroat = this.value === 'cutthroat';
+        const isTeamCricket = this.value === 'teamcricket';
         document.getElementById('cricketOptions').classList.toggle('hidden', !isCricket);
         document.getElementById('spanishBullsOption').classList.toggle('hidden', !isSpanish);
+        document.getElementById('chaosOptions')?.classList.toggle('hidden', !isChaos);
         document.getElementById('game121Options').classList.toggle('hidden', !is121);
         document.getElementById('baseballOptions').classList.toggle('hidden', !isBaseball);
         document.getElementById('bermudaOptions').classList.toggle('hidden', !isBermuda);
         document.getElementById('golfOptions').classList.toggle('hidden', !isGolf);
+        document.getElementById('shanghaiOptions')?.classList.toggle('hidden', !isShanghai);
         document.getElementById('finishTypeOptions').classList.toggle('hidden', !isX01 && !isChicago && !is121);
+        document.getElementById('teamCricketOptions')?.classList.toggle('hidden', !isTeamCricket);
+
+        // Cut-Throat always sends points to open opponents and requires at
+        // least two sides. Restore the normal configurable control when the
+        // user switches to another Cricket variant.
+        const points = document.getElementById('cricketPoints');
+        const pointsLabel = document.getElementById('cricketPointsLabel');
+        if (points) {
+            points.disabled = isCutThroat;
+            if (isCutThroat) points.checked = true;
+        }
+        if (pointsLabel) {
+            pointsLabel.textContent = isCutThroat
+                ? 'Points go to open opponents (required)'
+                : 'Enable Points';
+        }
+        const count = document.getElementById('numPlayers');
+        const gameDef = getGame(this.value);
+        const minPlayers = gameDef?.minPlayers || (isCutThroat ? 2 : 1);
+        const maxPlayers = gameDef?.maxPlayers || 4;
+        count?.querySelectorAll('option').forEach(option => {
+            const value = parseInt(option.value);
+            option.disabled = value < minPlayers || value > maxPlayers;
+        });
+        if (count && parseInt(count.value) < minPlayers) {
+            count.value = String(minPlayers);
+            count.dispatchEvent(new Event('change'));
+        } else if (count && parseInt(count.value) > maxPlayers) {
+            count.value = String(maxPlayers);
+            count.dispatchEvent(new Event('change'));
+        }
+
+        if (teamModeCb) {
+            if (gameDef?.requiresTeamMode) {
+                teamModeCb.checked = true;
+                teamModeCb.disabled = true;
+                teamModeCb.dataset.forcedByGame = 'true';
+                teamModeCb.dispatchEvent(new Event('change'));
+            } else if (teamModeCb.dataset.forcedByGame === 'true') {
+                teamModeCb.checked = false;
+                teamModeCb.disabled = false;
+                delete teamModeCb.dataset.forcedByGame;
+                teamModeCb.dispatchEvent(new Event('change'));
+            }
+        }
+        updateGameOptionsSection();
     });
+    updateGameOptionsSection();
 
     // Baseball variant hint updater
     const baseballHints = {
@@ -156,6 +341,19 @@ export function initSetupControls() {
     if (golfVariantEl && golfHintEl) {
         golfVariantEl.addEventListener('change', () => {
             golfHintEl.textContent = golfHints[golfVariantEl.value] || '';
+        });
+    }
+
+    // Shanghai variant hint updater
+    const shanghaiHints = {
+        rounds17: 'Standard: rounds 1→7, 3 darts per round at the round\'s number. Score = face × multiplier. Single + Double + Triple in one turn = SHANGHAI — instant win. Otherwise highest total after round 7 wins.',
+        rounds120: 'Marathon: rounds 1→20. Same rules — face × multiplier, and a Single + Double + Triple turn is an instant Shanghai win. Highest total after round 20 wins.'
+    };
+    const shanghaiVariantEl = document.getElementById('shanghaiVariant');
+    const shanghaiHintEl = document.getElementById('shanghaiVariantHint');
+    if (shanghaiVariantEl && shanghaiHintEl) {
+        shanghaiVariantEl.addEventListener('change', () => {
+            shanghaiHintEl.textContent = shanghaiHints[shanghaiVariantEl.value] || '';
         });
     }
 
@@ -340,6 +538,7 @@ function applyGameTypeScale() {
 function applyTeamModeVisibility() {
     const on = document.getElementById('teamMode')?.checked;
     document.getElementById('numPlayersGroup').classList.toggle('hidden', !!on);
+    document.getElementById('playerOrderControls')?.classList.toggle('hidden', !!on);
     document.getElementById('player1Group').classList.toggle('hidden', !!on);
     document.getElementById('player2Group').classList.toggle('hidden', !!on);
     document.getElementById('player3Group').classList.toggle('hidden', !!on);
@@ -352,6 +551,16 @@ function applyTeamModeVisibility() {
         document.getElementById('player3Group').classList.toggle('hidden', count < 3);
         document.getElementById('player4Group').classList.toggle('hidden', count < 4);
     }
+    renderPlayerOrderControls();
+}
+
+function updateGameOptionsSection() {
+    const section = document.getElementById('gameOptionsSection');
+    if (!section) return;
+    const hasVisibleOptions = Array.from(section.children).some(child =>
+        child.classList.contains('form-group') && !child.classList.contains('hidden'));
+    section.classList.toggle('hidden', !hasVisibleOptions);
+    section.setAttribute('aria-hidden', String(!hasVisibleOptions));
 }
 
 function startGame() {
@@ -393,7 +602,9 @@ function beginMatchFromTeams(teams) {
 
 function beginMatch(playerSeeds, teams) {
     const gameType = document.getElementById('gameType').value;
-    const cricketPoints = document.getElementById('cricketPoints').checked;
+    const cricketPoints = gameType === 'cutthroat'
+        ? true
+        : document.getElementById('cricketPoints').checked;
     const finishType = document.getElementById('finishType').value;
     const includeBulls = document.getElementById('spanishBulls').checked;
 
@@ -402,6 +613,15 @@ function beginMatch(playerSeeds, teams) {
     const isBaseball = gameType === 'baseball';
     const isBermuda = gameType === 'bermuda';
     const isGolf = gameType === 'golf';
+    const isShanghai = gameType === 'shanghai';
+    const isCountUp = gameType === 'countup';
+    const isGotcha = gameType === 'gotcha';
+    const isHammer = gameType === 'hammer' || gameType === 'teamhammer';
+    const isSharkTank = gameType === 'sharktank';
+    const isTicTacToe = gameType === 'tictactoe';
+    const isRobinHood = gameType === 'robinhood';
+    const isDoubleDown = gameType === 'doubledown';
+    const isTeamCricket = gameType === 'teamcricket';
 
     Object.assign(game, {
         type: gameType,
@@ -444,6 +664,22 @@ function beginMatch(playerSeeds, teams) {
         baseball: isBaseball ? initBaseballState(document.getElementById('baseballVariant').value) : null,
         bermuda: isBermuda ? initBermudaState(document.getElementById('bermudaVariant').value) : null,
         golf: isGolf ? initGolfState(document.getElementById('golfVariant').value) : null,
+        shanghai: isShanghai ? initShanghaiState(document.getElementById('shanghaiVariant')?.value) : null,
+        countUp: isCountUp ? { totalRounds: 8 } : null,
+        gotcha: isGotcha ? { target: 301 } : null,
+        hammer: isHammer ? initHammerState() : null,
+        sharkTank: isSharkTank ? {
+            round: 1,
+            bites: playerSeeds.map(() => 0),
+            eliminated: playerSeeds.map(() => false),
+            roundScores: playerSeeds.map(() => null)
+        } : null,
+        ticTacToe: isTicTacToe ? initTicTacToeState() : null,
+        robinHood: isRobinHood ? initRobinHoodState() : null,
+        doubleDown: isDoubleDown ? initDoubleDownState(playerSeeds.length) : null,
+        teamCricket: isTeamCricket && teams
+            ? initTeamCricketState(teams, document.getElementById('teamCricketRules')?.value)
+            : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,
@@ -468,16 +704,37 @@ function beginMatch(playerSeeds, teams) {
         } else if (is121) {
             player.score = 121;
             game.game121.legsWon.push(0);
-        } else if (['301', '501', '701', '801'].includes(gameType)) {
+        } else if (isX01Game(gameType)) {
             player.score = parseInt(gameType);
-        } else if (isBaseball || isBermuda || isGolf) {
-            // score stays at 0; both games accumulate runs/points
+        } else if (isScoreGame(gameType)) {
+            // Score-entry games such as Count Up accumulate from zero.
+        } else if (isTargetGame(gameType) || isTicTacToe || isDoubleDown || isTeamCricket) {
+            // score stays at 0; target games accumulate runs/points/strokes
         } else {
             player.cricketData = initCricket(gameType, includeBulls);
         }
 
         game.players.push(player);
     });
+
+    // Random-board Cricket variants: every player must share the SAME board.
+    // initCricket() randomizes per call, so generate one final board and
+    // stamp every player with their own copy of it.
+    if (gameType === 'chaos' || gameType === 'wildcard') {
+        const shared = initCricket(gameType);   // also sets game.cricketTargets
+        game.players.forEach(p => {
+            p.cricketData = JSON.parse(JSON.stringify(shared));
+        });
+    }
+
+    recordRecentGame(gameType);
+    refreshPicker();
+
+    // 1e: the previous game's winning throw would otherwise still be in
+    // the X01 input display (win path skips clearInput) — wipe all input
+    // state at every match start.
+    resetX01Input();
+    resetTicTacToeInput();
 
     clearActiveGame();
     const scaleSlider = document.getElementById('uiScale');
@@ -522,11 +779,18 @@ export function showSetupAsOverlay() {
 
 export function playAgain() {
     clearActiveGame();
-    const currentGameType = game.type;
-    const currentPlayers = game.players.map(p => p.name);
-    const currentCricketPoints = game.cricketPoints;
-    const currentFinishType = game.finishType;
-    const includeBulls = document.getElementById('spanishBulls').checked;
+
+    // Rebuild the match through beginMatch() so every engine (cricket,
+    // x01, chicago, 121, target games, chaos) re-initializes correctly.
+    // The hidden select still holds the current setup; force it to the
+    // active game's type in case the user browsed the picker mid-game.
+    const select = document.getElementById('gameType');
+    if (select && select.value !== game.type) {
+        select.value = game.type;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    const seeds = game.players.map(p => ({ name: p.name, rosterEmail: p.rosterEmail || null }));
 
     // Preserve team mode + reset rotation so "Play Again" starts each team
     // from member 0.
@@ -534,44 +798,17 @@ export function playAgain() {
         ? game.teams.map(t => ({ name: t.name, members: t.members.slice(), rotationIndex: 0 }))
         : null;
 
-    Object.assign(game, {
-        type: currentGameType,
-        players: [],
-        currentPlayer: 0,
-        currentInput: '',
-        cricketPoints: currentCricketPoints,
-        finishType: currentFinishType,
-        pendingDarts: [],
-        completedRounds: 0,
-        undoHistory: [],
-        redoHistory: [],
-        chicago: null,
-        game121: null,
-        teamMode: !!preservedTeams,
-        teams: preservedTeams
-    });
-
-    currentPlayers.forEach(name => {
-        const player = {
-            name: name,
-            score: 0,
-            throws: 0,
-            totalMarks: 0,
-            history: [],
-            lastTurnMarks: {}
-        };
-
-        if (['301', '501', '701', '801'].includes(currentGameType)) {
-            player.score = parseInt(currentGameType);
-        } else {
-            player.cricketData = initCricket(currentGameType, includeBulls);
-        }
-
-        game.players.push(player);
-    });
-
     document.getElementById('winnerModal').style.display = 'none';
-    if (onGameStart) onGameStart();
+    beginMatch(seeds, preservedTeams);
+}
+
+// Quick Start — one tap from the picker: re-apply the last-used config
+// (game, players, options) and start immediately.
+function quickStartLastGame() {
+    const configs = getConfigs();
+    if (!configs.lastConfig) return;
+    applyConfig(configs.lastConfig);
+    startGame();
 }
 
 // --- Config Management ---

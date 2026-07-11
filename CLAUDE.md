@@ -1,7 +1,7 @@
 # BlakeOut — Project Context
 
-A vanilla-JS PWA for scoring darts games (Cricket, X01, Spanish, Minnesota,
-Chicago, 121). Runs in a tablet by the dartboard. No bundler, no framework —
+A vanilla-JS PWA for scoring 29 darts games across Cricket, X01, target,
+party, practice, and team modes. Runs on a tablet by the dartboard. No bundler, no framework —
 ES modules served as static files from GitHub Pages.
 
 This file is the source of truth for *how the app is supposed to work*. If
@@ -109,15 +109,31 @@ roster section just shows "(offline)".
 ## Game model
 
 - `state.js` exposes a single mutable `game` object — the current match.
-- Game types: `cricket`, `spanish`, `minnesota`, `301`, `501`, `701`, `801`,
-  `chicago`, `121`. Cricket/Spanish/Minnesota share the cricket scoring
-  module; the 30x's are X01; Chicago and 121 are their own modules.
+- `js/registry.js` is the source of truth for 29 game modes and routes each to
+  `cricket`, `x01`, `score`, `target`, `special`, `tictactoe`, `doubledown`,
+  or `teamcricket` engines. The picker, setup options, and boot smoke tests are
+  registry-driven.
 - Cricket targets per type are defined in `state.js:initCricket()`.
 - Each player carries `{ name, score, throws, totalMarks, history,
   lastTurnMarks, cricketData?, rosterEmail? }`. `rosterEmail` (added Phase 1)
   is what Phase 3 will key stats against.
 - Active game is auto-saved to localStorage on every dart so a refresh /
   app-update doesn't lose state.
+
+## v2.4 production release (2026-07-11)
+
+- 29 games, including 901/1101/1501, Count Up, Cricket Quickie, Cut-Throat,
+  Wild Card, Gotcha!, Hammer + Team Hammer, Shark Tank, Tic Tac Toe, Robin
+  Hood, Double Down, and official Team Cricket/400.
+- Unified Settings modal: 12 themes, bundled/custom wallpapers, and 0.7×–1.5×
+  UI scaling. Setup supports drag/arrow/random throw ordering.
+- 3/4-player score headers and Cricket marks are responsive across phone and
+  tablet portrait/landscape. Multiplayer marks are constrained to their row
+  and lane; active-row boxes and intrusive separator lines were removed.
+- Setup is grouped into clear Game, Game Options, Players, Presets, Play, and
+  App Maintenance panels.
+- Validation at promotion: 40/40 dev tests plus the production smoke battery;
+  service worker cache `blakeout-v29`.
 
 ---
 
@@ -149,7 +165,7 @@ captured in `cricket.js` at the moment of closure.
 - Email is OPTIONAL on roster entries (synthetic id used if blank)
 - Default player names: Home, Away, Player 3, Player 4
 
-### Phase 2 — Team builder w/ drag-and-drop  ⏳ NEXT
+### Phase 2 — Team builder w/ drag-and-drop  ✅ DONE
 - 2 teams (Home / Away), each holds 1+ members → 2v3 supported
 - New screen between setup and game start
 - Pointer-based DnD (no library); tap-to-assign fallback for accessibility

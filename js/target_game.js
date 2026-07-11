@@ -15,7 +15,8 @@
    ============================================ */
 
 import { game, saveGameState, undoLastAction, saveActiveGame } from './state.js';
-import { updatePlayerHeaders, showModal, hideModal } from './ui.js';
+import { updatePlayerHeaders, updateRoundBadge, showModal, hideModal } from './ui.js';
+import { currentThrower, advanceRotation } from './teams.js';
 import {
     currentTarget as bbTarget,
     describeHitButtons as bbButtons,
@@ -33,6 +34,25 @@ import {
     missPenalty as golfMissPenalty,
     commitTurn as golfCommit
 } from './golf.js';
+import {
+    currentTarget as shTarget,
+    describeHitButtons as shButtons,
+    pointsForHit as shPoints,
+    commitTurn as shCommit
+} from './shanghai.js';
+import {
+    currentTarget as hammerTarget,
+    describeHitButtons as hammerButtons,
+    pointsForHit as hammerPoints,
+    turnScore as hammerTurnScore,
+    commitTurn as hammerCommit
+} from './hammer.js';
+import {
+    currentTarget as robinTarget,
+    describeHitButtons as robinButtons,
+    pointsForHit as robinPoints,
+    commitTurn as robinCommit
+} from './robinhood.js';
 
 const DARTS_PER_TURN = 3;
 
@@ -42,11 +62,19 @@ let turnHits = [];            // [{ kind, points }]
 function isBaseball() { return game.type === 'baseball' && !!game.baseball; }
 function isBermuda() { return game.type === 'bermuda' && !!game.bermuda; }
 function isGolf() { return game.type === 'golf' && !!game.golf; }
+function isShanghai() { return game.type === 'shanghai' && !!game.shanghai; }
+function isHammer() {
+    return (game.type === 'hammer' || game.type === 'teamhammer') && !!game.hammer;
+}
+function isRobinHood() { return game.type === 'robinhood' && !!game.robinHood; }
 
 function currentTarget() {
     if (isBaseball()) return bbTarget();
     if (isBermuda()) return bmTarget();
     if (isGolf()) return golfTarget();
+    if (isShanghai()) return shTarget();
+    if (isHammer()) return hammerTarget();
+    if (isRobinHood()) return robinTarget();
     return null;
 }
 
@@ -54,6 +82,9 @@ function describeButtons() {
     if (isBaseball()) return bbButtons();
     if (isBermuda()) return bmButtons();
     if (isGolf()) return golfButtons();
+    if (isShanghai()) return shButtons();
+    if (isHammer()) return hammerButtons();
+    if (isRobinHood()) return robinButtons();
     return { single: 'Single', double: 'Double', triple: 'Triple', tripleEnabled: true };
 }
 
@@ -81,6 +112,7 @@ function pointsForBermudaNumber(target, kind, faceValue) {
 
 function turnTotal() {
     const hitSum = turnHits.reduce((sum, h) => sum + h.points, 0);
+    if (isHammer()) return hammerTurnScore(turnHits);
     if (isGolf()) {
         // Unhit dart slots count as misses in golf — fold them into the
         // displayed and committed total so the player sees the full
@@ -106,6 +138,10 @@ function recordHit(kind, points) {
 function applyHit(kind) {
     if (dartsUsed() >= DARTS_PER_TURN) return;
     const buttons = describeButtons();
+    if (kind === 'miss') {
+        if (isHammer() && buttons.missEnabled) recordHit('miss', 0);
+        return;
+    }
     if (kind === 'triple' && buttons.tripleEnabled === false) return;
     if (kind === 'double' && buttons.doubleEnabled === false) return;
 
@@ -128,6 +164,21 @@ function applyHit(kind) {
 
     if (isGolf()) {
         recordHit(kind, golfPoints(kind));
+        return;
+    }
+
+    if (isShanghai()) {
+        recordHit(kind, shPoints(kind));
+        return;
+    }
+
+    if (isHammer()) {
+        recordHit(kind, hammerPoints(kind));
+        return;
+    }
+
+    if (isRobinHood()) {
+        recordHit(kind, robinPoints(kind));
     }
 }
 
@@ -147,6 +198,9 @@ function endTurn() {
     saveGameState();   // snapshot for cross-turn UNDO
     const total = turnTotal();
     const anyHit = turnHits.length > 0;
+    const hits = turnHits.slice();
+    const throwingSide = game.currentPlayer;
+    const thrower = game.teamMode ? currentThrower(throwingSide) : null;
     let result = { matchOver: false };
     if (isBaseball()) {
         result = bbCommit(total);
@@ -154,6 +208,22 @@ function endTurn() {
         result = bmCommit(total, anyHit);
     } else if (isGolf()) {
         result = golfCommit(total);
+    } else if (isShanghai()) {
+        result = shCommit(total, hits);
+    } else if (isHammer()) {
+        result = hammerCommit(total, hits);
+    } else if (isRobinHood()) {
+        result = robinCommit(total, hits);
+    }
+
+    // All target engines share team semantics: one human throws a full turn,
+    // then that side's member rotation advances. Stamp the actual thrower on
+    // the engine's just-created history entry for future per-player stats.
+    if (thrower) {
+        const history = game.players[throwingSide]?.history;
+        const entry = history?.[history.length - 1];
+        if (entry && typeof entry === 'object') entry.thrower = thrower.name;
+        advanceRotation(throwingSide);
     }
     clearTurn();
     saveActiveGame();
@@ -272,6 +342,16 @@ function refresh() {
                 ? `Hit ${target ? target.value : '—'}. Triple = +4 pts, Double = +3, Single = +1, miss = 0. Highest score wins.`
                 : `Hit ${target ? target.value : '—'}. Triple = 1 stroke, Double = 2, Single = 3, miss = 5. Lowest score wins.`;
             hint.textContent = `${ctxLine} ${dartsLine}`;
+        } else if (isShanghai()) {
+            const n = target ? target.value : '—';
+            hint.textContent = `Hit ${n}. Score = face × multiplier. Single + Double + Triple in one turn = SHANGHAI, instant win! ${dartsLine}`;
+        } else if (isHammer()) {
+            const targetValue = target ? target.value : '—';
+            const finalRound = game.hammer && (game.hammer.round === 8 || game.hammer.tiebreaker);
+            const weights = finalRound ? '×1 / ×3 / ×5' : '×1 / ×2 / ×3';
+            hint.textContent = `Aim for ${targetValue}. Dart positions score ${weights}. Tap Miss Dart to preserve the position; miss all three and subtract triple the target. ${dartsLine}`;
+        } else if (isRobinHood()) {
+            hint.textContent = `Bulls only: Outer Bull = 100, Inner Bull = 200. Highest total after round 10 wins. ${dartsLine}`;
         }
     }
 
@@ -279,6 +359,16 @@ function refresh() {
     setLabel('hitSingleBtn', buttons.single, buttons.singleEnabled !== false && !noDartsLeft);
     setLabel('hitDoubleBtn', buttons.double, buttons.doubleEnabled !== false && !noDartsLeft);
     setLabel('hitTripleBtn', buttons.triple, buttons.tripleEnabled !== false && !noDartsLeft);
+
+    const missDartBtn = document.getElementById('targetMissDartBtn');
+    const hitGrid = document.querySelector('.target-hit-buttons');
+    const showMiss = buttons.missEnabled === true;
+    if (missDartBtn) {
+        missDartBtn.textContent = buttons.miss || 'Miss Dart';
+        missDartBtn.style.display = showMiss ? '' : 'none';
+        missDartBtn.disabled = !showMiss || noDartsLeft;
+    }
+    if (hitGrid) hitGrid.classList.toggle('has-miss', showMiss);
 
     setText('targetTurnScore', String(turnTotal()));
 
@@ -289,6 +379,7 @@ function refresh() {
     }
 
     updatePlayerHeaders();
+    updateRoundBadge();
 
     const numPlayers = game.players.length;
     setText('homeScore', String(game.players[0].score));

@@ -6,6 +6,7 @@
 /* === Cricket Grid Rows === */
 .cricket-row {
     display: grid;
+    grid-template-rows: minmax(0, 1fr);
     align-items: center;
     min-height: clamp(50px, 8dvh, 90px);
     padding: 0 var(--space-xs);
@@ -21,11 +22,11 @@
 }
 
 .cricket-row.three-player {
-    grid-template-columns: 1fr 1fr var(--cricket-center-col) 2fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--cricket-center-col) minmax(0, 2fr);
 }
 
 .cricket-row.four-player {
-    grid-template-columns: 1fr 1fr var(--cricket-center-col) 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--cricket-center-col) minmax(0, 1fr) minmax(0, 1fr);
 }
 
 /* Spanish rows — slightly compact */
@@ -47,10 +48,10 @@
     grid-template-columns: 1fr var(--minnesota-center-col) 1fr;
 }
 .cricket-row.minnesota.three-player {
-    grid-template-columns: 1fr 1fr var(--minnesota-center-col) 2fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--minnesota-center-col) minmax(0, 2fr);
 }
 .cricket-row.minnesota.four-player {
-    grid-template-columns: 1fr 1fr var(--minnesota-center-col) 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--minnesota-center-col) minmax(0, 1fr) minmax(0, 1fr);
 }
 
 /* Pad buttons so they sit inside the separator lines */
@@ -93,7 +94,9 @@
     align-items: center;
     justify-content: center;
     position: relative;
-    min-height: 100%;
+    align-self: stretch;
+    min-height: 0;
+    min-width: 0;
 }
 
 /* Active player column highlight — bold stripe */
@@ -117,6 +120,15 @@
         inset -6px 0 0 var(--color-primary-light);
 }
 
+/* With 3–4 players the header already gives a strong active-player cue.
+   Per-row fills turn into stacked colored boxes and obscure enlarged chalk
+   marks, so keep the multiplayer board itself clean. */
+.cricket-row.three-player > .cricket-cell.active,
+.cricket-row.four-player > .cricket-cell.active {
+    background: transparent;
+    box-shadow: none;
+}
+
 /* === Player Column Separators ===
    Borders go on player cells (fixed 1fr columns), NOT on the button
    container, so they align perfectly even when center column is auto-sized. */
@@ -129,30 +141,8 @@
     border-left: 1px solid var(--color-border);
 }
 
-/* 3-player: [P1 | P2 | buttons | P3] */
-.cricket-row.three-player > .cricket-cell:nth-child(1) {
-    border-right: 1px solid var(--color-border);
-}
-.cricket-row.three-player > .cricket-cell:nth-child(2) {
-    border-right: 1px solid var(--color-border);
-}
-.cricket-row.three-player > .cricket-cell:last-child {
-    border-left: 1px solid var(--color-border);
-}
-
-/* 4-player: [P1 | P2 | buttons | P3 | P4] */
-.cricket-row.four-player > .cricket-cell:nth-child(1) {
-    border-right: 1px solid var(--color-border);
-}
-.cricket-row.four-player > .cricket-cell:nth-child(2) {
-    border-right: 1px solid var(--color-border);
-}
-.cricket-row.four-player > .cricket-cell:nth-child(4) {
-    border-left: 1px solid var(--color-border);
-}
-.cricket-row.four-player > .cricket-cell:last-child {
-    border-left: 1px solid var(--color-border);
-}
+/* 3/4-player boards intentionally have no full-height column rules. At high
+   UI scale those rules cut through enlarged marks and read as stray lines. */
 
 /* Cricket buttons column */
 .cricket-buttons {
@@ -196,7 +186,7 @@
        that read as a rainbow under non-blue themes. Now everything tracks
        the primary scale. */
     background: linear-gradient(180deg, var(--color-primary-light), var(--color-primary-dark));
-    color: var(--color-text);
+    color: var(--color-on-primary);
     font-size: calc(clamp(1.4rem, 4.5dvh, 3rem) * var(--ui-scale));
     padding: calc(clamp(8px, 2.5dvh, 22px) * var(--ui-scale)) calc(clamp(14px, 4vw, 32px) * var(--ui-scale));
     min-width: clamp(50px, 12vw, 100px);
@@ -230,7 +220,7 @@
     touch-action: none;
     user-select: none;
     background: linear-gradient(180deg, var(--color-primary), var(--color-primary-dark));
-    color: var(--color-text);
+    color: var(--color-on-primary);
     font-size: calc(clamp(0.8rem, 2.5dvh, 1.5rem) * var(--ui-scale));
     padding: calc(clamp(4px, 1.5dvh, 14px) * var(--ui-scale)) calc(clamp(6px, 1.5vw, 14px) * var(--ui-scale));
     min-width: clamp(28px, 6vw, 50px);
@@ -437,7 +427,20 @@
 
 .score-history-entry.bust {
     color: #ff4444;
-    text-decoration: line-through;
+    font-size: calc(clamp(1.1rem, 3.6dvh, 1.7rem) * var(--ui-scale));
+    letter-spacing: 0.02em;
+}
+
+.score-history-entry.miss {
+    color: var(--color-text-muted);
+    font-size: calc(clamp(1.1rem, 3.6dvh, 1.7rem) * var(--ui-scale));
+    letter-spacing: 0.02em;
+}
+
+/* Remaining-score entry mode (tap active player's score to toggle) */
+.input-display.remaining-mode {
+    border-color: var(--color-primary);
+    color: var(--color-primary-light, var(--color-primary));
 }
 
 /* === X01 Controls Area === */
@@ -518,7 +521,9 @@
     touch-action: none;
     user-select: none;
     background: #ccc;
-    color: var(--color-text-dark);
+    /* Fixed ink on a fixed #ccc pad — --color-text-dark flips to white in
+       light themes (Arctic) and would vanish on the grey keys. */
+    color: #1a1a1a;
     border: 2px solid #999;
     font-size: calc(clamp(1.1rem, 3dvh, 1.8rem) * var(--ui-scale));
     padding: calc(clamp(8px, 1.5dvh, 18px) * var(--ui-scale));
@@ -537,7 +542,7 @@
     touch-action: none;
     user-select: none;
     background: var(--color-primary-dark);
-    color: var(--color-text);
+    color: var(--color-on-primary);
     font-size: calc(clamp(0.75rem, 1.8dvh, 1.1rem) * var(--ui-scale));
     padding: calc(clamp(6px, 1.2dvh, 14px) * var(--ui-scale)) clamp(2px, 0.5vw, 6px);
     flex: 1;
@@ -625,6 +630,30 @@
     }
 }
 
+@media (max-width: 600px) {
+    .cricket-row.three-player .cricket-buttons,
+    .cricket-row.four-player .cricket-buttons {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .cricket-row.three-player .cricket-num-btn,
+    .cricket-row.four-player .cricket-num-btn {
+        min-width: 0;
+        font-size: clamp(0.9rem, calc(3.8vw * var(--ui-scale)), 1.5rem);
+        padding: clamp(3px, calc(1vw * var(--ui-scale)), 6px)
+                 clamp(4px, calc(1.5vw * var(--ui-scale)), 8px);
+    }
+
+    .cricket-row.three-player .cricket-dt-btn,
+    .cricket-row.four-player .cricket-dt-btn {
+        min-width: 0;
+        font-size: clamp(0.65rem, calc(2.4vw * var(--ui-scale)), 1rem);
+        padding: clamp(2px, calc(0.7vw * var(--ui-scale)), 4px)
+                 clamp(2px, calc(0.8vw * var(--ui-scale)), 5px);
+    }
+}
+
 /* Large tablets — more breathing room */
 @media (min-height: 1200px) {
     .cricket-row {
@@ -635,4 +664,25 @@
         width: clamp(48px, 7.5dvh, 78px);
         height: clamp(48px, 7.5dvh, 78px);
     }
+}
+
+/* Multiplayer chalk marks must fit BOTH their narrow player lane and their
+   row. The old width-only max let UI scale 1.1–1.5 make marks overlap rows,
+   clip at column edges, and force grid tracks wider than the viewport. */
+.cricket-row.three-player .mark,
+.cricket-row.four-player .mark {
+    --multiplayer-mark-size: clamp(38px, 5dvh, 72px);
+    width: min(calc(var(--multiplayer-mark-size) * var(--ui-scale)), calc(100% - 10px));
+    height: min(calc(var(--multiplayer-mark-size) * var(--ui-scale)), calc(100% - 10px));
+    max-width: calc(100% - 10px);
+    max-height: calc(100% - 10px);
+    aspect-ratio: 1;
+    flex: 0 1 auto;
+}
+
+.cricket-row.three-player .mark.spanish,
+.cricket-row.four-player .mark.spanish,
+.cricket-row.three-player .mark.minnesota,
+.cricket-row.four-player .mark.minnesota {
+    --multiplayer-mark-size: clamp(30px, 4.2dvh, 58px);
 }

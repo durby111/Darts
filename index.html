@@ -37,14 +37,22 @@
                     <h1>BLAKE OUT</h1>
                     <div class="setup-subtitle">Tablet scorer</div>
                 </div>
-                <div class="theme-picker" id="themePicker" aria-label="Theme"></div>
+                <div class="setup-header-side">
+                    <button type="button" class="btn btn--md btn--neutral settings-gear" id="settingsBtnSetup" aria-label="Settings">⚙ Settings</button>
+                </div>
             </header>
 
             <button class="btn btn--lg btn--success btn--block hidden" id="backToGameBtn" style="margin-bottom:var(--space-lg);">Back to Game</button>
 
-            <div class="setup-section">
+            <section class="setup-section setup-panel" id="gamePickerSection">
                 <div class="setup-section-label">Game</div>
+                <div class="picker-toolbar">
+                    <input type="search" id="gameSearchInput" class="picker-search" placeholder="Search games…" autocomplete="off" aria-label="Search games">
+                </div>
+                <div class="picker-chips" id="gameCategoryChips"></div>
+                <div class="picker-recents hidden" id="gameRecentsRow"></div>
                 <div class="game-grid" id="gameTypeGrid"></div>
+                <div class="picker-description" id="gameDescription"></div>
                 <!-- Keep the native select for state — hidden visually, still
                      driven by the card grid above. -->
                 <select id="gameType" class="visually-hidden" tabindex="-1" aria-hidden="true">
@@ -52,16 +60,36 @@
                     <option value="501" selected>501</option>
                     <option value="701">701</option>
                     <option value="801">801</option>
+                    <option value="901">901</option>
+                    <option value="1101">1101</option>
+                    <option value="1501">1501</option>
                     <option value="cricket">Cricket</option>
                     <option value="spanish">Spanish (20-10)</option>
                     <option value="minnesota">Minnesota Cricket</option>
+                    <option value="chaos">Chaos Cricket</option>
+                    <option value="quickie">Cricket Quickie</option>
+                    <option value="cutthroat">Cut-Throat Cricket</option>
+                    <option value="wildcard">Wild Card Cricket</option>
+                    <option value="hammer">Hammer Cricket</option>
+                    <option value="teamhammer">Team Hammer</option>
                     <option value="chicago">Chicago (Best of 3)</option>
                     <option value="121">121 Game</option>
                     <option value="baseball">Baseball</option>
                     <option value="bermuda">Bermuda Triangle</option>
                     <option value="golf">Golf</option>
+                    <option value="shanghai">Shanghai</option>
+                    <option value="countup">Count Up</option>
+                    <option value="gotcha">Gotcha!</option>
+                    <option value="sharktank">Shark Tank</option>
+                    <option value="tictactoe">Tic Tac Toe</option>
+                    <option value="robinhood">Robin Hood</option>
+                    <option value="doubledown">Double Down Cricket</option>
+                    <option value="teamcricket">Team Cricket/400</option>
                 </select>
-            </div>
+            </section>
+
+            <section class="setup-section setup-panel setup-options-panel" id="gameOptionsSection">
+                <div class="setup-section-label">Game Options</div>
 
             <div class="form-group hidden" id="game121Options">
                 <label>Darts Per Leg</label>
@@ -117,6 +145,25 @@
                 </div>
             </div>
 
+            <!-- Shanghai options -->
+            <div class="form-group hidden" id="shanghaiOptions">
+                <label>Shanghai Variant</label>
+                <select id="shanghaiVariant">
+                    <option value="rounds17" selected>Rounds 1→7 (standard)</option>
+                    <option value="rounds120">Rounds 1→20 (marathon)</option>
+                </select>
+                <div class="form-hint" id="shanghaiVariantHint">
+                    Standard: rounds 1→7, 3 darts per round at the round's number. Score = face × multiplier. Single + Double + Triple in one turn = SHANGHAI — instant win. Otherwise highest total after round 7 wins.
+                </div>
+            </div>
+
+            <!-- Chaos Cricket note -->
+            <div class="form-group hidden" id="chaosOptions">
+                <div class="form-hint">
+                    🎲 Chaos Cricket: 6 numbers are drawn at random (plus Bull) when the game starts — every match plays a different board. Standard cricket marks, closing and points rules apply. "Play Again" re-rolls the numbers.
+                </div>
+            </div>
+
             <!-- Bermuda Triangle options -->
             <div class="form-group hidden" id="bermudaOptions">
                 <label>Bermuda Triangle Variant</label>
@@ -133,12 +180,21 @@
             <div class="form-group hidden" id="cricketOptions">
                 <label class="checkbox-label">
                     <input type="checkbox" id="cricketPoints" checked>
-                    <span>Enable Points</span>
+                    <span id="cricketPointsLabel">Enable Points</span>
                 </label>
                 <label class="checkbox-label hidden" id="spanishBullsOption" style="margin-top:10px;">
                     <input type="checkbox" id="spanishBulls">
                     <span>Include Bulls (20-10 + Bull)</span>
                 </label>
+            </div>
+
+            <div class="form-group hidden" id="teamCricketOptions">
+                <label>Team Cricket Rules</label>
+                <select id="teamCricketRules">
+                    <option value="traditional" selected>Traditional — both teammates close</option>
+                    <option value="new">New — one teammate closes</option>
+                </select>
+                <div class="form-hint">Both teammates must close a target before the team can score on it. Team lead is capped at 400 points.</div>
             </div>
 
             <div class="form-group" id="finishTypeOptions">
@@ -149,12 +205,13 @@
                     <option value="double-in-out">Double In/Double Out</option>
                 </select>
             </div>
+            </section>
 
             <!-- Roster autocomplete: typing a roster name attributes the
                  game to that player; otherwise it's a one-off guest entry. -->
             <datalist id="rosterDatalist"></datalist>
 
-            <div class="setup-section">
+            <section class="setup-section setup-panel" id="playersSection">
                 <div class="setup-section-label">Players</div>
                 <div class="form-group" id="numPlayersGroup">
                     <label>Number of Players</label>
@@ -173,33 +230,51 @@
                     </label>
                 </div>
 
-                <div class="player-row" id="player1Group">
-                    <label for="player1">Home</label>
-                    <input type="text" id="player1" value="Home" list="rosterDatalist" autocomplete="off">
+                <div class="player-order-toolbar" id="playerOrderControls">
+                    <div class="player-order-hint">Drag ☰ or use the arrows to set who throws first.</div>
+                    <button type="button" class="btn btn--sm btn--neutral" id="randomizePlayersBtn">🎲 Randomize</button>
                 </div>
-                <div class="player-row" id="player2Group">
-                    <label for="player2">Away</label>
-                    <input type="text" id="player2" value="Away" list="rosterDatalist" autocomplete="off">
-                </div>
-                <div class="player-row hidden" id="player3Group">
-                    <label for="player3">Player 3</label>
-                    <input type="text" id="player3" value="Player 3" list="rosterDatalist" autocomplete="off">
-                </div>
-                <div class="player-row hidden" id="player4Group">
-                    <label for="player4">Player 4</label>
-                    <input type="text" id="player4" value="Player 4" list="rosterDatalist" autocomplete="off">
-                </div>
-            </div>
 
-            <details class="setup-section setup-section--collapsible">
-                <summary class="setup-section-label">Display &amp; presets</summary>
-                <div class="form-group">
-                    <label>UI Scale</label>
-                    <div class="ui-scale-row">
-                        <input type="range" id="uiScale" min="0.7" max="1.5" step="0.1" value="1.0">
-                        <span id="uiScaleValue">1.0x</span>
-                    </div>
+                <div class="player-row" id="player1Group" data-player-index="0">
+                    <button type="button" class="player-order-drag" data-player-drag-index="0" aria-label="Drag first player">☰</button>
+                    <label for="player1" data-player-order-label>Throws 1st</label>
+                    <input type="text" id="player1" value="Home" list="rosterDatalist" autocomplete="off">
+                    <span class="player-order-stepper">
+                        <button type="button" data-player-order-action="up" data-player-index="0" aria-label="Move first player earlier" disabled>▲</button>
+                        <button type="button" data-player-order-action="down" data-player-index="0" aria-label="Move first player later">▼</button>
+                    </span>
                 </div>
+                <div class="player-row" id="player2Group" data-player-index="1">
+                    <button type="button" class="player-order-drag" data-player-drag-index="1" aria-label="Drag second player">☰</button>
+                    <label for="player2" data-player-order-label>Throws 2nd</label>
+                    <input type="text" id="player2" value="Away" list="rosterDatalist" autocomplete="off">
+                    <span class="player-order-stepper">
+                        <button type="button" data-player-order-action="up" data-player-index="1" aria-label="Move second player earlier">▲</button>
+                        <button type="button" data-player-order-action="down" data-player-index="1" aria-label="Move second player later" disabled>▼</button>
+                    </span>
+                </div>
+                <div class="player-row hidden" id="player3Group" data-player-index="2">
+                    <button type="button" class="player-order-drag" data-player-drag-index="2" aria-label="Drag third player">☰</button>
+                    <label for="player3" data-player-order-label>Throws 3rd</label>
+                    <input type="text" id="player3" value="Player 3" list="rosterDatalist" autocomplete="off">
+                    <span class="player-order-stepper">
+                        <button type="button" data-player-order-action="up" data-player-index="2" aria-label="Move third player earlier">▲</button>
+                        <button type="button" data-player-order-action="down" data-player-index="2" aria-label="Move third player later" disabled>▼</button>
+                    </span>
+                </div>
+                <div class="player-row hidden" id="player4Group" data-player-index="3">
+                    <button type="button" class="player-order-drag" data-player-drag-index="3" aria-label="Drag fourth player">☰</button>
+                    <label for="player4" data-player-order-label>Throws 4th</label>
+                    <input type="text" id="player4" value="Player 4" list="rosterDatalist" autocomplete="off">
+                    <span class="player-order-stepper">
+                        <button type="button" data-player-order-action="up" data-player-index="3" aria-label="Move fourth player earlier">▲</button>
+                        <button type="button" data-player-order-action="down" data-player-index="3" aria-label="Move fourth player later" disabled>▼</button>
+                    </span>
+                </div>
+            </section>
+
+            <details class="setup-section setup-panel setup-section--collapsible" id="presetsSection">
+                <summary class="setup-section-label">Presets</summary>
                 <div class="form-group">
                     <div class="config-row">
                         <button class="btn btn--md btn--success-dark" id="saveConfigBtn">Save preset</button>
@@ -209,17 +284,23 @@
                 </div>
             </details>
 
-            <div class="setup-action-row">
-                <button class="btn btn--lg btn--primary btn--block btn--hero" id="startGameBtn">Start Game</button>
-                <button class="btn btn--lg btn--success btn--block hidden" id="resumeGameBtn">Resume Game</button>
-            </div>
+            <section class="setup-section setup-panel setup-play-panel" id="playSection">
+                <div class="setup-section-label">Play</div>
+                <div class="setup-action-row">
+                    <button class="btn btn--lg btn--primary btn--block btn--hero" id="startGameBtn">Start Game</button>
+                    <button class="btn btn--lg btn--success btn--block hidden" id="resumeGameBtn">Resume Game</button>
+                </div>
+            </section>
 
-            <button class="btn btn--md btn--neutral btn--block" id="updateAppBtn" style="margin-top:var(--space-lg);">Check for Updates</button>
-            <div id="updateStatus" style="text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);margin-top:var(--space-xs);"></div>
+            <section class="setup-section setup-panel setup-maintenance-panel" id="maintenanceSection">
+                <div class="setup-section-label">App Maintenance</div>
+                <button class="btn btn--md btn--neutral btn--block" id="updateAppBtn">Check for Updates</button>
+                <div id="updateStatus" style="text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);margin-top:var(--space-xs);"></div>
+            </section>
 
             <!-- Roster manager — collapsible. Players added here sync to
                  Firestore so their lifetime stats follow them across devices. -->
-            <details class="roster-section" id="rosterSection" style="margin-top:var(--space-xl);">
+            <details class="roster-section" id="rosterSection">
                 <summary>Manage Players <span class="roster-status" id="rosterStatus"></span></summary>
                 <div class="roster-body">
                     <div class="roster-list" id="rosterList"></div>
@@ -285,6 +366,7 @@
 
             <div class="team-builder-actions">
                 <button class="btn btn--md btn--neutral" id="teamSwapFirstBtn">Swap which team throws first</button>
+                <button class="btn btn--md btn--neutral" id="teamRandomizeBtn">🎲 Randomize team order</button>
                 <button class="btn btn--md btn--neutral" id="teamLoadLastBtn">Load last team setup</button>
             </div>
 
@@ -309,7 +391,7 @@
             <div class="center-logo">
                 <button class="end-game-btn" id="menuBtn">Menu</button>
                 <div class="round-badge" id="roundBadge">1</div>
-                <div class="version-text">v2.8.2</div>
+                <div class="version-text">v2.4</div>
             </div>
 
             <div class="player-header away" id="awayHeader">
@@ -359,6 +441,27 @@
             <div class="target-stage" id="targetStage">Inning</div>
             <div class="target-value" id="targetValue">1</div>
             <div class="target-hint" id="targetHint">Throw 3 darts. Single = +1, Double = +2, Triple = +3.</div>
+        </div>
+
+        <!-- Tic Tac Toe Darts -->
+        <div class="tic-tac-toe-main hidden" id="ticTacToeMain">
+            <div class="tic-game-hint">Four marks claims a square. Connect three in a row.</div>
+            <div class="tic-grid" id="ticTacToeGrid"></div>
+        </div>
+
+        <!-- Double Down Cricket -->
+        <div class="double-down-main hidden" id="doubleDownMain">
+            <div class="double-down-phase" id="doubleDownPhase">DOUBLE IN</div>
+            <div class="double-down-hint" id="doubleDownHint"></div>
+            <div class="double-down-board" id="doubleDownBoard"></div>
+            <div class="double-down-players" id="doubleDownPlayers"></div>
+        </div>
+
+        <!-- Official Team Cricket / 400 -->
+        <div class="team-cricket-main hidden" id="teamCricketMain">
+            <div class="team-cricket-rules-label" id="teamCricketRulesLabel"></div>
+            <div class="team-cricket-headings" id="teamCricketHeadings"></div>
+            <div class="team-cricket-grid" id="teamCricketGrid"></div>
         </div>
 
         <!-- Bottom Controls (Cricket) -->
@@ -440,11 +543,44 @@
                 <button class="btn btn--lg btn--primary" data-hit="single" id="hitSingleBtn">Single</button>
                 <button class="btn btn--lg btn--primary" data-hit="double" id="hitDoubleBtn">Double</button>
                 <button class="btn btn--lg btn--primary" data-hit="triple" id="hitTripleBtn">Triple</button>
+                <button class="btn btn--lg btn--miss" data-hit="miss" id="targetMissDartBtn" style="display:none;">Miss Dart</button>
             </div>
             <div class="target-bottom-row">
                 <button class="btn btn--md btn--undo" id="targetUndoBtn" disabled>UNDO</button>
                 <button class="btn btn--md btn--miss" id="targetClearBtn">CLEAR</button>
                 <button class="btn btn--lg btn--success" id="targetEndTurnBtn">END TURN</button>
+            </div>
+        </div>
+
+        <div class="controls-area tic-controls hidden" id="ticTacToeControls">
+            <div class="tic-pending" id="ticPendingText">Choose Single, Double or Triple, then tap a square.</div>
+            <div class="tic-multiplier-row">
+                <button class="btn btn--lg btn--primary active" data-tic-mult="1">Single · 1 mark</button>
+                <button class="btn btn--lg btn--primary" data-tic-mult="2">Double · 2 marks</button>
+                <button class="btn btn--lg btn--primary" data-tic-mult="3">Triple · 3 marks</button>
+                <button class="btn btn--lg btn--miss" id="ticMissBtn">Miss</button>
+            </div>
+            <div class="tic-bottom-row">
+                <button class="btn btn--md btn--undo" id="ticUndoBtn" disabled>UNDO</button>
+                <button class="btn btn--lg btn--success" id="ticEndTurnBtn">END TURN</button>
+            </div>
+        </div>
+
+        <div class="controls-area double-down-controls hidden" id="doubleDownControls">
+            <div class="double-down-pending" id="doubleDownPending">Record up to three darts, then end the turn.</div>
+            <div class="double-down-bottom-row">
+                <button class="btn btn--md btn--undo" id="doubleDownUndoBtn" disabled>UNDO</button>
+                <button class="btn btn--md btn--miss" id="doubleDownMissBtn">MISS DART</button>
+                <button class="btn btn--lg btn--success" id="doubleDownEndTurnBtn">END TURN</button>
+            </div>
+        </div>
+
+        <div class="controls-area team-cricket-controls hidden" id="teamCricketControls">
+            <div class="team-cricket-pending" id="teamCricketPending"></div>
+            <div class="team-cricket-bottom-row">
+                <button class="btn btn--md btn--undo" id="teamCricketUndoBtn" disabled>UNDO</button>
+                <button class="btn btn--md btn--miss" id="teamCricketMissBtn">MISS TURN</button>
+                <button class="btn btn--lg btn--success" id="teamCricketEnterBtn">ENTER</button>
             </div>
         </div>
     </div>
@@ -478,6 +614,7 @@
                 <button class="btn btn--lg btn--primary btn--block" id="gameMenuEnd121Btn" style="display:none;">End Game &amp; Show Stats</button>
                 <hr style="border-color:var(--color-border);margin:var(--space-xs) 0;">
                 <button class="btn btn--lg btn--success-dark btn--block" id="gameMenuNewGameBtn">New Game (Same Players)</button>
+                <button class="btn btn--lg btn--neutral btn--block" id="gameMenuVisualBtn">⚙ Visual Settings</button>
                 <button class="btn btn--lg btn--neutral btn--block" id="gameMenuSettingsBtn">Change Settings</button>
                 <button class="btn btn--lg btn--danger btn--block" id="gameMenuExitBtn">Cancel Game</button>
                 <hr style="border-color:var(--color-border);margin:var(--space-xs) 0;">
@@ -551,6 +688,38 @@
             <div class="winner-name" id="chicagoLegWinner"></div>
             <div id="chicagoMatchScore" style="font-size:var(--font-xl);color:var(--color-primary);margin-bottom:var(--space-xl);"></div>
             <button class="btn btn--lg btn--success" id="chicagoContinueBtn">Continue</button>
+        </div>
+    </div>
+
+    <!-- Unified Settings — themes, wallpaper, UI scale. Opened from the
+         setup header gear and from Game Menu → Visual Settings. -->
+    <div class="modal" id="settingsModal" style="display:none;">
+        <div class="modal-content settings-modal-content">
+            <h2>Settings</h2>
+
+            <div class="settings-section">
+                <div class="settings-section-label">Theme</div>
+                <div class="theme-picker" id="themePicker" aria-label="Theme"></div>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-label">Wallpaper</div>
+                <div class="wallpaper-grid" id="wallpaperChoices"></div>
+                <label class="btn btn--md btn--neutral wallpaper-upload-btn">
+                    Upload your own…
+                    <input type="file" id="wallpaperUpload" accept="image/*" style="display:none;">
+                </label>
+            </div>
+
+            <div class="settings-section">
+                <div class="settings-section-label">UI Scale</div>
+                <div class="ui-scale-row">
+                    <input type="range" id="uiScale" min="0.7" max="1.5" step="0.1" value="1.0">
+                    <span id="uiScaleValue">1.0x</span>
+                </div>
+            </div>
+
+            <button class="btn btn--lg btn--success btn--block" id="settingsCloseBtn" style="margin-top:var(--space-lg);">Done</button>
         </div>
     </div>
 

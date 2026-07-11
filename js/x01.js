@@ -1,9 +1,9 @@
 /* ============================================
-   X01 Games (301, 501, 701, 801)
+    X01 Games + round-based total-score entry (Count Up)
    Checkout chart, calculator mode, score history
    ============================================ */
 
-import { game, saveGameState, undoWithCooldown, redoWithCooldown } from './state.js';
+import { game, saveGameState, saveActiveGame, undoWithCooldown, redoWithCooldown } from './state.js';
 import { updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner, show121MatchSummary } from './ui.js';
 import { handle121LegEnd, record121Round } from './game121.js';
 import { currentThrower, advanceRotation } from './teams.js';
@@ -14,13 +14,30 @@ function activeThrowerName() {
     return t ? t.name : null;
 }
 
-function makeHistoryEntry(score, bust = false, thrower = null) {
+function isCountUpGame() {
+    return game.type === 'countup' && !!game.countUp;
+}
+
+function isGotchaGame() {
+    return game.type === 'gotcha' && !!game.gotcha;
+}
+
+function isSharkTankGame() {
+    return game.type === 'sharktank' && !!game.sharkTank;
+}
+
+function isAdditiveScoreGame() {
+    return isCountUpGame() || isGotchaGame() || isSharkTankGame();
+}
+
+function makeHistoryEntry(score, bust = false, thrower = null, miss = false) {
     // Keep the legacy number form when no extra data is needed, so existing
     // games and the X01 history renderer's `typeof === 'object'` check both
     // stay correct.
-    if (!bust && !thrower) return score;
+    if (!bust && !thrower && !miss) return score;
     const entry = { score };
     if (bust) entry.bust = true;
+    if (miss) entry.miss = true;
     if (thrower) entry.thrower = thrower;
     return entry;
 }
@@ -87,6 +104,23 @@ const checkoutChart = {
 // Supports expressions like: 3*19+6+2*7 = 77
 let expressionStr = '';
 
+// --- Remaining-Score Entry Mode ---
+// Tapping the ACTIVE player's score in the header flips the keypad into
+// "remaining" mode: the player types what's LEFT on the board (e.g. 32)
+// and the app computes the turn score (157 - 32 = 125) on ENTER. Entering
+// digits without tapping the score works exactly like before.
+let remainingMode = false;
+
+function setRemainingMode(on) {
+    if (isAdditiveScoreGame()) return;
+    remainingMode = on;
+    updateInputDisplay();
+}
+
+function toggleRemainingMode() {
+    setRemainingMode(!remainingMode);
+}
+
 // --- Turn-commit debounce ---
 // MISS/BUST/ENTER all commit a turn and advance to the next player. A jittery
 // double-tap on a tablet would otherwise burn a whole turn for the next player.
@@ -149,6 +183,20 @@ function evaluateExpression(str) {
 
 function updateInputDisplay() {
     const display = document.getElementById('inputDisplay');
+    if (remainingMode) {
+        const player = game.players[game.currentPlayer];
+        if (!expressionStr) {
+            display.textContent = 'LEFT → ?';
+        } else {
+            const remaining = evaluateExpression(expressionStr);
+            const scored = player.score - remaining;
+            display.textContent = `LEFT ${remaining} = ${scored >= 0 ? scored : '?'} scored`;
+        }
+        display.classList.add('remaining-mode');
+        updateMissEnterVisibility();
+        return;
+    }
+    display.classList.remove('remaining-mode');
     if (!expressionStr) {
         display.textContent = '0';
     } else {
@@ -165,11 +213,16 @@ function updateInputDisplay() {
 }
 
 function updateMissEnterVisibility() {
+    // MISS collapses once digits are typed (ENTER takes its slot), but
+    // BUST stays available in every state — busting is player-declared
+    // and must never require the MISS button.
     const missBtn = document.getElementById('x01MissBtn');
     const enterBtn = document.getElementById('x01EnterBtn');
+    const bustBtn = document.getElementById('x01BustBtn');
     const hasInput = expressionStr.length > 0;
     if (missBtn) missBtn.style.display = hasInput ? 'none' : '';
     if (enterBtn) enterBtn.style.display = hasInput ? '' : 'none';
+    if (bustBtn) bustBtn.style.display = isAdditiveScoreGame() ? 'none' : '';
 }
 
 function quickScore(score) {
@@ -192,24 +245,48 @@ function quickScore(score) {
 function clearInput() {
     game.currentInput = '';
     expressionStr = '';
-    document.getElementById('inputDisplay').textContent = '0';
+    remainingMode = false;
+    const display = document.getElementById('inputDisplay');
+    display.textContent = '0';
+    display.classList.remove('remaining-mode');
+    updateMissEnterVisibility();
+}
+
+// Reset ALL input-side state between matches. The win path returns early
+// without clearInput(), so the winning throw would otherwise still be on
+// screen (and module state like remainingMode would leak) when the next
+// game starts. Called from beginMatch().
+function resetX01Input() {
+    game.currentInput = '';
+    expressionStr = '';
+    remainingMode = false;
+    const display = document.getElementById('inputDisplay');
+    if (display) {
+        display.textContent = '0';
+        display.classList.remove('remaining-mode');
+    }
+    const indicator = document.getElementById('finishIndicator');
+    if (indicator) indicator.textContent = '';
     updateMissEnterVisibility();
 }
 
 function x01Miss() {
     // No guard here — submitScore() locks for us.
     expressionStr = '';
+    remainingMode = false;
     game.currentInput = '0';
     document.getElementById('inputDisplay').textContent = '0';
-    submitScore();
+    submitScore({ miss: true });
 }
 
 function x01Bust() {
+    if (isAdditiveScoreGame()) return;
     if (turnCommitLocked) return;
     lockTurnCommit();
     saveGameState();
     const thrower = activeThrowerName();
     const player = game.players[game.currentPlayer];
+    remainingMode = false;
     player.history.push(makeHistoryEntry(0, true, thrower));
 
     // 121 mode: a busted turn still consumes 3 darts from the player's allotment.
@@ -227,13 +304,157 @@ function x01Bust() {
         game.completedRounds++;
     }
     clearInput();
+    saveActiveGame();
+    updateX01Display();
+    updateUndoRedoButtons();
+}
+
+function submitCountUpScore(score, opts, player, thrower) {
+    player.score += score;
+    player.history.push(makeHistoryEntry(score, false, thrower, !!opts.miss));
+
+    const isLastPlayer = game.currentPlayer === game.players.length - 1;
+    const totalRounds = game.countUp.totalRounds || 8;
+    if (isLastPlayer && game.completedRounds + 1 >= totalRounds) {
+        game.completedRounds = totalRounds;
+        clearInput();
+        saveActiveGame();
+        updateX01Display();
+        updateUndoRedoButtons();
+        const high = Math.max(...game.players.map(p => p.score));
+        const winners = game.players.filter(p => p.score === high).map(p => p.name);
+        showWinner(winners.join(' & '), false, true);
+        return;
+    }
+
+    if (game.teamMode) advanceRotation(game.currentPlayer);
+    game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
+    if (game.currentPlayer === 0) game.completedRounds++;
+    clearInput();
+    saveActiveGame();
+    updateX01Display();
+    updateUndoRedoButtons();
+}
+
+function submitGotchaScore(score, opts, player, thrower) {
+    const startingScore = player.score;
+    const attemptedScore = startingScore + score;
+    const target = game.gotcha.target || 301;
+    let finalScore = attemptedScore;
+    let overshoot = 0;
+    const bombed = [];
+
+    if (attemptedScore > target) {
+        overshoot = attemptedScore - target;
+        finalScore = startingScore - overshoot;
+    } else if (score > 0 && !opts.miss && attemptedScore < target) {
+        game.players.forEach((opponent, index) => {
+            if (index !== game.currentPlayer && opponent.score === attemptedScore) {
+                opponent.score = 0;
+                bombed.push(opponent.name);
+            }
+        });
+    }
+
+    player.score = finalScore;
+    player.history.push({
+        score,
+        gotchaScore: finalScore,
+        ...(opts.miss ? { miss: true } : {}),
+        ...(thrower ? { thrower } : {}),
+        ...(overshoot ? { overshoot } : {}),
+        ...(bombed.length ? { bombed } : {})
+    });
+
+    if (finalScore === target) {
+        clearInput();
+        saveActiveGame();
+        updateX01Display();
+        updateUndoRedoButtons();
+        showWinner(player.name);
+        return;
+    }
+
+    if (game.teamMode) advanceRotation(game.currentPlayer);
+    game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
+    if (game.currentPlayer === 0) game.completedRounds++;
+    clearInput();
+    saveActiveGame();
+    updateX01Display();
+    updateUndoRedoButtons();
+}
+
+function submitSharkTankScore(score, opts, player, thrower) {
+    const shark = game.sharkTank;
+    const playerIndex = game.currentPlayer;
+    shark.roundScores[playerIndex] = score;
+    player.history.push({
+        score,
+        sharkRound: shark.round,
+        ...(opts.miss ? { miss: true } : {}),
+        ...(thrower ? { thrower } : {})
+    });
+    if (game.teamMode) advanceRotation(playerIndex);
+
+    const active = game.players
+        .map((_, index) => index)
+        .filter(index => !shark.eliminated[index]);
+    const pending = active.find(index => shark.roundScores[index] == null);
+    if (pending !== undefined) {
+        game.currentPlayer = pending;
+        clearInput();
+        saveActiveGame();
+        updateX01Display();
+        updateUndoRedoButtons();
+        return;
+    }
+
+    const high = Math.max(...active.map(index => shark.roundScores[index]));
+    const leaders = active.filter(index => shark.roundScores[index] === high);
+    const biteDeltas = game.players.map(() => 0);
+    if (leaders.length > 1) {
+        active.forEach(index => { biteDeltas[index] = 1; });
+    } else {
+        const leader = leaders[0];
+        active.forEach(index => {
+            if (index === leader) return;
+            biteDeltas[index] = high >= shark.roundScores[index] * 2 ? 2 : 1;
+        });
+    }
+
+    active.forEach(index => {
+        shark.bites[index] += biteDeltas[index];
+        if (shark.bites[index] >= 6) shark.eliminated[index] = true;
+        const entry = game.players[index].history.at(-1);
+        if (entry && typeof entry === 'object') entry.bites = biteDeltas[index];
+    });
+
+    const survivors = active.filter(index => !shark.eliminated[index]);
+    shark.roundScores = game.players.map(() => null);
+    game.completedRounds = shark.round;
+    shark.round++;
+    clearInput();
+
+    if (survivors.length <= 1) {
+        saveActiveGame();
+        updateX01Display();
+        updateUndoRedoButtons();
+        const winnerNames = survivors.length
+            ? [game.players[survivors[0]].name]
+            : active.map(index => game.players[index].name);
+        showWinner(winnerNames.join(' & '), false, true);
+        return;
+    }
+
+    game.currentPlayer = survivors[0];
+    saveActiveGame();
     updateX01Display();
     updateUndoRedoButtons();
 }
 
 // --- Core Score Submission (with bug fixes) ---
 
-function submitScore() {
+function submitScore(opts = {}) {
     // Guard against double-tap. x01Miss/x01Bust already locked in their
     // wrapper; direct ENTER presses and quickScore paths land here.
     if (turnCommitLocked) return;
@@ -246,7 +467,26 @@ function submitScore() {
     } else {
         score = game.currentInput ? parseInt(game.currentInput) : 0;
     }
+
+    // Remaining mode: the typed value is what's LEFT on the board, not
+    // what was thrown. Convert to a turn score before the normal flow so
+    // history/undo/stats look identical to typing the turn score.
+    if (remainingMode && expressionStr) {
+        const remaining = score;
+        const current = game.players[game.currentPlayer].score;
+        score = current - remaining;
+        if (remaining < 0 || remaining > current || score > 180) {
+            const indicator = document.getElementById('finishIndicator');
+            indicator.textContent = `Invalid: ${remaining} left of ${current} isn't possible`;
+            indicator.style.color = 'var(--color-danger)';
+            setTimeout(() => { indicator.textContent = ''; updateX01Display(); }, 2000);
+            expressionStr = '';
+            clearInput();
+            return;
+        }
+    }
     expressionStr = '';
+    remainingMode = false;
 
     if (score < 0 || score > 180) {
         const indicator = document.getElementById('finishIndicator');
@@ -261,6 +501,20 @@ function submitScore() {
 
     const thrower = activeThrowerName();
     const player = game.players[game.currentPlayer];
+
+    if (isCountUpGame()) {
+        submitCountUpScore(score, opts, player, thrower);
+        return;
+    }
+    if (isGotchaGame()) {
+        submitGotchaScore(score, opts, player, thrower);
+        return;
+    }
+    if (isSharkTankGame()) {
+        submitSharkTankScore(score, opts, player, thrower);
+        return;
+    }
+
     const newScore = player.score - score;
 
     // X01 rules at the dart-segment level (Double-In / Double-Out / what
@@ -291,6 +545,7 @@ function submitScore() {
         if (game.teamMode) advanceRotation(game.currentPlayer);
         game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
         if (game.currentPlayer === 0) game.completedRounds++;
+        saveActiveGame();
         updateX01Display();
         updateUndoRedoButtons();
         return;
@@ -299,7 +554,7 @@ function submitScore() {
     // BUG FIX: newScore === 0 is ALWAYS a win. Trust the player.
     // Apply score
     player.score = newScore;
-    player.history.push(makeHistoryEntry(score, false, thrower));
+    player.history.push(makeHistoryEntry(score, false, thrower, !!opts.miss));
 
     // Handle 121 game dart counting + round tallies (180s, 100+, etc.)
     if (game.game121) {
@@ -313,6 +568,7 @@ function submitScore() {
             handle121LegEnd(true, score);
             return;
         }
+        saveActiveGame();
         showWinner(player.name);
         return;
     }
@@ -328,6 +584,7 @@ function submitScore() {
     game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
     if (game.currentPlayer === 0) game.completedRounds++;
 
+    saveActiveGame();
     updateX01Display();
     updateUndoRedoButtons();
 }
@@ -337,6 +594,8 @@ function submitScore() {
 function renderX01ScoreHistory() {
     const numPlayers = game.players.length;
     const x01Main = document.getElementById('x01Main');
+    const scoreMatchOver = isCountUpGame()
+        && game.completedRounds >= (game.countUp.totalRounds || 8);
 
     x01Main.classList.remove('three-player', 'four-player');
     if (numPlayers === 3) x01Main.classList.add('three-player');
@@ -380,10 +639,12 @@ function renderX01ScoreHistory() {
     // Build round numbers
     let roundHtml = '';
     for (let r = 1; r <= maxRounds; r++) {
-        const isCurrent = (r === maxRounds && game.players[game.currentPlayer].history.length < maxRounds);
+        const isCurrent = !scoreMatchOver
+            && r === maxRounds
+            && game.players[game.currentPlayer].history.length < maxRounds;
         roundHtml += `<div class="round-number${isCurrent ? ' current' : ''}">${r}</div>`;
     }
-    if (game.players[game.currentPlayer].history.length === maxRounds) {
+    if (!scoreMatchOver && game.players[game.currentPlayer].history.length === maxRounds) {
         roundHtml += `<div class="round-number current">${maxRounds + 1}</div>`;
     }
     roundCol.innerHTML = roundHtml;
@@ -394,17 +655,28 @@ function renderX01ScoreHistory() {
         if (!player) return '';
 
         let html = '';
-        const totalRounds = game.players[game.currentPlayer].history.length === maxRounds ? maxRounds + 1 : maxRounds;
+        const totalRounds = !scoreMatchOver
+            && game.players[game.currentPlayer].history.length === maxRounds
+            ? maxRounds + 1
+            : maxRounds;
 
         for (let r = 0; r < totalRounds; r++) {
             const entry = player.history[r];
-            const isCurrent = r === player.history.length && game.currentPlayer === playerIndex;
+            const isCurrent = !scoreMatchOver
+                && r === player.history.length
+                && game.currentPlayer === playerIndex;
             const arrow = isCurrent && isLeft ? ' ◄' : (isCurrent && !isLeft ? '► ' : '');
 
             if (entry !== undefined) {
                 const scoreVal = typeof entry === 'object' ? entry.score : entry;
                 const isBust = typeof entry === 'object' && entry.bust;
-                html += `<div class="score-history-entry${isBust ? ' bust' : ''}">${isLeft ? '' : arrow}${scoreVal}${isLeft ? arrow : ''}</div>`;
+                const isMiss = typeof entry === 'object' && entry.miss;
+                // Distinct symbols: miss = ⊘ (circle-slash), bust = ✖
+                let cellText = scoreVal;
+                let cellClass = '';
+                if (isBust) { cellText = '✖ BUST'; cellClass = ' bust'; }
+                else if (isMiss) { cellText = '⊘ MISS'; cellClass = ' miss'; }
+                html += `<div class="score-history-entry${cellClass}">${isLeft ? '' : arrow}${cellText}${isLeft ? arrow : ''}</div>`;
             } else if (isCurrent) {
                 html += `<div class="score-history-entry current">${isLeft ? '' : arrow}--${isLeft ? arrow : ''}</div>`;
             } else {
@@ -442,6 +714,10 @@ function renderX01ScoreHistory() {
 
 function updateCheckoutSuggestion() {
     const suggestionEl = document.getElementById('checkoutSuggestion');
+    if (isAdditiveScoreGame()) {
+        suggestionEl.style.display = 'none';
+        return;
+    }
     const player = game.players[game.currentPlayer];
     const score = player.score;
     const finishType = game.finishType || 'open';
@@ -485,12 +761,15 @@ function updateCheckoutSuggestion() {
 
 function updateX01Display() {
     const numPlayers = game.players.length;
+    const displayScore = index => isSharkTankGame()
+        ? Math.max(0, 6 - (game.sharkTank.bites[index] || 0))
+        : game.players[index].score;
 
     // Update scores in header
-    document.getElementById('homeScore').textContent = game.players[0].score;
-    document.getElementById('awayScore').textContent = numPlayers >= 2 ? game.players[1].score : 0;
-    if (numPlayers >= 3) document.getElementById('player3Score').textContent = game.players[2].score;
-    if (numPlayers >= 4) document.getElementById('player4Score').textContent = game.players[3].score;
+    document.getElementById('homeScore').textContent = displayScore(0);
+    document.getElementById('awayScore').textContent = numPlayers >= 2 ? displayScore(1) : 0;
+    if (numPlayers >= 3) document.getElementById('player3Score').textContent = displayScore(2);
+    if (numPlayers >= 4) document.getElementById('player4Score').textContent = displayScore(3);
 
     // Hide MPR displays in X01 (not relevant)
     const mprIds = ['homeMPR', 'homeMPR2', 'awayMPR', 'awayMPR2', 'player3MPR', 'player3MPR2', 'player4MPR', 'player4MPR2'];
@@ -507,7 +786,20 @@ function updateX01Display() {
     const currentPlayer = game.players[game.currentPlayer];
     const finishType = game.finishType || 'open';
 
-    if (game.game121) {
+    if (isCountUpGame()) {
+        const totalRounds = game.countUp.totalRounds || 8;
+        const round = Math.min(game.completedRounds + 1, totalRounds);
+        finishIndicator.textContent = `ROUND ${round} OF ${totalRounds} — ENTER 3-DART TOTAL`;
+        finishIndicator.style.color = 'var(--color-primary-light)';
+    } else if (isGotchaGame()) {
+        const needed = (game.gotcha.target || 301) - currentPlayer.score;
+        finishIndicator.textContent = `${needed} TO 301 — MATCH A RIVAL TO BOMB THEM`;
+        finishIndicator.style.color = 'var(--color-warning)';
+    } else if (isSharkTankGame()) {
+        const bites = game.sharkTank.bites[game.currentPlayer] || 0;
+        finishIndicator.textContent = `ROUND ${game.sharkTank.round} — ${6 - bites} BITES LEFT — BULLS SCORE 0`;
+        finishIndicator.style.color = bites >= 4 ? 'var(--color-danger)' : 'var(--color-primary-light)';
+    } else if (game.game121) {
         const dartsLeft = game.game121.dartsPerLeg - game.game121.dartsThrown;
         finishIndicator.textContent = `${dartsLeft} dart${dartsLeft !== 1 ? 's' : ''} left | Start: ${game.game121.startingScore}`;
         finishIndicator.style.color = dartsLeft <= 3 ? 'var(--color-undo)' : 'var(--color-primary-light)';
@@ -565,6 +857,22 @@ function initX01Controls() {
     const bustEl = document.getElementById('x01BustBtn');
     if (bustEl) bindDown(bustEl, x01Bust);
 
+    // Tap the ACTIVE player's score in the header → toggle remaining-score
+    // entry mode (type what's LEFT; app computes the turn score). Tapping
+    // again cancels. Non-active headers and non-X01 games are ignored.
+    ['homeScore', 'awayScore', 'player3Score', 'player4Score'].forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('pointerdown', (e) => {
+            const controls = document.getElementById('x01Controls');
+            if (!controls || controls.classList.contains('hidden')) return;
+            if (isAdditiveScoreGame()) return;
+            if (idx !== game.currentPlayer) return;
+            e.preventDefault();
+            toggleRemainingMode();
+        });
+    });
+
     // Undo/Redo (Undo also acts as Back — clears input first, then undoes last action)
     onEl('undoBtnX01', 'click', () => {
         if (expressionStr.length > 0) {
@@ -590,4 +898,4 @@ function initX01Controls() {
     updateMissEnterVisibility();
 }
 
-export { updateX01Display, initX01Controls, submitScore, clearInput };
+export { updateX01Display, initX01Controls, submitScore, clearInput, resetX01Input };

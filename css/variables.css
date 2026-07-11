@@ -47,6 +47,12 @@
     --color-accent: #00aaff;
     --color-accent-glow: rgba(0, 170, 255, 0.35);
     --bg-image-overlay: rgba(0, 0, 0, 0.78);
+
+    /* Text color on top of primary / success surfaces. Dark hues carry
+       white text; the bright bar-visible themes override these to a dark
+       ink so labels stay readable on high-luminance fills. */
+    --color-on-primary: #ffffff;
+    --color-on-success: #ffffff;
 }
 
 /* === Crimson (Red) ===
@@ -123,6 +129,365 @@
     --color-accent: #ff2eb0;
     --color-accent-glow: rgba(0, 212, 255, 0.45);
     --bg-image-overlay: rgba(6, 6, 20, 0.85);
+}
+
+/* ============================================
+   BRIGHT BAR-VISIBLE THEMES
+   Design rules for every theme below:
+   - background pure/near black (or near-white for Arctic) for max
+     contrast against the primary hue
+   - primary hue ≥ 60% luminance so scores read from across a bar
+   - text pure white (or near-black on Arctic) — no grey body copy
+   - pending/success/danger picked for color-blind separability
+   ============================================ */
+
+/* === Sunburst — amber/yellow. Highest luminance hue on black. === */
+:root[data-theme="sunburst"] {
+    --color-primary: #ffb300;
+    --color-primary-dark: #cc8f00;
+    --color-primary-light: #ffd54d;
+
+    --color-success: #37d500;
+    --color-success-dark: #279500;
+    --color-danger: #ff3b3b;
+    --color-warning: #ff8800;
+    --color-undo: #ff8800;
+
+    --color-bg: #000000;
+    --color-surface: #191307;
+    --color-surface-alt: #100c04;
+    --color-surface-elevated: #241b0a;
+    --color-border: #4d3a10;
+    --color-border-light: #806018;
+    --color-text: #ffffff;
+    --color-text-dark: #1a1200;
+    --color-text-muted: #cdb480;
+    --color-text-dim: #8a7550;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #6b5a33;
+    --color-pending: #37d500;
+    --color-prev-turn: #a89060;
+    --color-score-bg: #ffffff;
+    --color-score-text: #000000;
+    --color-bust: #ff5533;
+    --color-miss: #6b5a33;
+
+    --color-accent: #ffd54d;
+    --color-accent-glow: rgba(255, 179, 0, 0.5);
+    --bg-image-overlay: rgba(0, 0, 0, 0.82);
+    --color-on-primary: #1a1200;
+    --color-on-success: #001500;
+}
+
+/* === Volt — electric lime. Peak scotopic visibility. === */
+:root[data-theme="volt"] {
+    --color-primary: #aaff00;
+    --color-primary-dark: #7ec400;
+    --color-primary-light: #ccff55;
+
+    --color-success: #00ffc3;
+    --color-success-dark: #00b389;
+    --color-danger: #ff3b6f;
+    --color-warning: #ffd000;
+    --color-undo: #ff9500;
+
+    --color-bg: #000000;
+    --color-surface: #121705;
+    --color-surface-alt: #0b0f03;
+    --color-surface-elevated: #1b2308;
+    --color-border: #3a4d10;
+    --color-border-light: #628018;
+    --color-text: #ffffff;
+    --color-text-dark: #101a00;
+    --color-text-muted: #b8cd8a;
+    --color-text-dim: #7a8a5a;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #566b33;
+    --color-pending: #00ffc3;
+    --color-prev-turn: #93a870;
+    --color-score-bg: #ffffff;
+    --color-score-text: #000000;
+    --color-bust: #ff7733;
+    --color-miss: #566b33;
+
+    --color-accent: #ccff55;
+    --color-accent-glow: rgba(170, 255, 0, 0.5);
+    --bg-image-overlay: rgba(0, 0, 0, 0.82);
+    --color-on-primary: #101a00;
+    --color-on-success: #001a14;
+}
+
+/* === Inferno — bright orange/red. Warm, aggressive, readable. === */
+:root[data-theme="inferno"] {
+    --color-primary: #ff5500;
+    --color-primary-dark: #cc4400;
+    --color-primary-light: #ff8844;
+
+    --color-success: #3ddc35;
+    --color-success-dark: #2a9c25;
+    --color-danger: #ff2222;
+    --color-warning: #ffbb00;
+    --color-undo: #ffbb00;
+
+    --color-bg: #000000;
+    --color-surface: #1a0d05;
+    --color-surface-alt: #110803;
+    --color-surface-elevated: #261408;
+    --color-border: #4d2610;
+    --color-border-light: #804018;
+    --color-text: #ffffff;
+    --color-text-dark: #1a0800;
+    --color-text-muted: #cd9c80;
+    --color-text-dim: #8a6550;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #6b4433;
+    --color-pending: #3ddc35;
+    --color-prev-turn: #a87d60;
+    --color-score-bg: #ffffff;
+    --color-score-text: #000000;
+    --color-bust: #ff2222;
+    --color-miss: #6b4433;
+
+    --color-accent: #ff8844;
+    --color-accent-glow: rgba(255, 85, 0, 0.5);
+    --bg-image-overlay: rgba(0, 0, 0, 0.82);
+    --color-on-primary: #1a0800;
+    --color-on-success: #001500;
+}
+
+/* === Miami — hot pink + cyan pop. === */
+:root[data-theme="miami"] {
+    --color-primary: #ff2ec4;
+    --color-primary-dark: #c40e91;
+    --color-primary-light: #ff7ad9;
+
+    --color-success: #00f0ff;
+    --color-success-dark: #00a8b3;
+    --color-danger: #ff4444;
+    --color-warning: #ffdd33;
+    --color-undo: #ff8800;
+
+    --color-bg: #000000;
+    --color-surface: #1a0714;
+    --color-surface-alt: #10040c;
+    --color-surface-elevated: #260a1e;
+    --color-border: #4d1038;
+    --color-border-light: #801860;
+    --color-text: #ffffff;
+    --color-text-dark: #1a0014;
+    --color-text-muted: #cd8ab4;
+    --color-text-dim: #8a5a78;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #6b3358;
+    --color-pending: #00f0ff;
+    --color-prev-turn: #a87093;
+    --color-score-bg: #ffffff;
+    --color-score-text: #000000;
+    --color-bust: #ff6644;
+    --color-miss: #6b3358;
+
+    --color-accent: #00f0ff;
+    --color-accent-glow: rgba(255, 46, 196, 0.5);
+    --bg-image-overlay: rgba(0, 0, 0, 0.82);
+    --color-on-primary: #1a0014;
+    --color-on-success: #001a1c;
+}
+
+/* === Grape — vivid violet. === */
+:root[data-theme="grape"] {
+    --color-primary: #b44bff;
+    --color-primary-dark: #8a1fe0;
+    --color-primary-light: #cf8aff;
+
+    --color-success: #45e83c;
+    --color-success-dark: #2fa82a;
+    --color-danger: #ff3b6f;
+    --color-warning: #ffce33;
+    --color-undo: #ff9500;
+
+    --color-bg: #000000;
+    --color-surface: #140a1e;
+    --color-surface-alt: #0c0613;
+    --color-surface-elevated: #1e0f2d;
+    --color-border: #3c2058;
+    --color-border-light: #653896;
+    --color-text: #ffffff;
+    --color-text-dark: #14001f;
+    --color-text-muted: #b89ad4;
+    --color-text-dim: #7a628f;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #58406b;
+    --color-pending: #45e83c;
+    --color-prev-turn: #937fa8;
+    --color-score-bg: #ffffff;
+    --color-score-text: #000000;
+    --color-bust: #ff6f4d;
+    --color-miss: #58406b;
+
+    --color-accent: #cf8aff;
+    --color-accent-glow: rgba(180, 75, 255, 0.5);
+    --bg-image-overlay: rgba(0, 0, 0, 0.82);
+    --color-on-primary: #14001f;
+    --color-on-success: #001500;
+}
+
+/* === Aqua — bright teal/mint. === */
+:root[data-theme="aqua"] {
+    --color-primary: #00e5c3;
+    --color-primary-dark: #00a88f;
+    --color-primary-light: #55ffdf;
+
+    --color-success: #b0ff33;
+    --color-success-dark: #7fbf1f;
+    --color-danger: #ff4d6a;
+    --color-warning: #ffd000;
+    --color-undo: #ff9500;
+
+    --color-bg: #000000;
+    --color-surface: #051714;
+    --color-surface-alt: #030f0d;
+    --color-surface-elevated: #08231e;
+    --color-border: #104d42;
+    --color-border-light: #18806e;
+    --color-text: #ffffff;
+    --color-text-dark: #001a15;
+    --color-text-muted: #80cdc0;
+    --color-text-dim: #508a80;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #336b60;
+    --color-pending: #b0ff33;
+    --color-prev-turn: #60a89b;
+    --color-score-bg: #ffffff;
+    --color-score-text: #000000;
+    --color-bust: #ff7744;
+    --color-miss: #336b60;
+
+    --color-accent: #55ffdf;
+    --color-accent-glow: rgba(0, 229, 195, 0.5);
+    --bg-image-overlay: rgba(0, 0, 0, 0.82);
+    --color-on-primary: #001a15;
+    --color-on-success: #101a00;
+}
+
+/* === Royal — bright cobalt blue, brighter than Classic. === */
+:root[data-theme="royal"] {
+    --color-primary: #2979ff;
+    --color-primary-dark: #0d54cc;
+    --color-primary-light: #74a7ff;
+
+    --color-success: #2be32b;
+    --color-success-dark: #1da31d;
+    --color-danger: #ff3d3d;
+    --color-warning: #ffc400;
+    --color-undo: #ff9500;
+
+    --color-bg: #000000;
+    --color-surface: #070f1f;
+    --color-surface-alt: #040913;
+    --color-surface-elevated: #0b172e;
+    --color-border: #16335e;
+    --color-border-light: #275699;
+    --color-text: #ffffff;
+    --color-text-dark: #001033;
+    --color-text-muted: #8fadd9;
+    --color-text-dim: #5a7299;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #3d5680;
+    --color-pending: #2be32b;
+    --color-prev-turn: #7590b3;
+    --color-score-bg: #ffffff;
+    --color-score-text: #000000;
+    --color-bust: #ff7744;
+    --color-miss: #3d5680;
+
+    --color-accent: #74a7ff;
+    --color-accent-glow: rgba(41, 121, 255, 0.55);
+    --bg-image-overlay: rgba(0, 0, 0, 0.82);
+    --color-on-success: #001500;
+}
+
+/* === Shamrock — bright chalkboard green. === */
+:root[data-theme="shamrock"] {
+    --color-primary: #00e639;
+    --color-primary-dark: #00a828;
+    --color-primary-light: #5cff84;
+
+    --color-success: #00e5ff;
+    --color-success-dark: #00a4b8;
+    --color-danger: #ff4444;
+    --color-warning: #ffd000;
+    --color-undo: #ff9500;
+
+    --color-bg: #000000;
+    --color-surface: #06170b;
+    --color-surface-alt: #030f07;
+    --color-surface-elevated: #0a2311;
+    --color-border: #124d24;
+    --color-border-light: #1d803b;
+    --color-text: #ffffff;
+    --color-text-dark: #001a08;
+    --color-text-muted: #85cd9a;
+    --color-text-dim: #558a65;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #336b45;
+    --color-pending: #00e5ff;
+    --color-prev-turn: #63a878;
+    --color-score-bg: #ffffff;
+    --color-score-text: #000000;
+    --color-bust: #ff7744;
+    --color-miss: #336b45;
+
+    --color-accent: #5cff84;
+    --color-accent-glow: rgba(0, 230, 57, 0.5);
+    --bg-image-overlay: rgba(0, 0, 0, 0.82);
+    --color-on-primary: #001a08;
+    --color-on-success: #001a1c;
+}
+
+/* === Arctic — light theme. Near-white panels push the display's own
+   luminance up: on a tablet this IS the brightness fallback. === */
+:root[data-theme="arctic"] {
+    --color-primary: #0057d8;
+    --color-primary-dark: #003fa0;
+    --color-primary-light: #3d84ff;
+
+    --color-success: #00871f;
+    --color-success-dark: #005c15;
+    --color-danger: #d81a1a;
+    --color-warning: #b87700;
+    --color-undo: #c25e00;
+
+    --color-bg: #eef2f7;
+    --color-surface: #ffffff;
+    --color-surface-alt: #f4f7fa;
+    --color-surface-elevated: #ffffff;
+    --color-border: #c3cede;
+    --color-border-light: #93a5c0;
+    --color-text: #0c1524;
+    --color-text-dark: #ffffff;
+    --color-text-muted: #4a5b75;
+    --color-text-dim: #7d8ba3;
+
+    --color-active-player: var(--color-primary);
+    --color-inactive-player: #93a5c0;
+    --color-pending: #00871f;
+    --color-prev-turn: #7d8ba3;
+    --color-score-bg: #0c1524;
+    --color-score-text: #ffffff;
+    --color-bust: #c25e00;
+    --color-miss: #93a5c0;
+
+    --color-accent: #0057d8;
+    --color-accent-glow: rgba(0, 87, 216, 0.3);
+    --bg-image-overlay: rgba(238, 242, 247, 0.92);
 }
 
 /* === Structural tokens — theme-agnostic === */
