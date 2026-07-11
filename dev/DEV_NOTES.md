@@ -157,6 +157,13 @@ reads/writes it and fires `change`.
   avoiding an empty section. Presets has an explicit open/closed arrow.
 - Responsive tests verify panel separation and no horizontal overflow at 390px.
 
+## Portrait player setup hotfix
+
+- Portrait tablets show four standard players in balanced 2×2 cards instead
+  of a left-stacked row layout. Phones use a single-column card stack.
+- Each card contains its drag handle, throw-position label, arrow fallback, and
+  a full-width name field. Pointer drag uses both X and Y to target 2×2 cards.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,

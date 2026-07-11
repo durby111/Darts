@@ -1609,6 +1609,39 @@ async def test_setup_throw_order(page):
     for index, name in enumerate(names, 1):
         await page.fill(f"#player{index}", name)
 
+    # Portrait tablet: four players should be balanced as a 2×2 card grid,
+    # with each name field using the full card width beneath its controls.
+    await page.set_viewport_size({"width": 744, "height": 1133})
+    portrait = await page.evaluate("""
+        () => {
+            const rows = [1,2,3,4].map(index => {
+                const row = document.getElementById(`player${index}Group`).getBoundingClientRect();
+                const input = document.getElementById(`player${index}`).getBoundingClientRect();
+                return {left:row.left, top:row.top, right:row.right, bottom:row.bottom,
+                        width:row.width, inputLeft:input.left, inputRight:input.right,
+                        inputTop:input.top};
+            });
+            return rows;
+        }
+    """)
+    tolerance = 3
+    assert abs(portrait[0]["top"] - portrait[1]["top"]) <= tolerance, portrait
+    assert abs(portrait[2]["top"] - portrait[3]["top"]) <= tolerance, portrait
+    assert portrait[2]["top"] > portrait[0]["bottom"], portrait
+    assert portrait[1]["left"] > portrait[0]["right"], portrait
+    assert portrait[3]["left"] > portrait[2]["right"], portrait
+    for row in portrait:
+        assert row["inputTop"] > row["top"], row
+        assert row["inputLeft"] <= row["left"] + 15 and row["inputRight"] >= row["right"] - 15, row
+
+    # Phone portrait falls back to a clean one-column stack.
+    await page.set_viewport_size({"width": 390, "height": 844})
+    phone_lefts = await page.eval_on_selector_all(
+        "#playerOrderList .player-row:not(.hidden)",
+        "rows => rows.map(row => Math.round(row.getBoundingClientRect().left))")
+    assert max(phone_lefts) - min(phone_lefts) <= 2, phone_lefts
+    await page.set_viewport_size({"width": 900, "height": 1600})
+
     labels = await page.eval_on_selector_all(
         "[data-player-order-label]", "els => els.map(el => el.textContent.trim())")
     assert labels == ["Throws 1st", "Throws 2nd", "Throws 3rd", "Throws 4th"], labels

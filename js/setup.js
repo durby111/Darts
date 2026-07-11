@@ -110,15 +110,30 @@ function shufflePlayerOrder() {
     renderPlayerOrderControls();
 }
 
-function playerDropIndexAt(y) {
+function playerDropIndexAt(x, y) {
     const rows = Array.from({ length: playerCount() }, (_, index) =>
         document.getElementById(`player${index + 1}Group`)
     ).filter(Boolean);
-    for (let index = 0; index < rows.length; index++) {
-        const rect = rows[index].getBoundingClientRect();
-        if (y < rect.top + rect.height / 2) return index;
-    }
-    return Math.max(0, rows.length - 1);
+    const containing = rows.findIndex(row => {
+        const rect = row.getBoundingClientRect();
+        return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    });
+    if (containing >= 0) return containing;
+
+    let nearestIndex = 0;
+    let nearestDistance = Infinity;
+    rows.forEach((row, index) => {
+        const rect = row.getBoundingClientRect();
+        const distance = Math.hypot(
+            x - (rect.left + rect.width / 2),
+            y - (rect.top + rect.height / 2)
+        );
+        if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestIndex = index;
+        }
+    });
+    return nearestIndex;
 }
 
 function clearPlayerOrderDragClasses() {
@@ -136,7 +151,7 @@ function onPlayerOrderPointerMove(event) {
     if (!playerOrderDrag.dragging && distance < PLAYER_ORDER_DRAG_THRESHOLD) return;
     event.preventDefault();
     playerOrderDrag.dragging = true;
-    playerOrderDrag.toIndex = playerDropIndexAt(event.clientY);
+    playerOrderDrag.toIndex = playerDropIndexAt(event.clientX, event.clientY);
     clearPlayerOrderDragClasses();
     document.getElementById(`player${playerOrderDrag.fromIndex + 1}Group`)
         ?.classList.add('player-row--dragging');
