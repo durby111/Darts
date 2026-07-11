@@ -15,7 +15,7 @@ import { initBermudaState } from './bermuda.js';
 import { initGolfState } from './golf.js';
 import { initShanghaiState } from './shanghai.js';
 import { initThemePickerUI } from './theme.js';
-import { isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
+import { getGame, isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
 import { resetX01Input } from './x01.js';
 
@@ -262,11 +262,19 @@ export function initSetupControls() {
                 ? 'Points go to open opponents (required)'
                 : 'Enable Points';
         }
-        const onePlayer = document.querySelector('#numPlayers option[value="1"]');
-        if (onePlayer) onePlayer.disabled = isCutThroat;
         const count = document.getElementById('numPlayers');
-        if (isCutThroat && count?.value === '1') {
-            count.value = '2';
+        const gameDef = getGame(this.value);
+        const minPlayers = gameDef?.minPlayers || (isCutThroat ? 2 : 1);
+        const maxPlayers = gameDef?.maxPlayers || 4;
+        count?.querySelectorAll('option').forEach(option => {
+            const value = parseInt(option.value);
+            option.disabled = value < minPlayers || value > maxPlayers;
+        });
+        if (count && parseInt(count.value) < minPlayers) {
+            count.value = String(minPlayers);
+            count.dispatchEvent(new Event('change'));
+        } else if (count && parseInt(count.value) > maxPlayers) {
+            count.value = String(maxPlayers);
             count.dispatchEvent(new Event('change'));
         }
     });
@@ -575,6 +583,7 @@ function beginMatch(playerSeeds, teams) {
     const isGolf = gameType === 'golf';
     const isShanghai = gameType === 'shanghai';
     const isCountUp = gameType === 'countup';
+    const isGotcha = gameType === 'gotcha';
 
     Object.assign(game, {
         type: gameType,
@@ -619,6 +628,7 @@ function beginMatch(playerSeeds, teams) {
         golf: isGolf ? initGolfState(document.getElementById('golfVariant').value) : null,
         shanghai: isShanghai ? initShanghaiState(document.getElementById('shanghaiVariant')?.value) : null,
         countUp: isCountUp ? { totalRounds: 8 } : null,
+        gotcha: isGotcha ? { target: 301 } : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
             name: t.name,

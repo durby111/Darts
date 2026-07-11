@@ -101,11 +101,11 @@ async def test_registry_picker(page):
     await dismiss_onboard(page)
     # Registry card count grows deliberately as game batches land.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 21, f"expected 21 game cards, got {cards}"
+    assert cards == 22, f"expected 22 game cards, got {cards}"
 
     # New games present
     for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup",
-                "quickie", "cutthroat", "wildcard"):
+                "quickie", "cutthroat", "wildcard", "gotcha"):
         n = await page.locator(f".game-card[data-game-value='{gid}']").count()
         assert n == 1, f"{gid} card missing"
 
@@ -213,6 +213,80 @@ async def test_count_up(page):
     rounds = await page.locator("#roundNumCol .round-number").count()
     assert rounds == 8, f"phantom Count Up round rendered: {rounds}"
     return {"first_turn": first, "final": final, "winner": winner}
+
+
+async def test_gotcha(page):
+    # Gotcha is a 2–4 player race to exactly 301. Matching a live opponent
+    # bombs them to zero; overshooting penalizes the pre-turn score and never
+    # bombs; exact entry wins.
+    await fresh(page)
+    await page.select_option("#numPlayers", "1")
+    await page.select_option("#gameType", "gotcha")
+    await page.wait_for_timeout(100)
+    assert await page.input_value("#numPlayers") == "2", "Gotcha must require 2+ players"
+    await page.click("#startGameBtn")
+    await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
+    assert not await page.locator("#x01BustBtn").is_visible(), "BUST should hide in Gotcha"
+
+    # Away lands exactly on Home's 40 and bombs Home back to zero.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.players[0].score = 40;
+            state.game.players[1].score = 20;
+            state.game.currentPlayer = 1;
+            (await import('./js/x01.js')).updateX01Display();
+        })()
+    """)
+    for digit in "20":
+        await page.click(f"[data-digit='{digit}']")
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(800)
+    bombed = await get_state(page, "m.game.players.map(p => p.score)")
+    entry = await get_state(page, "m.game.players[1].history.at(-1)")
+    assert bombed == [0, 40], f"Gotcha bomb scores = {bombed}"
+    assert entry.get("bombed") == ["Home"], f"bomb history = {entry}"
+
+    # Home at 276 throws 50: 25 over, so 25 is deducted from the original
+    # 276 -> 251. Away already has 251 but overshoots never bomb.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.players[0].score = 276;
+            state.game.players[1].score = 251;
+            state.game.currentPlayer = 0;
+            (await import('./js/x01.js')).updateX01Display();
+        })()
+    """)
+    for digit in "50":
+        await page.click(f"[data-digit='{digit}']")
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(800)
+    rebounded = await get_state(page, "m.game.players.map(p => p.score)")
+    over_entry = await get_state(page, "m.game.players[0].history.at(-1)")
+    assert rebounded == [251, 251], f"Gotcha overshoot = {rebounded}"
+    assert over_entry.get("overshoot") == 25 and not over_entry.get("bombed"), over_entry
+
+    # Away needs 20 and reaches exactly 301.
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            state.game.players[1].score = 281;
+            state.game.currentPlayer = 1;
+            (await import('./js/x01.js')).updateX01Display();
+        })()
+    """)
+    for digit in "20":
+        await page.click(f"[data-digit='{digit}']")
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(500)
+    assert await page.locator("#winnerModal").is_visible(), "exact 301 did not win Gotcha"
+    winner = (await page.locator("#winnerName").inner_text()).strip()
+    assert winner == "Away", winner
+    stored = await page.evaluate(
+        "JSON.parse(localStorage.getItem('blakeout_active_game')).players[1].score")
+    assert stored == 301, f"Gotcha win not persisted: {stored}"
+    return {"bombed": bombed, "overshoot": rebounded, "winner": winner}
 
 
 async def test_game_rules_tooltip(page):
@@ -702,7 +776,7 @@ async def test_all_games_boot(page):
     games = await page.evaluate(
         "(async () => { const r = await import('./js/registry.js');"
         " return r.listGames().map(g => ({id: g.id, engine: g.engine})); })()")
-    assert len(games) >= 21, f"registry shrank? {len(games)} games"
+    assert len(games) >= 22, f"registry shrank? {len(games)} games"
     panels = {
         "cricket": "#cricketMain", "x01": "#x01Main",
         "score": "#x01Main", "target": "#targetGameMain"

@@ -18,6 +18,14 @@ function isCountUpGame() {
     return game.type === 'countup' && !!game.countUp;
 }
 
+function isGotchaGame() {
+    return game.type === 'gotcha' && !!game.gotcha;
+}
+
+function isAdditiveScoreGame() {
+    return isCountUpGame() || isGotchaGame();
+}
+
 function makeHistoryEntry(score, bust = false, thrower = null, miss = false) {
     // Keep the legacy number form when no extra data is needed, so existing
     // games and the X01 history renderer's `typeof === 'object'` check both
@@ -100,7 +108,7 @@ let expressionStr = '';
 let remainingMode = false;
 
 function setRemainingMode(on) {
-    if (isCountUpGame()) return;
+    if (isAdditiveScoreGame()) return;
     remainingMode = on;
     updateInputDisplay();
 }
@@ -210,7 +218,7 @@ function updateMissEnterVisibility() {
     const hasInput = expressionStr.length > 0;
     if (missBtn) missBtn.style.display = hasInput ? 'none' : '';
     if (enterBtn) enterBtn.style.display = hasInput ? '' : 'none';
-    if (bustBtn) bustBtn.style.display = isCountUpGame() ? 'none' : '';
+    if (bustBtn) bustBtn.style.display = isAdditiveScoreGame() ? 'none' : '';
 }
 
 function quickScore(score) {
@@ -268,7 +276,7 @@ function x01Miss() {
 }
 
 function x01Bust() {
-    if (isCountUpGame()) return;
+    if (isAdditiveScoreGame()) return;
     if (turnCommitLocked) return;
     lockTurnCommit();
     saveGameState();
@@ -312,6 +320,54 @@ function submitCountUpScore(score, opts, player, thrower) {
         const high = Math.max(...game.players.map(p => p.score));
         const winners = game.players.filter(p => p.score === high).map(p => p.name);
         showWinner(winners.join(' & '), false, true);
+        return;
+    }
+
+    if (game.teamMode) advanceRotation(game.currentPlayer);
+    game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
+    if (game.currentPlayer === 0) game.completedRounds++;
+    clearInput();
+    saveActiveGame();
+    updateX01Display();
+    updateUndoRedoButtons();
+}
+
+function submitGotchaScore(score, opts, player, thrower) {
+    const startingScore = player.score;
+    const attemptedScore = startingScore + score;
+    const target = game.gotcha.target || 301;
+    let finalScore = attemptedScore;
+    let overshoot = 0;
+    const bombed = [];
+
+    if (attemptedScore > target) {
+        overshoot = attemptedScore - target;
+        finalScore = startingScore - overshoot;
+    } else if (score > 0 && !opts.miss && attemptedScore < target) {
+        game.players.forEach((opponent, index) => {
+            if (index !== game.currentPlayer && opponent.score === attemptedScore) {
+                opponent.score = 0;
+                bombed.push(opponent.name);
+            }
+        });
+    }
+
+    player.score = finalScore;
+    player.history.push({
+        score,
+        gotchaScore: finalScore,
+        ...(opts.miss ? { miss: true } : {}),
+        ...(thrower ? { thrower } : {}),
+        ...(overshoot ? { overshoot } : {}),
+        ...(bombed.length ? { bombed } : {})
+    });
+
+    if (finalScore === target) {
+        clearInput();
+        saveActiveGame();
+        updateX01Display();
+        updateUndoRedoButtons();
+        showWinner(player.name);
         return;
     }
 
@@ -376,6 +432,10 @@ function submitScore(opts = {}) {
 
     if (isCountUpGame()) {
         submitCountUpScore(score, opts, player, thrower);
+        return;
+    }
+    if (isGotchaGame()) {
+        submitGotchaScore(score, opts, player, thrower);
         return;
     }
 
@@ -578,7 +638,7 @@ function renderX01ScoreHistory() {
 
 function updateCheckoutSuggestion() {
     const suggestionEl = document.getElementById('checkoutSuggestion');
-    if (isCountUpGame()) {
+    if (isAdditiveScoreGame()) {
         suggestionEl.style.display = 'none';
         return;
     }
@@ -652,6 +712,10 @@ function updateX01Display() {
         const round = Math.min(game.completedRounds + 1, totalRounds);
         finishIndicator.textContent = `ROUND ${round} OF ${totalRounds} — ENTER 3-DART TOTAL`;
         finishIndicator.style.color = 'var(--color-primary-light)';
+    } else if (isGotchaGame()) {
+        const needed = (game.gotcha.target || 301) - currentPlayer.score;
+        finishIndicator.textContent = `${needed} TO 301 — MATCH A RIVAL TO BOMB THEM`;
+        finishIndicator.style.color = 'var(--color-warning)';
     } else if (game.game121) {
         const dartsLeft = game.game121.dartsPerLeg - game.game121.dartsThrown;
         finishIndicator.textContent = `${dartsLeft} dart${dartsLeft !== 1 ? 's' : ''} left | Start: ${game.game121.startingScore}`;
@@ -719,7 +783,7 @@ function initX01Controls() {
         el.addEventListener('pointerdown', (e) => {
             const controls = document.getElementById('x01Controls');
             if (!controls || controls.classList.contains('hidden')) return;
-            if (isCountUpGame()) return;
+            if (isAdditiveScoreGame()) return;
             if (idx !== game.currentPlayer) return;
             e.preventDefault();
             toggleRemainingMode();

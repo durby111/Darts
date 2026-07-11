@@ -69,6 +69,13 @@ reads/writes it and fires `change`.
   nobody has marked rerolls after each player turn; a marked row locks in
   place. Undo snapshots include the target board, and resume/play-again work.
 
+**Gotcha!** (`gotcha`, score engine)
+- 2–4 players race from 0 to exactly 301 using the shared turn-total keypad.
+- Matching an opponent's live score bombs them to 0. Going over 301 deducts
+  only the overage from the player's pre-turn score and cannot trigger bombs.
+- Gotcha state, bombed opponents, overshoots, undo and active-game resume are
+  persisted; X01-only Bust/checkout/remaining-entry controls are suppressed.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
@@ -106,7 +113,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 27-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 28-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.

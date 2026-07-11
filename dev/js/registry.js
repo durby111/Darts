@@ -180,6 +180,14 @@ export const GAME_REGISTRY = [
         tags: ['count up', '8 rounds', 'highest score', 'beginner', 'practice', 'new'],
         desc: 'Score every dart for 8 rounds. Highest total wins.',
         rules: 'Everyone starts at 0 and plays 8 rounds of 3 darts. Enter each turn’s total; every segment scores its normal value. Highest score after all players finish round 8 wins.'
+    },
+    {
+        id: 'gotcha', label: 'Gotcha!', sub: 'Race to 301', icon: '💣',
+        engine: 'score', category: 'party', isNew: true,
+        minPlayers: 2, maxPlayers: 4,
+        tags: ['gotcha', '301', 'count up', 'bomb', 'party', 'new'],
+        desc: 'Race from 0 to exactly 301. Match a rival’s score to bomb them back to 0.',
+        rules: 'Be first to reach exactly 301. Land on an opponent’s exact score to bomb that player back to 0. If a turn takes you over 301, subtract the amount you exceeded 301 from the score you had before that turn; overshoots do not trigger bombs.'
     }
 ];
 
