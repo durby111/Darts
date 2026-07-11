@@ -7,7 +7,6 @@
 
 import { game } from './state.js';
 import { showWinner } from './ui.js';
-import { advanceRotation } from './teams.js';
 
 export function initRobinHoodState() {
     return { round: 1, totalRounds: 10 };
@@ -46,7 +45,6 @@ export function commitTurn(turnScore, hits) {
         innerBulls: hits.filter(hit => hit.kind === 'double').length
     });
 
-    if (game.teamMode) advanceRotation(game.currentPlayer);
     const isLastPlayer = game.currentPlayer === game.players.length - 1;
     game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
     if (!isLastPlayer) return { matchOver: false };

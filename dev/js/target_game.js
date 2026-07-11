@@ -16,6 +16,7 @@
 
 import { game, saveGameState, undoLastAction, saveActiveGame } from './state.js';
 import { updatePlayerHeaders, updateRoundBadge, showModal, hideModal } from './ui.js';
+import { currentThrower, advanceRotation } from './teams.js';
 import {
     currentTarget as bbTarget,
     describeHitButtons as bbButtons,
@@ -198,6 +199,8 @@ function endTurn() {
     const total = turnTotal();
     const anyHit = turnHits.length > 0;
     const hits = turnHits.slice();
+    const throwingSide = game.currentPlayer;
+    const thrower = game.teamMode ? currentThrower(throwingSide) : null;
     let result = { matchOver: false };
     if (isBaseball()) {
         result = bbCommit(total);
@@ -211,6 +214,16 @@ function endTurn() {
         result = hammerCommit(total, hits);
     } else if (isRobinHood()) {
         result = robinCommit(total, hits);
+    }
+
+    // All target engines share team semantics: one human throws a full turn,
+    // then that side's member rotation advances. Stamp the actual thrower on
+    // the engine's just-created history entry for future per-player stats.
+    if (thrower) {
+        const history = game.players[throwingSide]?.history;
+        const entry = history?.[history.length - 1];
+        if (entry && typeof entry === 'object') entry.thrower = thrower.name;
+        advanceRotation(throwingSide);
     }
     clearTurn();
     saveActiveGame();

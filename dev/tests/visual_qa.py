@@ -69,6 +69,66 @@ async def main():
             await page.wait_for_timeout(400)
             await page.screenshot(path=str(OUT / "game_501_arctic.png"))
 
+            async def open_standard_game(game_type, theme="blue", players="2",
+                                         viewport=None, scale="1.0"):
+                if viewport:
+                    await page.set_viewport_size(viewport)
+                await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+                await page.evaluate(
+                    "theme => localStorage.setItem('blakeout_theme', theme)", theme)
+                await page.goto(f"http://127.0.0.1:{PORT}/index.html",
+                                wait_until="domcontentloaded")
+                await page.wait_for_timeout(500)
+                await page.select_option("#gameType", game_type)
+                await page.select_option("#numPlayers", players)
+                await page.evaluate("""scale => {
+                    document.getElementById('teamMode').checked = false;
+                    const slider = document.getElementById('uiScale');
+                    slider.value = scale;
+                    slider.dispatchEvent(new Event('input', {bubbles:true}));
+                }""", scale)
+                await page.click("#startGameBtn")
+                await page.wait_for_timeout(400)
+
+            # Dedicated and position-sensitive new game UIs.
+            await open_standard_game("hammer", "inferno", viewport={"width": 900, "height": 1600})
+            await page.screenshot(path=str(OUT / "game_hammer_inferno.png"))
+
+            await open_standard_game("tictactoe", "neon")
+            await page.screenshot(path=str(OUT / "game_tictactoe_neon.png"))
+
+            await open_standard_game("doubledown", "royal")
+            await page.screenshot(path=str(OUT / "game_doubledown_royal.png"))
+
+            # Hard visibility case: four-digit X01, four players, max scale,
+            # compact landscape tablet.
+            await open_standard_game(
+                "1501", "arctic", players="4",
+                viewport={"width": 1024, "height": 700}, scale="1.5")
+            await page.screenshot(path=str(OUT / "game_1501_4p_arctic_maxscale.png"))
+
+            # Official 2v2 Team Cricket board with all four individual mark
+            # columns visible around the shared target lane.
+            await page.set_viewport_size({"width": 900, "height": 1600})
+            await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+            await page.evaluate("localStorage.setItem('blakeout_theme', 'royal')")
+            await page.goto(f"http://127.0.0.1:{PORT}/index.html",
+                            wait_until="domcontentloaded")
+            await page.wait_for_timeout(500)
+            await page.select_option("#gameType", "teamcricket")
+            await page.click("#startGameBtn")
+            await page.wait_for_selector("#teamBuilderScreen", state="visible")
+            for name in ("Alpha", "Bravo", "Charlie", "Delta"):
+                await page.fill("#teamAddName", name)
+                await page.click("#teamAddBtn")
+            for name, zone in (("Alpha", 0), ("Bravo", 0),
+                               ("Charlie", 1), ("Delta", 1)):
+                await page.locator(".team-chip", has_text=name).click()
+                await page.click(f"#teamZone{zone}Label")
+            await page.click("#teamStartMatchBtn")
+            await page.wait_for_timeout(400)
+            await page.screenshot(path=str(OUT / "game_teamcricket_royal.png"))
+
             await browser.close()
     finally:
         srv.terminate()

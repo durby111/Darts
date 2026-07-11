@@ -214,6 +214,10 @@ async def test_count_up(page):
     assert final == {"scores": [180, 180], "rounds": 8}, final
     rounds = await page.locator("#roundNumCol .round-number").count()
     assert rounds == 8, f"phantom Count Up round rendered: {rounds}"
+    await page.click("#playAgainBtn")
+    await page.wait_for_timeout(400)
+    replay = await get_state(page, "({scores:m.game.players.map(p=>p.score), rounds:m.game.completedRounds})")
+    assert replay == {"scores": [0, 0], "rounds": 0}, replay
     return {"first_turn": first, "final": final, "winner": winner}
 
 
@@ -288,6 +292,10 @@ async def test_gotcha(page):
     stored = await page.evaluate(
         "JSON.parse(localStorage.getItem('blakeout_active_game')).players[1].score")
     assert stored == 301, f"Gotcha win not persisted: {stored}"
+    await page.click("#playAgainBtn")
+    await page.wait_for_timeout(400)
+    replay = await get_state(page, "m.game.players.map(p=>p.score)")
+    assert replay == [0, 0], replay
     return {"bombed": bombed, "overshoot": rebounded, "winner": winner}
 
 
@@ -342,6 +350,10 @@ async def test_hammer_cricket(page):
         await page.click("#hitSingleBtn")
     final_live = int(await page.locator("#targetTurnScore").inner_text())
     assert final_live == 135, f"Hammer final weights = {final_live}"
+    await page.evaluate("(async () => (await import('./js/setup.js')).playAgain())()")
+    await page.wait_for_timeout(350)
+    replay = await get_state(page, "({scores:m.game.players.map(p=>p.score), round:m.game.hammer.round})")
+    assert replay == {"scores": [0, 0], "round": 1}, replay
     return {"weighted": live, "hammer_drop": state["scores"][1], "final_weighted": final_live}
 
 
@@ -389,7 +401,47 @@ async def test_team_hammer(page):
     after_away = await get_state(
         page, "({scores:m.game.players.map(p=>p.score), rotations:m.game.teams.map(t=>t.rotationIndex)})")
     assert after_away == {"scores": [20, -60], "rotations": [1, 1]}, after_away
+    original_members = await get_state(page, "m.game.teams.map(t=>t.members.map(m=>m.name))")
+    await page.evaluate("(async () => (await import('./js/setup.js')).playAgain())()")
+    await page.wait_for_timeout(350)
+    replay = await get_state(
+        page, "({scores:m.game.players.map(p=>p.score), rotations:m.game.teams.map(t=>t.rotationIndex), members:m.game.teams.map(t=>t.members.map(m=>m.name)), round:m.game.hammer.round})")
+    assert replay == {"scores": [0, 0], "rotations": [0, 0], "members": original_members, "round": 1}, replay
     return {"teams": [len(team["members"]) for team in teams], "after_round": after_away}
+
+
+async def test_target_game_team_rotation(page):
+    # Team rotation is centralized for every target engine, including older
+    # Baseball/Bermuda/Golf/Shanghai modes. History records the real thrower.
+    await fresh(page)
+    await page.select_option("#gameType", "baseball")
+    await page.check("#teamMode")
+    await page.click("#startGameBtn")
+    await page.wait_for_selector("#teamBuilderScreen", state="visible")
+    for name in ("Alpha", "Bravo", "Charlie", "Delta"):
+        await page.fill("#teamAddName", name)
+        await page.click("#teamAddBtn")
+    for name, zone in (("Alpha", 0), ("Bravo", 0), ("Charlie", 1), ("Delta", 1)):
+        await page.locator(".team-chip", has_text=name).click()
+        await page.click(f"#teamZone{zone}Label")
+    await page.click("#teamStartMatchBtn")
+    await page.wait_for_timeout(300)
+
+    await page.click("#hitSingleBtn")
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(200)
+    home = await get_state(
+        page, "({rotation:m.game.teams[0].rotationIndex, thrower:m.game.players[0].history.at(-1).thrower})")
+    assert home == {"rotation": 1, "thrower": "Alpha"}, home
+
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(200)
+    away = await get_state(
+        page, "({rotation:m.game.teams[1].rotationIndex, thrower:m.game.players[1].history.at(-1).thrower})")
+    assert away == {"rotation": 1, "thrower": "Charlie"}, away
+    next_thrower = (await page.locator("#homeThrower").inner_text()).strip()
+    assert "Bravo" in next_thrower, next_thrower
+    return {"home": home, "away": away, "next": next_thrower}
 
 
 async def test_shark_tank(page):
@@ -452,6 +504,10 @@ async def test_shark_tank(page):
     stored = await page.evaluate(
         "JSON.parse(localStorage.getItem('blakeout_active_game')).sharkTank.bites")
     assert stored == [0, 6, 6], f"Shark Tank state not persisted: {stored}"
+    await page.click("#playAgainBtn")
+    await page.wait_for_timeout(400)
+    replay = await get_state(page, "({bites:m.game.sharkTank.bites, eliminated:m.game.sharkTank.eliminated})")
+    assert replay == {"bites": [0, 0, 0], "eliminated": [False, False, False]}, replay
     return {"tie_round": tied, "final": final, "winner": winner}
 
 
@@ -510,6 +566,10 @@ async def test_tic_tac_toe(page):
     assert winner == "Home", winner
     owners = await get_state(page, "m.game.ticTacToe.cells.slice(0,3).map(c=>c.owner)")
     assert owners == [0, 0, 0], owners
+    await page.click("#playAgainBtn")
+    await page.wait_for_timeout(400)
+    replay_owners = await get_state(page, "m.game.ticTacToe.cells.map(c=>c.owner)")
+    assert replay_owners == [None] * 9, replay_owners
     return {"targets": targets, "winner": winner, "top_row": owners}
 
 
@@ -554,6 +614,10 @@ async def test_robin_hood(page):
     stored = await page.evaluate(
         "JSON.parse(localStorage.getItem('blakeout_active_game')).robinHood.round")
     assert stored == 10, stored
+    await page.click("#playAgainBtn")
+    await page.wait_for_timeout(400)
+    replay = await get_state(page, "({scores:m.game.players.map(p=>p.score), round:m.game.robinHood.round})")
+    assert replay == {"scores": [0, 0], "round": 1}, replay
     return {"turn": live, "final": state, "winner": winner}
 
 
@@ -606,6 +670,12 @@ async def test_double_down_cricket(page):
     assert winner == "Home", winner
     final = await get_state(page, "m.game.doubleDown.progress[0]")
     assert final["doubleOne"] is True, final
+    await page.click("#playAgainBtn")
+    await page.wait_for_timeout(400)
+    replay = await get_state(page, "m.game.doubleDown.progress")
+    assert all(not any(progress["doubles"]) and not progress["doubleOne"]
+               and all(marks == 0 for marks in progress["cricket"].values())
+               for progress in replay), replay
     return {"required": required, "first_turn": progress, "winner": winner}
 
 
@@ -735,6 +805,14 @@ async def test_team_cricket_400(page):
     stored = await page.evaluate(
         "JSON.parse(localStorage.getItem('blakeout_active_game')).teamCricket.memberMarks[0][1]['Bull']")
     assert stored == 3, f"Team Cricket state not persisted: {stored}"
+    original_members = await get_state(page, "m.game.teams.map(t=>t.members.map(m=>m.name))")
+    await page.click("#playAgainBtn")
+    await page.wait_for_timeout(400)
+    replay = await get_state(
+        page, "({scores:m.game.players.map(p=>p.score), rotations:m.game.teams.map(t=>t.rotationIndex), members:m.game.teams.map(t=>t.members.map(m=>m.name)), marks:m.game.teamCricket.memberMarks})")
+    assert replay["scores"] == [0, 0] and replay["rotations"] == [0, 0]
+    assert replay["members"] == original_members, replay
+    assert all(value == 0 for team in replay["marks"] for member in team for value in member.values()), replay
     return {"members": members, "scored": score, "capped": capped, "winner": winner}
 
 
@@ -1212,6 +1290,46 @@ async def test_resume_target_game(page):
     assert inning_after == inning_before, \
         f"baseball inning lost on resume: {inning_before} → {inning_after}"
     return {"inning": inning_after}
+
+
+async def test_dedicated_engine_resume(page):
+    # Dedicated boards must survive a real page reload, not only serialize
+    # correctly in memory. Cover both Tic Tac Toe and Double Down routing.
+    await fresh(page)
+    await start_game(page, "tictactoe", num_players="2")
+    await page.click("[data-tic-mult='3']")
+    await page.click("[data-tic-cell='0']")
+    await page.click("[data-tic-mult='1']")
+    await page.click("[data-tic-cell='0']")
+    await page.click("#ticEndTurnBtn")
+    await page.wait_for_timeout(200)
+    target = await get_state(page, "m.game.ticTacToe.targets[0]")
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(350)
+    await page.click("#resumeGameBtn")
+    await page.wait_for_timeout(250)
+    assert await page.locator("#ticTacToeMain").is_visible()
+    restored_tic = await get_state(
+        page, "({owner:m.game.ticTacToe.cells[0].owner, target:m.game.ticTacToe.targets[0]})")
+    assert restored_tic == {"owner": 0, "target": target}, restored_tic
+
+    await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(350)
+    await start_game(page, "doubledown", num_players="2")
+    required = await get_state(page, "m.game.doubleDown.requiredDoubles.slice()")
+    await page.locator("[data-double-down-kind='double-in']").nth(0).click()
+    await page.click("#doubleDownEndTurnBtn")
+    await page.wait_for_timeout(200)
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(350)
+    await page.click("#resumeGameBtn")
+    await page.wait_for_timeout(250)
+    assert await page.locator("#doubleDownMain").is_visible()
+    restored_double = await get_state(
+        page, "({required:m.game.doubleDown.requiredDoubles, progress:m.game.doubleDown.progress[0].doubles})")
+    assert restored_double == {"required": required, "progress": [True, False]}, restored_double
+    return {"tic_tac_toe": restored_tic, "double_down": restored_double}
 
 
 async def test_core_cricket(page):

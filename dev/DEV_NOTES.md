@@ -1,4 +1,4 @@
-# BlakeOut v2.3-dev — Overhaul Notes
+# BlakeOut v2.4-dev — Overhaul Notes
 
 Dev-only release. Production (repo root) untouched — promote by copying
 `/dev/` → root as usual, and fold these notes into `CLAUDE.md` at that time.
@@ -127,6 +127,17 @@ reads/writes it and fires `change`.
 - Compact max-scale coverage verifies all four mark columns stay visible at
   390×844 and 1.5× UI scale.
 
+## Lifecycle hardening
+
+- Play Again now has explicit reset assertions for Count Up, Gotcha, Hammer,
+  Team Hammer, Shark Tank, Tic Tac Toe, Robin Hood, Double Down, and Team
+  Cricket, including preserved team membership/order with reset rotations.
+- Real reload/resume tests cover both dedicated board engines (Tic Tac Toe and
+  Double Down), in addition to existing target-game resume coverage.
+- Team rotation and actual-human history attribution are centralized in
+  `target_game.js`, so Baseball, Bermuda, Golf, Shanghai, Hammer, and Robin
+  Hood all rotate members consistently instead of only alternating team scores.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,
@@ -164,14 +175,14 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 36-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 38-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01). `python3 dev/tests/dev_test.py`.
 - `tests/visual_qa.py` — screenshot dump for theme/legibility review.
-- Legacy `scripts/headless_test.py --target dev`: 15/18 — the 3 failures are
-  stale count assertions in the prod-tree script (12 cards → now 14 games,
-  3 themes → now 12). Update those numbers when promoting.
+- Legacy `scripts/headless_test.py --target dev` still has stale prod-era count
+  assertions (12 game cards / 3 themes versus 29 / 12 in dev). Update the
+  production-tree script when promoting.
 
 ## Known limitations / next steps
 

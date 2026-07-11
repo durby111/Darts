@@ -10,7 +10,6 @@
 
 import { game } from './state.js';
 import { showWinner } from './ui.js';
-import { advanceRotation } from './teams.js';
 
 const BASE_TARGETS = [20, 19, 18, null, 17, 16, 15, null];
 
@@ -128,7 +127,6 @@ export function commitTurn(_displayTotal, hits) {
         hits: (hits || []).map(hit => hit.kind)
     });
 
-    if (game.teamMode) advanceRotation(game.currentPlayer);
     const isLastPlayer = game.currentPlayer === game.players.length - 1;
     game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
     if (!isLastPlayer) return { matchOver: false };
