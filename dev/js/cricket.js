@@ -149,6 +149,9 @@ function updateCricketGrid() {
                 }
                 // Show marks with pending in green using getMarkSymbol's pending feature
                 cellHtml = getMarkSymbol(marks, pendingMarks, closedInOneTurn, isCompact, target, cricketData.showBoobie, i, marksBeforeClose);
+                if (pendingMarks > 0) {
+                    cellHtml += `<span class="last-turn-indicator pending-indicator">+${pendingMarks}</span>`;
+                }
             } else {
                 cellHtml = getMarkSymbol(marks, 0, closedInOneTurn, isCompact, target, cricketData.showBoobie, i, marksBeforeClose);
 

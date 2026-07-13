@@ -164,6 +164,12 @@ reads/writes it and fires `change`.
 - Each card contains its drag handle, throw-position label, arrow fallback, and
   a full-width name field. Pointer drag uses both X and Y to target 2×2 cards.
 
+## Scoring interaction hotfix
+
+- Restored per-target `+N` pending-mark badges in Cricket and Team Cricket.
+- X01 supports both replacement workflows: tap score then type remaining and
+  Enter, or type the remaining score first and tap the active score to commit.
+
 ## Themes
 
 12 total (3 original + 9 bright bar-visible: sunburst, volt, inferno, miami,

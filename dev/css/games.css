@@ -292,7 +292,21 @@
 }
 
 .last-turn-indicator.pending-indicator {
-    color: var(--color-pending);
+    color: #102014;
+    background: var(--color-pending);
+    border: 1px solid color-mix(in srgb, var(--color-pending) 70%, white);
+    min-width: 1.8em;
+    text-align: center;
+    z-index: 2;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.45);
+}
+
+.cricket-row.three-player .last-turn-indicator,
+.cricket-row.four-player .last-turn-indicator {
+    right: 2px;
+    top: 2px;
+    font-size: clamp(0.68rem, 1.6dvh, 0.95rem);
+    padding: 1px 3px;
 }
 
 .last-turn-indicator.prev-turn-indicator {

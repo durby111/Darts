@@ -857,9 +857,10 @@ function initX01Controls() {
     const bustEl = document.getElementById('x01BustBtn');
     if (bustEl) bindDown(bustEl, x01Bust);
 
-    // Tap the ACTIVE player's score in the header → toggle remaining-score
-    // entry mode (type what's LEFT; app computes the turn score). Tapping
-    // again cancels. Non-active headers and non-X01 games are ignored.
+    // Active-score replacement supports both natural workflows:
+    //   1. Type what's LEFT, then tap the current score to replace it now.
+    //   2. Tap the current score first, type what's LEFT, then press ENTER.
+    // Non-active headers and additive score games are ignored.
     ['homeScore', 'awayScore', 'player3Score', 'player4Score'].forEach((id, idx) => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -869,7 +870,12 @@ function initX01Controls() {
             if (isAdditiveScoreGame()) return;
             if (idx !== game.currentPlayer) return;
             e.preventDefault();
-            toggleRemainingMode();
+            if (expressionStr.length > 0) {
+                remainingMode = true;
+                submitScore();
+            } else {
+                toggleRemainingMode();
+            }
         });
     });
 

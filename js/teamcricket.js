@@ -118,6 +118,7 @@ function markCell(teamIndex, memberIndex, target) {
     const active = teamIndex === game.currentPlayer && memberIndex === activeMemberIndex();
     return `<div class="team-cricket-mark-cell${active ? ' active' : ''}">
         ${getMarkSymbol(stored, pending, true, false, target, false, teamIndex * 2 + memberIndex)}
+        ${pending > 0 ? `<span class="last-turn-indicator pending-indicator">+${pending}</span>` : ''}
     </div>`;
 }
 

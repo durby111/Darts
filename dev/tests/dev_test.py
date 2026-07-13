@@ -758,6 +758,9 @@ async def test_team_cricket_400(page):
     await page.locator("[data-team-cricket-target='20'][data-team-cricket-mult='3']").click()
     preview = int(await page.locator("#homeScore").inner_text())
     assert preview == 40, f"Team Cricket preview = {preview}"
+    team_badge = (await page.locator(
+        ".team-cricket-mark-cell.active .pending-indicator").inner_text()).strip()
+    assert team_badge == "+3", f"Team Cricket pending badge = {team_badge!r}"
     await page.click("#teamCricketEnterBtn")
     await page.wait_for_timeout(200)
     score = await get_state(page, "m.game.players[0].score")
@@ -1464,8 +1467,8 @@ async def test_all_games_boot(page):
 
 
 async def test_x01_remaining_entry(page):
-    # a1: tapping the ACTIVE player's score flips the pad into remaining-
-    # score mode — type what's LEFT, app computes the turn score.
+    # Both replacement workflows are supported:
+    # tap score → type what's LEFT → ENTER, and type what's LEFT → tap score.
     await dismiss_onboard(page)
     await start_game(page, "501", num_players="1")
     await page.wait_for_selector("#x01Main", state="visible", timeout=3000)
@@ -1489,14 +1492,28 @@ async def test_x01_remaining_entry(page):
     last = hist[-1]["score"] if isinstance(hist[-1], dict) else hist[-1]
     assert last == 125, f"history should record 125 thrown, got {hist[-1]}"
 
-    # Invalid remaining (more than current) → rejected, score unchanged
+    # Natural type-first workflow: type the desired replacement score, then
+    # tap the active current score. It commits immediately without ENTER.
+    for d in "300":
+        await page.click(f"[data-digit='{d}']")
+    before_tap = await get_state(page, "m.game.players[0].score")
+    assert before_tap == 376, f"typing alone changed score: {before_tap}"
     await page.click("#homeScore")
+    await page.wait_for_timeout(800)
+    replaced = await get_state(page, "m.game.players[0].score")
+    assert replaced == 300, f"type-then-tap should replace 376 with 300, got {replaced}"
+    hist = await get_state(page, "m.game.players[0].history")
+    replacement_throw = hist[-1]["score"] if isinstance(hist[-1], dict) else hist[-1]
+    assert replacement_throw == 76, f"replacement history should record 76, got {hist[-1]}"
+    assert (await page.locator("#inputDisplay").inner_text()).strip() == "0"
+
+    # Invalid remaining (more than current) → rejected, score unchanged
     for d in "999":
         await page.click(f"[data-digit='{d}']")
-    await page.click("#x01EnterBtn")
+    await page.click("#homeScore")
     await page.wait_for_timeout(800)
     score2 = await get_state(page, "m.game.players[0].score")
-    assert score2 == 376, f"invalid remaining must not change score: {score2}"
+    assert score2 == 300, f"invalid remaining must not change score: {score2}"
 
     # Tapping the score again cancels the mode
     await page.click("#homeScore")
@@ -1505,7 +1522,7 @@ async def test_x01_remaining_entry(page):
     await page.wait_for_timeout(100)
     disp = await page.locator("#inputDisplay").inner_text()
     assert "LEFT" not in disp, f"remaining mode should toggle off: {disp!r}"
-    return {"score": score}
+    return {"tap_first": score, "type_first": replaced}
 
 
 async def test_x01_miss_bust_symbols(page):
@@ -1590,6 +1607,10 @@ async def test_cricket_pending_mark_count(page):
     pending = (await page.locator("#pendingText").inner_text()).strip()
     assert "6 marks" in pending, f"pending line missing mark count: {pending!r}"
     assert "T20" in pending and "D19" in pending, f"dart list gone: {pending!r}"
+    badges = await page.eval_on_selector_all(
+        ".cricket-cell.active .pending-indicator",
+        "elements => elements.map(element => element.textContent.trim())")
+    assert badges == ["+3", "+2", "+1"], f"pending target badges missing: {badges}"
     # Single dart → singular form
     await page.click("#enterBtn")
     await page.wait_for_timeout(300)
@@ -1597,7 +1618,9 @@ async def test_cricket_pending_mark_count(page):
     await page.wait_for_timeout(80)
     pending2 = (await page.locator("#pendingText").inner_text()).strip()
     assert "1 mark" in pending2 and "1 marks" not in pending2, f"singular broken: {pending2!r}"
-    return {"pending": pending}
+    badge2 = (await page.locator(".cricket-cell.active .pending-indicator").inner_text()).strip()
+    assert badge2 == "+1", f"single pending badge missing: {badge2!r}"
+    return {"pending": pending, "badges": badges}
 
 
 async def test_setup_throw_order(page):
