@@ -291,13 +291,22 @@ Monthly-active *devices*, not people.
   Now only reloads when a previous SW was controlling the page.
 - Config presets now persist variant selects (baseball/bermuda/golf/shanghai).
 
+- The setup QR SVG paints its modules **white** (drawn for the dark background
+  photo), so on the light Arctic theme it disappeared into the white card.
+  The tile is now always a solid white plate with `filter: invert(1)` on the
+  image — invert leaves the transparent ground alone and turns the white
+  modules black, giving the canonical dark-on-light QR in every theme instead
+  of depending on whatever sits behind it. `test_qr_visible_in_all_themes`
+  screenshots the tile per theme and asserts real ink/paper contrast, so it
+  fails on the old CSS (Arctic measured a blank 254–255 white square).
+
 ## Tests
 
-- `tests/dev_test.py` — 44-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 45-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01, X01 live preview, keypad skin, support button, monthly
-  usage counter). `python3 dev/tests/dev_test.py`.
+  usage counter, QR contrast per theme). `python3 dev/tests/dev_test.py`.
 - `tests/visual_qa.py` — screenshot dump for theme/legibility review.
 - Legacy `scripts/headless_test.py --target dev` still has stale prod-era count
   assertions (12 game cards / 3 themes versus 29 / 12 in dev). Update the

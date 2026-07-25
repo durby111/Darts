@@ -1293,6 +1293,50 @@ async def test_setup_section_separation(page):
     return {"labels": labels, "tablet": metrics, "compact": compact}
 
 
+async def test_qr_visible_in_all_themes(page):
+    # Regression: the bundled QR SVG paints WHITE modules (drawn for the dark
+    # background photo), so on the light Arctic theme it vanished into the
+    # white card. Rather than assert CSS properties, screenshot the QR and
+    # check it actually has dark-on-light contrast in every theme.
+    from io import BytesIO
+    from PIL import Image
+
+    await fresh(page)
+    themes = ["blue", "arctic", "sunburst", "neon"]
+    results = {}
+
+    for theme in themes:
+        await page.evaluate(f"localStorage.setItem('blakeout_theme', '{theme}')")
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_timeout(500)
+
+        tile = page.locator("#setupQRLink")
+        await tile.scroll_into_view_if_needed()
+        await page.wait_for_timeout(150)
+        shot = await tile.screenshot()
+
+        grey = Image.open(BytesIO(shot)).convert("L")
+        pixels = list(grey.getdata())
+        total = len(pixels)
+        dark = sum(1 for p in pixels if p < 60) / total
+        light = sum(1 for p in pixels if p > 200) / total
+
+        results[theme] = {"dark": round(dark, 3), "light": round(light, 3),
+                          "min": min(pixels), "max": max(pixels)}
+
+        # A readable QR needs both ink and paper. Roughly 20–60% of a QR tile
+        # (including its quiet zone) is dark modules.
+        assert 0.15 < dark < 0.65, \
+            f"{theme}: QR has no readable dark modules — {results[theme]}"
+        assert light > 0.30, \
+            f"{theme}: QR has no light background to read against — {results[theme]}"
+        assert results[theme]["max"] - results[theme]["min"] > 150, \
+            f"{theme}: QR contrast collapsed — {results[theme]}"
+
+    await page.evaluate("localStorage.removeItem('blakeout_theme')")
+    return results
+
+
 async def test_monthly_usage_counter(page):
     # Anonymous monthly device counter. The battery runs on localhost, which
     # the counter deliberately ignores, so drive the module directly with a

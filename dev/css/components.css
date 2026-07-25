@@ -647,9 +647,13 @@
 }
 
 /* === Prod-app QR ===
-   Sits at the visual bottom of the setup card. White modules on a
-   transparent ground with a white outline so it reads on the dark
-   background image. Modern phone cameras scan inverted QRs fine. */
+   Sits at the visual bottom of the setup card. The bundled SVG paints its
+   modules WHITE (it was drawn for the dark background photo), which made it
+   invisible on the light Arctic theme's white card. So the tile is always a
+   solid white plate and the image is inverted onto it: invert() leaves the
+   transparent ground alone and turns the white modules black. That gives the
+   canonical dark-on-light QR — the most scannable form — in every theme,
+   rather than depending on whatever is behind it. */
 .setup-qr {
     margin-top: var(--space-2xl, var(--space-xl));
     padding-top: var(--space-lg);
@@ -669,9 +673,9 @@
 
 .setup-qr a {
     display: inline-block;
-    background: transparent;
+    background: #ffffff;
     padding: var(--space-md);
-    border: 2px solid #fff;
+    border: 2px solid rgba(0, 0, 0, 0.18);
     border-radius: var(--radius-md);
     line-height: 0;
 }
@@ -681,6 +685,8 @@
     width: clamp(140px, 38vw, 200px);
     height: auto;
     image-rendering: pixelated;
+    /* White modules -> black on the white plate above. */
+    filter: invert(1);
 }
 
 .setup-qr-url {
