@@ -269,6 +269,18 @@ precaches with `cache: 'reload'`, and the fetch handler revalidates
 same-origin `.js`/`.css`/`.json` with `cache: 'no-cache'` (unchanged files
 still come back as cheap 304s).
 
+## Monthly usage counter
+
+`recordMonthlyUsage()` in `js/firebase.js` fires once per load after anonymous
+sign-in and increments a single integer at `usage/{YYYY-MM}` (production) or
+`usage/{YYYY-MM}-dev` (this build, detected via `body.dev-build`) so dev
+traffic can't inflate the real number. Gated per device per month by
+`localStorage['blakeout_usage_month']`; localhost never counts, which is why
+the test drives it through the optional `deps` argument with a stub Firestore.
+Requires the `usage` Firestore rules in CLAUDE.md — without them the write is
+rejected, the marker rolls back for a later retry, and nothing else breaks.
+Monthly-active *devices*, not people.
+
 ## Bug fixes (dev)
 
 - `playAgain()` corrupted every non-cricket/x01 game (stamped `cricketData`,
@@ -281,11 +293,11 @@ still come back as cheap 304s).
 
 ## Tests
 
-- `tests/dev_test.py` — 43-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 44-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
-  cricket + x01, X01 live preview, keypad skin, support button).
-  `python3 dev/tests/dev_test.py`.
+  cricket + x01, X01 live preview, keypad skin, support button, monthly
+  usage counter). `python3 dev/tests/dev_test.py`.
 - `tests/visual_qa.py` — screenshot dump for theme/legibility review.
 - Legacy `scripts/headless_test.py --target dev` still has stale prod-era count
   assertions (12 game cards / 3 themes versus 29 / 12 in dev). Update the

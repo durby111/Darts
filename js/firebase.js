@@ -3,6 +3,10 @@
    Offline-first: the SDK queues writes locally and
    replays them when the device comes back online.
 
+   Also keeps an anonymous monthly device counter
+   (see "Monthly usage counter" below) — no analytics
+   vendor, no per-person data.
+
    All Firebase imports are loaded dynamically inside
    initFirebase() so a missing firebase-config.js
    (gitignored, may not exist in every deploy) cannot
@@ -31,9 +35,11 @@ export async function initFirebase() {
             collection: fsMod.collection,
             doc: fsMod.doc,
             setDoc: fsMod.setDoc,
+            getDoc: fsMod.getDoc,
             deleteDoc: fsMod.deleteDoc,
             onSnapshot: fsMod.onSnapshot,
             serverTimestamp: fsMod.serverTimestamp,
+            increment: fsMod.increment,
         };
 
         app = appMod.initializeApp(cfgMod.firebaseConfig);
@@ -50,6 +56,10 @@ export async function initFirebase() {
         }
 
         await authMod.signInAnonymously(auth);
+
+        // Anonymous usage ping. Fire-and-forget so a blocked write or a
+        // missing Firestore rule can never delay the roster listener.
+        recordMonthlyUsage();
 
         // Live roster snapshot. Re-fires on every remote change AND on local
         // writes from this device, so the UI always reflects current state.
@@ -126,6 +136,97 @@ function cryptoId() {
     const a = new Uint8Array(8);
     crypto.getRandomValues(a);
     return Array.from(a, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/* ============================================
+   Monthly usage counter
+   ============================================
+   Answers "roughly how many devices used the app this month?" without any
+   analytics vendor and without storing anything about a person. One doc per
+   month holds a single integer:
+
+       usage/2026-07       { month: '2026-07',     devices: 42 }
+       usage/2026-07-dev   { month: '2026-07-dev', devices: 3 }
+
+   Dev and production share one Firebase project, so the dev build counts
+   into its own `-dev` doc and can't inflate the real number.
+
+   Each device increments a given month at most once, gated by localStorage
+   ('blakeout_usage_month'). That makes this a monthly-active-DEVICES count,
+   not people: two devices used by one player count twice, and clearing site
+   data lets a device count again.
+
+   Firestore rules must allow the exact +1 pattern (see CLAUDE.md). If they
+   don't, the write is rejected and the app carries on unaffected.
+   ============================================ */
+
+const USAGE_KEY = 'blakeout_usage_month';
+
+function currentUsagePeriod() {
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const isDev = document.body && document.body.classList.contains('dev-build');
+    return isDev ? `${month}-dev` : month;
+}
+
+// Local servers are the test battery and hand testing — never real usage.
+function isCountableHost() {
+    const host = location.hostname;
+    return !!host && host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]';
+}
+
+/**
+ * Count this device once for the current month. Safe to call on every load.
+ * Never throws and never blocks: offline writes queue in IndexedDB and
+ * replay on reconnect, which is why the local marker is set as soon as the
+ * write is enqueued rather than when the server acknowledges it.
+ *
+ * `deps` exists so the test battery can drive this with a stub Firestore —
+ * the battery runs on localhost, which is deliberately never counted.
+ * Production calls it with no arguments.
+ */
+export function recordMonthlyUsage(deps = {}) {
+    const activeDb = deps.db || db;
+    const activeSdk = deps.sdk || sdk;
+    const countable = deps.countableHost === undefined ? isCountableHost() : deps.countableHost;
+    if (!activeDb || !activeSdk || !countable) return;
+
+    const period = currentUsagePeriod();
+    let alreadyCounted = null;
+    try {
+        alreadyCounted = localStorage.getItem(USAGE_KEY);
+    } catch { /* private mode — count, but we may recount next load */ }
+    if (alreadyCounted === period) return;
+
+    try {
+        localStorage.setItem(USAGE_KEY, period);
+    } catch { /* non-fatal */ }
+
+    activeSdk.setDoc(
+        activeSdk.doc(activeDb, 'usage', period),
+        { month: period, devices: activeSdk.increment(1) },
+        { merge: true }
+    ).catch(err => {
+        // Most likely a missing or stricter Firestore rule. Roll the marker
+        // back so a later load can retry instead of losing the month.
+        try { localStorage.removeItem(USAGE_KEY); } catch { /* ignore */ }
+        console.warn('[Firebase] usage ping skipped:', err?.code || err);
+    });
+}
+
+/**
+ * Read the counter for a month, e.g. getMonthlyUsage('2026-07').
+ * Defaults to the current period. Returns null when unavailable.
+ */
+export async function getMonthlyUsage(period = currentUsagePeriod()) {
+    if (!db || !sdk || !sdk.getDoc) return null;
+    try {
+        const snap = await sdk.getDoc(sdk.doc(db, 'usage', period));
+        return snap.exists() ? (snap.data().devices || 0) : 0;
+    } catch (err) {
+        console.warn('[Firebase] usage read failed:', err?.code || err);
+        return null;
+    }
 }
 
 export function isRealEmail(value) {

@@ -1293,6 +1293,72 @@ async def test_setup_section_separation(page):
     return {"labels": labels, "tablet": metrics, "compact": compact}
 
 
+async def test_monthly_usage_counter(page):
+    # Anonymous monthly device counter. The battery runs on localhost, which
+    # the counter deliberately ignores, so drive the module directly with a
+    # stubbed Firestore and a faked hostname check.
+    await fresh(page)
+    result = await page.evaluate("""
+        (async () => {
+            const fb = await import('./js/firebase.js');
+            const writes = [];
+
+            // Minimal Firestore stand-in: record calls, resolve immediately.
+            const sdk = {
+                doc: (_db, col, id) => ({ col, id }),
+                setDoc: (ref, data) => {
+                    writes.push({ id: ref.id, col: ref.col, data });
+                    return Promise.resolve();
+                },
+                increment: (n) => ({ __increment: n }),
+            };
+            const live = { db: {}, sdk, countableHost: true };
+
+            // The dev build counts into its own '-dev' doc so it can never
+            // inflate the production number.
+            const isDev = document.body.classList.contains('dev-build');
+            const period = new Date().getFullYear() + '-' +
+                String(new Date().getMonth() + 1).padStart(2, '0') +
+                (isDev ? '-dev' : '');
+
+            fb.recordMonthlyUsage(live);                // first load  → counts
+            fb.recordMonthlyUsage(live);                // same month  → no-op
+            fb.recordMonthlyUsage(live);
+            const afterRepeat = writes.length;
+            const marker = localStorage.getItem('blakeout_usage_month');
+
+            // New month → counts again.
+            localStorage.setItem('blakeout_usage_month', '1999-01');
+            fb.recordMonthlyUsage(live);
+            const afterNewMonth = writes.length;
+
+            // Localhost/dev-server loads must never count.
+            localStorage.removeItem('blakeout_usage_month');
+            fb.recordMonthlyUsage({ db: {}, sdk, countableHost: false });
+            const afterLocalhost = writes.length;
+
+            return { writes, afterRepeat, afterNewMonth, afterLocalhost, marker, period };
+        })()
+    """)
+
+    assert result["afterRepeat"] == 1, f"one device counts once per month: {result}"
+    assert result["afterNewMonth"] == 2, f"a new month counts again: {result}"
+    assert result["afterLocalhost"] == 2, f"localhost must not count: {result}"
+    assert result["marker"] == result["period"], result
+
+    first = result["writes"][0]
+    assert first["col"] == "usage", first
+    assert first["id"] == result["period"], first
+    assert result["period"].endswith("-dev"), \
+        f"dev build must count into its own doc, not production's: {result['period']}"
+    assert first["data"]["month"] == result["period"], first
+    assert first["data"]["devices"] == {"__increment": 1}, \
+        f"counter must be an atomic +1 so offline devices merge: {first}"
+    # No personal data may ride along with the ping.
+    assert set(first["data"].keys()) == {"month", "devices"}, first
+    return result
+
+
 async def test_x01_keypad_skin(page):
     # The X01 pad ships in two looks. Modern is the default; Classic must
     # restore the original grey plastic pad exactly, and the choice has to

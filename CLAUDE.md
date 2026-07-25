@@ -60,6 +60,20 @@ service cloud.firestore {
         && request.resource.data.name.size() > 0;
       allow delete: if request.auth != null;
     }
+
+    match /usage/{period} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+        && period.matches('^[0-9]{4}-[0-9]{2}(-dev)?$')
+        && request.resource.data.keys().hasOnly(['month', 'devices'])
+        && request.resource.data.month == period
+        && request.resource.data.devices == 1;
+      allow update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['month', 'devices'])
+        && request.resource.data.month == period
+        && request.resource.data.devices == resource.data.devices + 1;
+      allow delete: if false;
+    }
   }
 }
 ```
@@ -67,6 +81,40 @@ service cloud.firestore {
 The `email == doc id` check matters: even players added without an email get
 a synthetic id (`noemail-{hex}`) stored as both the doc id and the email field
 so this rule passes. UI labels them "(no email — local only)".
+
+The `usage` rules pin the write to an exact +1 on a two-field doc, so an
+anonymous client can't stuff arbitrary data or inflate the number by more
+than one per write.
+
+---
+
+## Monthly usage counter
+
+Answers "roughly how many devices used the app this month?" with no analytics
+vendor and nothing about a person. `recordMonthlyUsage()` in `js/firebase.js`
+runs once per load after anonymous sign-in and writes a single integer:
+
+```
+usage/2026-07       { month: '2026-07',     devices: 42 }   ← production
+usage/2026-07-dev   { month: '2026-07-dev', devices: 3 }    ← dev build
+```
+
+- **Read it** in Firebase Console → Firestore → `usage`, or call
+  `getMonthlyUsage('2026-07')`.
+- **Dev and prod share one Firebase project**, so the dev build (detected via
+  `body.dev-build`) counts into its own `-dev` doc and can't inflate the real
+  number.
+- **Gated per device per month** by `localStorage['blakeout_usage_month']`.
+  `FieldValue.increment(1)` means simultaneous offline devices merge
+  atomically rather than clobbering each other.
+- **localhost / 127.0.0.1 never counts** — that's the test battery and hand
+  testing.
+- This is monthly-active **devices**, not people: one player on a phone and a
+  tablet counts twice, and clearing site data lets a device count again. Treat
+  it as a trend line, not a headcount.
+- Failures are non-fatal. If the rules above aren't published the write is
+  rejected, the local marker is rolled back so a later load retries, and the
+  app carries on. **The counter reads 0 until the rules are published.**
 
 ---
 
