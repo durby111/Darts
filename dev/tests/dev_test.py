@@ -1293,6 +1293,129 @@ async def test_setup_section_separation(page):
     return {"labels": labels, "tablet": metrics, "compact": compact}
 
 
+async def test_support_link(page):
+    # The Cash App tip used to be a plain text link nobody noticed. It is now
+    # a "Buy me a beer" button (the Buy-Me-a-Coffee/Ko-fi convention) and has
+    # to stay obvious: real button chrome, a big tap target, and the beer
+    # wording — while still pointing at Cash App with a safe target=_blank.
+    await fresh(page)
+    button = page.locator("#supportBtn")
+    assert await button.count() == 1, "support button missing from setup footer"
+    assert await button.is_visible(), "support button should be visible on the setup screen"
+
+    href = await button.get_attribute("href")
+    assert href == "https://cash.app/$MikeDurbin", f"unexpected tip destination: {href!r}"
+    assert await button.get_attribute("target") == "_blank"
+    rel = (await button.get_attribute("rel") or "").split()
+    assert "noopener" in rel and "noreferrer" in rel, f"unsafe rel on _blank link: {rel}"
+
+    label = (await button.get_attribute("aria-label") or "")
+    text = (await button.inner_text()).lower()
+    assert "beer" in text, f"button should read as a beer tip: {text!r}"
+    assert "cash app" in text, f"button should name the payment method: {text!r}"
+    assert "beer" in label.lower() and "cash app" in label.lower(), f"aria-label: {label!r}"
+    assert "🍺" in await button.inner_html(), "beer icon missing"
+
+    style = await page.evaluate("""
+        () => {
+            const el = document.getElementById('supportBtn');
+            const s = getComputedStyle(el);
+            const box = el.getBoundingClientRect();
+            return {display:s.display, background:s.backgroundImage,
+                    radius:parseFloat(s.borderBottomLeftRadius),
+                    decoration:s.textDecorationLine,
+                    height:box.height, width:box.width};
+        }
+    """)
+    assert style["display"].startswith("inline-flex"), style
+    assert style["background"] != "none", "tip button needs its own fill, not link text"
+    assert style["height"] >= 44, f"tap target too small: {style}"
+    assert style["radius"] >= 12, f"button should be a pill, not a link: {style}"
+    assert "underline" not in style["decoration"], style
+
+    # The old bare "$MikeDurbin" text link must be gone so there's exactly
+    # one obvious way to tip.
+    cash_links = await page.eval_on_selector_all(
+        "#setupScreen a[href*='cash.app']", "els => els.map(e => e.id)")
+    assert cash_links == ["supportBtn"], f"duplicate/legacy cash links: {cash_links}"
+    return {"href": href, "style": style}
+
+
+async def test_x01_live_preview(page):
+    # Typing a dart should move the active player's header score in real
+    # time, before ENTER, so a walk-up score entry reads back instantly.
+    await dismiss_onboard(page)
+    await start_game(page, "501")
+    await page.wait_for_selector("#x01Controls", state="visible", timeout=3000)
+
+    async def header():
+        return {
+            "score": (await page.text_content("#homeScore")).strip(),
+            "delta": (await page.text_content("#homeDelta")).strip(),
+            "cls": await page.get_attribute("#homeScore", "class"),
+        }
+
+    assert (await header())["score"] == "501"
+
+    # First dart: T20 → 441 previewed, nothing committed yet.
+    await page.click("[data-digit='3']")
+    await page.click("[data-op='*']")
+    await page.click("[data-digit='2']")
+    await page.click("[data-digit='0']")
+    await page.wait_for_timeout(120)
+    after_first = await header()
+    assert after_first["score"] == "441", after_first
+    assert after_first["delta"] == "\u221260", after_first
+    assert "score-preview" in after_first["cls"], after_first
+    committed = await get_state(page, "m.game.players[0].score")
+    assert committed == 501, f"preview must not commit: {committed}"
+
+    # Second dart adds to the same turn and the preview keeps up.
+    await page.click("[data-op='+']")
+    await page.click("[data-digit='2']")
+    await page.click("[data-digit='0']")
+    await page.wait_for_timeout(120)
+    after_second = await header()
+    assert after_second["score"] == "421", after_second
+    assert after_second["delta"] == "\u221280", after_second
+
+    # ENTER commits and the preview styling clears.
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(300)
+    after_enter = await header()
+    assert after_enter["score"] == "421", after_enter
+    assert after_enter["delta"] == "", after_enter
+    assert "score-preview" not in after_enter["cls"], after_enter
+    assert await get_state(page, "m.game.players[0].score") == 421
+
+    # Undo-as-clear drops a half-typed entry and restores the real score.
+    await page.click("[data-digit='9']")
+    await page.wait_for_timeout(120)
+    assert (await header())["score"] == "421"  # away player is active now
+    away = await page.text_content("#awayScore")
+    assert away.strip() == "492", f"active player preview expected: {away!r}"
+    await page.click("#undoBtnX01")
+    await page.wait_for_timeout(200)
+    assert (await page.text_content("#awayScore")).strip() == "501"
+    assert (await page.text_content("#awayDelta")).strip() == ""
+
+    # A turn bigger than what's left previews BUST instead of a negative.
+    await page.evaluate("""
+        (async () => {
+            const m = await import('./js/state.js');
+            m.game.players[1].score = 20;
+        })()
+    """)
+    await page.click("[data-digit='6']")
+    await page.click("[data-digit='0']")
+    await page.wait_for_timeout(120)
+    bust_score = (await page.text_content("#awayScore")).strip()
+    bust_cls = await page.get_attribute("#awayScore", "class")
+    assert bust_score == "BUST", bust_score
+    assert "score-preview-bust" in bust_cls, bust_cls
+    return {"first": after_first, "second": after_second, "after_enter": after_enter}
+
+
 async def test_play_again_target(page):
     # Regression: playAgain() used to corrupt target games (left stale
     # baseball state + stamped cricketData on players).

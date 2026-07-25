@@ -195,6 +195,49 @@ now `--color-surface` mix + `--bg-image-overlay`.
   max-scale marks/buttons on compact screens. Responsive tests cover phone,
   tablet, portrait, landscape, 0.7×–1.5× scale and four-digit X01 scores.
 
+## X01 live turn preview
+
+- Typing a dart immediately projects the active player's header score
+  (`x01.js:updateLivePreview()`): the `.score-big` box switches to the
+  "pending" accent and a `.score-delta` chip shows `−60` / `+60`. Nothing is
+  committed until ENTER, so this is entry feedback only.
+- Works dart-by-dart within a turn (`3×20 + 20` → 441 → 421), in remaining-
+  score mode (typed value *is* the projection), and in the additive games
+  (Count Up adds; Gotcha models the overshoot rebound). Shark Tank headers
+  show bites, so they are skipped.
+- Over-throwing previews `BUST` in the danger colour instead of a negative.
+- The preview is torn down by `clearInput()`, `resetX01Input()`, the top of
+  `submitScore()` (so early-return win/leg paths can't strand it) and the end
+  of `updateX01Display()`, which also restores the real number.
+- Markup: one `.score-delta` span per player header (`#homeDelta` …
+  `#player4Delta`). It is `display:none` while empty, and the trailing hidden
+  MPR span is now matched by `.score-delta ~ .avg-small` as well as
+  `:last-child`.
+
+## Setup screen refresh
+
+- Card widens to 860px above 860px viewport width and gains a backdrop blur,
+  so tablets/desktops stop rendering a narrow column on a huge background.
+- Game grid auto-fits columns (`minmax(clamp(96px, 28%, 118px), 1fr)`) and
+  scrolls inside its own panel (`max-height: min(46vh, 420px)`) with a fade
+  mask — 29 games no longer push Start Game a screen and a half down.
+- Because the grid scrolls, the rules ⓘ popover is now `position: fixed`,
+  appended to `<body>`, clamped to the viewport by `picker.js`, keyed by
+  `dataset.gameId` for toggle-off, and closed on grid scroll.
+- Panels are more opaque with a top-light gradient; section labels gained an
+  accent bar and more weight; the Play panel carries the success accent.
+- Header reads as an app bar: logo tile, left-aligned wordmark, and a
+  single-line phone layout under 600px.
+- Player rows sit two-up on screens ≥720px; order steppers are 30×28.
+
+## Support / tip button
+
+The bare `$MikeDurbin` text link was replaced by a "🍺 Buy me a beer" pill
+(`#supportBtn`) following the Buy-Me-a-Coffee / Ko-fi convention: fixed amber
+brand colours in every theme, 48px tap target, `Cash App · $MikeDurbin`
+subtitle, and `rel="noopener noreferrer"` on the `_blank` link. It still
+points at `https://cash.app/$MikeDurbin`.
+
 ## Bug fixes (dev)
 
 - `playAgain()` corrupted every non-cricket/x01 game (stamped `cricketData`,
@@ -207,10 +250,10 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Tests
 
-- `tests/dev_test.py` — 40-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 42-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
-  cricket + x01). `python3 dev/tests/dev_test.py`.
+  cricket + x01, X01 live preview, support button). `python3 dev/tests/dev_test.py`.
 - `tests/visual_qa.py` — screenshot dump for theme/legibility review.
 - Legacy `scripts/headless_test.py --target dev` still has stale prod-era count
   assertions (12 game cards / 3 themes versus 29 / 12 in dev). Update the

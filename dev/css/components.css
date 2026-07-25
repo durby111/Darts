@@ -561,6 +561,70 @@
     font-size: var(--font-sm);
 }
 
+.setup-credit-by {
+    font-size: var(--font-sm);
+}
+
+/* "Buy me a beer" tip button — the Buy-Me-a-Coffee/Ko-fi convention, but
+   pub-flavoured and pointed at Cash App. Deliberately keeps its own amber
+   brand colours in every theme so it stays instantly recognisable. */
+.support-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-sm);
+    margin: var(--space-md) auto var(--space-sm);
+    padding: 9px var(--space-lg);
+    min-height: 48px;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(180deg, #ffd75e 0%, #f5a623 100%);
+    border: 1px solid rgba(0, 0, 0, 0.28);
+    box-shadow: 0 4px 14px rgba(245, 166, 35, 0.38),
+                inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    color: #241a04;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.support-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 7px 20px rgba(245, 166, 35, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    text-decoration: none;
+}
+
+.support-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(245, 166, 35, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.support-btn-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.support-btn-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.15;
+}
+
+.support-btn-title {
+    font-size: var(--font-md);
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.support-btn-sub {
+    font-size: var(--font-xs);
+    font-weight: 600;
+    opacity: 0.78;
+}
+
 .setup-credit-links {
     margin-top: var(--space-xs);
     display: flex;
@@ -642,15 +706,25 @@
     grid-template-columns: auto 1fr auto;
     align-items: center;
     gap: var(--space-md);
-    margin-bottom: var(--space-lg);
+    margin-bottom: var(--space-xl);
     padding-bottom: var(--space-md);
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 2px solid transparent;
+    border-image: linear-gradient(90deg,
+        var(--color-primary),
+        color-mix(in srgb, var(--color-primary) 20%, transparent) 70%,
+        transparent) 1;
 }
 
 .setup-header .setup-logo {
     margin: 0;
-    width: 56px;
-    height: 56px;
+    width: 60px;
+    height: 60px;
+    display: grid;
+    place-items: center;
+    padding: 5px;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
 }
 
 .setup-header .setup-logo img {
@@ -659,21 +733,60 @@
     object-fit: contain;
 }
 
+.setup-header-text {
+    min-width: 0;
+    text-align: left;
+}
+
 .setup-header-text h1 {
     margin: 0;
-    font-family: var(--font-display);
-    font-size: calc(var(--font-display-xl) * 0.6);
+    font-family: var(--font-family);
+    font-size: calc(var(--font-display-xl) * 0.62);
     line-height: 1;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
+    font-weight: 900;
+    text-align: left;
     color: var(--color-text);
+    text-shadow: 0 2px 10px color-mix(in srgb, var(--color-primary) 45%, transparent);
 }
 
 .setup-subtitle {
-    margin-top: 2px;
-    color: var(--color-text-muted);
+    margin-top: 5px;
+    color: var(--color-primary-light, var(--color-primary));
     font-size: var(--font-xs);
+    font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
+    white-space: nowrap;
+}
+
+/* Phones: keep the app bar on one line instead of wrapping the wordmark. */
+@media (max-width: 600px) {
+    .setup-header {
+        gap: var(--space-sm);
+        margin-bottom: var(--space-lg);
+    }
+
+    .setup-header .setup-logo {
+        width: 46px;
+        height: 46px;
+    }
+
+    .setup-header-text h1 {
+        font-size: 1.45rem;
+        letter-spacing: 0.03em;
+    }
+
+    .setup-subtitle {
+        margin-top: 3px;
+        font-size: 0.6rem;
+        letter-spacing: 0.12em;
+    }
+
+    .setup-header-side .btn {
+        padding: var(--space-sm) var(--space-md);
+        font-size: var(--font-sm);
+    }
 }
 
 /* Theme picker */
@@ -732,12 +845,22 @@
 
 .setup-panel {
     width: 100%;
-    padding: clamp(10px, 2.2vw, var(--space-lg));
-    background: color-mix(in srgb, var(--color-surface-alt) 86%, transparent);
+    padding: clamp(12px, 2.2vw, var(--space-xl));
+    background:
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--color-surface-elevated, var(--color-surface)) 30%, transparent),
+            transparent 60%),
+        color-mix(in srgb, var(--color-surface-alt) 94%, transparent);
     border: 1px solid color-mix(in srgb, var(--color-border-light) 78%, transparent);
     border-left: 4px solid var(--color-primary);
     border-radius: var(--radius-md);
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.setup-panel:focus-within {
+    border-color: color-mix(in srgb, var(--color-primary) 55%, transparent);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.34);
 }
 
 .setup-section-label {
@@ -745,24 +868,36 @@
     align-items: center;
     gap: var(--space-sm);
     color: var(--color-primary-light, var(--color-primary));
-    font-size: var(--font-xs);
-    letter-spacing: 0.18em;
+    font-size: var(--font-sm);
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    margin-bottom: var(--space-sm);
-    font-weight: 700;
+    margin-bottom: var(--space-md);
+    font-weight: 800;
+}
+
+/* Accent bar — skipped on <summary> labels, which already render a
+   disclosure triangle in ::before. */
+.setup-section-label:not(summary)::before {
+    content: '';
+    width: 4px;
+    height: 1em;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary);
+    flex: 0 0 auto;
 }
 
 .setup-section-label::after {
     content: '';
     flex: 1;
-    height: 1px;
+    height: 2px;
+    border-radius: var(--radius-pill);
     background: linear-gradient(90deg,
-        color-mix(in srgb, var(--color-primary) 55%, transparent),
+        color-mix(in srgb, var(--color-primary) 70%, transparent),
         transparent);
 }
 
 .setup-section--collapsible {
-    background: color-mix(in srgb, var(--color-surface-alt) 86%, transparent);
+    background: color-mix(in srgb, var(--color-surface-alt) 94%, transparent);
 }
 
 .setup-section--collapsible > summary {
@@ -791,11 +926,31 @@
     margin-bottom: var(--space-md);
 }
 
-/* Game grid */
+/* Game grid — auto-fits more columns as the card widens, and scrolls
+   inside its own panel so 29 games can't push Start Game a screen-and-a-
+   half down the page. */
 .game-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(clamp(96px, 28%, 118px), 1fr));
     gap: var(--space-sm);
+    max-height: min(46vh, 420px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 4px 2px 2px;
+    /* Fade the bottom edge so it reads as "more below". */
+    mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+    -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+    scrollbar-width: thin;
+}
+
+.game-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.game-grid::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--color-primary) 55%, transparent);
+    border-radius: var(--radius-pill);
 }
 
 .game-card {
@@ -805,28 +960,39 @@
     justify-content: center;
     gap: 4px;
     padding: var(--space-md) var(--space-sm);
-    background: var(--color-surface);
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-surface-elevated, var(--color-surface)) 55%, var(--color-surface)),
+        var(--color-surface));
     border: 2px solid var(--color-border);
     border-radius: var(--radius-md);
     color: var(--color-text);
     font-family: inherit;
     cursor: pointer;
     text-align: center;
-    min-height: 76px;
+    min-height: 84px;
     line-height: 1.15;
+    overflow-wrap: anywhere;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast);
+    transition: border-color var(--transition-fast), background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .game-card:hover {
-    border-color: var(--color-border-light);
+    border-color: color-mix(in srgb, var(--color-primary) 60%, var(--color-border-light));
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 .game-card.active {
-    background: var(--color-surface-elevated);
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-primary) 26%, var(--color-surface-elevated)),
+        var(--color-surface-elevated));
     border-color: var(--color-primary);
     box-shadow: var(--shadow-glow);
+}
+
+.game-card.active .game-card-label {
+    color: var(--color-primary-light, var(--color-primary));
 }
 
 .game-card:active {
@@ -947,8 +1113,8 @@
 }
 
 .player-order-stepper button {
-    width: 28px;
-    height: 22px;
+    width: 30px;
+    height: 28px;
     padding: 0;
     border: 1px solid var(--color-border-light);
     border-radius: var(--radius-sm);
@@ -982,6 +1148,14 @@
     }
 }
 
+/* Landscape tablets/desktop: the card is wide enough that a single column
+   of player rows leaves a lot of dead space next to each name field. */
+@media (min-width: 720px) {
+    .player-order-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .ui-scale-row {
     display: flex;
     align-items: center;
@@ -1010,6 +1184,31 @@
 
 .setup-play-panel .setup-action-row {
     margin-top: 0;
+}
+
+/* Play is the point of the screen — give it the success accent so the eye
+   lands on it after the game/player choices. */
+.setup-play-panel {
+    border-left-color: var(--color-success);
+    background:
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--color-success) 14%, transparent),
+            transparent 70%),
+        color-mix(in srgb, var(--color-surface-alt) 94%, transparent);
+}
+
+.setup-play-panel .setup-section-label {
+    color: var(--color-success);
+}
+
+.setup-play-panel .setup-section-label::before {
+    background: var(--color-success);
+}
+
+.setup-play-panel .setup-section-label::after {
+    background: linear-gradient(90deg,
+        color-mix(in srgb, var(--color-success) 70%, transparent),
+        transparent);
 }
 
 .setup-maintenance-panel {
@@ -1694,8 +1893,8 @@
 .picker-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-xs);
-    margin-bottom: var(--space-sm);
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
 }
 
 .picker-chip {
@@ -1834,23 +2033,23 @@
     opacity: 0.7;
 }
 
-/* Rules popover — anchored to the tapped card */
+/* Rules popover — anchored to the viewport (the grid scrolls, so an
+   absolutely-positioned popover would be clipped). picker.js sets left/top. */
 .game-rules-pop {
-    position: absolute;
-    left: 50%;
-    top: calc(100% + 4px);
-    transform: translateX(-50%);
+    position: fixed;
+    left: 0;
+    top: 0;
     width: min(300px, 78vw);
     padding: var(--space-sm) var(--space-md);
     background: var(--color-surface-alt);
     border: 1.5px solid var(--color-primary);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
     color: var(--color-text-muted);
     font-size: var(--font-sm);
     line-height: 1.4;
     text-align: left;
-    z-index: var(--z-overlay);
+    z-index: var(--z-modal);
 }
 
 .game-rules-pop strong {
