@@ -137,6 +137,38 @@ roster section just shows "(offline)".
 
 ---
 
+## v2.4.1 production release (2026-07-25)
+
+- **X01 live turn preview** — typing a dart projects the active player's
+  header score in real time (`updateLivePreview()` in `js/x01.js`), with a
+  `−60` / `+80` delta chip and a pending accent on the score plate. Nothing
+  commits until ENTER; over-throwing previews `BUST` instead of a negative.
+  Covers remaining-score mode, Count Up and Gotcha overshoot; Shark Tank is
+  skipped because its headers show bites.
+- **X01 keypad style setting** — Settings now offers Modern (default) or
+  Classic next to Theme / Wallpaper / UI Scale. Classic is the original pad
+  and stays the base layer in `css/games.css`; Modern is an override block
+  keyed on `:root[data-x01-skin="modern"]`, the same attribute mechanism as
+  `data-theme`, persisted to `localStorage['blakeout_x01_skin']`. Add new
+  X01 chrome to the classic base first, then override it in the skin block.
+- **Setup screen refresh** — card widens to 860px on tablets/desktop, the
+  game grid auto-fits columns and scrolls inside its own panel so 29 games
+  no longer bury Start Game, panels/labels gained contrast, and the rules
+  ⓘ popover is now a viewport-clamped fixed element (the scrolling grid
+  would clip an absolutely-positioned one).
+- **Support button** — the bare `$MikeDurbin` link is now a "🍺 Buy me a
+  beer" pill (`#supportBtn`) in the Buy-Me-a-Coffee convention: fixed amber
+  branding in every theme, 48px tap target, `rel="noopener noreferrer"`.
+- **Update delivery fix** — same-origin JS/CSS carry no version query string
+  and ES module imports can't get one without rewriting every specifier, so
+  GitHub Pages' `max-age` could serve a stale module to a freshly loaded
+  `index.html`. The service worker now precaches with `cache: 'reload'` and
+  revalidates same-origin `.js`/`.css`/`.json` with `cache: 'no-cache'`.
+- Validation at promotion: 43/43 dev tests plus 18/18 production smoke;
+  service worker cache `blakeout-v32`.
+
+---
+
 ## Cricket marks visual spec
 
 The closed-cell rendering mirrors how a chalkboard scorekeeper would draw it,

@@ -181,6 +181,83 @@ function evaluateExpression(str) {
     return total;
 }
 
+// --- Live running total ---
+// Dart-by-dart entry should feel like the board is already updating: as
+// soon as digits land, the ACTIVE player's header score shows where the
+// turn would leave them (and a ±delta chip shows the damage). Nothing is
+// committed until ENTER — this is purely a preview that any clear/undo
+// restores.
+const SCORE_EL_IDS = ['homeScore', 'awayScore', 'player3Score', 'player4Score'];
+const DELTA_EL_IDS = ['homeDelta', 'awayDelta', 'player3Delta', 'player4Delta'];
+
+function realHeaderScore(index) {
+    return isSharkTankGame()
+        ? Math.max(0, 6 - (game.sharkTank.bites[index] || 0))
+        : game.players[index].score;
+}
+
+function updateLivePreview() {
+    // Always start from a clean slate so a cleared/undone entry can never
+    // leave a projected number sitting in the header.
+    SCORE_EL_IDS.forEach((id, index) => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('score-preview', 'score-preview-bust');
+        const deltaEl = document.getElementById(DELTA_EL_IDS[index]);
+        if (deltaEl) {
+            deltaEl.textContent = '';
+            deltaEl.classList.remove('bust');
+        }
+    });
+
+    const controls = document.getElementById('x01Controls');
+    if (!controls || controls.classList.contains('hidden')) return;
+
+    const index = game.currentPlayer;
+    const player = game.players[index];
+    const scoreEl = document.getElementById(SCORE_EL_IDS[index]);
+    if (!player || !scoreEl) return;
+
+    scoreEl.textContent = realHeaderScore(index);
+    // Shark Tank headers show bites left, not points — nothing to project.
+    if (!expressionStr || isSharkTankGame()) return;
+
+    const typed = evaluateExpression(expressionStr);
+    let projected;
+    let scored = typed;
+    let bust = false;
+
+    if (remainingMode) {
+        // Typed value is what's LEFT on the board.
+        projected = typed;
+        scored = player.score - typed;
+        bust = scored < 0 || scored > 180;
+    } else if (isGotchaGame()) {
+        const target = game.gotcha.target || 301;
+        const attempted = player.score + typed;
+        projected = attempted > target ? player.score - (attempted - target) : attempted;
+    } else if (isCountUpGame()) {
+        projected = player.score + typed;
+    } else {
+        projected = player.score - typed;
+        bust = projected < 0;
+    }
+
+    scoreEl.textContent = bust ? 'BUST' : projected;
+    scoreEl.classList.add('score-preview');
+    if (bust) scoreEl.classList.add('score-preview-bust');
+
+    const deltaEl = document.getElementById(DELTA_EL_IDS[index]);
+    if (deltaEl) {
+        if (bust) {
+            deltaEl.textContent = 'BUST';
+            deltaEl.classList.add('bust');
+        } else if (typed > 0 || expressionStr) {
+            const sign = isAdditiveScoreGame() ? '+' : '\u2212';
+            deltaEl.textContent = `${sign}${Math.abs(scored)}`;
+        }
+    }
+}
+
 function updateInputDisplay() {
     const display = document.getElementById('inputDisplay');
     if (remainingMode) {
@@ -194,6 +271,7 @@ function updateInputDisplay() {
         }
         display.classList.add('remaining-mode');
         updateMissEnterVisibility();
+        updateLivePreview();
         return;
     }
     display.classList.remove('remaining-mode');
@@ -210,6 +288,7 @@ function updateInputDisplay() {
         }
     }
     updateMissEnterVisibility();
+    updateLivePreview();
 }
 
 function updateMissEnterVisibility() {
@@ -250,6 +329,7 @@ function clearInput() {
     display.textContent = '0';
     display.classList.remove('remaining-mode');
     updateMissEnterVisibility();
+    updateLivePreview();
 }
 
 // Reset ALL input-side state between matches. The win path returns early
@@ -268,6 +348,7 @@ function resetX01Input() {
     const indicator = document.getElementById('finishIndicator');
     if (indicator) indicator.textContent = '';
     updateMissEnterVisibility();
+    updateLivePreview();
 }
 
 function x01Miss() {
@@ -487,6 +568,9 @@ function submitScore(opts = {}) {
     }
     expressionStr = '';
     remainingMode = false;
+    // Drop the live preview immediately — paths that end the leg return
+    // early, so the projected number must not outlive the entry.
+    updateLivePreview();
 
     if (score < 0 || score > 180) {
         const indicator = document.getElementById('finishIndicator');
@@ -817,6 +901,7 @@ function updateX01Display() {
     renderX01ScoreHistory();
     updateCheckoutSuggestion();
     updatePlayerHeaders();
+    updateLivePreview();
 }
 
 // --- Event Listener Setup ---

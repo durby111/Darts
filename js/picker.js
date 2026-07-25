@@ -158,10 +158,24 @@ function showRulesPop(gameId, anchorBtn) {
     const pop = document.createElement('div');
     pop.id = 'gameRulesPop';
     pop.className = 'game-rules-pop';
+    pop.dataset.gameId = gameId;
     pop.innerHTML = `<strong>${escapeHtml(meta.icon + ' ' + meta.label)}</strong>` +
         `<span>${escapeHtml(meta.rules || meta.desc || '')}</span>`;
-    const wrap = anchorBtn.closest('.game-card-wrap');
-    (wrap || document.body).appendChild(pop);
+    // The grid scrolls inside its panel, so an absolutely-positioned popover
+    // would be clipped by the scroll container. Anchor it to the viewport
+    // instead and clamp it inside the window.
+    document.body.appendChild(pop);
+    const anchor = anchorBtn.getBoundingClientRect();
+    const box = pop.getBoundingClientRect();
+    const margin = 8;
+    let left = anchor.left + anchor.width / 2 - box.width / 2;
+    left = Math.max(margin, Math.min(left, window.innerWidth - box.width - margin));
+    let top = anchor.bottom + 6;
+    if (top + box.height > window.innerHeight - margin) {
+        top = Math.max(margin, anchor.top - box.height - 6);
+    }
+    pop.style.left = `${Math.round(left)}px`;
+    pop.style.top = `${Math.round(top)}px`;
 }
 
 export function refreshPicker() {
@@ -226,7 +240,7 @@ export function initGamePicker(quickStartFn) {
             const info = e.target.closest('[data-rules-toggle]');
             if (info) {
                 const already = document.getElementById('gameRulesPop');
-                const sameCard = already && already.closest('.game-card-wrap') === info.closest('.game-card-wrap');
+                const sameCard = already && already.dataset.gameId === info.dataset.rulesToggle;
                 if (sameCard) { hideRulesPop(); return; }
                 showRulesPop(info.dataset.rulesToggle, info);
                 return;
@@ -246,6 +260,9 @@ export function initGamePicker(quickStartFn) {
             setSelectedGame(card.dataset.gameValue);
             renderGrid();
         });
+        // Scrolling the grid would leave the popover floating over the
+        // wrong card, so drop it.
+        grid.addEventListener('scroll', hideRulesPop, { passive: true });
     }
 
     // Keep the active card in sync if something else changes the select
@@ -253,9 +270,10 @@ export function initGamePicker(quickStartFn) {
     const select = el('gameType');
     if (select) select.addEventListener('change', renderGrid);
 
-    // Tapping anywhere outside the grid closes an open rules popover.
+    // Tapping anywhere outside the grid (or the popover itself) closes an
+    // open rules popover.
     document.addEventListener('click', e => {
-        if (!e.target.closest('#gameTypeGrid')) hideRulesPop();
+        if (!e.target.closest('#gameTypeGrid') && !e.target.closest('#gameRulesPop')) hideRulesPop();
     });
 
     refreshPicker();

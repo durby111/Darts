@@ -700,3 +700,254 @@
 .cricket-row.four-player .mark.minnesota {
     --multiplayer-mark-size: clamp(30px, 4.2dvh, 58px);
 }
+
+/* ============================================
+   X01 keypad skin — "modern"
+   ============================================
+   The classic pad above stays the default-capable baseline. Everything in
+   this block only applies when the user picks Modern in Settings, which
+   sets data-x01-skin="modern" on <html> (same mechanism as data-theme).
+   All colours come from theme tokens so every theme still works.
+   ============================================ */
+
+:root[data-x01-skin="modern"] .checkout-suggestion {
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-primary) 34%, transparent),
+        color-mix(in srgb, var(--color-primary) 15%, transparent));
+    border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+    font-weight: 800;
+}
+
+:root[data-x01-skin="modern"] .finish-indicator {
+    font-size: var(--font-md);
+    font-weight: 700;
+    letter-spacing: 0.09em;
+}
+
+:root[data-x01-skin="modern"] .x01-input-row {
+    align-items: stretch;
+}
+
+:root[data-x01-skin="modern"] .x01-input-row .btn {
+    flex: 0 0 auto;
+    border-radius: var(--radius-lg);
+}
+
+:root[data-x01-skin="modern"] .input-display {
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-bg) 55%, var(--color-surface-alt)),
+        var(--color-surface-alt));
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35);
+    padding: var(--space-sm) var(--space-lg);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    min-width: 0;
+}
+
+/* Three lanes: quick scores | keypad | quick scores. Capped and centred so
+   keys stay near-square on wide tablets instead of stretching into slabs. */
+:root[data-x01-skin="modern"] .number-pad {
+    --x01-quick-col: clamp(46px, 10vw, 78px);
+    display: grid;
+    grid-template-columns: var(--x01-quick-col) minmax(0, 1fr) var(--x01-quick-col);
+    gap: var(--space-sm);
+    min-height: 0;
+    width: 100%;
+    max-width: min(100%, 620px);
+    margin-inline: auto;
+}
+
+:root[data-x01-skin="modern"] .quick-col {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+:root[data-x01-skin="modern"] .pad-center {
+    grid-auto-rows: 1fr;
+    min-height: 0;
+    min-width: 0;
+}
+
+:root[data-x01-skin="modern"] .x01-num-btn {
+    /* Theme-token keys. The classic pad is fixed #ccc plastic, which had to
+       hardcode its ink to survive the light Arctic theme. */
+    background: linear-gradient(180deg, var(--color-surface-elevated), var(--color-surface));
+    color: var(--color-text);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.45),
+                inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    font-weight: 700;
+    font-size: calc(clamp(1.2rem, 3.4dvh, 2rem) * var(--ui-scale));
+    font-variant-numeric: tabular-nums;
+    padding: calc(clamp(6px, 1.2dvh, 14px) * var(--ui-scale));
+    transition: background var(--transition-fast), transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+/* × and + read as modifiers, not digits. */
+:root[data-x01-skin="modern"] .x01-num-btn[data-op] {
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-primary) 26%, var(--color-surface-elevated)),
+        color-mix(in srgb, var(--color-primary) 13%, var(--color-surface)));
+    border-color: color-mix(in srgb, var(--color-primary) 50%, transparent);
+    color: var(--color-primary-light);
+}
+
+:root[data-x01-skin="modern"] .x01-num-btn:active {
+    opacity: 1;
+    transform: translateY(2px);
+    box-shadow: none;
+    background: color-mix(in srgb, var(--color-primary) 32%, var(--color-surface-elevated));
+}
+
+:root[data-x01-skin="modern"] .x01-quick-btn {
+    background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface));
+    border: 1px solid color-mix(in srgb, var(--color-primary) 48%, transparent);
+    color: var(--color-primary-light);
+    border-radius: var(--radius-md);
+    font-weight: 800;
+    font-size: calc(clamp(0.85rem, 2dvh, 1.25rem) * var(--ui-scale));
+    font-variant-numeric: tabular-nums;
+    padding: calc(clamp(4px, 1dvh, 10px) * var(--ui-scale)) 2px;
+    transition: background var(--transition-fast), transform 0.06s ease;
+}
+
+:root[data-x01-skin="modern"] .x01-quick-btn:active {
+    opacity: 1;
+    transform: translateY(1px);
+    background: color-mix(in srgb, var(--color-primary) 48%, var(--color-surface));
+    color: var(--color-on-primary);
+}
+
+:root[data-x01-skin="modern"] .x01-bottom-row {
+    margin-top: var(--space-md);
+}
+
+:root[data-x01-skin="modern"] .x01-bottom-row .btn {
+    border-radius: var(--radius-lg);
+    letter-spacing: 0.08em;
+}
+
+/* History lanes: softer rules, a round rail, and receding older turns. */
+:root[data-x01-skin="modern"] .score-history-col {
+    scrollbar-color: var(--color-border) transparent;
+}
+
+:root[data-x01-skin="modern"] .score-history-col.left {
+    border-right-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+:root[data-x01-skin="modern"] .score-history-col.right {
+    border-left-color: color-mix(in srgb, var(--color-border) 70%, transparent);
+}
+
+:root[data-x01-skin="modern"] .round-numbers-col {
+    min-width: 42px;
+    background: color-mix(in srgb, var(--color-surface) 55%, transparent);
+}
+
+:root[data-x01-skin="modern"] .round-number {
+    font-size: var(--font-sm);
+    font-weight: 700;
+    padding: var(--space-xs);
+}
+
+:root[data-x01-skin="modern"] .round-number.current {
+    color: var(--color-on-primary);
+    background: var(--color-primary);
+    border-radius: var(--radius-pill);
+    min-width: 26px;
+    font-weight: 800;
+}
+
+:root[data-x01-skin="modern"] .score-history-entry {
+    color: var(--color-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+:root[data-x01-skin="modern"] .score-history-col > .score-history-entry:last-of-type,
+:root[data-x01-skin="modern"] .score-history-col > .score-history-entry:nth-last-of-type(2) {
+    color: var(--color-text);
+}
+
+:root[data-x01-skin="modern"] .score-history-entry.current {
+    color: var(--color-primary-light);
+}
+
+:root[data-x01-skin="modern"] .score-history-entry.bust {
+    color: var(--color-danger);
+}
+
+/* Landscape gives the pad more room than the classic 40dvh floor, which is
+   what squashed the keys into wide slabs on tablets. */
+@media (orientation: landscape) {
+    :root[data-x01-skin="modern"] #x01Controls {
+        min-height: 54dvh;
+    }
+
+    :root[data-x01-skin="modern"] .x01-num-btn {
+        padding: calc(clamp(4px, 1dvh, 12px) * var(--ui-scale));
+        font-size: calc(clamp(1.1rem, 3dvh, 1.8rem) * var(--ui-scale));
+    }
+}
+
+/* Keep the whole control stack on one centred column so the display,
+   pad and action row share an edge instead of spanning wall-to-wall. */
+:root[data-x01-skin="modern"] #x01Controls > * {
+    width: 100%;
+    max-width: min(100%, 620px);
+    margin-inline: auto;
+}
+
+/* Player header: the classic skin paints flat primary/#666 blocks. Modern
+   softens them into gradients with an accent rail on the active player. */
+:root[data-x01-skin="modern"] .player-header {
+    position: relative;
+}
+
+:root[data-x01-skin="modern"] .player-header.active {
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-active-player) 92%, #fff),
+        var(--color-active-player));
+}
+
+:root[data-x01-skin="modern"] .player-header.active::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: var(--color-primary-light, var(--color-primary));
+}
+
+:root[data-x01-skin="modern"] .player-header.inactive {
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-inactive-player) 34%, var(--color-surface)),
+        color-mix(in srgb, var(--color-inactive-player) 18%, var(--color-surface)));
+    opacity: 0.9;
+}
+
+:root[data-x01-skin="modern"] .score-big {
+    border-radius: var(--radius-lg);
+    text-shadow: none;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-x01-skin="modern"] .center-logo {
+    background: var(--color-surface-alt);
+}
+
+:root[data-x01-skin="modern"] .round-badge {
+    border-radius: var(--radius-md);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+
+:root[data-x01-skin="modern"] .end-game-btn {
+    border-width: 1px;
+    border-radius: var(--radius-pill);
+    background: color-mix(in srgb, var(--color-surface-elevated) 80%, transparent);
+}
