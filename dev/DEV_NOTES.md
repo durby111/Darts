@@ -238,6 +238,37 @@ brand colours in every theme, 48px tap target, `Cash App · $MikeDurbin`
 subtitle, and `rel="noopener noreferrer"` on the `_blank` link. It still
 points at `https://cash.app/$MikeDurbin`.
 
+## X01 keypad skin (Settings)
+
+The X01 pad now ships in two looks, chosen in Settings next to Theme /
+Wallpaper / UI Scale:
+
+- **Classic** — the original pad, untouched. It is still the base layer in
+  `css/games.css`, so nothing about it depends on the new option.
+- **Modern** (default) — layered on top via `:root[data-x01-skin="modern"]`
+  selectors, the same attribute mechanism as `data-theme`. Theme-token keys
+  instead of fixed `#ccc` plastic, accented ×/+ modifier keys, quick-score
+  chips, a capped 620px centred control column so display/pad/actions share
+  an edge, near-square keys (landscape gets 54dvh instead of the 40dvh floor
+  that squashed them into slabs), softer history lanes with a round-number
+  rail, and gradient player headers with an active accent rail.
+
+Persistence: `localStorage['blakeout_x01_skin']` = `modern` | `classic`,
+applied by `applyScoreSkin()` in `js/settings.js`. Any new X01 chrome should
+be added to the classic base and, if it needs a modern treatment, overridden
+in the skin block — never the other way round.
+
+## Update delivery
+
+`sw.js` is network-first, but same-origin JS/CSS have no version query string
+and ES module imports (`app.js` → `x01.js` → …) can't get one without
+rewriting every specifier. GitHub Pages' `max-age` could therefore hand back
+a stale module while a fresh `index.html` was already running — which looked
+like "the HTML updated but the feature didn't". Now the install step
+precaches with `cache: 'reload'`, and the fetch handler revalidates
+same-origin `.js`/`.css`/`.json` with `cache: 'no-cache'` (unchanged files
+still come back as cheap 304s).
+
 ## Bug fixes (dev)
 
 - `playAgain()` corrupted every non-cricket/x01 game (stamped `cricketData`,
@@ -250,10 +281,11 @@ points at `https://cash.app/$MikeDurbin`.
 
 ## Tests
 
-- `tests/dev_test.py` — 42-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 43-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
-  cricket + x01, X01 live preview, support button). `python3 dev/tests/dev_test.py`.
+  cricket + x01, X01 live preview, keypad skin, support button).
+  `python3 dev/tests/dev_test.py`.
 - `tests/visual_qa.py` — screenshot dump for theme/legibility review.
 - Legacy `scripts/headless_test.py --target dev` still has stale prod-era count
   assertions (12 game cards / 3 themes versus 29 / 12 in dev). Update the

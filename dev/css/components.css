@@ -1162,6 +1162,51 @@
     gap: var(--space-md);
 }
 
+/* X01 keypad skin picker (Settings) */
+.score-skin-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+}
+
+.score-skin-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: var(--space-md);
+    background: var(--color-surface);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.score-skin-choice.active {
+    border-color: var(--color-primary);
+    background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface));
+}
+
+.score-skin-label {
+    font-size: var(--font-md);
+    font-weight: 800;
+}
+
+.score-skin-choice.active .score-skin-label {
+    color: var(--color-primary-light, var(--color-primary));
+}
+
+.score-skin-desc {
+    font-size: var(--font-xs);
+    color: var(--color-text-muted);
+    line-height: 1.25;
+}
+
 .ui-scale-row input[type="range"] {
     flex: 1;
 }

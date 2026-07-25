@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v27';
+const CACHE_NAME = 'blakeout-dev-v28';
 const ASSETS = [
     './',
     './index.html',
@@ -39,9 +39,27 @@ const ASSETS = [
     './assets/qr-prod.svg'
 ];
 
+// Same-origin app code has no version query string, and ES module imports
+// (app.js -> x01.js -> ...) can't get one without rewriting every import.
+// GitHub Pages serves these with max-age, so a plain fetch can hand back a
+// stale file for minutes after a deploy — which shows up as a fresh
+// index.html running old CSS/JS. Force a revalidation for them instead;
+// unchanged files still come back as a cheap 304.
+const REVALIDATE = /\.(?:js|css|json)$/i;
+
+function shouldRevalidate(request) {
+    if (request.mode === 'navigate') return false;  // browser already does
+    const url = new URL(request.url);
+    return url.origin === self.location.origin && REVALIDATE.test(url.pathname);
+}
+
 self.addEventListener('install', (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+        caches.open(CACHE_NAME).then((cache) => cache.addAll(
+            // cache:'reload' skips the HTTP cache, so a new SW version can
+            // never precache the files the old one was already serving.
+            ASSETS.map((url) => new Request(url, { cache: 'reload' }))
+        ))
     );
     // Activate immediately — don't wait for old SW to release
     self.skipWaiting();
@@ -58,15 +76,19 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
     // Network-first: always try network, fall back to cache offline
+    const request = event.request;
+    const networkRequest = shouldRevalidate(request)
+        ? new Request(request.url, { cache: 'no-cache', credentials: 'same-origin' })
+        : request;
     event.respondWith(
-        fetch(event.request).then((response) => {
-            if (response.ok && event.request.method === 'GET') {
+        fetch(networkRequest).then((response) => {
+            if (response.ok && request.method === 'GET') {
                 const clone = response.clone();
-                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
             }
             return response;
         }).catch(() => {
-            return caches.match(event.request);
+            return caches.match(request);
         })
     );
 });

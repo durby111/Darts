@@ -1293,6 +1293,72 @@ async def test_setup_section_separation(page):
     return {"labels": labels, "tablet": metrics, "compact": compact}
 
 
+async def test_x01_keypad_skin(page):
+    # The X01 pad ships in two looks. Modern is the default; Classic must
+    # restore the original grey plastic pad exactly, and the choice has to
+    # persist like the theme does.
+    await fresh(page)
+
+    async def skin_state():
+        return await page.evaluate("""
+            () => {
+                const key = document.querySelector('.x01-num-btn');
+                const pad = document.querySelector('.number-pad');
+                const ks = getComputedStyle(key);
+                return {
+                    attr: document.documentElement.getAttribute('data-x01-skin'),
+                    stored: localStorage.getItem('blakeout_x01_skin'),
+                    padDisplay: getComputedStyle(pad).display,
+                    keyBg: ks.backgroundColor,
+                    keyImage: ks.backgroundImage,
+                    keyColor: ks.color,
+                };
+            }
+        """)
+
+    default = await skin_state()
+    assert default["attr"] == "modern", f"modern is the default skin: {default}"
+    assert default["padDisplay"] == "grid", default
+    assert default["keyImage"] != "none", f"modern keys are gradient-filled: {default}"
+
+    # Settings exposes both options, Modern marked active.
+    await page.click("#settingsBtnSetup")
+    await page.wait_for_timeout(400)
+    choices = await page.eval_on_selector_all(
+        "#scoreSkinChoices [data-score-skin]", "els => els.map(e => e.dataset.scoreSkin)")
+    assert choices == ["modern", "classic"], choices
+    assert await page.locator("#scoreSkinChoices .score-skin-choice.active").get_attribute(
+        "data-score-skin") == "modern"
+
+    # Switch to Classic → original pad returns.
+    await page.click("[data-score-skin='classic']")
+    await page.wait_for_timeout(200)
+    classic = await skin_state()
+    assert classic["attr"] == "classic", classic
+    assert classic["stored"] == "classic", classic
+    assert classic["padDisplay"] == "flex", f"classic pad is the old flex row: {classic}"
+    assert classic["keyBg"] == "rgb(204, 204, 204)", f"classic keys stay grey: {classic}"
+    assert classic["keyImage"] == "none", classic
+    assert await page.locator("#scoreSkinChoices .score-skin-choice.active").get_attribute(
+        "data-score-skin") == "classic"
+
+    # Survives a reload.
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(600)
+    assert (await skin_state())["attr"] == "classic", "skin choice must persist"
+
+    # And the classic pad still scores a turn normally.
+    await start_game(page, "501")
+    await page.wait_for_selector("#x01Controls", state="visible", timeout=3000)
+    await page.click("[data-digit='6']")
+    await page.click("[data-digit='0']")
+    assert (await page.text_content("#homeScore")).strip() == "441", "preview works in both skins"
+    await page.click("#x01EnterBtn")
+    await page.wait_for_timeout(300)
+    assert await get_state(page, "m.game.players[0].score") == 441
+    return {"default": default, "classic": classic}
+
+
 async def test_support_link(page):
     # The Cash App tip used to be a plain text link nobody noticed. It is now
     # a "Buy me a beer" button (the Buy-Me-a-Coffee/Ko-fi convention) and has

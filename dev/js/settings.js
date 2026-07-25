@@ -6,6 +6,7 @@
      - Theme picker (moved off the setup screen)
      - Wallpaper: bundled presets, Default photo, None, or user upload
      - UI Scale
+     - X01 keypad skin (Modern / Classic)
 
    Wallpaper persistence: localStorage 'blakeout_wallpaper'
      { type: 'default' } | { type: 'none' } |
@@ -13,11 +14,23 @@
    Applied as the --app-wallpaper CSS var consumed by .setup-screen.
    Uploads are downscaled through a canvas (max 1600px, JPEG q0.8) so a
    phone photo doesn't blow the localStorage quota.
+
+   Keypad skin persistence: localStorage 'blakeout_x01_skin' = 'modern' |
+   'classic', applied as data-x01-skin on <html> (same mechanism as
+   data-theme). 'classic' is the original pad; css/games.css keeps it as
+   the base layer and layers the modern look on top of the attribute.
    ============================================ */
 
 import { showModal, hideModal } from './ui.js';
 
 const WALLPAPER_KEY = 'blakeout_wallpaper';
+const SKIN_KEY = 'blakeout_x01_skin';
+
+export const SCORE_SKINS = [
+    { id: 'modern', label: 'Modern', desc: 'Themed keys, roomier pad' },
+    { id: 'classic', label: 'Classic', desc: 'Original grey keypad' }
+];
+const DEFAULT_SKIN = 'modern';
 
 export const WALLPAPER_PRESETS = [
     { id: 'slate', label: 'Slate' },
@@ -126,10 +139,44 @@ function renderWallpaperChoices() {
         </button>`).join('');
 }
 
+// --- X01 keypad skin ---
+
+export function getScoreSkin() {
+    try {
+        const saved = localStorage.getItem(SKIN_KEY);
+        if (SCORE_SKINS.some(s => s.id === saved)) return saved;
+    } catch { /* fall through */ }
+    return DEFAULT_SKIN;
+}
+
+export function applyScoreSkin(skin = getScoreSkin()) {
+    document.documentElement.setAttribute('data-x01-skin', skin);
+    renderScoreSkinChoices();
+}
+
+function setScoreSkin(skin) {
+    if (!SCORE_SKINS.some(s => s.id === skin)) return;
+    try { localStorage.setItem(SKIN_KEY, skin); } catch { /* non-fatal */ }
+    applyScoreSkin(skin);
+}
+
+function renderScoreSkinChoices() {
+    const row = el('scoreSkinChoices');
+    if (!row) return;
+    const current = getScoreSkin();
+    row.innerHTML = SCORE_SKINS.map(s => `
+        <button type="button" class="score-skin-choice${s.id === current ? ' active' : ''}"
+                data-score-skin="${s.id}" aria-pressed="${s.id === current}">
+            <span class="score-skin-label">${s.label}</span>
+            <span class="score-skin-desc">${s.desc}</span>
+        </button>`).join('');
+}
+
 // --- Modal open/close ---
 
 export function openSettingsModal() {
     renderWallpaperChoices();
+    renderScoreSkinChoices();
     showModal('settingsModal');
 }
 
@@ -137,6 +184,7 @@ export function openSettingsModal() {
 
 export function initSettings() {
     applyWallpaper();
+    applyScoreSkin();
 
     const setupBtn = el('settingsBtnSetup');
     if (setupBtn) setupBtn.addEventListener('click', openSettingsModal);
@@ -170,6 +218,14 @@ export function initSettings() {
         upload.addEventListener('change', () => {
             handleUpload(upload.files && upload.files[0]);
             upload.value = '';
+        });
+    }
+
+    const skinRow = el('scoreSkinChoices');
+    if (skinRow) {
+        skinRow.addEventListener('click', e => {
+            const btn = e.target.closest('[data-score-skin]');
+            if (btn) setScoreSkin(btn.dataset.scoreSkin);
         });
     }
 }
