@@ -46,62 +46,24 @@ ready to ship.
   not key obscurity. If we ever need to lock the key down further, use Firebase
   Console → Project Settings → API key restrictions (HTTP referrer allowlist).
 
-### Firestore rules currently published
+### Firestore rules
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+**Canonical copy: [`firestore.rules`](firestore.rules)** — edit that file, not
+a copy pasted into docs. `firebase.json` points at it, so with the Firebase CLI
+available it deploys with `firebase deploy --only firestore:rules`; otherwise
+paste it into Firebase Console → Firestore Database → Rules → Publish.
 
-    // Private per-install rosters (security fix 2026-07-26).
-    // Reachable ONLY by someone who already knows the 128-bit rosterId:
-    // /rosters is never listed, and collection-group queries on `players`
-    // are refused because those require a recursive-wildcard rule, which
-    // we deliberately do not write. Do not add `match /{path=**}/players`.
-    match /rosters/{rosterId}/players/{playerId} {
-      allow read: if request.auth != null
-        && rosterId.matches('^[0-9a-f]{32}$');
-      allow create, update: if request.auth != null
-        && rosterId.matches('^[0-9a-f]{32}$')
-        && request.resource.data.keys().hasOnly(['email', 'name', 'updatedAt'])
-        && request.resource.data.email == playerId
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 40;
-      allow delete: if request.auth != null
-        && rosterId.matches('^[0-9a-f]{32}$');
-    }
+It covers three things:
 
-    // Retired global roster — was world-readable/writable/deletable.
-    // Locked shut; delete the collection in the console once migrated.
-    match /roster/{document} {
-      allow read, write: if false;
-    }
-
-    match /usage/{period} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && period.matches('^[0-9]{4}-[0-9]{2}(-dev)?$')
-        && request.resource.data.keys().hasOnly(['month', 'devices'])
-        && request.resource.data.month == period
-        && request.resource.data.devices == 1;
-      allow update: if request.auth != null
-        && request.resource.data.keys().hasOnly(['month', 'devices'])
-        && request.resource.data.month == period
-        && request.resource.data.devices == resource.data.devices + 1;
-      allow delete: if false;
-    }
-  }
-}
-```
+| Path | Access |
+|------|--------|
+| `rosters/{rosterId}/players/{playerId}` | Read/write/delete for anyone who knows the 128-bit `rosterId`. Writes restricted to exactly `email`/`name`/`updatedAt`, `email` must equal the doc id, name 1–40 chars. |
+| `roster/{document}` | **Denied** — retired global collection from the 2026-07-26 fix. |
+| `usage/{period}` | Read for any signed-in client; writes pinned to an exact `+1` on a two-field doc. |
 
 The `email == doc id` check matters: even players added without an email get
 a synthetic id (`noemail-{hex}`) stored as both the doc id and the email field
 so this rule passes. UI labels them "(no email — local only)".
-
-The `usage` rules pin the write to an exact +1 on a two-field doc, so an
-anonymous client can't stuff arbitrary data or inflate the number by more
-than one per write.
 
 > **Security note:** `request.auth != null` is *not* a trust boundary here —
 > anonymous sign-in is open and the web API key is public, so any caller can

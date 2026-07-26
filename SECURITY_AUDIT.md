@@ -90,7 +90,7 @@ uniqueness, share-link adoption, URL scrubbing, hostile-id rejection).
 > per-account isolation would require non-anonymous sign-in. Accepted by owner.
 >
 > ⚠️ **Action required:** the code is deployed but the exposure is not closed
-> until the updated rules in `CLAUDE.md` are published. Until then the old
+> until the rules in `firestore.rules` are published. Until then the old
 > global `roster` collection remains world-readable.
 
 ---

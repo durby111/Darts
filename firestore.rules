@@ -1,0 +1,72 @@
+rules_version = '2';
+
+// BlakeOut Firestore security rules — canonical copy.
+//
+// PUBLISH: Firebase Console -> Firestore Database -> Rules -> paste -> Publish.
+// (Or, with the Firebase CLI available: `firebase deploy --only firestore:rules`)
+//
+// IMPORTANT: `request.auth != null` is NOT a trust boundary in this app.
+// Anonymous sign-in is open and the web API key is public, so any caller on
+// the internet can satisfy it. Privacy comes from unguessable document paths,
+// and integrity comes from the shape checks below.
+//
+// See SECURITY_AUDIT.md (2026-07-26) for the findings these rules close.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Private per-install rosters -------------------------------------
+    // Reachable ONLY by someone who already knows the 128-bit rosterId.
+    // /rosters is never listed, and collection-group queries on `players`
+    // are refused because those require a recursive-wildcard rule.
+    //
+    // *** NEVER add `match /{path=**}/players/{id}` — it would enable
+    // *** collection-group queries and re-expose every roster at once.
+    match /rosters/{rosterId}/players/{playerId} {
+      allow read: if request.auth != null
+        && rosterId.matches('^[0-9a-f]{32}$');
+
+      allow create, update: if request.auth != null
+        && rosterId.matches('^[0-9a-f]{32}$')
+        && request.resource.data.keys().hasOnly(['email', 'name', 'updatedAt'])
+        && request.resource.data.email == playerId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40;
+
+      allow delete: if request.auth != null
+        && rosterId.matches('^[0-9a-f]{32}$');
+    }
+
+    // --- Retired global roster -------------------------------------------
+    // Was world-readable/writable/deletable (audit finding #1). Locked shut.
+    // Safe to delete the collection in the console once players are re-added.
+    match /roster/{document} {
+      allow read, write: if false;
+    }
+
+    // --- Anonymous monthly device counter --------------------------------
+    // One integer per month. Production writes usage/YYYY-MM; the dev build
+    // writes usage/YYYY-MM-dev so it can't inflate the real number.
+    // Writes are pinned to an exact +1 on a two-field doc.
+    match /usage/{period} {
+      allow read: if request.auth != null;
+
+      allow create: if request.auth != null
+        && period.matches('^[0-9]{4}-[0-9]{2}(-dev)?$')
+        && request.resource.data.keys().hasOnly(['month', 'devices'])
+        && request.resource.data.month == period
+        && request.resource.data.devices == 1;
+
+      allow update: if request.auth != null
+        && period.matches('^[0-9]{4}-[0-9]{2}(-dev)?$')
+        && request.resource.data.keys().hasOnly(['month', 'devices'])
+        && request.resource.data.month == period
+        && request.resource.data.devices == resource.data.devices + 1;
+
+      allow delete: if false;
+    }
+
+    // Anything not matched above is denied by default.
+  }
+}
