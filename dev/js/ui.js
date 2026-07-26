@@ -140,6 +140,15 @@ export function updateUndoRedoButtons() {
 
 // --- Modals ---
 
+// Player names are free text AND arrive from the shared Firestore roster,
+// which any signed-in client can write. Anything interpolated into innerHTML
+// must go through this. Prefer textContent where the markup allows it.
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+}
+
 export function showModal(modalId) {
     const el = document.getElementById(modalId);
     if (!el) return;
@@ -177,9 +186,11 @@ export function showWinner(name, isBlakeout = false, isChicagoMatchWin = false) 
     blakeoutMsg.style.display = isBlakeout ? 'block' : 'none';
 
     if (isChicagoMatchWin && game.chicago) {
-        const scoreText = game.players.map((p, i) => `${p.name}: ${game.chicago.legWins[i]}`).join(' - ');
+        const scoreText = game.players
+            .map((p, i) => `${escapeHtml(p.name)}: ${game.chicago.legWins[i]}`)
+            .join(' - ');
         document.getElementById('winnerName').innerHTML =
-            `${name}<br><span style="font-size:1.2rem;color:var(--color-primary);">Chicago Match Winner!</span>` +
+            `${escapeHtml(name)}<br><span style="font-size:1.2rem;color:var(--color-primary);">Chicago Match Winner!</span>` +
             `<br><span style="font-size:1rem;color:var(--color-text-muted);">${scoreText}</span>`;
     }
 
@@ -201,7 +212,7 @@ export function show121MatchSummary() {
     let summaryHtml = `<span style="font-size:1.2rem;color:var(--color-primary);">121 Game Complete!</span><br>`;
     summaryHtml += `<span style="font-size:1rem;color:var(--color-text-muted);">`;
     game.players.forEach((p, i) => {
-        summaryHtml += `${p.name}: ${g121.legsWon[i]} leg${g121.legsWon[i] !== 1 ? 's' : ''}<br>`;
+        summaryHtml += `${escapeHtml(p.name)}: ${g121.legsWon[i]} leg${g121.legsWon[i] !== 1 ? 's' : ''}<br>`;
     });
 
     const checkouts = g121.legResults.filter(r => r.winner >= 0);
@@ -211,7 +222,7 @@ export function show121MatchSummary() {
     }
     summaryHtml += `</span>`;
 
-    document.getElementById('winnerName').innerHTML = `${winner.name}<br>${summaryHtml}`;
+    document.getElementById('winnerName').innerHTML = `${escapeHtml(winner.name)}<br>${summaryHtml}`;
     document.getElementById('blakeoutMessage').style.display = 'none';
     showModal('winnerModal');
 }

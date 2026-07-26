@@ -1293,6 +1293,103 @@ async def test_setup_section_separation(page):
     return {"labels": labels, "tablet": metrics, "compact": compact}
 
 
+async def test_player_name_xss(page):
+    # Security regression (audit finding #2): ui.js interpolated player names
+    # straight into innerHTML in the Chicago and 121 winner summaries. Names
+    # are free text AND arrive from the shared roster that any signed-in
+    # client can write, so a name like <img onerror> was executable markup.
+    await fresh(page)
+    payload = "<img src=x onerror=\"window.__xss=1\">Evil"
+
+    result = await page.evaluate("""
+        async (payload) => {
+            const state = await import('./js/state.js');
+            const ui = await import('./js/ui.js');
+            window.__xss = 0;
+
+            // --- Chicago match-win summary ---
+            state.game.players = [
+                { name: payload, score: 0, history: [] },
+                { name: 'Bob', score: 0, history: [] },
+            ];
+            state.game.chicago = { legWins: [2, 1] };
+            ui.showWinner(payload, false, true);
+            const chicagoHtml = document.getElementById('winnerName').innerHTML;
+            const chicagoText = document.getElementById('winnerName').textContent;
+
+            // --- 121 match summary ---
+            state.game.chicago = null;
+            state.game.game121 = {
+                legsWon: [2, 1],
+                legResults: [{ winner: 0, checkout: 121 }],
+            };
+            ui.show121MatchSummary();
+            const summaryHtml = document.getElementById('winnerName').innerHTML;
+            const summaryText = document.getElementById('winnerName').textContent;
+
+            // Give any injected handler a chance to run.
+            await new Promise(r => setTimeout(r, 250));
+
+            return {
+                xss: window.__xss,
+                injectedImgs: document.querySelectorAll('#winnerName img').length,
+                chicagoHtml, chicagoText, summaryHtml, summaryText,
+            };
+        }
+    """, payload)
+
+    assert result["xss"] == 0, "injected handler executed — name is not escaped"
+    assert result["injectedImgs"] == 0, \
+        f"payload became a real element: {result['chicagoHtml'][:200]}"
+    for key in ("chicagoHtml", "summaryHtml"):
+        assert "<img" not in result[key], f"{key} contains live markup: {result[key][:200]}"
+        assert "&lt;img" in result[key], f"{key} should carry the escaped name: {result[key][:200]}"
+    # The name must still be readable to the user, just inert.
+    for key in ("chicagoText", "summaryText"):
+        assert payload in result[key], f"{key} lost the name: {result[key][:200]}"
+    return {"xss": result["xss"], "imgs": result["injectedImgs"]}
+
+
+async def test_sw_caches_only_own_assets(page):
+    # Security regression (audit finding #5): the service worker cached every
+    # successful cross-origin GET, persisting third-party responses on shared
+    # devices. Only same-origin files and the Firebase SDK belong in there.
+    await fresh(page)
+    sw_source = await page.evaluate("fetch('./sw.js').then(r => r.text())")
+    assert "isCacheable" in sw_source, "sw.js should gate what it caches"
+
+    verdicts = await page.evaluate("""
+        source => {
+            // Evaluate the real predicate from sw.js against sample URLs.
+            const origin = location.origin;
+            const fn = new Function('self', 'source', `
+                const scope = { location: { origin: arguments[0].location.origin } };
+                ${source.match(/const SDK_ORIGIN[\\s\\S]*?\\n}/)[0]}
+                return isCacheable;
+            `);
+            const isCacheable = fn({ location: { origin } }, source);
+            const check = (url) => {
+                try { return isCacheable({ url }); } catch (e) { return 'ERR:' + e.message; }
+            };
+            return {
+                ownPage:    check(origin + '/index.html'),
+                ownScript:  check(origin + '/js/x01.js'),
+                firebaseSdk:check('https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js'),
+                firestore:  check('https://firestore.googleapis.com/v1/projects/blakeout/databases/(default)/documents/roster'),
+                identity:   check('https://identitytoolkit.googleapis.com/v1/accounts:signUp'),
+                random:     check('https://example.com/tracker.gif'),
+                gstaticOther:check('https://www.gstatic.com/other/thing.js'),
+            };
+        }
+    """, sw_source)
+
+    assert verdicts["ownPage"] is True and verdicts["ownScript"] is True, verdicts
+    assert verdicts["firebaseSdk"] is True, f"SDK must stay cacheable for offline: {verdicts}"
+    for key in ("firestore", "identity", "random", "gstaticOther"):
+        assert verdicts[key] is False, f"{key} must not be cached: {verdicts}"
+    return verdicts
+
+
 async def test_qr_visible_in_all_themes(page):
     # Regression: the bundled QR SVG paints WHITE modules (drawn for the dark
     # background photo), so on the light Arctic theme it vanished into the

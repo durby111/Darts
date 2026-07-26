@@ -281,6 +281,24 @@ Requires the `usage` Firestore rules in CLAUDE.md — without them the write is
 rejected, the marker rolls back for a later retry, and nothing else breaks.
 Monthly-active *devices*, not people.
 
+## Security fixes (2026-07-26)
+
+From `SECURITY_AUDIT.md`:
+
+- **Stored XSS (finding #2)** — `ui.js` was the one module with no `escapeHtml`
+  and interpolated player names straight into `innerHTML` in the Chicago
+  match-win and 121 summaries. Names are free text *and* arrive from the shared
+  roster that any signed-in client can write, so this was remotely triggerable.
+  Both sinks now escape. Anything new in `ui.js` that touches `innerHTML` must
+  go through `escapeHtml`, or use `textContent`.
+- **SW cache scope (finding #5)** — `sw.js` cached every successful
+  cross-origin GET. Now gated by `isCacheable()`: same-origin plus
+  `gstatic.com/firebasejs/` (kept so the SDK works offline). Firestore and
+  identitytoolkit responses are no longer stored.
+
+Still open and owner-actioned: roster Firestore rules (#1), API key referrer
+restriction (#3), CSP (#4, deferred).
+
 ## Bug fixes (dev)
 
 - `playAgain()` corrupted every non-cricket/x01 game (stamped `cricketData`,
@@ -302,11 +320,12 @@ Monthly-active *devices*, not people.
 
 ## Tests
 
-- `tests/dev_test.py` — 45-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 47-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01, X01 live preview, keypad skin, support button, monthly
-  usage counter, QR contrast per theme). `python3 dev/tests/dev_test.py`.
+  usage counter, QR contrast per theme, player-name XSS, SW cache scope).
+  `python3 dev/tests/dev_test.py`.
 - `tests/visual_qa.py` — screenshot dump for theme/legibility review.
 - Legacy `scripts/headless_test.py --target dev` still has stale prod-era count
   assertions (12 game cards / 3 themes versus 29 / 12 in dev). Update the

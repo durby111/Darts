@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-v34';
+const CACHE_NAME = 'blakeout-v35';
 const ASSETS = [
     './',
     './index.html',
@@ -73,6 +73,17 @@ self.addEventListener('activate', (event) => {
     );
 });
 
+// Only our own files and the Firebase SDK belong in Cache Storage. Caching
+// every successful cross-origin GET persisted third-party responses on shared
+// devices and bloated the cache for no offline benefit.
+const SDK_ORIGIN = 'https://www.gstatic.com';
+
+function isCacheable(request) {
+    const url = new URL(request.url);
+    if (url.origin === self.location.origin) return true;
+    return url.origin === SDK_ORIGIN && url.pathname.startsWith('/firebasejs/');
+}
+
 self.addEventListener('fetch', (event) => {
     // Network-first: always try network, fall back to cache offline
     const request = event.request;
@@ -81,7 +92,7 @@ self.addEventListener('fetch', (event) => {
         : request;
     event.respondWith(
         fetch(networkRequest).then((response) => {
-            if (response.ok && request.method === 'GET') {
+            if (response.ok && request.method === 'GET' && isCacheable(request)) {
                 const clone = response.clone();
                 caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
             }

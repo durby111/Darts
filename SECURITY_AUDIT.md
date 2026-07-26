@@ -12,13 +12,13 @@ one Firebase project and the same client code.
 
 ## Summary
 
-| # | Severity | Finding | Blocked on |
-|---|----------|---------|------------|
-| 1 | 🔴 High | Roster is world-readable / writable / deletable by any anonymous user | Product decision |
-| 2 | 🔴 High | Stored XSS — unescaped player names in the winner modal | Nothing (mechanical) |
-| 3 | 🟠 Medium | Firebase API key has no HTTP referrer restriction | Nothing (console only) |
-| 4 | 🟠 Medium | No Content-Security-Policy | Needs iteration + broad testing |
-| 5 | 🟡 Low | Service worker caches all cross-origin GET responses | Nothing (small) |
+| # | Severity | Finding | Status |
+|---|----------|---------|--------|
+| 1 | 🔴 High | Roster is world-readable / writable / deletable by any anonymous user | **Open** — needs product decision |
+| 2 | 🔴 High | Stored XSS — unescaped player names in the winner modal | ✅ **Fixed** 2026-07-26 (`ui.js`, dev + prod) |
+| 3 | 🟠 Medium | Firebase API key has no HTTP referrer restriction | **Open** — console-only, owner action |
+| 4 | 🟠 Medium | No Content-Security-Policy | **Deferred** by owner |
+| 5 | 🟡 Low | Service worker caches all cross-origin GET responses | ✅ **Fixed** 2026-07-26 (`sw.js`, dev + prod) |
 | 6 | ℹ️ Info | Identity is self-asserted | Accepted tradeoff — no action |
 
 Clean: no `eval`, no `new Function`, no `document.write`, no `srcdoc`; every
@@ -61,7 +61,7 @@ reads therefore requires a product call, not just a rules edit.
 
 ---
 
-## 2. 🔴 Stored XSS in the winner modal
+## 2. 🔴 Stored XSS in the winner modal — ✅ FIXED 2026-07-26
 
 **Where:** `js/ui.js` — the only module with no `escapeHtml` helper.
 
@@ -85,6 +85,15 @@ active Firestore session.
 Add an `escapeHtml` helper to `ui.js` and escape both sinks. Isolated to one
 file; no behaviour change. Regression test: a player named `<img onerror>`
 must render as literal text.
+
+**Resolution (2026-07-26, dev + production):** `escapeHtml` added to `ui.js`;
+both sinks now escape the name, the Chicago score line and every 121 leg row.
+Covered by `test_player_name_xss`, which drives both summaries with an
+`<img src=x onerror=...>` name and asserts the handler never fires, no `<img>`
+element is created, the markup is escaped, and the name still reads correctly
+as text. **Verified exploitable before the fix** — against the previous `ui.js`
+the test failed with "injected handler executed", i.e. the payload really did
+run.
 
 ---
 
@@ -118,7 +127,7 @@ fails closed.
 
 ---
 
-## 5. 🟡 Service worker caches all cross-origin GETs
+## 5. 🟡 Service worker caches all cross-origin GETs — ✅ FIXED 2026-07-26
 
 **Where:** `sw.js` fetch handler — caches *every* successful GET, including
 third-party responses, into Cache Storage.
@@ -128,6 +137,12 @@ devices longer than necessary.
 
 **Remediation:** scope the `cache.put` to same-origin requests plus the gstatic
 SDK. One conditional; re-verify the offline path afterwards.
+
+**Resolution (2026-07-26, dev + production):** added an `isCacheable()` gate —
+same-origin, plus `https://www.gstatic.com/firebasejs/` so the SDK stays
+available offline. Firestore and identitytoolkit responses are no longer
+cached. Covered by `test_sw_caches_only_own_assets`, which evaluates the real
+predicate out of `sw.js` against sample URLs.
 
 ---
 
@@ -141,14 +156,12 @@ play. **No action** unless stats ever need to be tamper-proof.
 
 ## Suggested order
 
-1. **#2 (XSS)** — mechanical, isolated, no decisions, and it defuses the worst
-   consequence of #1.
-2. **#1 (rules)** — biggest real exposure. The rules edit is small; the product
-   decision about read/delete access is the actual work.
+1. ~~**#2 (XSS)**~~ — ✅ done 2026-07-26.
+2. **#1 (rules)** — biggest remaining exposure. The rules edit is small; the
+   product decision about read/delete access is the actual work.
 3. **#3 (API key)** — console-only, quick win.
-4. **#5 (SW caching)** — small cleanup.
-5. **#4 (CSP)** — largest and least certain; do it last, when nothing else is
-   in flight.
+4. ~~**#5 (SW caching)**~~ — ✅ done 2026-07-26.
+5. **#4 (CSP)** — deferred by owner; largest and least certain.
 
 ## Related pending item
 
