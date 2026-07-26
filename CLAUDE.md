@@ -86,6 +86,11 @@ The `usage` rules pin the write to an exact +1 on a two-field doc, so an
 anonymous client can't stuff arbitrary data or inflate the number by more
 than one per write.
 
+> **Security note:** `request.auth != null` is *not* a trust boundary here —
+> anonymous sign-in is open and the web API key is public, so any caller can
+> satisfy it. The `roster` rules currently allow world read/write/delete as a
+> result. See `SECURITY_AUDIT.md` (2026-07-26) for findings and remediation.
+
 ---
 
 ## Monthly usage counter
