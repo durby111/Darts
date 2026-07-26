@@ -7,7 +7,8 @@ import { game, initCricket, getConfigs, saveConfigs, getCurrentConfig, applyConf
 import { showChicagoGameSelection } from './chicago.js';
 import {
     initFirebase, onRosterChange, getRosterCache,
-    upsertPlayer, deletePlayer, findPlayerByName, getInitState, isRealEmail
+    upsertPlayer, deletePlayer, findPlayerByName, getInitState, isRealEmail,
+    getRosterShareUrl
 } from './firebase.js';
 import { showTeamBuilder, setTeamsConfirmedCallback } from './teams.js';
 import { initBaseballState } from './baseball.js';
@@ -461,6 +462,26 @@ function initRosterUI() {
     [nameInput, emailInput].forEach(el => {
         if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
     });
+
+    // Share roster: hands out the capability link for THIS roster. Anyone
+    // with it can view and edit the list, so the copy says so plainly.
+    const shareBtn = document.getElementById('rosterShareBtn');
+    const shareStatus = document.getElementById('rosterShareStatus');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', async () => {
+            const url = getRosterShareUrl();
+            let copied = false;
+            try {
+                await navigator.clipboard.writeText(url);
+                copied = true;
+            } catch { /* clipboard blocked — fall back to showing the link */ }
+            if (shareStatus) {
+                shareStatus.textContent = copied
+                    ? 'Link copied — anyone with it can edit this roster.'
+                    : url;
+            }
+        });
+    }
 }
 
 function renderRoster(roster) {

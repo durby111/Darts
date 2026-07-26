@@ -52,13 +52,30 @@ ready to ship.
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /roster/{email} {
-      allow read: if request.auth != null;
+
+    // Private per-install rosters (security fix 2026-07-26).
+    // Reachable ONLY by someone who already knows the 128-bit rosterId:
+    // /rosters is never listed, and collection-group queries on `players`
+    // are refused because those require a recursive-wildcard rule, which
+    // we deliberately do not write. Do not add `match /{path=**}/players`.
+    match /rosters/{rosterId}/players/{playerId} {
+      allow read: if request.auth != null
+        && rosterId.matches('^[0-9a-f]{32}$');
       allow create, update: if request.auth != null
-        && request.resource.data.email == email
+        && rosterId.matches('^[0-9a-f]{32}$')
+        && request.resource.data.keys().hasOnly(['email', 'name', 'updatedAt'])
+        && request.resource.data.email == playerId
         && request.resource.data.name is string
-        && request.resource.data.name.size() > 0;
-      allow delete: if request.auth != null;
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40;
+      allow delete: if request.auth != null
+        && rosterId.matches('^[0-9a-f]{32}$');
+    }
+
+    // Retired global roster — was world-readable/writable/deletable.
+    // Locked shut; delete the collection in the console once migrated.
+    match /roster/{document} {
+      allow read, write: if false;
     }
 
     match /usage/{period} {
@@ -88,8 +105,26 @@ than one per write.
 
 > **Security note:** `request.auth != null` is *not* a trust boundary here —
 > anonymous sign-in is open and the web API key is public, so any caller can
-> satisfy it. The `roster` rules currently allow world read/write/delete as a
-> result. See `SECURITY_AUDIT.md` (2026-07-26) for findings and remediation.
+> satisfy it. Roster privacy comes from the **unguessable `rosterId` path**,
+> not from auth. See `SECURITY_AUDIT.md` (2026-07-26).
+
+---
+
+## Roster model (private rosters, 2026-07-26)
+
+Each install owns a private roster at `rosters/{rosterId}/players/{playerId}`.
+
+- `rosterId` is 128 bits of `crypto.getRandomValues` held in
+  `localStorage['blakeout_roster_id']`, minted on first use.
+- **Sharing is opt-in**: *Manage Players → Share roster* copies a
+  `?roster=<id>` link. Opening it adopts that roster and strips the id from
+  the address bar. Malformed ids are rejected and replaced.
+- **Tradeoff — capability-link security.** Anyone holding the link has full
+  read/write/delete on that roster, like an unlisted video URL. This is the
+  strongest option that keeps zero-friction anonymous use; real per-account
+  isolation would require non-anonymous sign-in.
+- **Never add a `match /{path=**}/players/{id}` rule** — that would enable
+  collection-group queries and re-expose every roster at once.
 
 ---
 

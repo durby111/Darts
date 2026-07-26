@@ -1293,6 +1293,72 @@ async def test_setup_section_separation(page):
     return {"labels": labels, "tablet": metrics, "compact": compact}
 
 
+async def test_private_roster_scoping(page):
+    # Security regression (audit finding #1): the roster lived in ONE global
+    # collection, so any anonymous client could read every name/email and
+    # delete anyone. Each install now owns rosters/{128-bit id}/players/...
+    await fresh(page)
+
+    result = await page.evaluate("""
+        async () => {
+            const fb = await import('./js/firebase.js');
+            const first = fb.getRosterId();
+            return {
+                first,
+                stable: fb.getRosterId() === first,
+                stored: localStorage.getItem('blakeout_roster_id'),
+                share: fb.getRosterShareUrl(),
+                maxName: fb.MAX_NAME_LENGTH,
+            };
+        }
+    """)
+
+    import re as _re
+    assert _re.fullmatch(r"[0-9a-f]{32}", result["first"]), \
+        f"roster id must be 128 bits of hex: {result}"
+    assert result["stable"], "roster id must be stable within a session"
+    assert result["stored"] == result["first"], result
+    assert f"roster={result['first']}" in result["share"], result["share"]
+    assert result["maxName"] == 40, result
+
+    # A different device/profile must NOT land on the same roster.
+    await page.evaluate("localStorage.removeItem('blakeout_roster_id')")
+    second = await page.evaluate("""
+        (async () => (await import('./js/firebase.js')).getRosterId())()
+    """)
+    # Same module instance caches nothing, so this proves fresh generation.
+    assert _re.fullmatch(r"[0-9a-f]{32}", second), second
+    assert second != result["first"], \
+        "a device with no stored id must mint its own roster, not share one"
+
+    # Joining via ?roster=<id> adopts that roster and scrubs the id from the URL.
+    joined = result["first"]
+    await page.goto(f"{page.url.split('?')[0]}?roster={joined}",
+                    wait_until="domcontentloaded")
+    await page.wait_for_timeout(600)
+    adopted = await page.evaluate("""
+        (async () => {
+            const fb = await import('./js/firebase.js');
+            return { id: fb.getRosterId(), url: location.href };
+        })()
+    """)
+    assert adopted["id"] == joined, f"share link must adopt the roster: {adopted}"
+    assert "roster=" not in adopted["url"], \
+        f"roster id should not linger in the address bar: {adopted['url']}"
+
+    # A malformed/hostile id is rejected rather than used as a path segment.
+    await page.evaluate("localStorage.removeItem('blakeout_roster_id')")
+    await page.goto(f"{page.url.split('?')[0]}?roster=../../roster",
+                    wait_until="domcontentloaded")
+    await page.wait_for_timeout(600)
+    rejected = await page.evaluate("""
+        (async () => (await import('./js/firebase.js')).getRosterId())()
+    """)
+    assert _re.fullmatch(r"[0-9a-f]{32}", rejected), \
+        f"invalid roster id must be replaced, not trusted: {rejected}"
+    return {"id": result["first"], "second": second}
+
+
 async def test_player_name_xss(page):
     # Security regression (audit finding #2): ui.js interpolated player names
     # straight into innerHTML in the Chicago and 121 winner summaries. Names

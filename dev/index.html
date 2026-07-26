@@ -312,7 +312,11 @@
                         <input type="email" id="rosterAddEmail" placeholder="email@example.com" autocomplete="off">
                         <button class="btn btn--md btn--primary" id="rosterAddBtn">Add</button>
                     </div>
-                    <div class="roster-hint">Players sync across devices. Stats and emails attribute to whoever's name you pick at game start.</div>
+                    <div class="roster-hint">Your roster is private to this device. Use <strong>Share roster</strong> to let another device (a partner's phone, the bar tablet) use the same list — anyone with that link can view and edit it.</div>
+                    <div class="roster-share-row">
+                        <button class="btn btn--sm btn--neutral" id="rosterShareBtn">🔗 Share roster</button>
+                        <span class="roster-share-status" id="rosterShareStatus"></span>
+                    </div>
                 </div>
             </details>
 

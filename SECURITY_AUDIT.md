@@ -14,7 +14,7 @@ one Firebase project and the same client code.
 
 | # | Severity | Finding | Status |
 |---|----------|---------|--------|
-| 1 | 🔴 High | Roster is world-readable / writable / deletable by any anonymous user | **Open** — needs product decision |
+| 1 | 🔴 High | Roster is world-readable / writable / deletable by any anonymous user | ✅ **Fixed** 2026-07-26 (private rosters) — *rules must be published* |
 | 2 | 🔴 High | Stored XSS — unescaped player names in the winner modal | ✅ **Fixed** 2026-07-26 (`ui.js`, dev + prod) |
 | 3 | 🟠 Medium | Firebase API key has no HTTP referrer restriction | **Open** — console-only, owner action |
 | 4 | 🟠 Medium | No Content-Security-Policy | **Deferred** by owner |
@@ -27,7 +27,7 @@ beyond the intentionally-public Firebase web config.
 
 ---
 
-## 1. 🔴 Roster is world-readable, writable and deletable
+## 1. 🔴 Roster is world-readable, writable and deletable — ✅ FIXED 2026-07-26
 
 **Where:** published Firestore rules, `match /roster/{email}`.
 
@@ -58,6 +58,40 @@ realistic mitigations are:
 **Decision needed:** locking reads to non-anonymous users would break the app as
 designed (the roster is meant to sync silently across devices). Tightening
 reads therefore requires a product call, not just a rules edit.
+
+**Resolution (2026-07-26, dev + production).** Owner decisions: emails are
+load-bearing (cross-device identity + planned emailing), the app is public, and
+"each roster should be private to that user", with link-sharing acceptable.
+
+The single global `roster` collection was therefore replaced with **private
+per-install rosters**:
+
+```
+rosters/{rosterId}/players/{playerId}      rosterId = 128 random bits
+```
+
+- `rosterId` lives in `localStorage['blakeout_roster_id']`, minted on first use.
+- `/rosters` is never listed, and collection-group queries on `players` are
+  refused because those need a recursive-wildcard rule we deliberately omit.
+  A roster is reachable only by someone who already knows its id.
+- Sharing is opt-in via *Manage Players → Share roster* (`?roster=<id>`), which
+  adopts the roster then strips the id from the address bar. Malformed ids are
+  rejected rather than used as a path segment.
+- Names are capped at 40 chars client-side and in rules; writes are restricted
+  to exactly `email`/`name`/`updatedAt`.
+- The old `roster` collection is locked shut in rules.
+
+Covered by `test_private_roster_scoping` (id shape, stability, per-device
+uniqueness, share-link adoption, URL scrubbing, hostile-id rejection).
+
+> ⚠️ **Residual risk — capability-link security.** Anyone holding a roster link
+> has full read/write/delete on that roster, like an unlisted video URL. This
+> is the strongest model that preserves zero-friction anonymous use; real
+> per-account isolation would require non-anonymous sign-in. Accepted by owner.
+>
+> ⚠️ **Action required:** the code is deployed but the exposure is not closed
+> until the updated rules in `CLAUDE.md` are published. Until then the old
+> global `roster` collection remains world-readable.
 
 ---
 
@@ -157,8 +191,7 @@ play. **No action** unless stats ever need to be tamper-proof.
 ## Suggested order
 
 1. ~~**#2 (XSS)**~~ — ✅ done 2026-07-26.
-2. **#1 (rules)** — biggest remaining exposure. The rules edit is small; the
-   product decision about read/delete access is the actual work.
+2. ~~**#1 (roster privacy)**~~ — ✅ code done 2026-07-26; **rules still to be published**.
 3. **#3 (API key)** — console-only, quick win.
 4. ~~**#5 (SW caching)**~~ — ✅ done 2026-07-26.
 5. **#4 (CSP)** — deferred by owner; largest and least certain.

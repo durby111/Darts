@@ -22,6 +22,100 @@ let rosterListeners = [];
 let initState = 'pending';   // pending | ready | error
 let initError = null;
 
+/* ============================================
+   Private roster scoping (SECURITY_AUDIT finding #1)
+   ============================================
+   The roster used to live in ONE global `roster` collection, so any client
+   — including an anonymous stranger — could read every player's name and
+   email, and delete any of them. Anonymous auth is open, so
+   `request.auth != null` gated nothing.
+
+   Each install now owns a private roster at:
+
+       rosters/{rosterId}/players/{playerId}
+
+   `rosterId` is 128 bits of crypto randomness held in localStorage. It is
+   never listed or discoverable: Firestore rules match only this exact
+   path shape, and collection-group queries on `players` are refused
+   because that requires a recursive-wildcard rule we deliberately don't
+   write. So a roster is reachable only by someone who already knows its id.
+
+   Sharing is explicit and opt-in: `?roster=<id>` adopts an existing roster
+   (used by the Share link), which is how a couple or a bar crew keep one
+   list across devices.
+
+   TRADEOFF — this is capability-link security, like an unlisted video URL.
+   Anyone holding the link has full access to that roster. It is not per-
+   account isolation; that would require real (non-anonymous) sign-in.
+   ============================================ */
+
+const ROSTER_ID_KEY = 'blakeout_roster_id';
+const ROSTER_ID_RE = /^[0-9a-f]{32}$/;
+
+// Mirrors the cap enforced by the Firestore rules, so an over-long name is
+// trimmed here instead of being rejected by the server with a vague error.
+export const MAX_NAME_LENGTH = 40;
+
+function randomRosterId() {
+    const bytes = new Uint8Array(16);           // 128 bits
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * The roster this device belongs to. Adopts `?roster=<id>` when present
+ * (then strips it from the URL so the id doesn't linger in screenshots or
+ * the back stack), otherwise reuses or mints a private id.
+ */
+export function getRosterId() {
+    let adopted = null;
+    try {
+        const fromUrl = new URLSearchParams(location.search).get('roster');
+        if (fromUrl && ROSTER_ID_RE.test(fromUrl)) adopted = fromUrl;
+    } catch { /* ignore malformed URLs */ }
+
+    let id = null;
+    try {
+        id = localStorage.getItem(ROSTER_ID_KEY);
+    } catch { /* private mode */ }
+
+    if (adopted && adopted !== id) {
+        id = adopted;
+        try { localStorage.setItem(ROSTER_ID_KEY, id); } catch { /* non-fatal */ }
+    }
+    if (!id || !ROSTER_ID_RE.test(id)) {
+        id = randomRosterId();
+        try { localStorage.setItem(ROSTER_ID_KEY, id); } catch { /* non-fatal */ }
+    }
+
+    if (adopted) {
+        // Keep the id out of the visible URL once it's stored.
+        try {
+            const url = new URL(location.href);
+            url.searchParams.delete('roster');
+            history.replaceState(null, '', url.pathname + url.search + url.hash);
+        } catch { /* non-fatal */ }
+    }
+    return id;
+}
+
+/** Shareable link that lets another device join this roster. */
+export function getRosterShareUrl() {
+    const url = new URL(location.href);
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set('roster', getRosterId());
+    return url.toString();
+}
+
+function playersCollection() {
+    return sdk.collection(db, 'rosters', getRosterId(), 'players');
+}
+
+function playerDoc(id) {
+    return sdk.doc(db, 'rosters', getRosterId(), 'players', id);
+}
+
 export async function initFirebase() {
     try {
         // Dynamic imports — failures here are caught and logged, not thrown
@@ -64,7 +158,7 @@ export async function initFirebase() {
         // Live roster snapshot. Re-fires on every remote change AND on local
         // writes from this device, so the UI always reflects current state.
         sdk.onSnapshot(
-            sdk.collection(db, 'roster'),
+            playersCollection(),
             (snap) => {
                 rosterCache = snap.docs
                     .map(d => d.data())
@@ -110,11 +204,12 @@ export function onRosterChange(fn) {
 }
 
 /**
- * Add or update a roster player. Doc ID is the email lowercased + trimmed.
+ * Add or update a roster player. Doc ID is the email lowercased + trimmed,
+ * inside this device's private roster.
  * Uses merge: true so future stats writes don't clobber profile fields.
  */
 export async function upsertPlayer({ email, name }) {
-    const cleanName = (name || '').trim();
+    const cleanName = (name || '').trim().slice(0, MAX_NAME_LENGTH);
     if (!cleanName) throw new Error('name required');
     if (!db || !sdk) throw new Error('Roster is offline. Check your connection and refresh.');
 
@@ -124,7 +219,7 @@ export async function upsertPlayer({ email, name }) {
     // request.resource.data.email == doc id — still pass.
     const id = normalizeEmail(email) || `noemail-${cryptoId()}`;
 
-    const ref = sdk.doc(db, 'roster', id);
+    const ref = playerDoc(id);
     await sdk.setDoc(ref, {
         email: id,
         name: cleanName,
@@ -236,7 +331,7 @@ export function isRealEmail(value) {
 export async function deletePlayer(email) {
     const id = normalizeEmail(email);
     if (!id || !db || !sdk) return;
-    await sdk.deleteDoc(sdk.doc(db, 'roster', id));
+    await sdk.deleteDoc(playerDoc(id));
 }
 
 export function findPlayerByName(name) {

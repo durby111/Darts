@@ -296,7 +296,17 @@ From `SECURITY_AUDIT.md`:
   `gstatic.com/firebasejs/` (kept so the SDK works offline). Firestore and
   identitytoolkit responses are no longer stored.
 
-Still open and owner-actioned: roster Firestore rules (#1), API key referrer
+- **Private rosters (finding #1)** — the single global `roster` collection let
+  any anonymous client read every name/email and delete anyone. Replaced with
+  `rosters/{rosterId}/players/{playerId}`, where `rosterId` is 128 random bits
+  in `localStorage['blakeout_roster_id']`. Sharing is opt-in via *Manage
+  Players → Share roster* (`?roster=<id>`, adopted then stripped from the URL).
+  **Never add a `match /{path=**}/players/{id}` rule** — that enables
+  collection-group queries and would re-expose every roster at once. Residual
+  risk is capability-link: anyone with the link can edit that roster.
+
+Still open and owner-actioned: publish the updated Firestore rules (the #1 code
+is live but the exposure isn't closed until they are), API key referrer
 restriction (#3), CSP (#4, deferred).
 
 ## Bug fixes (dev)
@@ -320,11 +330,11 @@ restriction (#3), CSP (#4, deferred).
 
 ## Tests
 
-- `tests/dev_test.py` — 47-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 48-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01, X01 live preview, keypad skin, support button, monthly
-  usage counter, QR contrast per theme, player-name XSS, SW cache scope).
+  usage counter, QR contrast per theme, player-name XSS, SW cache scope, private roster scoping).
   `python3 dev/tests/dev_test.py`.
 - `tests/visual_qa.py` — screenshot dump for theme/legibility review.
 - Legacy `scripts/headless_test.py --target dev` still has stale prod-era count
