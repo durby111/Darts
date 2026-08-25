@@ -221,6 +221,23 @@ roster section just shows "(offline)".
 
 ---
 
+## v2.4.2 production release (2026-08-24)
+
+- **DC Mode scoreboard style** — Settings now offers Modern, Classic, and DC
+  Mode under X01 & Cricket Style. The persisted legacy key remains
+  `blakeout_x01_skin`; `data-scoreboard-mode` is the semantic styling hook.
+- DC Mode provides a black/red tournament-board presentation for X01,
+  registry Cricket variants, Hammer/Team Hammer, Double Down, and Team
+  Cricket/400. Baseball and unrelated target/party games remain unchanged.
+- The support button now reads "🥤 Buy me a Monster" while retaining its Cash
+  App destination, accessible label, and 48px touch target.
+- Responsive coverage includes all seven registry Cricket variants with four
+  players plus real Team Hammer and Team Cricket setups at 390×844 / 1.5×.
+- Validation at promotion: 49/49 dev tests plus 18/18 production smoke;
+  production service worker cache `blakeout-v38`.
+
+---
+
 ## Cricket marks visual spec
 
 The closed-cell rendering mirrors how a chalkboard scorekeeper would draw it,

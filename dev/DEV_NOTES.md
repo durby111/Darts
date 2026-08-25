@@ -1,4 +1,4 @@
-# BlakeOut v2.4-dev — Overhaul Notes
+# BlakeOut v2.4.2-dev — Overhaul Notes
 
 Dev-only release. Production (repo root) untouched — promote by copying
 `/dev/` → root as usual, and fold these notes into `CLAUDE.md` at that time.
@@ -232,7 +232,7 @@ now `--color-surface` mix + `--bg-image-overlay`.
 
 ## Support / tip button
 
-The bare `$MikeDurbin` text link was replaced by a "🍺 Buy me a beer" pill
+The bare `$MikeDurbin` text link was replaced by a "🥤 Buy me a Monster" pill
 (`#supportBtn`) following the Buy-Me-a-Coffee / Ko-fi convention: fixed amber
 brand colours in every theme, 48px tap target, `Cash App · $MikeDurbin`
 subtitle, and `rel="noopener noreferrer"` on the `_blank` link. It still

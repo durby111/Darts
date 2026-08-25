@@ -579,8 +579,8 @@
     font-size: var(--font-sm);
 }
 
-/* "Buy me a beer" tip button — the Buy-Me-a-Coffee/Ko-fi convention, but
-   pub-flavoured and pointed at Cash App. Deliberately keeps its own amber
+/* "Buy me a Monster" tip button — the Buy-Me-a-Coffee/Ko-fi convention, but
+    energy-drink themed and pointed at Cash App. Deliberately keeps its own amber
    brand colours in every theme so it stays instantly recognisable. */
 .support-btn {
     display: inline-flex;

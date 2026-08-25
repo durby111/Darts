@@ -1724,8 +1724,8 @@ async def test_dc_scoreboard_family(page):
 
 async def test_support_link(page):
     # The Cash App tip used to be a plain text link nobody noticed. It is now
-    # a "Buy me a beer" button (the Buy-Me-a-Coffee/Ko-fi convention) and has
-    # to stay obvious: real button chrome, a big tap target, and the beer
+    # a "Buy me a Monster" button (the Buy-Me-a-Coffee/Ko-fi convention) and has
+    # to stay obvious: real button chrome, a big tap target, and the Monster
     # wording — while still pointing at Cash App with a safe target=_blank.
     await fresh(page)
     button = page.locator("#supportBtn")
@@ -1740,10 +1740,10 @@ async def test_support_link(page):
 
     label = (await button.get_attribute("aria-label") or "")
     text = (await button.inner_text()).lower()
-    assert "beer" in text, f"button should read as a beer tip: {text!r}"
+    assert "monster" in text, f"button should read as a Monster tip: {text!r}"
     assert "cash app" in text, f"button should name the payment method: {text!r}"
-    assert "beer" in label.lower() and "cash app" in label.lower(), f"aria-label: {label!r}"
-    assert "🍺" in await button.inner_html(), "beer icon missing"
+    assert "monster" in label.lower() and "cash app" in label.lower(), f"aria-label: {label!r}"
+    assert "🥤" in await button.inner_html(), "drink icon missing"
 
     style = await page.evaluate("""
         () => {

@@ -951,3 +951,700 @@
     border-radius: var(--radius-pill);
     background: color-mix(in srgb, var(--color-surface-elevated) 80%, transparent);
 }
+
+/* ============================================
+   Scoreboard mode — "DC"
+   ============================================
+   A black/red tournament-board presentation for X01 and Cricket-family
+    engines. Scoping comes from app.js so unrelated target/party layouts stay untouched.
+   ============================================ */
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] {
+    --dc-red: #ba0014;
+    --dc-red-dark: #76000f;
+    --dc-yellow: #fff000;
+    --dc-silver: #eeeeee;
+    --dc-gray: #858585;
+    --dc-border: #8b8b8b;
+    background: #000;
+    color: #fff;
+    font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Header: active name band + reversed active score, with the round on the
+   narrow center rail. This remains responsive to the existing 1–4 player
+   grid rather than imposing a two-player-only DOM. */
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .score-header {
+    background: #000;
+    border-bottom: 2px solid var(--dc-silver);
+    column-gap: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .player-header {
+    padding: 4px 6px 6px;
+    background: #000;
+    color: var(--dc-gray);
+    opacity: 1;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .player-name {
+    min-height: 1.2em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--dc-gray);
+    background: #000;
+    font-family: inherit;
+    font-size: calc(clamp(1.35rem, 4.1vw, 2.55rem) * var(--ui-scale));
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .player-header.active .player-name {
+    color: #fff;
+    background: linear-gradient(180deg, #c9001c, var(--dc-red-dark));
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .score-display-header {
+    position: relative;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .thrower-name {
+    max-width: 100%;
+    color: #aaa;
+    font-size: clamp(0.6rem, min(calc(2vw * var(--ui-scale)), 8cqi), 0.9rem);
+    line-height: 1.05;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .thrower-name.active {
+    color: var(--dc-yellow);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .score-big {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    padding: 2px 6px;
+    border: 0;
+    border-radius: 0;
+    color: #fff;
+    background: #000;
+    box-shadow: none;
+    text-shadow: none;
+    font-family: inherit;
+    font-size: calc(clamp(3rem, 10vw, 5.25rem) * var(--ui-scale));
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .player-header.active .score-big {
+    color: #000;
+    background: var(--dc-silver);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .player-header.active .score-big.score-preview {
+    color: var(--dc-yellow);
+    background: #000;
+    box-shadow: none;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .player-header.active .score-big.score-preview-bust {
+    color: #ff3048;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .avg-small {
+    position: absolute;
+    z-index: 1;
+    top: 3px;
+    left: 5px;
+    color: var(--dc-red);
+    font-size: calc(clamp(0.65rem, 1.6vw, 1rem) * var(--ui-scale));
+    font-weight: 800;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .score-delta {
+    position: absolute;
+    z-index: 2;
+    right: 5px;
+    bottom: 3px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: var(--dc-yellow);
+    background: transparent;
+    font-weight: 900;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .center-logo {
+    min-width: 54px;
+    padding: 3px 4px;
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .end-game-btn {
+    min-width: 0;
+    min-height: 30px;
+    margin: 0 0 3px;
+    padding: 3px 6px;
+    border: 1px solid var(--dc-border);
+    border-radius: 4px;
+    color: #fff;
+    background: #111;
+    font-family: inherit;
+    font-size: clamp(0.65rem, 1.5vw, 0.85rem);
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .round-badge {
+    width: calc(clamp(46px, 7vw, 66px) * var(--ui-scale));
+    height: calc(clamp(46px, 7vw, 66px) * var(--ui-scale));
+    border-radius: 8px;
+    color: #fff;
+    background: linear-gradient(180deg, #c9001c, var(--dc-red-dark));
+    box-shadow: none;
+    font-family: inherit;
+    font-weight: 900;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .version-text {
+    font-size: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .version-text::after {
+    content: "DC MODE";
+    color: #aaa;
+    font-size: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+/* X01 score table */
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .x01-main {
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .score-history-col {
+    padding-inline: var(--space-sm);
+    border: 0;
+    background: #000;
+    scrollbar-color: var(--dc-border) #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .round-numbers-col {
+    min-width: clamp(54px, 10vw, 88px);
+    padding: var(--space-xs) 0;
+    border-inline: 3px solid var(--dc-border);
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .round-number {
+    width: 100%;
+    color: #666;
+    font-family: inherit;
+    font-size: calc(var(--font-lg) * var(--ui-scale));
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .round-number.current {
+    color: #777;
+    background: transparent;
+    border-radius: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry {
+    color: #777;
+    font-family: inherit;
+    font-weight: 900;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry.current {
+    color: var(--dc-yellow);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry.bust {
+    color: #ff3048;
+}
+
+/* X01 reveal dock: the existing quick-score columns become the keypad
+   gutters, while the center pad supplies the familiar silver number keys. */
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] #x01Controls {
+    min-height: min(43dvh, 390px);
+    padding: 6px;
+    border-top: 3px solid var(--dc-red);
+    color: #fff;
+    background: #000;
+    font-family: inherit;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] #x01Controls > * {
+    width: 100%;
+    max-width: 600px;
+    margin-inline: auto;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .checkout-suggestion {
+    margin-bottom: 3px;
+    padding: 4px 8px;
+    border: 0;
+    border-radius: 0;
+    color: var(--dc-yellow);
+    background: #000;
+    font-size: calc(var(--font-xl) * var(--ui-scale));
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .finish-indicator {
+    min-height: 1.2em;
+    padding: 2px;
+    color: var(--dc-yellow);
+    font-size: var(--font-sm);
+    letter-spacing: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .x01-input-row {
+    gap: 7px;
+    margin-bottom: 6px;
+    align-items: stretch;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .x01-input-row .btn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .x01-bottom-row .btn {
+    border: 2px solid var(--dc-silver);
+    border-radius: 5px;
+    color: #fff;
+    background: linear-gradient(180deg, #d3132b, var(--dc-red-dark));
+    box-shadow: none;
+    font-family: inherit;
+    font-weight: 900;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] #undoBtnX01 {
+    color: #111;
+    background: linear-gradient(180deg, #fff028, #b89c00);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .input-display {
+    min-height: calc(clamp(48px, 7dvh, 66px) * var(--ui-scale));
+    padding: 5px 12px;
+    border: 2px solid var(--dc-silver);
+    border-radius: 5px;
+    color: #fff;
+    background: #000;
+    box-shadow: none;
+    font-family: inherit;
+    font-weight: 500;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .input-display.remaining-mode {
+    border-color: var(--dc-yellow);
+    color: var(--dc-yellow);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .number-pad {
+    --dc-quick-col: clamp(48px, 10vw, 66px);
+    display: grid;
+    grid-template-columns: var(--dc-quick-col) minmax(0, 1fr) var(--dc-quick-col);
+    gap: 0;
+    width: 100%;
+    min-height: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .quick-col {
+    width: auto;
+    gap: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .pad-center {
+    gap: 0;
+    grid-auto-rows: 1fr;
+    min-width: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .x01-num-btn {
+    min-width: 0;
+    min-height: 44px;
+    padding: calc(clamp(6px, 1.1dvh, 12px) * var(--ui-scale));
+    border: 1px groove #777;
+    border-radius: 5px;
+    color: #090909;
+    background: linear-gradient(180deg, #f8f8f8, #a6a6a6);
+    box-shadow: none;
+    font-family: inherit;
+    font-size: calc(clamp(1.35rem, 3.5dvh, 2rem) * var(--ui-scale));
+    font-weight: 900;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .x01-num-btn[data-op] {
+    color: #fff;
+    background: linear-gradient(180deg, #4c4c4c, #060606);
+    border-color: #777;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .x01-quick-btn {
+    min-width: 0;
+    padding: 2px;
+    border: 0;
+    border-radius: 0;
+    color: #bbb;
+    background: #000;
+    box-shadow: none;
+    font-family: inherit;
+    font-size: calc(clamp(0.85rem, 2dvh, 1.25rem) * var(--ui-scale));
+    font-weight: 500;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .x01-bottom-row {
+    gap: 7px;
+    margin-top: 6px;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] #x01BustBtn {
+    background: #2b2b2b;
+}
+
+/* Standard Cricket engines: black chalkboard, central red target rail and
+   yellow pending marks. Spanish/Minnesota retain their compact geometry. */
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-main {
+    padding: 4px 0;
+    background: #000;
+    scrollbar-color: var(--dc-border) #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #cricketGrid {
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-row {
+    border-bottom: 1px solid #292929;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-cell {
+    border-color: var(--dc-border);
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-cell.active {
+    background: linear-gradient(90deg, rgba(186, 0, 20, 0.13), transparent 24%, transparent 76%, rgba(186, 0, 20, 0.13));
+    box-shadow: inset 3px 0 var(--dc-red), inset -3px 0 var(--dc-red);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .mark {
+    --color-primary: var(--dc-red);
+    --color-pending: var(--dc-yellow);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-buttons,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .buttons-container {
+    align-self: stretch;
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-buttons {
+    width: 100%;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 0.7fr);
+    gap: 2px;
+    padding-inline: 2px;
+    container-type: inline-size;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-num-btn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-dt-btn {
+    min-width: 0;
+    border: 1px solid var(--dc-silver);
+    border-radius: 5px;
+    color: #fff;
+    background: linear-gradient(180deg, #c9001c, var(--dc-red-dark));
+    box-shadow: none;
+    text-shadow: none;
+    font-family: inherit;
+    padding-inline: 1px;
+    overflow: hidden;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-num-btn {
+    font-size: min(calc(clamp(1.15rem, 4dvh, 2.6rem) * var(--ui-scale)), 30cqi);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-dt-btn {
+    font-size: min(calc(clamp(0.75rem, 2.3dvh, 1.4rem) * var(--ui-scale)), 20cqi);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-num-btn.minnesota {
+    font-size: min(calc(clamp(1rem, 3dvh, 2rem) * var(--ui-scale)), 18cqi);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-num-btn.dimmed,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-dt-btn.dimmed {
+    color: #666;
+    background: #151515;
+    border-color: #444;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-dt-btn.fake-spacer {
+    border: 0;
+    background: transparent;
+}
+
+/* Shared Cricket reveal bar. */
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .bottom-controls,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-controls,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-controls {
+    border-top: 3px solid var(--dc-red);
+    color: #fff;
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .pending-text,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-pending,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-pending {
+    color: var(--dc-yellow);
+    font-family: inherit;
+    font-weight: 700;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #undoBtn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #doubleDownUndoBtn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #teamCricketUndoBtn {
+    border: 2px solid var(--dc-silver);
+    color: #111;
+    background: linear-gradient(180deg, #fff028, #b89c00);
+    box-shadow: none;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #missBtn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #enterBtn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #doubleDownMissBtn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #doubleDownEndTurnBtn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #teamCricketMissBtn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #teamCricketEnterBtn {
+    border: 2px solid var(--dc-silver);
+    color: #fff;
+    background: linear-gradient(180deg, #d3132b, var(--dc-red-dark));
+    box-shadow: none;
+}
+
+/* Hammer and Team Hammer use the shared target engine while remaining part
+   of the Cricket scoreboard family. Other target games are left untouched. */
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-game-main {
+    padding: var(--space-md);
+    color: #fff;
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-stage {
+    color: #aaa;
+    font-family: inherit;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-value {
+    width: min(78vw, 420px);
+    min-width: 0;
+    padding: var(--space-md);
+    border: 2px solid var(--dc-silver);
+    border-radius: 5px;
+    color: #fff;
+    background: linear-gradient(180deg, #c9001c, var(--dc-red-dark));
+    box-shadow: none;
+    font-family: inherit;
+    letter-spacing: 0;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-hint {
+    max-width: min(92%, 680px);
+    color: #aaa;
+    font-family: inherit;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #targetGameControls {
+    min-height: 0;
+    padding: 6px;
+    border-top: 3px solid var(--dc-red);
+    color: #fff;
+    background: #000;
+    font-family: inherit;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-turn-display {
+    margin-bottom: 4px;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-turn-label {
+    color: #aaa;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-turn-score {
+    color: var(--dc-yellow);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-hit-buttons,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-bottom-row {
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-hit-buttons .btn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .target-bottom-row .btn {
+    min-width: 0;
+    padding-inline: 3px;
+    border: 2px solid var(--dc-silver);
+    border-radius: 5px;
+    color: #fff;
+    background: linear-gradient(180deg, #d3132b, var(--dc-red-dark));
+    box-shadow: none;
+    font-family: inherit;
+    font-weight: 900;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #targetUndoBtn {
+    color: #111;
+    background: linear-gradient(180deg, #fff028, #b89c00);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #targetMissDartBtn,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] #targetClearBtn {
+    background: #292929;
+}
+
+/* Double Down's dedicated Cricket progression. */
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-main {
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-phase {
+    color: #fff;
+    background: var(--dc-red);
+    padding: 4px 14px;
+    border-radius: 4px;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-hint,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-player {
+    color: #aaa;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-target,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-cricket-row,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-player {
+    border-color: var(--dc-border);
+    border-radius: 5px;
+    color: #fff;
+    background: #090909;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-player.active {
+    border-left: 5px solid var(--dc-red);
+    color: #fff;
+    background: #151515;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-hit-buttons button,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-target {
+    border: 1px solid var(--dc-silver);
+    color: #fff;
+    background: linear-gradient(180deg, #c9001c, var(--dc-red-dark));
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .double-down-marks {
+    color: var(--dc-yellow);
+}
+
+/* Team Cricket/400 keeps four mark lanes but adopts the same central rail. */
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-main {
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-rules-label,
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-center-heading {
+    color: #aaa;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-member-heading {
+    border-radius: 0;
+    color: var(--dc-gray);
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-member-heading.active {
+    color: #fff;
+    background: var(--dc-red);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-row {
+    border-bottom-color: #292929;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-mark-cell {
+    border-color: var(--dc-border);
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-mark-cell.active {
+    background: rgba(186, 0, 20, 0.13);
+    box-shadow: inset 3px 0 var(--dc-red), inset -3px 0 var(--dc-red);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-mark-cell .mark {
+    --color-primary: var(--dc-red);
+    --color-pending: var(--dc-yellow);
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-target-buttons {
+    align-self: stretch;
+    border-inline: 2px solid var(--dc-border);
+    background: #000;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .team-cricket-target-buttons button {
+    border: 1px solid var(--dc-silver);
+    border-radius: 5px;
+    color: #fff;
+    background: linear-gradient(180deg, #c9001c, var(--dc-red-dark));
+}
+
+/* Compact devices: retain touch targets while keeping 3/4-player headers and
+   long Cricket variants inside the viewport. */
+@media (max-width: 600px) {
+    :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .player-header {
+        padding-inline: 3px;
+    }
+
+    :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .player-name {
+        font-size: clamp(0.65rem, min(calc(4vw * var(--ui-scale)), 16cqi), 1.35rem);
+    }
+
+    :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .score-big {
+        font-size: clamp(2rem, min(calc(12vw * var(--ui-scale)), 38cqi), 3.7rem);
+        padding-inline: 2px;
+    }
+
+    :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .avg-small {
+        display: none;
+    }
+
+    :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] #x01Controls {
+        min-height: 42dvh;
+        padding: 4px;
+    }
+
+    :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .number-pad {
+        --dc-quick-col: clamp(42px, 11vw, 52px);
+    }
+
+    :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .x01-num-btn {
+        min-height: 44px;
+        border-radius: 4px;
+    }
+
+    :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="x01"] .x01-quick-btn {
+        font-size: clamp(0.72rem, 3vw, 0.95rem);
+    }
+}
