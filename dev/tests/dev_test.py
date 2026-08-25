@@ -1474,8 +1474,13 @@ async def test_qr_visible_in_all_themes(page):
     # check it actually has dark-on-light contrast in every theme.
     from io import BytesIO
     from PIL import Image
+    import zxingcpp
 
     await fresh(page)
+    href = await page.locator("#setupQRLink").get_attribute("href")
+    label = (await page.locator(".setup-qr-url").inner_text()).strip()
+    assert href == "https://blakeoutdarts.com/", f"QR link is stale: {href!r}"
+    assert label == "blakeoutdarts.com", f"QR label is stale: {label!r}"
     themes = ["blue", "arctic", "sunburst", "neon"]
     results = {}
 
@@ -1489,8 +1494,13 @@ async def test_qr_visible_in_all_themes(page):
         await page.wait_for_timeout(150)
         shot = await tile.screenshot()
 
-        grey = Image.open(BytesIO(shot)).convert("L")
-        pixels = list(grey.getdata())
+        image = Image.open(BytesIO(shot))
+        decoded = zxingcpp.read_barcode(image)
+        assert decoded and decoded.text == "https://blakeoutdarts.com/", \
+            f"{theme}: QR payload is stale or unreadable: {decoded}"
+
+        grey = image.convert("L")
+        pixels = list(grey.get_flattened_data())
         total = len(pixels)
         dark = sum(1 for p in pixels if p < 60) / total
         light = sum(1 for p in pixels if p > 200) / total

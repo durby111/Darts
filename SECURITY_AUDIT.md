@@ -1,7 +1,7 @@
 # BlakeOut — Security Audit
 
 **Date:** 2026-07-26
-**Scope:** production root (`durby111.github.io/Darts/`) and `dev/`, at commit `c358145`.
+**Scope:** production root (now `blakeoutdarts.com/`) and `dev/`, at commit `c358145`.
 **Method:** source review of `js/`, `sw.js`, `index.html`, plus live verification
 against the Firebase project `blakeout` using the public web config.
 
@@ -140,7 +140,8 @@ key is unrestricted.
 pollution and Spark-tier quota abuse.
 
 **Remediation:** Firebase Console → Project Settings → API keys → HTTP referrer
-allowlist (`durby111.github.io/*` covers prod and dev). Console-only, no code.
+allowlist (`https://blakeoutdarts.com/*`, `https://www.blakeoutdarts.com/*`,
+and `https://durby111.github.io/*` during migration). Console-only, no code.
 Note this raises the bar but is not an authentication control.
 
 ---

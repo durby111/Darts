@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-v36';
+const CACHE_NAME = 'blakeout-v37';
 const ASSETS = [
     './',
     './index.html',

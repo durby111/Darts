@@ -13,8 +13,8 @@ the same commit.
 ## Repo layout
 
 ```
-/                  → live (production) build, served at durby111.github.io/Darts/
-/dev/              → dev build, served at durby111.github.io/Darts/dev/
+/                  → live (production) build, served at blakeoutdarts.com/
+/dev/              → dev build, served at blakeoutdarts.com/dev/
                      ALL active work happens here. Promote to root when stable.
 /dev/js/           → ES modules
 /dev/css/          → split per concern (variables, layout, components, games)
@@ -30,7 +30,9 @@ ready to ship.
 
 ## Hosting & deploy
 
-- **GitHub Pages** at `https://durby111.github.io/Darts/`. Branch: `main`.
+- **GitHub Pages** at `https://blakeoutdarts.com/`. Branch: `main`.
+- `www.blakeoutdarts.com` and the repository's `github.io` URL redirect to the
+  apex domain after DNS and Pages certificate provisioning complete.
 - Push to `main` → ~1 min rebuild → live.
 - No build step. Files are served as-is, so any module that doesn't exist on
   disk will 404 in the browser.
