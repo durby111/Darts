@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="blue">
+<head>
+<meta charset="UTF-8">
+<title>X01 Concept 3 — Slate</title>
+<link rel="stylesheet" href="_proto.css">
+<style>
+/* ============================================
+   CONCEPT 3 — "SLATE"
+   Minimal. One accent. Nothing decorative.
+   ============================================
+   Thesis: a scoreboard is read at a glance from two metres away in bad
+   light, usually while holding a drink. Every gradient, border and glow
+   is noise competing with the only two numbers that matter. So: flat
+   surfaces, hairline rules, one accent colour used exclusively to answer
+   "whose turn is it", and type sized by importance rather than by
+   available space.
+   ============================================ */
+
+.sl-app { padding: 0; }
+
+.sl-top {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.sl-p {
+    padding: var(--space-lg) var(--space-xl) var(--space-md);
+    position: relative;
+}
+
+.sl-p + .sl-p { border-left: 1px solid var(--color-border); }
+
+.sl-p.active::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+    background: var(--color-primary-light);
+}
+
+.sl-nm {
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+}
+
+.sl-p.active .sl-nm { color: var(--color-primary-light); }
+
+.sl-sc {
+    font-size: 92px;
+    font-weight: 300;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    margin-top: 2px;
+}
+
+.sl-p.active .sl-sc { font-weight: 500; }
+
+.sl-meta {
+    display: flex;
+    gap: var(--space-xl);
+    margin-top: var(--space-sm);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--color-text-dim);
+}
+
+.sl-meta b { color: var(--color-text-muted); font-weight: 600; }
+
+.sl-dl { font-size: 18px; color: var(--color-primary-light); letter-spacing: 0.08em; }
+
+/* --- Middle: history + checkout --- */
+.sl-mid {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: 1fr 56px 1fr;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.sl-lane {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding-bottom: var(--space-sm);
+}
+
+.sl-lane.n { border-inline: 1px solid var(--color-border); }
+
+.sl-c {
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 300;
+    color: var(--color-text-dim);
+}
+
+.sl-lane .sl-c:nth-last-child(-n+3) { color: var(--color-text-muted); }
+.sl-lane .sl-c:nth-last-child(-n+1) { color: var(--color-text); }
+.sl-c.n { font-size: 13px; letter-spacing: 0.1em; }
+.sl-c.n.cur { color: var(--color-primary-light); }
+.sl-c.bust { font-size: 14px; letter-spacing: 0.16em; color: var(--color-danger); }
+.sl-c.live { color: var(--color-primary-light) !important; }
+
+.sl-out {
+    flex: 0 0 auto;
+    text-align: center;
+    padding: var(--space-md) 0;
+    border-top: 1px solid var(--color-border);
+}
+
+.sl-out small { font-size: 11px; letter-spacing: 0.22em; color: var(--color-text-dim); display: block; }
+.sl-out div { font-size: 30px; font-weight: 300; letter-spacing: 0.14em; margin-top: 4px; color: var(--color-primary-light); }
+
+/* --- Bottom: entry --- */
+.sl-bot {
+    flex: 0 0 auto;
+    padding: var(--space-md) var(--space-xl) var(--space-xl);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.sl-hint { text-align: center; font-size: 11px; letter-spacing: 0.2em; color: var(--color-text-dim); min-height: 14px; }
+
+.sl-disp {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    border-bottom: 2px solid var(--color-primary-light);
+    padding-bottom: var(--space-xs);
+}
+
+.sl-disp b { font-size: 60px; font-weight: 300; line-height: 1; }
+.sl-disp span { font-size: 13px; letter-spacing: 0.16em; color: var(--color-text-dim); }
+
+/* Quick scores as a quiet chip rail, not shouting buttons. */
+.sl-chips { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-sm); }
+
+.sl-chips button {
+    height: 42px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    font-size: 15px;
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+}
+
+.sl-pad { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-sm); }
+
+.sl-pad button {
+    height: 64px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--color-text);
+    background: transparent;
+}
+
+.sl-pad button.op   { color: var(--color-primary-light); border-color: color-mix(in srgb, var(--color-primary) 40%, transparent); }
+.sl-pad button.util { font-size: 13px; letter-spacing: 0.14em; color: var(--color-text-muted); }
+.sl-pad button.ent  {
+    background: var(--color-primary-light);
+    border-color: var(--color-primary-light);
+    color: #001321;
+    font-size: 15px;
+    letter-spacing: 0.18em;
+    font-weight: 600;
+    grid-row: span 2;
+    height: auto;
+}
+</style>
+</head>
+<body>
+<div class="proto-app sl-app">
+
+    <div class="sl-top">
+        <div class="sl-p active">
+            <div class="sl-nm">Blake</div>
+            <div class="sl-sc tnum">170</div>
+            <div class="sl-dl tnum">&minus;60 &rarr; 110</div>
+            <div class="sl-meta"><span>AVG <b>62.4</b></span><span>DARTS <b>18</b></span></div>
+        </div>
+        <div class="sl-p">
+            <div class="sl-nm">Mike</div>
+            <div class="sl-sc tnum">275</div>
+            <div class="sl-dl">&nbsp;</div>
+            <div class="sl-meta"><span>AVG <b>51.8</b></span><span>DARTS <b>18</b></span></div>
+        </div>
+    </div>
+
+    <div class="sl-mid">
+        <div class="sl-lane" id="laneL"></div>
+        <div class="sl-lane n" id="laneR"></div>
+        <div class="sl-lane" id="laneM"></div>
+    </div>
+
+    <div class="sl-out">
+        <small>CHECKOUT</small>
+        <div>T20 &nbsp; T20 &nbsp; BULL</div>
+    </div>
+
+    <div class="sl-bot">
+        <div class="sl-hint">ROUND 7 &nbsp;&middot;&nbsp; BLAKE TO THROW &nbsp;&middot;&nbsp; TAP A SCORE TO ENTER REMAINING</div>
+
+        <div class="sl-disp"><b class="tnum">60</b><span>TURN TOTAL</span></div>
+
+        <div class="sl-chips">
+            <button>26</button><button>40</button><button>41</button><button>45</button><button>60</button>
+        </div>
+        <div class="sl-chips">
+            <button>81</button><button>85</button><button>100</button><button>140</button><button>180</button>
+        </div>
+
+        <div class="sl-pad">
+            <button>1</button><button>2</button><button>3</button><button class="ent">ENTER</button>
+            <button>4</button><button>5</button><button>6</button>
+            <button>7</button><button>8</button><button>9</button><button class="util">UNDO</button>
+            <button class="op">&times;</button><button>0</button><button class="op">+</button><button class="util">MISS</button>
+            <button class="util" style="grid-column:1 / 4;">BUST</button><button class="util">MENU</button>
+        </div>
+    </div>
+</div>
+
+<div class="proto-tag">Concept 3 &middot; Slate</div>
+
+<script>
+const L = [60, 81, 45, 26, 60, 59];
+const M = [41, 60, 26, 'BUST', 45, 54];
+const c = (v, e = '') => `<div class="sl-c ${v === 'BUST' ? 'bust' : ''} ${e}">${v}</div>`;
+document.getElementById('laneL').innerHTML = L.map(v => c(v)).join('') + c(60, 'live');
+document.getElementById('laneM').innerHTML = M.map(v => c(v)).join('') + c('&nbsp;');
+document.getElementById('laneR').innerHTML = Array.from({ length: 7 }, (_, i) =>
+    `<div class="sl-c n${i === 6 ? ' cur' : ''}">${i + 1}</div>`).join('');
+</script>
+</body>
+</html>

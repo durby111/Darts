@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="blue">
+<head>
+<meta charset="UTF-8">
+<title>X01 Concept 5 — Three Darts</title>
+<link rel="stylesheet" href="_proto.css">
+<style>
+/* ============================================
+   CONCEPT 5 — "THREE DARTS"
+   Per-dart entry without a dartboard.
+   ============================================
+   Thesis: Oche's per-dart idea is right, but a round board wastes a
+   rectangular screen and its segments are small at the edges. This uses
+   the same two-step grammar every darts player already speaks aloud —
+   multiplier, then number — as a sticky S/D/T selector over a flat grid
+   of 1-20 plus the bulls. Every target is a large rectangle, no aiming.
+
+   Triple 20 is one tap because T stays selected between darts, which is
+   how real visits actually go.
+   ============================================ */
+
+.td-head {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--color-surface-alt);
+    border-bottom: 1px solid var(--color-border);
+    align-items: center;
+}
+
+.td-p { text-align: center; padding: 6px var(--space-md); border-radius: var(--radius-lg); min-width: 0; }
+.td-p.active { background: color-mix(in srgb, var(--color-primary) 18%, transparent); box-shadow: inset 0 0 0 2px var(--color-primary); }
+.td-nm { font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--color-text-muted); }
+.td-p.active .td-nm { color: var(--color-primary-light); }
+.td-sc { font-size: 64px; font-weight: 800; line-height: 1; }
+.td-dl { font-size: 16px; font-weight: 700; color: var(--color-pending); min-height: 20px; }
+.td-av { font-size: 10px; letter-spacing: 0.1em; color: var(--color-text-dim); }
+.td-mid { text-align: center; }
+.td-mid .rd { font-size: 26px; font-weight: 800; line-height: 1; }
+.td-mid small { font-size: 9px; letter-spacing: 0.16em; color: var(--color-text-dim); }
+.td-mid button { display: block; margin-top: 5px; font-size: 10px; padding: 4px 11px; border: 1px solid var(--color-border-light); border-radius: var(--radius-pill); color: var(--color-text-muted); }
+
+/* --- History strip: horizontal, compact --- */
+.td-tape {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 62px 1fr;
+    border-bottom: 1px solid var(--color-border);
+    background: rgba(255,255,255,0.02);
+}
+
+.td-tape-lbl { display: flex; flex-direction: column; justify-content: space-around; padding: 6px 0 6px var(--space-md); }
+.td-tape-lbl span { font-size: 10px; letter-spacing: 0.12em; color: var(--color-text-dim); text-transform: uppercase; }
+
+.td-rows { display: flex; flex-direction: column; overflow: hidden; }
+.td-row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
+
+.td-row .cell {
+    text-align: center;
+    padding: 5px 0;
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--color-text-dim);
+    border-left: 1px solid rgba(255,255,255,0.05);
+}
+
+.td-row.rd .cell { font-size: 10px; font-weight: 800; color: var(--color-text-dim); padding: 3px 0; }
+.td-row.rd .cell.cur { color: var(--color-primary-light); }
+.td-row .cell:nth-last-child(-n+2) { color: var(--color-text); }
+.td-row .cell.bust { font-size: 11px; color: var(--color-danger); }
+.td-row .cell.live { color: var(--color-primary-light); }
+
+/* --- Turn strip --- */
+.td-turn {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr) 118px;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-lg) var(--space-sm);
+}
+
+.td-dart {
+    height: 62px;
+    border-radius: var(--radius-lg);
+    border: 2px dashed var(--color-border-light);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-dim);
+}
+
+.td-dart b { font-size: 25px; font-weight: 800; }
+.td-dart small { font-size: 9px; letter-spacing: 0.14em; }
+.td-dart.filled { border-style: solid; border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 22%, transparent); color: var(--color-text); }
+.td-dart.next { border-color: var(--color-primary-light); }
+
+.td-total {
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.td-total small { font-size: 9px; letter-spacing: 0.16em; color: var(--color-text-dim); }
+.td-total b { font-size: 30px; font-weight: 800; }
+
+.td-out {
+    flex: 0 0 auto;
+    margin: 0 var(--space-lg) var(--space-sm);
+    padding: 8px;
+    text-align: center;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 40%, transparent);
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    color: var(--color-primary-light);
+}
+
+.td-out b { color: var(--color-text); font-size: 18px; letter-spacing: 0.14em; }
+
+/* --- Multiplier + numbers --- */
+.td-pad {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: 0 var(--space-lg) var(--space-md);
+    min-height: 0;
+}
+
+.td-mult { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-sm); }
+
+.td-mult button {
+    height: 56px;
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--color-border-light);
+    background: var(--color-surface);
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+}
+
+.td-mult button.sel { background: var(--color-primary); border-color: var(--color-primary-light); color: var(--color-on-primary); }
+.td-mult button.miss { background: var(--color-miss); border-color: transparent; color: #fff; }
+
+.td-nums { flex: 1 1 auto; display: grid; grid-template-columns: repeat(5, 1fr); grid-auto-rows: 1fr; gap: 7px; min-height: 0; }
+
+.td-nums button {
+    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, var(--color-surface-elevated), var(--color-surface));
+    border: 1px solid var(--color-border-light);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.td-nums button.hot { box-shadow: inset 0 0 0 2px var(--color-primary-light); }
+.td-nums button.bull { background: var(--color-danger); border-color: transparent; color: #fff; font-size: 17px; letter-spacing: 0.06em; }
+
+/* --- Footer: total-entry escape hatch + commits --- */
+.td-foot { flex: 0 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-sm); padding: 0 var(--space-lg) var(--space-lg); }
+
+.td-foot button {
+    height: 60px;
+    border-radius: var(--radius-lg);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border-light);
+    color: var(--color-text);
+}
+
+.td-foot .undo  { background: var(--color-undo); border-color: transparent; color: #fff; }
+.td-foot .bust  { background: var(--color-bust); border-color: transparent; color: #fff; }
+.td-foot .enter { background: var(--color-success); border-color: transparent; color: var(--color-on-success); font-size: 16px; grid-column: span 2; }
+</style>
+</head>
+<body>
+<div class="proto-app">
+
+    <div class="td-head">
+        <div class="td-p active">
+            <div class="td-nm">Blake</div>
+            <div class="td-sc tnum">170</div>
+            <div class="td-dl tnum">&minus;60</div>
+            <div class="td-av">AVG 62.4 &middot; 18 DARTS</div>
+        </div>
+        <div class="td-mid">
+            <small>ROUND</small>
+            <div class="rd tnum">7</div>
+            <button>MENU</button>
+        </div>
+        <div class="td-p">
+            <div class="td-nm">Mike</div>
+            <div class="td-sc tnum">275</div>
+            <div class="td-dl"></div>
+            <div class="td-av">AVG 51.8 &middot; 18 DARTS</div>
+        </div>
+    </div>
+
+    <div class="td-tape">
+        <div class="td-tape-lbl"><span>Round</span><span>Blake</span><span>Mike</span></div>
+        <div class="td-rows">
+            <div class="td-row rd" id="rowR"></div>
+            <div class="td-row" id="rowL"></div>
+            <div class="td-row" id="rowM"></div>
+        </div>
+    </div>
+
+    <div class="td-turn">
+        <div class="td-dart filled"><b>T20</b><small>60</small></div>
+        <div class="td-dart next"><b>&mdash;</b><small>DART 2</small></div>
+        <div class="td-dart"><b>&mdash;</b><small>DART 3</small></div>
+        <div class="td-total"><small>TURN</small><b class="tnum">60</b></div>
+    </div>
+
+    <div class="td-out">CHECKOUT <b>T20 &middot; T20 &middot; BULL</b> &nbsp;&middot;&nbsp; 110 LEFT AFTER THIS DART</div>
+
+    <div class="td-pad">
+        <div class="td-mult">
+            <button>SINGLE</button>
+            <button>DOUBLE</button>
+            <button class="sel">TRIPLE</button>
+            <button class="miss">MISS DART</button>
+        </div>
+        <div class="td-nums" id="nums"></div>
+    </div>
+
+    <div class="td-foot">
+        <button class="undo">UNDO</button>
+        <button>123 + QUICK</button>
+        <button class="bust">BUST</button>
+        <button class="enter">END TURN &middot; 60</button>
+    </div>
+</div>
+
+<div class="proto-tag">Concept 5 &middot; Three Darts</div>
+
+<script>
+const L = [60, 81, 45, 26, 60, 59];
+const M = [41, 60, 26, 'BUST', 45, 54];
+const cell = (v, e = '') => `<div class="cell ${v === 'BUST' ? 'bust' : ''} ${e}">${v}</div>`;
+
+document.getElementById('rowL').innerHTML = L.map(v => cell(v)).join('') + cell(60, 'live');
+document.getElementById('rowM').innerHTML = M.map(v => cell(v)).join('') + cell('&middot;');
+document.getElementById('rowR').innerHTML = Array.from({ length: 7 }, (_, i) =>
+    `<div class="cell${i === 6 ? ' cur' : ''}">${i + 1}</div>`).join('');
+
+// 1-20 in board-familiar rows, then the bulls.
+const nums = [];
+for (let n = 1; n <= 20; n++) {
+    nums.push(`<button class="${n === 20 || n === 19 ? 'hot' : ''}">${n}</button>`);
+}
+// Bulls fill the final row outright rather than leaving dead keys.
+nums.push('<button class="bull" style="grid-column:span 2">BULL 25</button>');
+nums.push('<button class="bull" style="grid-column:span 3">DOUBLE BULL 50</button>');
+document.getElementById('nums').innerHTML = nums.join('');
+</script>
+</body>
+</html>

@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="blue">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>X01 Concept 11 - DC Mode</title>
+<link rel="stylesheet" href="_proto.css">
+<style>
+:root {
+    --dc-red: #ba0014;
+    --dc-red-dark: #76000f;
+    --dc-gold: #f3df00;
+    --dc-green: #00633a;
+    --dc-silver-top: #f6f6f6;
+    --dc-silver-bottom: #a6a6a6;
+    --dc-gray: #858585;
+    --dc-rail: #8b8b8b;
+}
+
+body {
+    background: #000;
+    color: #fff;
+    font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+}
+
+.proto-app {
+    display: grid;
+    place-items: center;
+    background: #000;
+}
+
+.dc-shell {
+    container-type: inline-size;
+    width: min(600px, 100vw);
+    height: min(800px, 100dvh);
+    display: grid;
+    grid-template-rows: 146px minmax(0, 1fr) 328px;
+    overflow: hidden;
+    background: #000;
+    border: 1px solid #222;
+}
+
+/* ---------- header ---------- */
+
+.dc-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr);
+    border-bottom: 2px solid #ddd;
+    background: #000;
+}
+
+.dc-player {
+    min-width: 0;
+    display: grid;
+    grid-template-rows: 51px minmax(0, 1fr);
+}
+
+.dc-name {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    margin: 4px 6px 3px;
+    overflow: hidden;
+    color: var(--dc-gray);
+    font-size: 40px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.dc-player.active .dc-name {
+    color: #f1f1f1;
+    background: var(--dc-red);
+}
+
+.dc-score-wrap {
+    position: relative;
+    min-width: 0;
+    margin: 0 7px 7px;
+    background: #000;
+}
+
+.dc-score {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: #fff;
+    font-size: 82px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.dc-player.active .dc-score {
+    color: #000;
+    background: #eee;
+}
+
+.dc-player.preview .dc-score {
+    color: #fff000;
+    background: #000;
+}
+
+.dc-player.bust .dc-score {
+    color: #ff3048;
+    background: #000;
+}
+
+.dc-side-stats {
+    position: absolute;
+    inset: 4px 3px 3px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: var(--dc-red);
+    font-size: 19px;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.dc-player.left .dc-side-stats { align-items: flex-start; }
+.dc-player.right .dc-side-stats { align-items: flex-end; }
+.dc-side-stats span:last-child { color: #eee; }
+
+.dc-hc {
+    position: absolute;
+    top: 4px;
+    color: var(--dc-red);
+    font-size: 22px;
+}
+
+.dc-player.left .dc-hc { right: 4px; }
+.dc-player.right .dc-hc { left: 4px; }
+
+.dc-center {
+    display: grid;
+    grid-template-rows: 50px 69px 1fr;
+    min-width: 0;
+    text-align: center;
+}
+
+.dc-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 900;
+    line-height: 0.86;
+    letter-spacing: 0;
+}
+
+.dc-brand b { font-size: 19px; line-height: 1; }
+.dc-brand span { font-size: 11px; color: #bbb; }
+
+.dc-round {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    color: #fff;
+    background: linear-gradient(#c9001c, #8b0013);
+    font-size: 55px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.dc-version {
+    padding-top: 2px;
+    color: #bbb;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+/* ---------- scoreboard ---------- */
+
+.dc-board {
+    position: relative;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-color: #8a8a8a #f2f2f2;
+    scrollbar-width: thin;
+    background: #000;
+}
+
+.dc-board::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 88px;
+    transform: translateX(-50%);
+    border-inline: 3px solid var(--dc-rail);
+    pointer-events: none;
+}
+
+.dc-setting-row,
+.dc-visit-row {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 88px minmax(0, 1fr);
+    align-items: center;
+}
+
+.dc-setting-row { height: 64px; }
+.dc-visit-row { min-height: 58px; }
+
+.dc-setting {
+    grid-column: 2;
+    text-align: center;
+    color: #fff000;
+    font-size: 40px;
+    font-weight: 800;
+}
+
+.dc-turn {
+    position: relative;
+    min-width: 0;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    color: #777;
+    font-size: 51px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.dc-turn.left { justify-content: flex-end; padding-right: 30px; }
+.dc-turn.right { justify-content: flex-start; padding-left: 30px; }
+.dc-turn.live { color: #fff000; }
+.dc-turn.bust { color: #ff3048; font-size: 25px; }
+
+.dc-arrow {
+    position: absolute;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff 0 25%, #ddd 30%, #888 72%, #444 100%);
+}
+
+.dc-turn.left .dc-arrow { right: -1px; }
+.dc-turn.right .dc-arrow { left: -1px; }
+
+.dc-target {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #686868;
+    font-size: 33px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.dc-target.current { color: #777; }
+
+/* ---------- reveal dock ---------- */
+
+.dc-dock {
+    display: grid;
+    grid-template-rows: 43px 69px minmax(0, 1fr);
+    min-height: 0;
+    background: #000;
+}
+
+.dc-toolstrip {
+    display: grid;
+    grid-template-columns: 42px 42px 42px 42px minmax(0, 1fr) 42px 42px 82px;
+    align-items: center;
+    min-width: 0;
+    border: 2px solid #efefef;
+    border-radius: 7px;
+    background: linear-gradient(#db1830, #a40017 55%, #780010);
+    box-shadow: inset 0 0 0 1px #7c0010;
+    overflow: hidden;
+}
+
+.dc-toolstrip button,
+.dc-toolstrip span {
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+}
+
+.dc-toolstrip button {
+    border: none;
+    border-radius: 0;
+    font-size: 22px;
+}
+
+.dc-toolstrip button:active { background: rgba(0, 0, 0, 0.25); }
+.dc-toolstrip .dc-set { gap: 14px; font-size: 21px; white-space: nowrap; }
+.dc-toolstrip .dc-info { font-family: Georgia, serif; font-style: italic; }
+.dc-toolstrip .dc-local { margin: 6px 7px; height: 27px; border: 1px solid #fff; border-radius: 5px; font-size: 13px; }
+
+.dc-message {
+    display: grid;
+    grid-template-columns: 122px minmax(0, 1fr) 122px;
+    gap: 10px;
+    align-items: stretch;
+    padding: 7px;
+}
+
+.dc-message button,
+.dc-readout {
+    min-width: 0;
+    border: 2px solid #eee;
+    border-radius: 6px;
+    font-size: 23px;
+    font-weight: 800;
+}
+
+.dc-back {
+    color: #151515;
+    background: linear-gradient(#fff028, #b89c00);
+}
+
+.dc-back.undo {
+    color: #fff;
+    background: linear-gradient(#d3132b, #8a0013);
+}
+
+.dc-readout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    color: #f4df00;
+    background: #030303;
+    font-size: 32px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.dc-readout.has-score { color: #fff; }
+.dc-readout.bust { color: #ff3048; font-weight: 800; }
+
+.dc-submit {
+    color: #fff;
+    background: linear-gradient(#d3132b, #830012);
+}
+
+.dc-submit.enter { font-size: 20px; }
+
+.dc-keypad {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 60px repeat(3, minmax(0, 1fr)) 60px;
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+.dc-key {
+    min-width: 0;
+    min-height: 44px;
+    border: 1px groove #777;
+    border-radius: 5px;
+    color: #080808;
+    background: linear-gradient(var(--dc-silver-top), var(--dc-silver-bottom));
+    font-size: 31px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.dc-key.quick {
+    border: none;
+    border-radius: 0;
+    color: #bbb;
+    background: transparent;
+    font-size: 23px;
+    font-weight: 500;
+}
+
+.dc-key.quick:disabled { color: #444; }
+.dc-key.green { color: #fff; background: linear-gradient(#087848, #004c2a); }
+.dc-key.red { color: #fff; background: linear-gradient(#c5001b, #790011); }
+.dc-key.operator { color: #fff; background: linear-gradient(#4c4c4c, #060606); }
+.dc-key:active:not(:disabled) { filter: brightness(1.35); }
+
+.dc-flash {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: none;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.88);
+}
+
+.dc-flash.show { display: grid; }
+
+.dc-flash-panel {
+    width: min(78%, 370px);
+    border: 3px solid #eee;
+    border-radius: 7px;
+    overflow: hidden;
+    text-align: center;
+    background: #000;
+}
+
+.dc-flash-title {
+    padding: 8px;
+    color: #fff;
+    background: var(--dc-red);
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.dc-flash-value {
+    padding: 28px 12px;
+    color: #fff000;
+    font-size: 64px;
+    font-weight: 800;
+}
+
+.dc-flash-panel button {
+    width: calc(100% - 20px);
+    min-height: 48px;
+    margin: 0 10px 10px;
+    border: 2px solid #eee;
+    border-radius: 5px;
+    color: #fff;
+    background: linear-gradient(#d3132b, #830012);
+    font-size: 19px;
+    font-weight: 800;
+}
+
+@media (max-width: 520px) {
+    .proto-tag { display: none; }
+
+    .dc-shell {
+        width: 100vw;
+        height: 100dvh;
+        grid-template-rows: 126px minmax(0, 1fr) 338px;
+        border: none;
+    }
+
+    .dc-header { grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr); }
+    .dc-player { grid-template-rows: 43px minmax(0, 1fr); }
+    .dc-name { margin: 3px 4px 2px; font-size: 27px; }
+    .dc-score-wrap { margin: 0 4px 5px; }
+    .dc-score { font-size: 55px; }
+    .dc-side-stats { font-size: 13px; }
+    .dc-hc { font-size: 14px; }
+    .dc-center { grid-template-rows: 43px 59px 1fr; }
+    .dc-brand b { font-size: 13px; }
+    .dc-brand span { font-size: 8px; }
+    .dc-round { border-radius: 6px; font-size: 40px; }
+    .dc-version { font-size: 7px; }
+
+    .dc-board::before { width: 64px; border-width: 2px; }
+    .dc-setting-row,
+    .dc-visit-row { grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr); }
+    .dc-setting-row { height: 50px; }
+    .dc-setting { font-size: 29px; }
+    .dc-visit-row { min-height: 48px; }
+    .dc-turn { min-height: 48px; font-size: 38px; }
+    .dc-turn.left { padding-right: 22px; }
+    .dc-turn.right { padding-left: 22px; }
+    .dc-turn.bust { font-size: 18px; }
+    .dc-arrow { width: 14px; height: 14px; }
+    .dc-target { font-size: 25px; }
+
+    .dc-dock { grid-template-rows: 38px 67px minmax(0, 1fr); }
+    .dc-toolstrip { grid-template-columns: 34px 34px 34px 34px minmax(0, 1fr) 34px 34px 63px; }
+    .dc-toolstrip button { font-size: 16px; }
+    .dc-toolstrip .dc-set { gap: 7px; font-size: 15px; }
+    .dc-toolstrip .dc-local { margin: 5px 4px; height: 24px; font-size: 10px; }
+
+    .dc-message { grid-template-columns: 86px minmax(0, 1fr) 86px; gap: 6px; padding: 6px 4px; }
+    .dc-message button { font-size: 15px; }
+    .dc-submit.enter { font-size: 13px; }
+    .dc-readout { font-size: 25px; }
+
+    .dc-keypad { grid-template-columns: 45px repeat(3, minmax(0, 1fr)) 45px; }
+    .dc-key { min-height: 48px; font-size: 25px; }
+    .dc-key.quick { font-size: 16px; }
+}
+
+@media (max-height: 650px) {
+    .dc-shell {
+        width: min(480px, 100vw);
+        height: 100dvh;
+        grid-template-rows: 117px minmax(0, 1fr) 256px;
+    }
+
+    .dc-header { grid-template-columns: minmax(0, 1fr) 64px minmax(0, 1fr); }
+    .dc-player { grid-template-rows: 45px minmax(0, 1fr); }
+    .dc-name { font-size: 32px; }
+    .dc-score { font-size: 66px; }
+    .dc-center { grid-template-rows: 45px 56px 1fr; }
+    .dc-round { font-size: 44px; }
+    .dc-setting-row { height: 52px; }
+    .dc-visit-row { min-height: 47px; }
+    .dc-turn { min-height: 47px; font-size: 42px; }
+    .dc-dock { grid-template-rows: 34px 60px minmax(0, 1fr); }
+    .dc-message { grid-template-columns: 100px minmax(0, 1fr) 100px; padding: 5px 6px; }
+    .dc-key { min-height: 40px; font-size: 27px; }
+}
+
+@media (max-width: 320px) {
+    .dc-header { grid-template-columns: minmax(0, 1fr) 50px minmax(0, 1fr); }
+    .dc-name { font-size: 22px; }
+    .dc-score { font-size: 44px; }
+    .dc-side-stats,
+    .dc-hc { display: none; }
+    .dc-brand b { font-size: 11px; }
+    .dc-brand span { font-size: 7px; }
+
+    .dc-toolstrip {
+        grid-template-columns: 30px 30px 30px minmax(0, 1fr) 30px 57px;
+    }
+
+    .dc-toolstrip > span[aria-hidden],
+    .dc-toolstrip .dc-info { display: none; }
+    .dc-toolstrip .dc-set { gap: 4px; font-size: 12px; }
+
+    .dc-message { grid-template-columns: 72px minmax(0, 1fr) 72px; gap: 4px; }
+    .dc-message button { font-size: 13px; }
+    .dc-submit.enter { font-size: 11px; }
+    .dc-readout { font-size: 19px; }
+}
+
+@media (max-width: 320px) and (max-height: 650px) {
+    .dc-toolstrip .dc-local { height: 20px; margin: 4px; }
+}
+</style>
+</head>
+<body>
+<div class="proto-app">
+    <div class="dc-shell" id="dcShell">
+        <header class="dc-header">
+            <section class="dc-player left active" id="player0">
+                <div class="dc-name">BLAKE</div>
+                <div class="dc-score-wrap">
+                    <div class="dc-score" id="score0">501</div>
+                    <div class="dc-side-stats"><span>0</span><span>0</span></div>
+                    <span class="dc-hc">HC</span>
+                </div>
+            </section>
+
+            <div class="dc-center">
+                <div class="dc-brand"><b>BLAKE</b><span>OUT</span></div>
+                <div class="dc-round" id="roundNumber">1</div>
+                <div class="dc-version">DC MODE</div>
+            </div>
+
+            <section class="dc-player right" id="player1">
+                <div class="dc-name">MIKE</div>
+                <div class="dc-score-wrap">
+                    <div class="dc-score" id="score1">501</div>
+                    <div class="dc-side-stats"><span>0</span><span>0</span></div>
+                    <span class="dc-hc">HC</span>
+                </div>
+            </section>
+        </header>
+
+        <main class="dc-board" id="dcBoard">
+            <div class="dc-setting-row">
+                <button class="dc-setting" id="finishModeBtn" title="Toggle finish mode">SI</button>
+            </div>
+            <div id="visitRows"></div>
+        </main>
+
+        <section class="dc-dock">
+            <div class="dc-toolstrip">
+                <button id="resetBtn" title="Reset game">&times;</button>
+                <button id="turnUndoBtn" title="Undo last visit">&#8630;</button>
+                <span aria-hidden="true">&#9675;</span>
+                <button id="settingsBtn" title="Toggle finish mode">&#9881;</button>
+                <span class="dc-set"><b>SET 1</b><b id="legScore">0 - 0</b></span>
+                <span class="dc-info" aria-hidden="true">i</span>
+                <button id="restoreBtn" title="Restore initial state">&#8635;</button>
+                <span class="dc-local">LOCAL</span>
+            </div>
+
+            <div class="dc-message">
+                <button class="dc-back" id="backBtn">BACK</button>
+                <div class="dc-readout" id="readout">Straight-In</div>
+                <button class="dc-submit" id="submitBtn">MISS</button>
+            </div>
+
+            <div class="dc-keypad" id="keypad">
+                <button class="dc-key quick" data-quick="26">26</button>
+                <button class="dc-key" data-digit="1">1</button>
+                <button class="dc-key" data-digit="2">2</button>
+                <button class="dc-key" data-digit="3">3</button>
+                <button class="dc-key quick" data-quick="45">45</button>
+
+                <button class="dc-key quick" data-quick="40">40</button>
+                <button class="dc-key" data-digit="4">4</button>
+                <button class="dc-key" data-digit="5">5</button>
+                <button class="dc-key" data-digit="6">6</button>
+                <button class="dc-key quick" data-quick="60">60</button>
+
+                <button class="dc-key quick" data-quick="41">41</button>
+                <button class="dc-key" data-digit="7">7</button>
+                <button class="dc-key" data-digit="8">8</button>
+                <button class="dc-key" data-digit="9">9</button>
+                <button class="dc-key quick" data-quick="81">81</button>
+
+                <button class="dc-key quick" data-quick="43">43</button>
+                <button class="dc-key green" id="keyA" data-quick="100">100</button>
+                <button class="dc-key red" id="keyB" data-quick="180">180</button>
+                <button class="dc-key green" id="keyC" data-quick="140">140</button>
+                <button class="dc-key quick" data-quick="85">85</button>
+            </div>
+        </section>
+
+        <div class="dc-flash" id="winnerOverlay">
+            <div class="dc-flash-panel">
+                <div class="dc-flash-title">LEG</div>
+                <div class="dc-flash-value" id="winnerName">BLAKE</div>
+                <button id="nextLegBtn">NEXT LEG</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="proto-tag">Concept 11 &middot; DC Mode</div>
+
+<script>
+const START_SCORE = 501;
+const players = [
+    { name: 'BLAKE', score: START_SCORE, visits: [] },
+    { name: 'MIKE', score: START_SCORE, visits: [] },
+];
+
+let activePlayer = 0;
+let round = 1;
+let expression = '';
+let finishMode = 'SI';
+let turnLog = [];
+let legs = [0, 0];
+let editing = null;
+
+const scoreElements = [document.getElementById('score0'), document.getElementById('score1')];
+const playerElements = [document.getElementById('player0'), document.getElementById('player1')];
+const readout = document.getElementById('readout');
+const backBtn = document.getElementById('backBtn');
+const submitBtn = document.getElementById('submitBtn');
+const keyA = document.getElementById('keyA');
+const keyB = document.getElementById('keyB');
+const keyC = document.getElementById('keyC');
+
+function scoreExpression(value) {
+    if (!value || !/^\d+(?:[+\u00d7]\d+)*$/.test(value)) return null;
+    return value.split('+').reduce((sum, term) => {
+        const factors = term.split('\u00d7').map(Number);
+        return sum + factors.reduce((product, factor) => product * factor, 1);
+    }, 0);
+}
+
+function pendingTotal() {
+    return scoreExpression(expression);
+}
+
+function scoreBeforePending() {
+    if (!editing || editing.player !== activePlayer) return players[activePlayer].score;
+    const visit = visitValue(editing.player, editing.round);
+    return players[activePlayer].score + (visit?.total ?? 0);
+}
+
+function isBust(total) {
+    if (total === null) return false;
+    const remaining = scoreBeforePending() - total;
+    return total > 180 || remaining < 0 || (finishMode === 'DO' && remaining === 1);
+}
+
+function setBottomKey(button, label, className, dataset) {
+    button.textContent = label;
+    button.className = `dc-key ${className}`;
+    button.removeAttribute('data-quick');
+    button.removeAttribute('data-digit');
+    button.removeAttribute('data-op');
+    button.setAttribute(dataset.name, dataset.value);
+}
+
+function renderKeypad() {
+    const hasInput = expression.length > 0;
+    document.querySelectorAll('.dc-key.quick').forEach(button => {
+        button.disabled = hasInput;
+    });
+
+    if (hasInput) {
+        setBottomKey(keyA, '\u00d7', 'operator', { name: 'data-op', value: '\u00d7' });
+        setBottomKey(keyB, '0', '', { name: 'data-digit', value: '0' });
+        setBottomKey(keyC, '+', 'operator', { name: 'data-op', value: '+' });
+    } else {
+        setBottomKey(keyA, '100', 'green', { name: 'data-quick', value: '100' });
+        setBottomKey(keyB, '180', 'red', { name: 'data-quick', value: '180' });
+        setBottomKey(keyC, '140', 'green', { name: 'data-quick', value: '140' });
+    }
+}
+
+function visitValue(playerIndex, visitRound) {
+    return players[playerIndex].visits.find(visit => visit.round === visitRound);
+}
+
+function renderVisits() {
+    const visitRows = document.getElementById('visitRows');
+    const maxRecorded = Math.max(0, ...players.flatMap(player => player.visits.map(visit => visit.round)));
+    const maxRound = Math.max(round, maxRecorded);
+    visitRows.replaceChildren();
+
+    for (let visitRound = 1; visitRound <= maxRound; visitRound += 1) {
+        const row = document.createElement('div');
+        row.className = 'dc-visit-row';
+
+        [0, 1].forEach(playerIndex => {
+            const turn = document.createElement('button');
+            const side = playerIndex === 0 ? 'left' : 'right';
+            const visit = visitValue(playerIndex, visitRound);
+            const isCurrent = visitRound === round && playerIndex === activePlayer;
+            const total = isCurrent ? pendingTotal() : null;
+            const bust = isCurrent && isBust(total);
+            turn.className = `dc-turn ${side}${isCurrent && total !== null ? ' live' : ''}${bust ? ' bust' : ''}`;
+            turn.dataset.player = String(playerIndex);
+            turn.dataset.round = String(visitRound);
+
+            if (visit) {
+                turn.textContent = visit.label;
+                turn.title = `Correct ${players[playerIndex].name}, round ${visitRound}`;
+            } else if (isCurrent && total !== null) {
+                turn.textContent = bust ? 'BUST' : String(total);
+            }
+
+            if (isCurrent) {
+                const arrow = document.createElement('span');
+                arrow.className = 'dc-arrow';
+                turn.append(arrow);
+            }
+
+            if (playerIndex === 0) row.append(turn);
+            else row.append(turn);
+        });
+
+        const target = document.createElement('div');
+        target.className = `dc-target${visitRound === round ? ' current' : ''}`;
+        target.textContent = String(visitRound);
+        row.insertBefore(target, row.children[1]);
+        visitRows.append(row);
+    }
+
+    document.querySelectorAll('.dc-turn[data-player]').forEach(turn => {
+        turn.addEventListener('click', () => beginCorrection(turn));
+    });
+
+    const current = visitRows.lastElementChild;
+    if (current) current.scrollIntoView({ block: 'nearest' });
+}
+
+function render() {
+    const total = pendingTotal();
+    const bust = isBust(total);
+
+    players.forEach((player, index) => {
+        const preview = index === activePlayer && total !== null;
+        const baseScore = preview ? scoreBeforePending() : player.score;
+        const remaining = preview && !bust ? baseScore - total : player.score;
+        scoreElements[index].textContent = remaining;
+        playerElements[index].classList.toggle('active', index === activePlayer);
+        playerElements[index].classList.toggle('preview', preview && !bust);
+        playerElements[index].classList.toggle('bust', preview && bust);
+    });
+
+    document.getElementById('roundNumber').textContent = round;
+    document.getElementById('finishModeBtn').textContent = finishMode;
+    document.getElementById('legScore').textContent = `${legs[0]} - ${legs[1]}`;
+
+    readout.textContent = expression || (finishMode === 'SI' ? 'Straight-In' : 'Double-Out');
+    readout.classList.toggle('has-score', expression.length > 0 && !bust);
+    readout.classList.toggle('bust', bust);
+    if (bust) readout.textContent = 'BUST';
+
+    backBtn.textContent = expression ? 'UNDO' : 'BACK';
+    backBtn.classList.toggle('undo', expression.length > 0);
+    submitBtn.textContent = expression ? `ENTER ${total ?? ''}` : 'MISS';
+    submitBtn.classList.toggle('enter', expression.length > 0);
+
+    renderKeypad();
+    renderVisits();
+}
+
+function appendDigit(digit) {
+    if (expression === '0') expression = '';
+    const currentTerm = expression.split(/[+\u00d7]/).pop();
+    if (currentTerm.length >= 3) return;
+    expression += digit;
+    render();
+}
+
+function appendOperator(operator) {
+    if (!expression || /[+\u00d7]$/.test(expression)) return;
+    expression += operator;
+    render();
+}
+
+function setQuickScore(value) {
+    expression = value;
+    render();
+}
+
+function clearInput() {
+    expression = '';
+    editing = null;
+    render();
+}
+
+function commitTurn(total, label = String(total)) {
+    if (total > 180 || total < 0 || isBust(total)) return;
+
+    const player = players[activePlayer];
+    const before = player.score;
+    const visitRound = round;
+
+    if (editing) {
+        const editedPlayer = players[editing.player];
+        const visit = editedPlayer.visits.find(item => item.round === editing.round);
+        if (visit) {
+            editedPlayer.score += visit.total - total;
+            visit.total = total;
+            visit.label = label;
+        }
+        editing = null;
+        expression = '';
+        rebuildFromVisits();
+        render();
+        return;
+    }
+
+    player.score -= total;
+    player.visits.push({ round: visitRound, total, label });
+    turnLog.push({ player: activePlayer, round: visitRound, total, before });
+
+    if (player.score === 0) {
+        legs[activePlayer] += 1;
+        document.getElementById('winnerName').textContent = player.name;
+        document.getElementById('winnerOverlay').classList.add('show');
+    }
+
+    if (activePlayer === 1) round += 1;
+    activePlayer = activePlayer === 0 ? 1 : 0;
+    expression = '';
+    render();
+}
+
+function beginCorrection(turn) {
+    const playerIndex = Number(turn.dataset.player);
+    const visitRound = Number(turn.dataset.round);
+    const visit = visitValue(playerIndex, visitRound);
+    if (!visit) return;
+
+    activePlayer = playerIndex;
+    round = visitRound;
+    editing = { player: playerIndex, round: visitRound };
+    expression = String(visit.total);
+    render();
+}
+
+function rebuildFromVisits() {
+    players.forEach(player => {
+        player.score = START_SCORE - player.visits.reduce((sum, visit) => sum + visit.total, 0);
+    });
+
+    const allVisits = players.flatMap((player, playerIndex) =>
+        player.visits.map(visit => ({ ...visit, player: playerIndex }))
+    ).sort((left, right) => left.round - right.round || left.player - right.player);
+    turnLog = allVisits.map(visit => ({ player: visit.player, round: visit.round, total: visit.total }));
+
+    const last = allVisits[allVisits.length - 1];
+    if (!last) {
+        activePlayer = 0;
+        round = 1;
+    } else {
+        activePlayer = last.player === 0 ? 1 : 0;
+        round = last.player === 1 ? last.round + 1 : last.round;
+    }
+}
+
+function undoLastTurn() {
+    expression = '';
+    editing = null;
+    const last = turnLog.pop();
+    if (!last) {
+        readout.textContent = 'NO VISITS';
+        return;
+    }
+
+    const player = players[last.player];
+    const index = player.visits.findIndex(visit => visit.round === last.round);
+    if (index >= 0) player.visits.splice(index, 1);
+    rebuildFromVisits();
+    render();
+}
+
+function resetLeg(keepLegs = true) {
+    players.forEach(player => {
+        player.score = START_SCORE;
+        player.visits = [];
+    });
+    activePlayer = 0;
+    round = 1;
+    expression = '';
+    editing = null;
+    turnLog = [];
+    if (!keepLegs) legs = [0, 0];
+    document.getElementById('winnerOverlay').classList.remove('show');
+    render();
+}
+
+function toggleFinishMode() {
+    finishMode = finishMode === 'SI' ? 'DO' : 'SI';
+    render();
+}
+
+document.getElementById('keypad').addEventListener('click', event => {
+    const button = event.target.closest('.dc-key');
+    if (!button || button.disabled) return;
+    if (button.dataset.digit !== undefined) appendDigit(button.dataset.digit);
+    else if (button.dataset.op) appendOperator(button.dataset.op);
+    else if (button.dataset.quick) setQuickScore(button.dataset.quick);
+});
+
+backBtn.addEventListener('click', () => {
+    if (expression) {
+        expression = expression.slice(0, -1);
+        render();
+    } else {
+        undoLastTurn();
+    }
+});
+
+submitBtn.addEventListener('click', () => {
+    if (!expression) commitTurn(0, 'MISS');
+    else {
+        const total = pendingTotal();
+        if (total !== null && !isBust(total)) commitTurn(total);
+    }
+});
+
+document.getElementById('finishModeBtn').addEventListener('click', toggleFinishMode);
+document.getElementById('settingsBtn').addEventListener('click', toggleFinishMode);
+document.getElementById('turnUndoBtn').addEventListener('click', undoLastTurn);
+document.getElementById('resetBtn').addEventListener('click', () => resetLeg(false));
+document.getElementById('restoreBtn').addEventListener('click', () => resetLeg(true));
+document.getElementById('nextLegBtn').addEventListener('click', () => resetLeg(true));
+
+render();
+</script>
+</body>
+</html>

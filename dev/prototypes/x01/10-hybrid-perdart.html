@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="blue">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>X01 Concept 10 - Hybrid Per-Dart Entry</title>
+<link rel="stylesheet" href="_hybrid.css">
+</head>
+<body class="hy-perdart">
+<div class="proto-app">
+    <header class="hy-bar">
+        <div class="hy-game">501 <small>&middot; DOUBLE OUT</small></div>
+        <div class="hy-round"><small>ROUND</small><b class="tnum">7</b></div>
+        <button class="hy-menu">MENU</button>
+    </header>
+
+    <main class="hy-stack">
+        <section class="hy-card active">
+            <div>
+                <div class="hy-badge">NOW THROWING &middot; DART 3</div>
+                <div class="hy-name">BLAKE</div>
+                <div class="hy-legs">LEGS &nbsp;&#9679;&#9679;&#9675;&#9675;&#9675;</div>
+            </div>
+            <div class="hy-big">
+                <b class="tnum">170</b>
+                <span class="hy-proj tnum" id="activeProjection">&minus;120 &rarr; 50</span>
+            </div>
+            <div class="hy-cardfoot">
+                <div class="hy-checkout">
+                    <small>170 CHECKOUT</small>
+                    <div class="hy-route"><span class="done">T20</span><span class="done">T20</span><span>BULL</span></div>
+                </div>
+                <div class="hy-legstats">
+                    <div><b class="tnum">62.4</b><small>3-DART</small></div>
+                    <div><b class="tnum">20</b><small>DARTS</small></div>
+                    <div><b class="tnum">1</b><small>180s</small></div>
+                    <div><b class="tnum">33%</b><small>CHECKOUT</small></div>
+                </div>
+                <button class="hy-bust" id="bustBtn">BUST</button>
+            </div>
+        </section>
+
+        <section class="hy-card">
+            <div class="hy-rank">2</div>
+            <div><div class="hy-name">MIKE</div><div class="hy-meta">AVG 51.8 &middot; 18 DARTS</div></div>
+            <div class="hy-last">LAST<b class="tnum">54</b></div>
+            <div class="hy-rem tnum">275</div>
+        </section>
+
+        <section class="hy-card">
+            <div class="hy-rank">3</div>
+            <div><div class="hy-name">SARAH</div><div class="hy-meta">AVG 47.2 &middot; 18 DARTS</div></div>
+            <div class="hy-last">LAST<b class="tnum">41</b></div>
+            <div class="hy-rem tnum">318</div>
+        </section>
+
+        <section class="hy-card">
+            <div class="hy-rank">4</div>
+            <div><div class="hy-name">DAVE</div><div class="hy-meta">AVG 38.9 &middot; 18 DARTS</div></div>
+            <div class="hy-last">LAST<b class="bustval">BUST</b></div>
+            <div class="hy-rem tnum">361</div>
+        </section>
+    </main>
+
+    <section class="hy-tape" aria-label="Visit history">
+        <div class="hy-taperow rail">
+            <div class="lbl">ROUND</div>
+            <div class="hy-cells">
+                <div class="hy-cell">1</div><div class="hy-cell">2</div><div class="hy-cell">3</div>
+                <div class="hy-cell">4</div><div class="hy-cell">5</div><div class="hy-cell">6</div>
+                <div class="hy-cell cur">7</div>
+            </div>
+        </div>
+        <div class="hy-taperow live">
+            <div class="lbl">BLAKE</div>
+            <div class="hy-cells">
+                <button class="hy-cell" data-darts="T20|MISS|MISS">60</button>
+                <button class="hy-cell" data-darts="T19|D12|MISS">81</button>
+                <button class="hy-cell" data-darts="S5|D20|MISS">45</button>
+                <button class="hy-cell" data-darts="S20|S6|MISS">26</button>
+                <button class="hy-cell" data-darts="T20|MISS|MISS">60</button>
+                <button class="hy-cell open" data-darts="S19|D20|MISS">59<span class="hy-detail"><span>S19</span><span>D20</span><span>MISS</span><em>EDIT</em></span></button>
+                <div class="hy-cell cur">120</div>
+            </div>
+        </div>
+        <div class="hy-taperow">
+            <div class="lbl">MIKE</div>
+            <div class="hy-cells"><div class="hy-cell">41</div><div class="hy-cell">60</div><div class="hy-cell">26</div><div class="hy-cell bust">BUST</div><div class="hy-cell">45</div><div class="hy-cell">54</div><div class="hy-cell empty">&mdash;</div></div>
+        </div>
+        <div class="hy-taperow">
+            <div class="lbl">SARAH</div>
+            <div class="hy-cells"><div class="hy-cell">45</div><div class="hy-cell">38</div><div class="hy-cell">60</div><div class="hy-cell">26</div><div class="hy-cell">41</div><div class="hy-cell">72</div><div class="hy-cell empty">&mdash;</div></div>
+        </div>
+        <div class="hy-taperow">
+            <div class="lbl">DAVE</div>
+            <div class="hy-cells"><div class="hy-cell">26</div><div class="hy-cell">41</div><div class="hy-cell">45</div><div class="hy-cell">38</div><div class="hy-cell">54</div><div class="hy-cell bust">BUST</div><div class="hy-cell empty">&mdash;</div></div>
+        </div>
+    </section>
+
+    <section class="hy-deck">
+        <div class="hy-modes" role="group" aria-label="Score entry mode">
+            <button class="on">DART BY DART</button>
+            <button id="totalModeBtn">TURN TOTAL</button>
+        </div>
+        <div class="hy-hint" id="entryHint">DART 3 &middot; TRIPLE SELECTED</div>
+
+        <div class="hy-darts" aria-label="Current visit">
+            <div class="hy-slot filled"><small>DART 1</small><b>T20</b></div>
+            <div class="hy-slot filled"><small>DART 2</small><b>T20</b></div>
+            <div class="hy-slot cur"><small>DART 3</small><b>&mdash;</b></div>
+        </div>
+
+        <div class="hy-mult" role="group" aria-label="Multiplier">
+            <button data-mult="1">SINGLE</button><button data-mult="2">DOUBLE</button><button class="on" data-mult="3">TRIPLE</button>
+        </div>
+
+        <div class="hy-board" aria-label="Dartboard targets">
+            <button data-number="1">1</button><button data-number="2">2</button><button data-number="3">3</button><button data-number="4">4</button>
+            <button data-number="5">5</button><button data-number="6">6</button><button data-number="7">7</button><button data-number="8">8</button>
+            <button data-number="9">9</button><button data-number="10">10</button><button data-number="11">11</button><button data-number="12">12</button>
+            <button data-number="13">13</button><button data-number="14">14</button><button data-number="15">15</button><button data-number="16">16</button>
+            <button data-number="17">17</button><button data-number="18">18</button><button data-number="19">19</button><button data-number="20">20</button>
+            <button class="bull" data-score="25" data-label="25">25</button><button class="bull" data-score="50" data-label="BULL" data-double="true">BULL</button>
+            <button class="miss" id="missBtn">MISS</button><button class="undo" id="undoBtn">UNDO</button>
+        </div>
+
+        <div class="hy-commit">
+            <button class="hy-enter" id="enterBtn"><b>ENTER</b><span>120</span></button>
+        </div>
+    </section>
+</div>
+
+<div class="proto-tag">Concept 10 &middot; Hybrid &middot; Per-Dart</div>
+
+<script>
+let multiplier = 3;
+let darts = [{ label: 'T20', score: 60 }, { label: 'T20', score: 60 }];
+
+const prefix = ['', 'S', 'D', 'T'];
+const slots = [...document.querySelectorAll('.hy-slot')];
+const enterValue = document.querySelector('#enterBtn span');
+const hint = document.getElementById('entryHint');
+const projection = document.getElementById('activeProjection');
+
+function render() {
+    slots.forEach((slot, index) => {
+        const dart = darts[index];
+        slot.classList.toggle('filled', Boolean(dart));
+        slot.classList.toggle('cur', index === darts.length && darts.length < 3);
+        slot.querySelector('b').textContent = dart ? dart.label : '\u2014';
+    });
+
+    const total = darts.reduce((sum, dart) => sum + dart.score, 0);
+    const scoreLeft = 170 - total;
+    const lastDart = darts[darts.length - 1];
+    const bust = scoreLeft < 0 || scoreLeft === 1 ||
+        (scoreLeft === 0 && !lastDart?.isDouble);
+    enterValue.textContent = total;
+    projection.textContent = !total ? 'READY \u00b7 170' :
+        bust ? 'BUST \u2192 170' : `\u2212${total} \u2192 ${scoreLeft}`;
+    projection.classList.toggle('bustproj', bust);
+    hint.textContent = bust ? 'BUST \u00b7 NO SCORE' :
+        darts.length === 3 ? 'VISIT READY' :
+        `DART ${darts.length + 1} \u00b7 ${['', 'SINGLE', 'DOUBLE', 'TRIPLE'][multiplier]} SELECTED`;
+}
+
+function addDart(label, score, isDouble = false) {
+    if (darts.length === 3) return;
+    darts.push({ label, score, isDouble });
+    render();
+}
+
+document.querySelectorAll('[data-mult]').forEach(button => {
+    button.addEventListener('click', () => {
+        multiplier = Number(button.dataset.mult);
+        document.querySelectorAll('[data-mult]').forEach(item => item.classList.toggle('on', item === button));
+        render();
+    });
+});
+
+document.querySelectorAll('[data-number]').forEach(button => {
+    button.addEventListener('click', () => {
+        const number = Number(button.dataset.number);
+        addDart(`${prefix[multiplier]}${number}`, number * multiplier, multiplier === 2);
+    });
+});
+
+document.querySelectorAll('[data-score]').forEach(button => {
+    button.addEventListener('click', () =>
+        addDart(button.dataset.label, Number(button.dataset.score), button.dataset.double === 'true'));
+});
+
+document.getElementById('missBtn').addEventListener('click', () => addDart('MISS', 0));
+document.getElementById('undoBtn').addEventListener('click', () => {
+    darts.pop();
+    render();
+});
+
+document.getElementById('bustBtn').addEventListener('click', () => {
+    darts = [];
+    render();
+    projection.textContent = 'BUST \u2192 170';
+    projection.classList.add('bustproj');
+    hint.textContent = 'BUST \u00b7 NO SCORE';
+});
+
+document.getElementById('enterBtn').addEventListener('click', () => {
+    darts = [];
+    render();
+});
+
+document.getElementById('totalModeBtn').addEventListener('click', () => {
+    location.href = '09-hybrid.html';
+});
+
+document.querySelectorAll('.hy-cell[data-darts]').forEach(cell => {
+    cell.addEventListener('click', () => {
+        document.querySelectorAll('.hy-cell.open').forEach(item => item.classList.remove('open'));
+        cell.classList.add('open');
+        if (!cell.querySelector('.hy-detail')) {
+            const detail = document.createElement('span');
+            detail.className = 'hy-detail';
+            cell.dataset.darts.split('|').forEach(value => {
+                const dart = document.createElement('span');
+                dart.textContent = value;
+                detail.append(dart);
+            });
+            const edit = document.createElement('em');
+            edit.textContent = 'EDIT';
+            detail.append(edit);
+            cell.append(detail);
+        }
+    });
+});
+
+render();
+</script>
+</body>
+</html>

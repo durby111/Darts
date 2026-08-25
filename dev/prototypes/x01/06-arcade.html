@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="neon">
+<head>
+<meta charset="UTF-8">
+<title>X01 Concept 6 — Arcade</title>
+<link rel="stylesheet" href="_proto.css">
+<style>
+/* ============================================
+   CONCEPT 6 — "ARCADE"
+   Bar-machine energy. Built on the neon theme.
+   ============================================
+   Thesis: this app lives in bars and basements next to a lit-up Galaxy
+   machine, and it currently looks like a spreadsheet by comparison. Arcade
+   leans all the way into that: glowing keys, a heat bar that fills as the
+   turn builds, and a 180 that actually feels like a 180.
+
+   Everything from the current screen is still here — the point is that
+   feedback and celebration are features, not decoration, because they are
+   what makes a scorer fun to be on.
+   ============================================ */
+
+body { background: radial-gradient(120% 80% at 50% 0%, #16163a, var(--color-bg)); }
+
+.ar-head {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 104px 1fr;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+}
+
+.ar-p {
+    position: relative;
+    border-radius: 22px;
+    padding: var(--space-md);
+    text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.4));
+    border: 2px solid var(--color-border);
+    min-width: 0;
+}
+
+.ar-p.active {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 26px var(--color-accent-glow), inset 0 0 30px rgba(0,212,255,0.14);
+}
+
+.ar-nm {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ar-p.active .ar-nm { color: var(--color-primary-light); text-shadow: 0 0 14px var(--color-accent-glow); }
+
+.ar-sc { font-size: 84px; font-weight: 800; line-height: 0.95; letter-spacing: -0.02em; }
+.ar-p.active .ar-sc { color: var(--color-primary-light); text-shadow: 0 0 26px var(--color-accent-glow); }
+
+.ar-dl { font-size: 20px; font-weight: 800; color: var(--color-success); min-height: 24px; }
+.ar-av { font-size: 11px; letter-spacing: 0.14em; color: var(--color-text-dim); }
+
+.ar-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+.ar-mid .rd {
+    width: 68px; height: 68px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; font-weight: 800;
+    border: 3px solid var(--color-primary);
+    box-shadow: 0 0 20px var(--color-accent-glow), inset 0 0 18px rgba(0,212,255,0.2);
+}
+.ar-mid small { font-size: 9px; letter-spacing: 0.2em; color: var(--color-text-dim); }
+.ar-mid button { font-size: 11px; letter-spacing: 0.1em; padding: 6px 13px; border-radius: var(--radius-pill); border: 1px solid var(--color-border-light); color: var(--color-text-muted); }
+
+/* Heat bar — fills toward 180. */
+.ar-heat { flex: 0 0 auto; margin: 0 var(--space-md); height: 12px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.07); overflow: hidden; position: relative; }
+.ar-heat i { display: block; height: 100%; width: 33%; border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--color-primary), var(--color-success), var(--color-warning)); box-shadow: 0 0 16px var(--color-accent-glow); }
+.ar-heat b { position: absolute; right: 8px; top: -1px; font-size: 9px; letter-spacing: 0.16em; color: var(--color-text-dim); }
+
+.ar-body { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 58px 1fr; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); min-height: 0; }
+
+.ar-lane { display: flex; flex-direction: column; justify-content: flex-end; overflow-y: auto; scrollbar-width: none; border-radius: 18px; background: rgba(0,0,0,0.32); border: 1px solid var(--color-border); }
+.ar-lane.n { background: transparent; border: none; }
+
+.ar-c { min-height: 46px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: var(--color-text-dim); }
+.ar-lane .ar-c:nth-last-child(-n+2) { color: var(--color-text); }
+.ar-c.n { font-size: 13px; font-weight: 800; }
+.ar-c.n.cur span { background: var(--color-primary); color: var(--color-text-dark); border-radius: var(--radius-pill); padding: 3px 9px; box-shadow: 0 0 16px var(--color-accent-glow); }
+.ar-c.bust { font-size: 15px; color: var(--color-danger); letter-spacing: 0.06em; }
+.ar-c.live { color: var(--color-primary-light); text-shadow: 0 0 14px var(--color-accent-glow); }
+.ar-c.ton { color: var(--color-warning) !important; }
+
+.ar-out {
+    flex: 0 0 auto; margin: 0 var(--space-md) var(--space-sm);
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    padding: 11px; border-radius: 18px;
+    background: linear-gradient(90deg, transparent, rgba(0,212,255,0.2), transparent);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 50%, transparent);
+    box-shadow: 0 0 22px rgba(0,212,255,0.16);
+}
+.ar-out small { font-size: 11px; letter-spacing: 0.18em; color: var(--color-primary-light); }
+.ar-out span { font-size: 21px; font-weight: 800; padding: 3px 13px; border-radius: 11px; background: var(--color-primary); color: var(--color-text-dark); }
+
+.ar-deck { flex: 0 0 auto; padding: 0 var(--space-md) var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm); }
+
+.ar-finish { text-align: center; font-size: 12px; letter-spacing: 0.16em; color: var(--color-text-muted); min-height: 15px; }
+
+.ar-disprow { display: grid; grid-template-columns: 1fr; gap: var(--space-sm); }
+
+.ar-disp {
+    height: 78px; border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 52px; font-weight: 800;
+    background: rgba(0,0,0,0.6);
+    border: 2px solid var(--color-primary);
+    color: var(--color-primary-light);
+    text-shadow: 0 0 24px var(--color-accent-glow);
+    box-shadow: inset 0 0 30px rgba(0,212,255,0.14);
+}
+
+.ar-main { display: grid; grid-template-columns: 74px 1fr 74px; gap: var(--space-sm); }
+
+.ar-qcol { display: grid; grid-auto-rows: 1fr; gap: 6px; }
+
+.ar-qcol button {
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(0,212,255,0.28), rgba(0,212,255,0.08));
+    border: 1px solid var(--color-primary);
+    color: var(--color-primary-light);
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.ar-qcol button.big { background: linear-gradient(180deg, var(--color-warning), #b39b00); color: #1a1500; border-color: var(--color-warning); }
+
+.ar-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+.ar-key {
+    height: 72px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--color-surface-elevated), var(--color-surface-alt));
+    border: 2px solid var(--color-border-light);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.6);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--color-text);
+}
+
+.ar-key.op { color: var(--color-primary-light); border-color: var(--color-primary); box-shadow: 0 4px 0 rgba(0,0,0,0.6), 0 0 18px rgba(0,212,255,0.2); }
+
+.ar-actions { display: grid; grid-template-columns: 1fr 1fr 1fr 1.6fr; gap: var(--space-sm); }
+
+.ar-actions button {
+    height: 66px;
+    border-radius: 18px;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.6);
+}
+
+.ar-actions .undo  { background: var(--color-undo); color: #fff; }
+.ar-actions .miss  { background: var(--color-miss); color: #fff; }
+.ar-actions .bust  { background: var(--color-bust); color: #fff; }
+.ar-actions .enter { background: linear-gradient(180deg, var(--color-success), var(--color-success-dark)); color: #002a16; font-size: 20px; box-shadow: 0 4px 0 rgba(0,0,0,0.6), 0 0 26px rgba(0,255,136,0.3); }
+</style>
+</head>
+<body>
+<div class="proto-app">
+
+    <div class="ar-head">
+        <div class="ar-p active">
+            <div class="ar-nm">Blake</div>
+            <div class="ar-sc tnum">170</div>
+            <div class="ar-dl tnum">&minus;60</div>
+            <div class="ar-av">62.4 AVG &middot; 18 DARTS</div>
+        </div>
+        <div class="ar-mid">
+            <small>ROUND</small>
+            <div class="rd tnum">7</div>
+            <button>MENU</button>
+        </div>
+        <div class="ar-p">
+            <div class="ar-nm">Mike</div>
+            <div class="ar-sc tnum">275</div>
+            <div class="ar-dl"></div>
+            <div class="ar-av">51.8 AVG &middot; 18 DARTS</div>
+        </div>
+    </div>
+
+    <div class="ar-heat"><i></i><b>60 / 180</b></div>
+
+    <div class="ar-body">
+        <div class="ar-lane" id="laneL"></div>
+        <div class="ar-lane n" id="laneR"></div>
+        <div class="ar-lane" id="laneM"></div>
+    </div>
+
+    <div class="ar-out">
+        <small>170 OUT</small>
+        <span>T20</span><span>T20</span><span>BULL</span>
+    </div>
+
+    <div class="ar-deck">
+        <div class="ar-finish">BLAKE TO THROW</div>
+        <div class="ar-disprow"><div class="ar-disp tnum">60</div></div>
+
+        <div class="ar-main">
+            <div class="ar-qcol">
+                <button>26</button><button>40</button><button>41</button><button>45</button><button>60</button>
+            </div>
+            <div class="ar-keys">
+                <button class="ar-key">1</button><button class="ar-key">2</button><button class="ar-key">3</button>
+                <button class="ar-key">4</button><button class="ar-key">5</button><button class="ar-key">6</button>
+                <button class="ar-key">7</button><button class="ar-key">8</button><button class="ar-key">9</button>
+                <button class="ar-key op">&times;</button><button class="ar-key">0</button><button class="ar-key op">+</button>
+            </div>
+            <div class="ar-qcol">
+                <button>81</button><button>85</button><button>100</button><button>140</button><button class="big">180</button>
+            </div>
+        </div>
+
+        <div class="ar-actions">
+            <button class="undo">UNDO</button>
+            <button class="miss">MISS</button>
+            <button class="bust">BUST</button>
+            <button class="enter">ENTER</button>
+        </div>
+    </div>
+</div>
+
+<div class="proto-tag">Concept 6 &middot; Arcade</div>
+
+<script>
+const L = [60, 81, 45, 26, 60, 59];
+const M = [41, 60, 26, 'BUST', 45, 54];
+const c = (v, e = '') => {
+    const ton = typeof v === 'number' && v >= 100 ? ' ton' : '';
+    return `<div class="ar-c ${v === 'BUST' ? 'bust' : ''} ${e}${ton}">${v}</div>`;
+};
+document.getElementById('laneL').innerHTML = L.map(v => c(v)).join('') + c(60, 'live');
+document.getElementById('laneM').innerHTML = M.map(v => c(v)).join('') + c('&nbsp;');
+document.getElementById('laneR').innerHTML = Array.from({ length: 7 }, (_, i) =>
+    `<div class="ar-c n${i === 6 ? ' cur' : ''}"><span>${i + 1}</span></div>`).join('');
+</script>
+</body>
+</html>

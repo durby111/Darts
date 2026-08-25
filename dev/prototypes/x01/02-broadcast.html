@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="blue">
+<head>
+<meta charset="UTF-8">
+<title>X01 Concept 2 — Broadcast</title>
+<link rel="stylesheet" href="_proto.css">
+<style>
+/* ============================================
+   CONCEPT 2 — "BROADCAST"
+   The PDC television scoreboard, on a tablet.
+   ============================================
+   Thesis: darts players have watched this exact layout their whole lives,
+   so it needs zero learning. Angled versus bar, enormous remaining scores,
+   leg pips, and a live checkout route. The keypad is unchanged in function
+   but restyled as a broadcast control desk, with the ten quick scores
+   promoted to a single horizontal strip directly above the thumbs.
+   ============================================ */
+
+.bc-bar {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 128px 1fr;
+    background: linear-gradient(180deg, #143a63, #08192c);
+    border-bottom: 3px solid var(--color-primary-light);
+}
+
+.bc-side {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    min-width: 0;
+}
+
+.bc-side.right {
+    grid-template-columns: auto 1fr;
+    text-align: right;
+}
+
+.bc-side.active {
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--color-primary) 55%, transparent), transparent);
+    box-shadow: inset 0 -4px 0 var(--color-primary-light);
+}
+
+.bc-name {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bc-legs {
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    color: #9dc6ec;
+}
+
+.bc-score {
+    font-size: 92px;
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+}
+
+.bc-delta {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--color-pending);
+    line-height: 1;
+}
+
+.bc-mid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.35);
+}
+
+.bc-mid .leg { font-size: 11px; letter-spacing: 0.18em; color: #9dc6ec; }
+.bc-mid .rd  { font-size: 34px; font-weight: 800; line-height: 1; }
+.bc-mid button {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    border: 1px solid #4b7fae;
+    border-radius: var(--radius-pill);
+    padding: 5px 12px;
+    color: #cfe6fb;
+}
+
+/* --- Stat ribbon --- */
+.bc-stats {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: var(--color-surface-alt);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.bc-statgrp {
+    display: flex;
+    justify-content: space-evenly;
+    padding: 7px 0;
+}
+
+.bc-statgrp + .bc-statgrp { border-left: 1px solid var(--color-border); }
+
+.bc-stat { text-align: center; }
+.bc-stat b { display: block; font-size: 17px; font-weight: 700; }
+.bc-stat small { font-size: 9px; letter-spacing: 0.12em; color: var(--color-text-dim); }
+
+/* --- Score table --- */
+.bc-table {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.bc-lane {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.bc-lane.rd {
+    background: rgba(255, 255, 255, 0.03);
+    border-inline: 1px solid var(--color-border);
+}
+
+.bc-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.bc-lane .bc-row:nth-last-child(-n+2) { color: var(--color-text); }
+.bc-row.num  { font-size: 15px; font-weight: 800; color: var(--color-text-dim); }
+.bc-row.num.cur { background: var(--color-primary); color: var(--color-on-primary); }
+.bc-row.bust { font-size: 17px; color: var(--color-danger); letter-spacing: 0.08em; }
+.bc-row.live { color: var(--color-primary-light); }
+
+.bc-checkout {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 9px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-primary) 40%, transparent), transparent);
+    border-block: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+}
+
+.bc-checkout .lb { font-size: 11px; letter-spacing: 0.16em; color: var(--color-primary-light); }
+.bc-checkout .rt { display: flex; gap: 7px; }
+.bc-checkout .rt span {
+    font-size: 20px;
+    font-weight: 800;
+    padding: 3px 12px;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+/* --- Control desk --- */
+.bc-desk {
+    flex: 0 0 auto;
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    background: linear-gradient(180deg, var(--color-surface), var(--color-surface-alt));
+    border-top: 2px solid var(--color-primary-dark);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.bc-finish { text-align: center; font-size: 12px; letter-spacing: 0.1em; color: var(--color-text-muted); min-height: 15px; }
+
+.bc-quick { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+
+.bc-quick button {
+    height: 46px;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-primary) 22%, var(--color-surface));
+    border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+    color: var(--color-primary-light);
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.bc-quick button:last-child {
+    background: var(--color-warning);
+    border-color: transparent;
+    color: #201400;
+}
+
+/* BUST rides beside the display rather than in the pad: it is rare, and
+   putting it in the pad forced a fifth row that stranded it alone. */
+.bc-inputrow { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: var(--space-sm); }
+
+.bc-inputrow .bust {
+    border-radius: var(--radius-md);
+    background: var(--color-bust);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+}
+
+.bc-display {
+    background: #000;
+    border: 2px solid var(--color-primary-dark);
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 46px;
+    font-weight: 800;
+    color: var(--color-primary-light);
+    min-height: 68px;
+}
+
+.bc-pad { display: grid; grid-template-columns: repeat(3, 1fr) 1.35fr; gap: 6px; }
+
+.bc-pad button {
+    height: 68px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, #35405420, #0000004d), var(--color-surface-elevated);
+    border: 1px solid var(--color-border-light);
+    font-size: 27px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.bc-pad button.op {
+    background: color-mix(in srgb, var(--color-primary) 25%, var(--color-surface-elevated));
+    color: var(--color-primary-light);
+}
+
+.bc-pad button.miss  { background: var(--color-miss); font-size: 16px; letter-spacing: 0.08em; }
+.bc-pad button.bust  { background: var(--color-bust); font-size: 16px; letter-spacing: 0.08em; }
+.bc-pad button.undo  { background: var(--color-undo); font-size: 16px; letter-spacing: 0.08em; color: #fff; }
+.bc-pad button.enter {
+    background: var(--color-success);
+    color: var(--color-on-success);
+    grid-row: span 2;
+    height: auto;
+    font-size: 20px;
+    letter-spacing: 0.1em;
+}
+</style>
+</head>
+<body>
+<div class="proto-app">
+
+    <div class="bc-bar">
+        <div class="bc-side active">
+            <div>
+                <div class="bc-name">BLAKE</div>
+                <div class="bc-legs">LEGS &nbsp;&#9679;&#9679;&#9675;&#9675;&#9675;</div>
+            </div>
+            <div>
+                <div class="bc-score tnum">170</div>
+                <div class="bc-delta tnum">&minus;60</div>
+            </div>
+        </div>
+        <div class="bc-mid">
+            <div class="leg">ROUND</div>
+            <div class="rd tnum">7</div>
+            <button>MENU</button>
+        </div>
+        <div class="bc-side right">
+            <div>
+                <div class="bc-score tnum">275</div>
+                <div class="bc-delta tnum">&nbsp;</div>
+            </div>
+            <div>
+                <div class="bc-name">MIKE</div>
+                <div class="bc-legs">&#9679;&#9675;&#9675;&#9675;&#9675;&nbsp; LEGS</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bc-stats">
+        <div class="bc-statgrp">
+            <div class="bc-stat"><b class="tnum">62.4</b><small>3-DART</small></div>
+            <div class="bc-stat"><b class="tnum">18</b><small>DARTS</small></div>
+            <div class="bc-stat"><b class="tnum">1</b><small>180s</small></div>
+            <div class="bc-stat"><b class="tnum">33%</b><small>CHECKOUT</small></div>
+        </div>
+        <div class="bc-statgrp">
+            <div class="bc-stat"><b class="tnum">51.8</b><small>3-DART</small></div>
+            <div class="bc-stat"><b class="tnum">18</b><small>DARTS</small></div>
+            <div class="bc-stat"><b class="tnum">0</b><small>180s</small></div>
+            <div class="bc-stat"><b class="tnum">0%</b><small>CHECKOUT</small></div>
+        </div>
+    </div>
+
+    <div class="bc-table">
+        <div class="bc-lane" id="laneL"></div>
+        <div class="bc-lane rd" id="laneR"></div>
+        <div class="bc-lane" id="laneM"></div>
+    </div>
+
+    <div class="bc-checkout">
+        <span class="lb">170 CHECKOUT</span>
+        <div class="rt"><span>T20</span><span>T20</span><span>BULL</span></div>
+    </div>
+
+    <div class="bc-desk">
+        <div class="bc-finish">TYPE THE TURN TOTAL, OR TAP A QUICK SCORE</div>
+
+        <div class="bc-quick">
+            <button>26</button><button>40</button><button>41</button><button>45</button>
+            <button>60</button><button>81</button><button>85</button><button>100</button>
+            <button>140</button><button>180</button>
+        </div>
+
+        <div class="bc-inputrow">
+            <button class="bust">BUST</button>
+            <div class="bc-display tnum">60</div>
+        </div>
+
+        <div class="bc-pad">
+            <button>1</button><button>2</button><button>3</button><button class="undo">UNDO</button>
+            <button>4</button><button>5</button><button>6</button><button class="miss">MISS</button>
+            <button>7</button><button>8</button><button>9</button><button class="enter">ENTER</button>
+            <button class="op">&times;</button><button>0</button><button class="op">+</button>
+        </div>
+    </div>
+</div>
+
+<div class="proto-tag">Concept 2 &middot; Broadcast</div>
+
+<script>
+const L = [60, 81, 45, 26, 60, 59];
+const M = [41, 60, 26, 'BUST', 45, 54];
+const row = (v, extra = '') =>
+    `<div class="bc-row ${v === 'BUST' ? 'bust' : ''} ${extra}">${v}</div>`;
+
+document.getElementById('laneL').innerHTML = L.map(v => row(v)).join('') + row(60, 'live');
+document.getElementById('laneM').innerHTML = M.map(v => row(v)).join('') + row('&nbsp;');
+document.getElementById('laneR').innerHTML = Array.from({ length: 7 }, (_, i) =>
+    `<div class="bc-row num${i === 6 ? ' cur' : ''}">${i + 1}</div>`).join('');
+</script>
+</body>
+</html>

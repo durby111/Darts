@@ -12,7 +12,7 @@ import { initSetupControls, setGameStartCallback, showSetup, showSetupAsOverlay,
 import { initTeamBuilder, currentThrower } from './teams.js';
 import { initTargetGameControls, updateTargetGameDisplay } from './target_game.js';
 import { init121SummaryControls } from './game121.js';
-import { isCricketGame, isTargetGame } from './registry.js';
+import { getGame, isCricketGame, isTargetGame, isX01Game } from './registry.js';
 import { initSettings } from './settings.js';
 import { initTicTacToeControls, updateTicTacToeDisplay } from './tictactoe.js';
 import { initDoubleDownControls, updateDoubleDownDisplay } from './doubledown.js';
@@ -33,10 +33,18 @@ function on(id, event, handler) {
 function updateDisplay() {
     const effectiveType = game.chicago ? game.chicago.currentGameType : game.type;
     const isCricket = isCricketGame(effectiveType);
+    const isX01 = isX01Game(effectiveType);
     const isTarget = isTargetGame(effectiveType);
     const isTicTacToe = effectiveType === 'tictactoe';
     const isDoubleDown = effectiveType === 'doubledown';
     const isTeamCricket = effectiveType === 'teamcricket';
+    const gameScreen = document.getElementById('gameScreen');
+    const isCricketCategoryTarget = isTarget && getGame(effectiveType)?.category === 'cricket';
+    const scoreboardFamily = isX01 ? 'x01'
+        : (isCricket || isCricketCategoryTarget || isDoubleDown || isTeamCricket) ? 'cricket'
+            : '';
+    if (scoreboardFamily) gameScreen.dataset.scoreboardFamily = scoreboardFamily;
+    else delete gameScreen.dataset.scoreboardFamily;
 
     // Show/hide game areas
     const cricketMain = document.getElementById('cricketMain');

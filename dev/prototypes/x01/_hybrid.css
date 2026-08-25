@@ -1,0 +1,589 @@
+/* ============================================
+   HYBRID — Broadcast chrome + Card Stack player model
+   ============================================
+   THROWAWAY, like the rest of dev/prototypes/x01/.
+
+   Shared by 09-hybrid.html (2 players, turn-total entry) and
+   10-hybrid-perdart.html (4 players, per-dart entry) so the two variants
+   differ only in markup and can be compared honestly.
+
+   Every cross-cutting demand the judging panel made is implemented here:
+     - ENTER reads "ENTER <value>"                     .hy-enter b/span
+     - delta AND result, "-60 -> 110"                  .hy-proj / .hy-display
+     - BUST is nowhere near ENTER or the display       .hy-bust (bar, top-left)
+     - per-visit dart detail                           .hy-tape cell popover
+     - bigger round-number rail                        .hy-tape .rail
+     - no dead space above the history                 tape is fixed-height
+     - tap a score to correct it                       .hy-cell[aria-…]
+   And the correctness trap is respected: checkout% / doubles% only exist in
+   the per-dart variant. In turn-total mode they render as unavailable
+   rather than as invented numbers.
+   ============================================ */
+
+@import url('_proto.css');
+
+/* ---------- app bar ---------- */
+
+.hy-bar {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-sm) var(--space-lg);
+    background: linear-gradient(180deg, var(--color-surface-alt), var(--color-surface));
+    border-bottom: 2px solid var(--color-primary-dark);
+}
+
+.hy-game {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.hy-game small {
+    color: var(--color-text-dim);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+}
+
+.hy-round {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 3px 14px;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+.hy-round small { font-size: 9px; letter-spacing: 0.2em; opacity: 0.85; }
+.hy-round b { font-size: 20px; font-weight: 800; }
+
+.hy-menu {
+    justify-self: end;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    padding: 7px 15px;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-pill);
+    color: var(--color-text-muted);
+}
+
+/* ---------- player stack ---------- */
+
+.hy-stack {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md) var(--space-md) var(--space-sm);
+}
+
+.hy-card {
+    flex: 1 1 0;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 26px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--space-md);
+    padding: 9px var(--space-lg);
+    border-radius: 14px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+}
+
+.hy-rank { font-size: 14px; font-weight: 800; color: var(--color-text-dim); text-align: center; }
+
+.hy-name { font-size: 19px; font-weight: 700; letter-spacing: 0.04em; }
+.hy-meta { font-size: 10px; letter-spacing: 0.1em; color: var(--color-text-dim); margin-top: 1px; }
+
+.hy-last { font-size: 9px; letter-spacing: 0.16em; color: var(--color-text-dim); text-align: right; }
+.hy-last b { display: block; font-size: 18px; font-weight: 700; color: var(--color-text-muted); }
+.hy-last b.bustval { font-size: 14px; color: var(--color-danger); }
+
+.hy-rem { font-size: 40px; font-weight: 800; line-height: 1; text-align: right; min-width: 104px; }
+
+/* --- the thrower's card opens; same rule holds for 2, 3 and 4 players --- */
+
+.hy-card.active {
+    flex: 2.1 1 0;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-content: center;
+    row-gap: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
+    background:
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--color-primary) 26%, var(--color-surface)),
+            var(--color-surface));
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.45);
+}
+
+.hy-badge { font-size: 10px; font-weight: 700; letter-spacing: 0.22em; color: var(--color-primary-light); }
+.hy-card.active .hy-name { font-size: 30px; font-weight: 800; letter-spacing: 0.05em; }
+.hy-legs { font-size: 11px; letter-spacing: 0.14em; color: var(--color-text-muted); margin-top: 3px; }
+
+.hy-big { text-align: right; }
+.hy-big b { display: block; font-size: 84px; font-weight: 800; line-height: 0.86; letter-spacing: -0.03em; }
+
+/* Delta AND result on one line - the panel would not accept either alone. */
+.hy-proj { font-size: 20px; font-weight: 800; color: var(--color-pending); letter-spacing: 0.02em; }
+.hy-proj.bustproj { color: var(--color-danger); }
+
+.hy-cardfoot {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto 92px;
+    align-items: center;
+    gap: var(--space-md);
+    padding-top: var(--space-sm);
+    border-top: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+}
+
+.hy-checkout { display: flex; align-items: center; gap: var(--space-md); min-width: 0; }
+.hy-checkout small { font-size: 9px; letter-spacing: 0.18em; color: var(--color-primary-light); }
+
+.hy-route { display: flex; gap: 6px; }
+
+.hy-route span {
+    font-size: 17px;
+    font-weight: 800;
+    padding: 3px 11px;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+/* Struck-through leg of the route, lifted from Oche. */
+.hy-route span.done {
+    background: transparent;
+    border: 1px solid var(--color-border-light);
+    color: var(--color-text-dim);
+    text-decoration: line-through;
+}
+
+.hy-route span.none {
+    background: transparent;
+    border: 1px dashed var(--color-border-light);
+    color: var(--color-text-dim);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+}
+
+.hy-legstats { display: flex; gap: var(--space-lg); }
+.hy-legstats div { text-align: center; }
+.hy-legstats b { display: block; font-size: 17px; font-weight: 800; }
+.hy-legstats small { font-size: 8px; letter-spacing: 0.14em; color: var(--color-text-dim); }
+
+/* A stat we cannot derive is shown as unavailable, never invented. */
+.hy-legstats .na b { color: var(--color-text-dim); font-weight: 600; }
+.hy-legstats .na small { text-decoration: line-through; }
+
+/* ---------- history tape ---------- */
+
+.hy-tape {
+    flex: 0 0 auto;
+    margin: 0 var(--space-md) var(--space-sm);
+    border-radius: 12px;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+}
+
+.hy-taperow {
+    display: grid;
+    grid-template-columns: 74px minmax(0, 1fr);
+    align-items: stretch;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.hy-taperow:last-child { border-bottom: none; }
+
+.hy-taperow .lbl {
+    display: flex;
+    align-items: center;
+    padding-left: var(--space-md);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--color-text-dim);
+    background: rgba(0, 0, 0, 0.22);
+    border-right: 1px solid var(--color-border);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.hy-taperow.live .lbl { color: var(--color-primary-light); }
+.hy-taperow.live { background: color-mix(in srgb, var(--color-primary) 12%, transparent); }
+
+.hy-cells {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+}
+
+.hy-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    font-size: 19px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-muted);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hy-cell:last-child { border-right: none; }
+.hy-cell.cur { color: var(--color-primary-light); background: rgba(0, 0, 0, 0.3); }
+.hy-cell.bust { color: var(--color-danger); font-size: 13px; letter-spacing: 0.06em; }
+.hy-cell.empty { color: var(--color-text-dim); }
+
+/* The round rail the panel asked to enlarge. */
+.hy-taperow.rail .lbl { color: var(--color-text-muted); }
+.hy-taperow.rail .hy-cell {
+    min-height: 26px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--color-text-dim);
+}
+
+.hy-taperow.rail .hy-cell.cur {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+}
+
+/* Per-visit dart detail, on demand - the dispute-resolution requirement.
+   A cell is tappable; this is the opened state. */
+.hy-cell.open {
+    position: relative;
+    outline: 2px solid var(--color-primary-light);
+    outline-offset: -2px;
+}
+
+.hy-detail {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    gap: 5px;
+    padding: 6px 9px;
+    border-radius: 10px;
+    background: #000;
+    border: 1px solid var(--color-primary-light);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+    white-space: nowrap;
+}
+
+.hy-detail span {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--color-primary-light);
+    letter-spacing: 0.04em;
+}
+
+.hy-detail em {
+    font-size: 10px;
+    font-style: normal;
+    letter-spacing: 0.1em;
+    color: var(--color-text-dim);
+    align-self: center;
+}
+
+/* ---------- entry deck ---------- */
+
+.hy-deck {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    background: linear-gradient(180deg, var(--color-surface), var(--color-surface-alt));
+    border-top: 2px solid var(--color-primary-dark);
+}
+
+.hy-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: var(--radius-pill); background: rgba(0, 0, 0, 0.32); }
+
+.hy-modes button {
+    padding: 7px 0;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: var(--color-text-dim);
+}
+
+.hy-modes button.on { background: var(--color-primary); color: var(--color-on-primary); }
+
+.hy-hint { text-align: center; font-size: 11px; letter-spacing: 0.12em; color: var(--color-text-muted); min-height: 14px; }
+
+/* BUST stays with the active visit, away from score entry and ENTER. */
+.hy-inputrow { display: grid; grid-template-columns: minmax(0, 1fr) 78px; gap: var(--space-sm); }
+
+.hy-bust {
+    min-height: 44px;
+    padding: 7px;
+    border-radius: var(--radius-md);
+    background: var(--color-bust);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+}
+
+.hy-back {
+    border-radius: var(--radius-md);
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border-light);
+    color: var(--color-text-muted);
+    font-size: 21px;
+}
+
+.hy-display {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 14px;
+    min-height: 66px;
+    padding: 0 var(--space-md);
+    background: #000;
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius-md);
+}
+
+.hy-display b { font-size: 42px; font-weight: 800; color: var(--color-primary-light); font-variant-numeric: tabular-nums; }
+.hy-display i { font-size: 19px; font-style: normal; font-weight: 700; color: var(--color-pending); font-variant-numeric: tabular-nums; }
+
+.hy-quick { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+
+.hy-quick button {
+    height: 44px;
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--color-primary) 22%, var(--color-surface));
+    border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+    color: var(--color-primary-light);
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.hy-pad { display: grid; grid-template-columns: repeat(3, 1fr) 1.4fr; gap: 6px; }
+
+.hy-pad button {
+    height: 62px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, var(--color-surface-elevated), var(--color-surface));
+    border: 1px solid var(--color-border-light);
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.hy-pad button.op { color: var(--color-primary-light); background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface-elevated)); }
+.hy-pad button.sm { font-size: 14px; font-weight: 800; letter-spacing: 0.08em; border-color: transparent; color: #fff; }
+.hy-pad button.undo { background: var(--color-undo); }
+.hy-pad button.miss { background: var(--color-miss); }
+
+.hy-enter {
+    grid-row: span 2;
+    height: auto !important;
+    border-color: transparent !important;
+    background: var(--color-success) !important;
+    color: var(--color-on-success) !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.hy-enter b { font-size: 15px; font-weight: 800; letter-spacing: 0.14em; }
+.hy-enter span { font-size: 30px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* ---------- per-dart variant ---------- */
+
+.hy-darts { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-sm); }
+
+.hy-slot {
+    min-height: 66px;
+    border-radius: var(--radius-md);
+    background: #000;
+    border: 2px solid var(--color-border-light);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+}
+
+.hy-slot small { font-size: 8px; letter-spacing: 0.18em; color: var(--color-text-dim); }
+.hy-slot b { font-size: 28px; font-weight: 800; color: var(--color-text); }
+.hy-slot.filled b { color: var(--color-primary-light); }
+.hy-slot.cur { border-color: var(--color-primary); }
+.hy-slot.cur b { color: var(--color-text-dim); font-weight: 600; font-size: 22px; }
+
+.hy-mult { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+
+.hy-mult button {
+    height: 46px;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border-light);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--color-text-muted);
+}
+
+.hy-mult button.on {
+    background: var(--color-primary);
+    border-color: transparent;
+    color: var(--color-on-primary);
+}
+
+.hy-board { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
+
+.hy-board button {
+    height: 50px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, var(--color-surface-elevated), var(--color-surface));
+    border: 1px solid var(--color-border-light);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.hy-board button.bull { background: color-mix(in srgb, var(--color-danger) 34%, var(--color-surface-elevated)); font-size: 15px; font-weight: 800; }
+.hy-board button.miss { background: var(--color-miss); font-size: 13px; font-weight: 800; letter-spacing: 0.08em; color: #fff; }
+.hy-board button.undo { background: var(--color-undo); font-size: 13px; font-weight: 800; letter-spacing: 0.08em; color: #fff; }
+
+.hy-commit { display: block; }
+
+.hy-commit .hy-enter { grid-row: auto; width: 100%; min-height: 62px; flex-direction: row; gap: 12px; }
+
+@media (max-width: 520px) and (max-height: 900px) {
+    .proto-tag { display: none; }
+
+    .hy-bar {
+        min-height: 42px;
+        gap: 5px;
+        padding: 5px 8px;
+    }
+
+    .hy-game { font-size: 12px; }
+    .hy-game small { display: block; font-size: 7px; }
+    .hy-round { gap: 4px; padding: 2px 9px; }
+    .hy-round small { font-size: 7px; }
+    .hy-round b { font-size: 17px; }
+    .hy-menu { font-size: 8px; padding: 6px 9px; }
+
+    .hy-stack {
+        gap: 5px;
+        padding: 7px 8px 5px;
+    }
+
+    .hy-card {
+        grid-template-columns: 18px minmax(0, 1fr) auto;
+        gap: 7px;
+        padding: 5px 8px;
+        border-radius: 8px;
+    }
+
+    .hy-rank { font-size: 10px; }
+    .hy-name { font-size: 15px; }
+    .hy-meta { display: none; }
+    .hy-last { display: none; }
+    .hy-rem { min-width: 64px; font-size: 31px; }
+
+    .hy-card.active {
+        grid-template-columns: minmax(0, 1fr) auto;
+        row-gap: 6px;
+        padding: 8px 10px;
+        border-radius: 9px;
+    }
+
+    .hy-badge { font-size: 7px; }
+    .hy-card.active .hy-name { font-size: 22px; }
+    .hy-legs { font-size: 8px; }
+    .hy-big b { font-size: 58px; }
+    .hy-proj { font-size: 14px; }
+
+    .hy-cardfoot {
+        grid-template-columns: minmax(0, 1fr) 76px;
+        gap: 7px;
+        padding-top: 5px;
+    }
+
+    .hy-checkout { gap: 6px; }
+    .hy-checkout small { font-size: 7px; }
+    .hy-route { gap: 3px; }
+    .hy-route span { font-size: 11px; padding: 3px 6px; }
+    .hy-legstats { grid-column: 1 / -1; justify-content: space-between; gap: 8px; }
+    .hy-legstats b { font-size: 12px; }
+    .hy-legstats small { font-size: 6px; }
+    .hy-bust { grid-column: 2; grid-row: 1; min-height: 44px; font-size: 12px; }
+
+    .hy-perdart .hy-legstats { display: none; }
+    .hy-perdart .hy-card.active { min-height: 130px; }
+
+    .hy-tape {
+        margin: 0 8px 5px;
+        border-radius: 7px;
+    }
+
+    .hy-taperow { grid-template-columns: 48px minmax(0, 1fr); }
+    .hy-taperow .lbl { padding-left: 6px; font-size: 7px; }
+    .hy-cell { min-height: 25px; font-size: 12px; }
+    .hy-cell.bust { font-size: 8px; }
+    .hy-taperow.rail .hy-cell { min-height: 19px; font-size: 9px; }
+    .hy-cell:nth-child(-n+2).open .hy-detail { left: 0; transform: none; }
+    .hy-cell:nth-last-child(-n+2).open .hy-detail { right: 0; left: auto; transform: none; }
+    .hy-detail { padding: 4px 6px; }
+    .hy-detail span { font-size: 10px; }
+    .hy-detail em { font-size: 7px; }
+
+    .hy-deck {
+        gap: 4px;
+        padding: 6px 8px 8px;
+    }
+
+    .hy-modes { padding: 2px; }
+    .hy-modes button { padding: 5px 0; font-size: 8px; }
+    .hy-hint { min-height: 10px; font-size: 8px; }
+
+    .hy-inputrow { grid-template-columns: minmax(0, 1fr) 54px; gap: 5px; }
+    .hy-display { min-height: 52px; gap: 8px; }
+    .hy-display b { font-size: 32px; }
+    .hy-display i { font-size: 13px; }
+    .hy-back { font-size: 17px; }
+
+    .hy-quick { gap: 3px; }
+    .hy-quick button { height: 30px; border-radius: 5px; font-size: 10px; }
+
+    .hy-pad { gap: 4px; }
+    .hy-pad button { height: 48px; border-radius: 6px; font-size: 20px; }
+    .hy-pad button.sm { font-size: 9px; }
+    .hy-enter b { font-size: 10px; }
+    .hy-enter span { font-size: 23px; }
+
+    .hy-darts { gap: 5px; }
+    .hy-slot { min-height: 50px; border-radius: 6px; }
+    .hy-slot small { font-size: 6px; }
+    .hy-slot b { font-size: 21px; }
+
+    .hy-mult { gap: 4px; }
+    .hy-mult button { height: 36px; border-radius: 6px; font-size: 9px; }
+
+    .hy-board { gap: 4px; }
+    .hy-board button { height: 44px; border-radius: 5px; font-size: 14px; }
+    .hy-board button.bull,
+    .hy-board button.miss,
+    .hy-board button.undo { font-size: 8px; }
+
+    .hy-commit .hy-enter { min-height: 48px; }
+}

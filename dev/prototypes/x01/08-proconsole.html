@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="blue">
+<head>
+<meta charset="UTF-8">
+<title>X01 Concept 8 — Pro Console</title>
+<link rel="stylesheet" href="_proto.css">
+<style>
+/* ============================================
+   CONCEPT 8 — "PRO CONSOLE"
+   For the player who wants the numbers behind the number.
+   ============================================
+   Thesis: everything else here optimises the act of entering a score.
+   This one optimises what you do with the score afterwards. It surfaces
+   the data the app already computes but throws away — leg average, last
+   five visits, scoring band distribution, checkout attempts, and a full
+   checkout table instead of a single suggested route.
+
+   Deliberately the densest option in the set, so the panel has a real
+   opposite pole to Slate to argue against.
+   ============================================ */
+
+.pc-bar {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: stretch;
+    background: var(--color-surface-alt);
+    border-bottom: 2px solid var(--color-primary-dark);
+}
+
+.pc-side { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-md); padding: var(--space-md) var(--space-lg); min-width: 0; }
+.pc-side.r { grid-template-columns: auto 1fr; text-align: right; }
+.pc-side.on { background: color-mix(in srgb, var(--color-primary) 20%, transparent); box-shadow: inset 0 -3px 0 var(--color-primary-light); }
+
+.pc-nm { font-size: 20px; font-weight: 800; letter-spacing: 0.06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-tag { font-size: 10px; letter-spacing: 0.14em; color: var(--color-text-dim); }
+.pc-rem { font-size: 68px; font-weight: 800; line-height: 0.92; }
+.pc-dl { font-size: 16px; font-weight: 800; color: var(--color-pending); min-height: 20px; }
+
+.pc-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 var(--space-lg); background: rgba(0,0,0,0.3); }
+.pc-mid .rd { font-size: 30px; font-weight: 800; line-height: 1; }
+.pc-mid small { font-size: 9px; letter-spacing: 0.18em; color: var(--color-text-dim); }
+.pc-mid button { font-size: 10px; padding: 4px 11px; border: 1px solid var(--color-border-light); border-radius: var(--radius-pill); color: var(--color-text-muted); }
+
+/* --- Analytics band --- */
+.pc-analytics { flex: 0 0 auto; display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--color-border); }
+.pc-col { padding: var(--space-sm) var(--space-lg); }
+.pc-col + .pc-col { border-left: 1px solid var(--color-border); }
+
+.pc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.pc-kpi { text-align: center; }
+.pc-kpi b { display: block; font-size: 18px; font-weight: 800; }
+.pc-kpi small { font-size: 8px; letter-spacing: 0.12em; color: var(--color-text-dim); }
+.pc-kpi.good b { color: var(--color-success); }
+.pc-kpi.bad b { color: var(--color-danger); }
+
+/* Scoring-band bar: 100+, 60-99, 40-59, <40 */
+.pc-bands { display: flex; height: 9px; border-radius: var(--radius-pill); overflow: hidden; margin-top: 7px; background: var(--color-surface); }
+.pc-bands i { display: block; height: 100%; }
+.pc-bandkey { display: flex; justify-content: space-between; margin-top: 4px; font-size: 8px; letter-spacing: 0.08em; color: var(--color-text-dim); }
+
+/* --- Split: history table + checkout table --- */
+.pc-body { flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1fr) 216px; min-height: 0; }
+
+.pc-hist { display: grid; grid-template-columns: 1fr 52px 1fr; min-height: 0; overflow: hidden; }
+.pc-lane { display: flex; flex-direction: column; justify-content: flex-end; overflow-y: auto; scrollbar-width: none; }
+.pc-lane.n { background: rgba(255,255,255,0.03); border-inline: 1px solid var(--color-border); }
+
+.pc-c { min-height: 44px; display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 var(--space-md); gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.pc-c b { font-size: 26px; font-weight: 800; color: var(--color-text-muted); }
+.pc-c em { font-style: normal; font-size: 11px; color: var(--color-text-dim); }
+.pc-lane .pc-c:nth-last-child(-n+2) b { color: var(--color-text); }
+.pc-c.n { justify-items: center; grid-template-columns: 1fr; font-size: 12px; font-weight: 800; color: var(--color-text-dim); padding: 0; }
+.pc-c.n.cur { background: var(--color-primary); color: var(--color-on-primary); }
+.pc-c.bust b { font-size: 14px; color: var(--color-danger); letter-spacing: 0.06em; }
+.pc-c.live b { color: var(--color-primary-light); }
+
+/* Checkout table replaces the single suggestion line. */
+.pc-outs { border-left: 1px solid var(--color-border); background: var(--color-surface-alt); display: flex; flex-direction: column; min-height: 0; }
+.pc-outs-h { font-size: 10px; letter-spacing: 0.16em; color: var(--color-primary-light); padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-border); }
+.pc-outs-b { flex: 1 1 auto; overflow-y: auto; scrollbar-width: none; }
+
+.pc-o { display: grid; grid-template-columns: 46px 1fr; align-items: center; gap: 6px; padding: 7px var(--space-md); border-bottom: 1px solid rgba(255,255,255,0.04); }
+.pc-o span { font-size: 15px; font-weight: 800; color: var(--color-text-muted); }
+.pc-o div { font-size: 13px; letter-spacing: 0.06em; color: var(--color-text-dim); }
+.pc-o.on { background: color-mix(in srgb, var(--color-primary) 26%, transparent); }
+.pc-o.on span { color: var(--color-text); }
+.pc-o.on div { color: var(--color-primary-light); font-weight: 700; }
+
+/* --- Console --- */
+.pc-console { flex: 0 0 auto; padding: var(--space-sm) var(--space-md) var(--space-md); background: linear-gradient(180deg, var(--color-surface), var(--color-surface-alt)); border-top: 1px solid var(--color-border); display: flex; flex-direction: column; gap: var(--space-sm); }
+
+.pc-status { display: flex; justify-content: space-between; font-size: 11px; letter-spacing: 0.1em; color: var(--color-text-dim); }
+
+/* Zoned, not interleaved: a single quick strip, then digits with a
+   dedicated action column. The first pass wove quick scores between the
+   digits and the pad became unreadable. */
+.pc-quickstrip { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+
+.pc-q { border-radius: 9px; background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface)); border: 1px solid color-mix(in srgb, var(--color-primary) 42%, transparent); color: var(--color-primary-light); font-size: 15px; font-weight: 800; height: 44px; }
+
+.pc-grid { display: grid; grid-template-columns: repeat(3, 1fr) 1.5fr; gap: 6px; }
+
+.pc-k { border-radius: 9px; background: linear-gradient(180deg, var(--color-surface-elevated), var(--color-surface)); border: 1px solid var(--color-border-light); font-size: 25px; font-weight: 700; color: var(--color-text); height: 56px; }
+.pc-k.op { color: var(--color-primary-light); }
+.pc-a { border-radius: 9px; font-size: 13px; font-weight: 800; letter-spacing: 0.08em; height: 56px; }
+.pc-a.undo { background: var(--color-undo); color: #fff; }
+.pc-a.miss { background: var(--color-miss); color: #fff; }
+.pc-a.bust { background: var(--color-bust); color: #fff; }
+.pc-a.enter { background: var(--color-success); color: var(--color-on-success); font-size: 17px; grid-row: span 2; height: auto; }
+
+.pc-disp { grid-column: span 3; border-radius: 9px; background: #000; border: 2px solid var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 800; color: var(--color-primary-light); height: 56px; }
+</style>
+</head>
+<body>
+<div class="proto-app">
+
+    <div class="pc-bar">
+        <div class="pc-side on">
+            <div>
+                <div class="pc-nm">Blake</div>
+                <div class="pc-tag">LEGS 2 &minus; 1 &nbsp;&middot;&nbsp; THROWING</div>
+            </div>
+            <div><div class="pc-rem tnum">170</div><div class="pc-dl tnum">&minus;60</div></div>
+        </div>
+        <div class="pc-mid">
+            <small>ROUND</small>
+            <div class="rd tnum">7</div>
+            <button>MENU</button>
+        </div>
+        <div class="pc-side r">
+            <div><div class="pc-rem tnum">275</div><div class="pc-dl">&nbsp;</div></div>
+            <div>
+                <div class="pc-nm">Mike</div>
+                <div class="pc-tag">LEGS 1 &minus; 2</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="pc-analytics">
+        <div class="pc-col">
+            <div class="pc-kpis">
+                <div class="pc-kpi good"><b class="tnum">62.4</b><small>3-DART AVG</small></div>
+                <div class="pc-kpi"><b class="tnum">18</b><small>DARTS</small></div>
+                <div class="pc-kpi"><b class="tnum">1/3</b><small>DOUBLES</small></div>
+                <div class="pc-kpi good"><b class="tnum">1</b><small>180s</small></div>
+            </div>
+            <div class="pc-bands">
+                <i style="width:14%;background:var(--color-warning)"></i>
+                <i style="width:44%;background:var(--color-success)"></i>
+                <i style="width:28%;background:var(--color-primary)"></i>
+                <i style="width:14%;background:var(--color-border-light)"></i>
+            </div>
+            <div class="pc-bandkey"><span>100+ 14%</span><span>60-99 44%</span><span>40-59 28%</span><span>&lt;40 14%</span></div>
+        </div>
+        <div class="pc-col">
+            <div class="pc-kpis">
+                <div class="pc-kpi"><b class="tnum">51.8</b><small>3-DART AVG</small></div>
+                <div class="pc-kpi"><b class="tnum">18</b><small>DARTS</small></div>
+                <div class="pc-kpi bad"><b class="tnum">0/1</b><small>DOUBLES</small></div>
+                <div class="pc-kpi"><b class="tnum">0</b><small>180s</small></div>
+            </div>
+            <div class="pc-bands">
+                <i style="width:0%;background:var(--color-warning)"></i>
+                <i style="width:33%;background:var(--color-success)"></i>
+                <i style="width:50%;background:var(--color-primary)"></i>
+                <i style="width:17%;background:var(--color-border-light)"></i>
+            </div>
+            <div class="pc-bandkey"><span>100+ 0%</span><span>60-99 33%</span><span>40-59 50%</span><span>&lt;40 17%</span></div>
+        </div>
+    </div>
+
+    <div class="pc-body">
+        <div class="pc-hist">
+            <div class="pc-lane" id="laneL"></div>
+            <div class="pc-lane n" id="laneR"></div>
+            <div class="pc-lane" id="laneM"></div>
+        </div>
+
+        <div class="pc-outs">
+            <div class="pc-outs-h">CHECKOUT TABLE</div>
+            <div class="pc-outs-b" id="outs"></div>
+        </div>
+    </div>
+
+    <div class="pc-console">
+        <div class="pc-status">
+            <span>BLAKE TO THROW &middot; 3 DARTS</span>
+            <span>170 &rarr; 110 IF SCORED</span>
+        </div>
+
+        <div class="pc-quickstrip">
+            <button class="pc-q">26</button><button class="pc-q">40</button><button class="pc-q">41</button>
+            <button class="pc-q">45</button><button class="pc-q">60</button><button class="pc-q">81</button>
+            <button class="pc-q">85</button><button class="pc-q">100</button><button class="pc-q">140</button>
+            <button class="pc-q">180</button>
+        </div>
+
+        <div class="pc-grid">
+            <div class="pc-disp tnum">60</div>
+            <button class="pc-a enter">ENTER</button>
+
+            <button class="pc-k">1</button><button class="pc-k">2</button><button class="pc-k">3</button>
+
+            <button class="pc-k">4</button><button class="pc-k">5</button><button class="pc-k">6</button>
+            <button class="pc-a undo">UNDO</button>
+
+            <button class="pc-k">7</button><button class="pc-k">8</button><button class="pc-k">9</button>
+            <button class="pc-a miss">MISS</button>
+
+            <button class="pc-k op">&times;</button><button class="pc-k">0</button><button class="pc-k op">+</button>
+            <button class="pc-a bust">BUST</button>
+        </div>
+    </div>
+</div>
+
+<div class="proto-tag">Concept 8 &middot; Pro Console</div>
+
+<script>
+const L = [[60, 'T20 T20 —'], [81, 'T19 D12 —'], [45, '20 20 5'], [26, '20 5 1'], [60, '20 20 20'], [59, 'T19 1 1']];
+const M = [[41, '19 20 2'], [60, 'T20 — —'], [26, '20 5 1'], ['BUST', 'D20 D20 20'], [45, '15 15 15'], [54, 'T18 — —']];
+
+const c = (v, sub, extra = '') =>
+    `<div class="pc-c ${v === 'BUST' ? 'bust' : ''} ${extra}"><b>${v}</b><em>${sub}</em></div>`;
+
+document.getElementById('laneL').innerHTML = L.map(([v, s]) => c(v, s)).join('') + c(60, 'T20 — —', 'live');
+document.getElementById('laneM').innerHTML = M.map(([v, s]) => c(v, s)).join('') + c('&nbsp;', '');
+document.getElementById('laneR').innerHTML = Array.from({ length: 7 }, (_, i) =>
+    `<div class="pc-c n${i === 6 ? ' cur' : ''}">${i + 1}</div>`).join('');
+
+const OUTS = [
+    [170, 'T20 T20 BULL'], [167, 'T20 T19 BULL'], [164, 'T20 T18 BULL'],
+    [161, 'T20 T17 BULL'], [160, 'T20 T20 D20'], [158, 'T20 T20 D19'],
+    [157, 'T20 T19 D20'], [156, 'T20 T20 D18'], [155, 'T20 T19 D19'],
+    [154, 'T20 T18 D20'], [151, 'T20 T17 D20'], [150, 'T20 T18 D18']
+];
+document.getElementById('outs').innerHTML = OUTS.map(([n, r]) =>
+    `<div class="pc-o${n === 170 ? ' on' : ''}"><span>${n}</span><div>${r}</div></div>`).join('');
+</script>
+</body>
+</html>

@@ -306,6 +306,8 @@ async def test_hammer_cricket(page):
     await fresh(page)
     await start_game(page, "hammer", num_players="2")
     await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    family = await page.get_attribute("#gameScreen", "data-scoreboard-family")
+    assert family == "cricket", f"Hammer scoreboard family = {family!r}"
     target = (await page.locator("#targetValue").inner_text()).strip()
     assert target == "20", target
     assert await page.locator("#targetMissDartBtn").is_visible(), "Hammer needs explicit misses"
@@ -385,6 +387,8 @@ async def test_team_hammer(page):
     await page.click("#teamStartMatchBtn")
     await page.wait_for_timeout(300)
 
+    family = await page.get_attribute("#gameScreen", "data-scoreboard-family")
+    assert family == "cricket", f"Team Hammer scoreboard family = {family!r}"
     teams = await get_state(page, "m.game.teams")
     assert [len(team["members"]) for team in teams] == [2, 2], teams
     await page.click("#hitSingleBtn")
@@ -684,6 +688,9 @@ async def test_team_cricket_400(page):
     # must close a target before scoring; turns rotate A1/B1/A2/B2; the lead
     # cannot exceed 400; Traditional rules require both full boards.
     await fresh(page)
+    await page.evaluate("localStorage.setItem('blakeout_x01_skin', 'dc')")
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(300)
     await page.select_option("#gameType", "teamcricket")
     await page.wait_for_timeout(100)
     assert await page.locator("#teamMode").is_checked()
@@ -709,6 +716,10 @@ async def test_team_cricket_400(page):
     await page.click("#teamStartMatchBtn")
     await page.wait_for_timeout(300)
     await page.wait_for_selector("#teamCricketMain", state="visible")
+    family = await page.get_attribute("#gameScreen", "data-scoreboard-family")
+    assert family == "cricket", f"Team Cricket scoreboard family = {family!r}"
+    board_bg = await page.locator("#teamCricketMain").evaluate("el => getComputedStyle(el).backgroundColor")
+    assert board_bg == "rgb(0, 0, 0)", f"Team Cricket DC board background = {board_bg}"
     members = await get_state(page, "m.game.teamCricket.memberMarks.map(team=>team.length)")
     assert members == [2, 2], members
     assert await page.locator(".team-cricket-member-heading").count() == 4
@@ -1567,9 +1578,8 @@ async def test_monthly_usage_counter(page):
 
 
 async def test_x01_keypad_skin(page):
-    # The X01 pad ships in two looks. Modern is the default; Classic must
-    # restore the original grey plastic pad exactly, and the choice has to
-    # persist like the theme does.
+    # The shared game-style selector exposes Modern, Classic and DC Mode.
+    # Classic must still restore the original pad and every choice persists.
     await fresh(page)
 
     async def skin_state():
@@ -1580,6 +1590,7 @@ async def test_x01_keypad_skin(page):
                 const ks = getComputedStyle(key);
                 return {
                     attr: document.documentElement.getAttribute('data-x01-skin'),
+                    modeAttr: document.documentElement.getAttribute('data-scoreboard-mode'),
                     stored: localStorage.getItem('blakeout_x01_skin'),
                     padDisplay: getComputedStyle(pad).display,
                     keyBg: ks.backgroundColor,
@@ -1599,9 +1610,17 @@ async def test_x01_keypad_skin(page):
     await page.wait_for_timeout(400)
     choices = await page.eval_on_selector_all(
         "#scoreSkinChoices [data-score-skin]", "els => els.map(e => e.dataset.scoreSkin)")
-    assert choices == ["modern", "classic"], choices
+    assert choices == ["modern", "classic", "dc"], choices
     assert await page.locator("#scoreSkinChoices .score-skin-choice.active").get_attribute(
         "data-score-skin") == "modern"
+
+    # DC Mode uses the same persisted selector and a semantic attribute for
+    # styling both X01 and Cricket-family boards.
+    await page.click("[data-score-skin='dc']")
+    dc = await skin_state()
+    assert dc["attr"] == "dc", dc
+    assert dc["modeAttr"] == "dc", dc
+    assert dc["stored"] == "dc", dc
 
     # Switch to Classic → original pad returns.
     await page.click("[data-score-skin='classic']")
@@ -1629,7 +1648,68 @@ async def test_x01_keypad_skin(page):
     await page.click("#x01EnterBtn")
     await page.wait_for_timeout(300)
     assert await get_state(page, "m.game.players[0].score") == 441
-    return {"default": default, "classic": classic}
+    return {"default": default, "dc": dc, "classic": classic}
+
+
+async def test_dc_scoreboard_family(page):
+    # DC chrome follows scoreboard semantics, not just rendering engine:
+    # Hammer is a target engine in the Cricket category, while Baseball is
+    # an unrelated target game and must retain the normal themed board.
+    await fresh(page)
+    await page.evaluate("localStorage.setItem('blakeout_x01_skin', 'dc')")
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(300)
+    mode = await page.get_attribute("html", "data-scoreboard-mode")
+    assert mode == "dc", f"DC mode did not restore from storage: {mode!r}"
+
+    async def reset_setup():
+        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_selector("#setupScreen:not(.hidden)")
+
+    async def family_for(game_type, panel):
+        await start_game(page, game_type)
+        await page.wait_for_selector(panel, state="visible", timeout=3000)
+        return await page.get_attribute("#gameScreen", "data-scoreboard-family")
+
+    x01_family = await family_for("501", "#x01Main")
+    assert x01_family == "x01", x01_family
+    x01_bg = await page.locator("#x01Controls").evaluate("el => getComputedStyle(el).backgroundColor")
+    assert x01_bg == "rgb(0, 0, 0)", x01_bg
+
+    await reset_setup()
+    cricket_family = await family_for("cricket", "#cricketMain")
+    assert cricket_family == "cricket", cricket_family
+    cricket_bg = await page.locator("#cricketMain").evaluate("el => getComputedStyle(el).backgroundColor")
+    assert cricket_bg == "rgb(0, 0, 0)", cricket_bg
+
+    await reset_setup()
+    double_down_family = await family_for("doubledown", "#doubleDownMain")
+    assert double_down_family == "cricket", double_down_family
+    double_down_bg = await page.locator("#doubleDownMain").evaluate(
+        "el => getComputedStyle(el).backgroundColor")
+    assert double_down_bg == "rgb(0, 0, 0)", double_down_bg
+
+    await reset_setup()
+    hammer_family = await family_for("hammer", "#targetGameMain")
+    assert hammer_family == "cricket", hammer_family
+    hammer_bg = await page.locator("#targetGameMain").evaluate("el => getComputedStyle(el).backgroundColor")
+    hammer_target = await page.locator("#targetValue").evaluate("el => getComputedStyle(el).backgroundImage")
+    assert hammer_bg == "rgb(0, 0, 0)", hammer_bg
+    assert hammer_target != "none", hammer_target
+
+    await reset_setup()
+    baseball_family = await family_for("baseball", "#targetGameMain")
+    assert baseball_family is None, f"Baseball inherited DC family: {baseball_family!r}"
+    baseball_target = await page.locator("#targetValue").evaluate("el => getComputedStyle(el).backgroundImage")
+    assert baseball_target == "none", f"Baseball inherited DC target chrome: {baseball_target}"
+    return {
+        "x01": x01_family,
+        "cricket": cricket_family,
+        "double_down": double_down_family,
+        "hammer": hammer_family,
+        "baseball": baseball_family,
+    }
 
 
 async def test_support_link(page):

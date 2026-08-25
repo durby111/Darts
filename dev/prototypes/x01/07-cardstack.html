@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="blue">
+<head>
+<meta charset="UTF-8">
+<title>X01 Concept 7 — Card Stack</title>
+<link rel="stylesheet" href="_proto.css">
+<style>
+/* ============================================
+   CONCEPT 7 — "CARD STACK"
+   One card per player. The thrower's card opens.
+   ============================================
+   Thesis: the current two-column header breaks down at three and four
+   players — that is exactly why the codebase carries .three-player and
+   .four-player shrink rules and a multiplayer_score_visibility test. A
+   vertical stack has no such cliff: 2, 3 and 4 players are the same
+   layout with shorter cards, and the active card simply expands to show
+   that player's history, checkout and live turn inline.
+
+   Rendered here with FOUR players precisely because that is the case the
+   current design handles worst.
+   ============================================ */
+
+.cs-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-sm) var(--space-lg);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface-alt);
+}
+
+.cs-bar .ttl { font-size: 15px; font-weight: 800; letter-spacing: 0.14em; }
+.cs-bar .ttl small { color: var(--color-text-dim); font-weight: 500; letter-spacing: 0.1em; }
+.cs-bar button { font-size: 11px; letter-spacing: 0.1em; padding: 6px 13px; border: 1px solid var(--color-border-light); border-radius: var(--radius-pill); color: var(--color-text-muted); }
+
+.cs-stack { flex: 1 1 auto; overflow-y: auto; scrollbar-width: none; padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm); min-height: 0; }
+
+/* Cards share the column rather than clustering at the top; the thrower's
+   card takes the larger share. Same rule works for 2, 3 and 4 players. */
+.cs-card {
+    border-radius: 18px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: var(--space-md) var(--space-lg);
+    display: grid;
+    grid-template-columns: 34px 1fr auto auto;
+    align-items: center;
+    gap: var(--space-md);
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.cs-rank { font-size: 15px; font-weight: 800; color: var(--color-text-dim); text-align: center; }
+
+.cs-nm { font-size: 21px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs-sub { font-size: 11px; letter-spacing: 0.1em; color: var(--color-text-dim); margin-top: 2px; }
+
+.cs-last { font-size: 13px; letter-spacing: 0.08em; color: var(--color-text-muted); text-align: right; }
+.cs-last b { display: block; font-size: 19px; color: var(--color-text); font-weight: 700; }
+
+.cs-rem { font-size: 46px; font-weight: 800; line-height: 1; text-align: right; min-width: 116px; }
+
+/* --- Active card --- */
+.cs-card.active {
+    grid-template-columns: 1fr;
+    align-content: center;
+    flex: 2.1 1 0;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-primary) 22%, var(--color-surface)), var(--color-surface));
+    border: 2px solid var(--color-primary);
+    box-shadow: 0 8px 26px rgba(0,0,0,0.5);
+    padding: var(--space-lg);
+    gap: var(--space-md);
+}
+
+.cs-active-top { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: var(--space-md); }
+
+.cs-badge { font-size: 10px; letter-spacing: 0.2em; color: var(--color-primary-light); }
+.cs-active-top .cs-nm { font-size: 28px; }
+
+.cs-bigrem { text-align: right; }
+.cs-bigrem b { font-size: 82px; font-weight: 800; line-height: 0.9; display: block; }
+.cs-bigrem span { font-size: 19px; font-weight: 800; color: var(--color-pending); }
+
+.cs-inline { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+
+.cs-panel { border-radius: 13px; background: rgba(0,0,0,0.28); border: 1px solid var(--color-border); padding: var(--space-sm) var(--space-md); }
+.cs-panel small { font-size: 9px; letter-spacing: 0.18em; color: var(--color-text-dim); display: block; margin-bottom: 4px; }
+
+.cs-route { display: flex; gap: 6px; }
+.cs-route span { font-size: 17px; font-weight: 800; padding: 3px 10px; border-radius: 8px; background: var(--color-primary); color: var(--color-on-primary); }
+
+/* Inline history for the active player — round numbers along the top. */
+.cs-hist { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; }
+.cs-hist div { text-align: center; }
+.cs-hist .r { font-size: 9px; color: var(--color-text-dim); }
+.cs-hist .v { font-size: 19px; font-weight: 700; color: var(--color-text-muted); }
+.cs-hist .v.cur { color: var(--color-primary-light); }
+
+/* --- Entry deck --- */
+.cs-deck {
+    flex: 0 0 auto;
+    background: var(--color-surface-alt);
+    border-top: 1px solid var(--color-border);
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+}
+
+.cs-hint { text-align: center; font-size: 11px; letter-spacing: 0.14em; color: var(--color-text-dim); min-height: 14px; }
+
+.cs-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); }
+
+.cs-disp {
+    grid-column: 1 / -1;
+    height: 64px;
+    border-radius: 14px;
+    background: #000;
+    border: 2px solid var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--color-primary-light);
+}
+
+.cs-quick { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; }
+.cs-quick button { height: 42px; border-radius: 10px; background: color-mix(in srgb, var(--color-primary) 20%, var(--color-surface)); border: 1px solid color-mix(in srgb, var(--color-primary) 42%, transparent); color: var(--color-primary-light); font-size: 14px; font-weight: 800; }
+
+.cs-pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.cs-pad button { height: 58px; border-radius: 12px; background: linear-gradient(180deg, var(--color-surface-elevated), var(--color-surface)); border: 1px solid var(--color-border-light); font-size: 24px; font-weight: 700; color: var(--color-text); }
+.cs-pad button.op { color: var(--color-primary-light); }
+.cs-pad button.sm { font-size: 12px; letter-spacing: 0.08em; font-weight: 800; }
+.cs-pad .undo  { background: var(--color-undo); border-color: transparent; color: #fff; }
+.cs-pad .miss  { background: var(--color-miss); border-color: transparent; color: #fff; }
+.cs-pad .bust  { background: var(--color-bust); border-color: transparent; color: #fff; }
+.cs-pad .enter { background: var(--color-success); border-color: transparent; color: var(--color-on-success); grid-row: span 2; height: auto; font-size: 17px; }
+</style>
+</head>
+<body>
+<div class="proto-app">
+
+    <div class="cs-bar">
+        <div class="ttl">501 <small>&middot; DOUBLE OUT &middot; ROUND 7</small></div>
+        <button>MENU</button>
+    </div>
+
+    <div class="cs-stack">
+        <div class="cs-card active">
+            <div class="cs-active-top">
+                <div>
+                    <div class="cs-badge">NOW THROWING</div>
+                    <div class="cs-nm">Blake</div>
+                    <div class="cs-sub">AVG 62.4 &middot; 18 DARTS &middot; 1&times;180</div>
+                </div>
+                <div class="cs-bigrem">
+                    <b class="tnum">170</b>
+                    <span class="tnum">&minus;60 &rarr; 110</span>
+                </div>
+            </div>
+            <div class="cs-inline">
+                <div class="cs-panel">
+                    <small>CHECKOUT 170</small>
+                    <div class="cs-route"><span>T20</span><span>T20</span><span>BULL</span></div>
+                </div>
+                <div class="cs-panel">
+                    <small>THIS LEG</small>
+                    <div class="cs-hist" id="hist"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cs-card">
+            <div class="cs-rank">2</div>
+            <div><div class="cs-nm">Mike</div><div class="cs-sub">AVG 51.8 &middot; 18 DARTS</div></div>
+            <div class="cs-last">LAST<b class="tnum">54</b></div>
+            <div class="cs-rem tnum">275</div>
+        </div>
+
+        <div class="cs-card">
+            <div class="cs-rank">3</div>
+            <div><div class="cs-nm">Sarah</div><div class="cs-sub">AVG 47.2 &middot; 18 DARTS</div></div>
+            <div class="cs-last">LAST<b class="tnum">41</b></div>
+            <div class="cs-rem tnum">318</div>
+        </div>
+
+        <div class="cs-card">
+            <div class="cs-rank">4</div>
+            <div><div class="cs-nm">Dave</div><div class="cs-sub">AVG 38.9 &middot; 18 DARTS</div></div>
+            <div class="cs-last">LAST<b style="color:var(--color-danger);font-size:15px;">BUST</b></div>
+            <div class="cs-rem tnum">361</div>
+        </div>
+    </div>
+
+    <div class="cs-deck">
+        <div class="cs-hint">TAP A PLAYER'S SCORE TO ENTER THEIR REMAINING INSTEAD</div>
+
+        <div class="cs-row"><div class="cs-disp tnum">60</div></div>
+
+        <div class="cs-quick">
+            <button>26</button><button>40</button><button>41</button><button>45</button><button>60</button>
+            <button>81</button><button>85</button><button>100</button><button>140</button><button>180</button>
+        </div>
+
+        <div class="cs-pad">
+            <button>1</button><button>2</button><button>3</button><button class="sm undo">UNDO</button><button class="sm enter">ENTER</button>
+            <button>4</button><button>5</button><button>6</button><button class="sm miss">MISS</button>
+            <button>7</button><button>8</button><button>9</button><button class="sm bust">BUST</button><button class="sm">REDO</button>
+            <button class="op">&times;</button><button>0</button><button class="op">+</button><button class="sm" style="grid-column:span 2;">&#9003; BACKSPACE</button>
+        </div>
+    </div>
+</div>
+
+<div class="proto-tag">Concept 7 &middot; Card Stack (4 players)</div>
+
+<script>
+const L = [60, 81, 45, 26, 60, 59, 60];
+document.getElementById('hist').innerHTML = L.map((v, i) =>
+    `<div><div class="r">${i + 1}</div><div class="v${i === L.length - 1 ? ' cur' : ''}">${v}</div></div>`).join('');
+</script>
+</body>
+</html>

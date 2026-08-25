@@ -6,7 +6,7 @@
      - Theme picker (moved off the setup screen)
      - Wallpaper: bundled presets, Default photo, None, or user upload
      - UI Scale
-     - X01 keypad skin (Modern / Classic)
+    - X01 / Cricket game style (Modern / Classic / DC Mode)
 
    Wallpaper persistence: localStorage 'blakeout_wallpaper'
      { type: 'default' } | { type: 'none' } |
@@ -15,10 +15,10 @@
    Uploads are downscaled through a canvas (max 1600px, JPEG q0.8) so a
    phone photo doesn't blow the localStorage quota.
 
-   Keypad skin persistence: localStorage 'blakeout_x01_skin' = 'modern' |
-   'classic', applied as data-x01-skin on <html> (same mechanism as
-   data-theme). 'classic' is the original pad; css/games.css keeps it as
-   the base layer and layers the modern look on top of the attribute.
+    Game-style persistence retains the legacy localStorage key
+    'blakeout_x01_skin'. It is applied as both data-x01-skin (compatibility)
+    and data-scoreboard-mode on <html>. Classic and Modern style X01; DC Mode
+    also styles Cricket-family boards.
    ============================================ */
 
 import { showModal, hideModal } from './ui.js';
@@ -28,7 +28,8 @@ const SKIN_KEY = 'blakeout_x01_skin';
 
 export const SCORE_SKINS = [
     { id: 'modern', label: 'Modern', desc: 'Themed keys, roomier pad' },
-    { id: 'classic', label: 'Classic', desc: 'Original grey keypad' }
+    { id: 'classic', label: 'Classic', desc: 'Original grey keypad' },
+    { id: 'dc', label: 'DC Mode', desc: 'Black/red X01 + Cricket board' }
 ];
 const DEFAULT_SKIN = 'modern';
 
@@ -150,7 +151,9 @@ export function getScoreSkin() {
 }
 
 export function applyScoreSkin(skin = getScoreSkin()) {
-    document.documentElement.setAttribute('data-x01-skin', skin);
+    const root = document.documentElement;
+    root.setAttribute('data-x01-skin', skin);
+    root.setAttribute('data-scoreboard-mode', skin);
     renderScoreSkinChoices();
 }
 

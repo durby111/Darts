@@ -238,9 +238,9 @@ brand colours in every theme, 48px tap target, `Cash App · $MikeDurbin`
 subtitle, and `rel="noopener noreferrer"` on the `_blank` link. It still
 points at `https://cash.app/$MikeDurbin`.
 
-## X01 keypad skin (Settings)
+## X01 + Cricket scoreboard style (Settings)
 
-The X01 pad now ships in two looks, chosen in Settings next to Theme /
+The scoring UI now ships in three looks, chosen in Settings next to Theme /
 Wallpaper / UI Scale:
 
 - **Classic** — the original pad, untouched. It is still the base layer in
@@ -252,11 +252,17 @@ Wallpaper / UI Scale:
   an edge, near-square keys (landscape gets 54dvh instead of the 40dvh floor
   that squashed them into slabs), softer history lanes with a round-number
   rail, and gradient player headers with an active accent rail.
+- **DC Mode** — a black/red tournament-board treatment for X01 and the
+  Cricket family. It covers registry Cricket variants, Hammer/Team Hammer,
+  Double Down, and Team Cricket/400 while leaving Baseball and unrelated
+  target/party games untouched. `app.js` stamps the semantic
+  `data-scoreboard-family` marker used by the scoped CSS.
 
-Persistence: `localStorage['blakeout_x01_skin']` = `modern` | `classic`,
-applied by `applyScoreSkin()` in `js/settings.js`. Any new X01 chrome should
-be added to the classic base and, if it needs a modern treatment, overridden
-in the skin block — never the other way round.
+Persistence: `localStorage['blakeout_x01_skin']` = `modern` | `classic` | `dc`,
+applied by `applyScoreSkin()` in `js/settings.js`. The legacy key remains so
+existing choices survive; `data-scoreboard-mode` provides the semantic styling
+hook. Any new X01 chrome should be added to the classic base and overridden in
+the relevant style block only when needed.
 
 ## Update delivery
 
@@ -330,13 +336,17 @@ restriction (#3), CSP (#4, deferred).
 
 ## Tests
 
-- `tests/dev_test.py` — 48-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 49-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
-  cricket + x01, X01 live preview, keypad skin, support button, monthly
-  usage counter, QR contrast per theme, player-name XSS, SW cache scope, private roster scoping).
+  cricket + x01, X01 live preview, scoreboard styles/family scoping, support
+  button, monthly usage counter, QR contrast per theme, player-name XSS, SW
+  cache scope, private roster scoping).
   `python3 dev/tests/dev_test.py`.
 - `tests/visual_qa.py` — screenshot dump for theme/legibility review.
+- Python dependencies are pinned in `tests/requirements.txt`. In an activated
+  virtual environment, run `python -m pip install -r dev/tests/requirements.txt`
+  and `python -m playwright install chromium` before the battery.
 - Legacy `scripts/headless_test.py --target dev` still has stale prod-era count
   assertions (12 game cards / 3 themes versus 29 / 12 in dev). Update the
   production-tree script when promoting.
