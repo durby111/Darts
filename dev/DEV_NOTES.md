@@ -311,9 +311,9 @@ From `SECURITY_AUDIT.md`:
   collection-group queries and would re-expose every roster at once. Residual
   risk is capability-link: anyone with the link can edit that roster.
 
-Still open and owner-actioned: publish the updated Firestore rules (the #1 code
-is live but the exposure isn't closed until they are), API key referrer
-restriction (#3), CSP (#4, deferred).
+Console deployment completed 2026-08-30: the updated Firestore rules are live
+and verified, and the Firebase browser key is restricted to the apex and `www`
+domains. CSP (#4) remains deferred by the owner.
 
 ## Bug fixes (dev)
 

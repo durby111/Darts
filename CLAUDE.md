@@ -45,8 +45,9 @@ ready to ship.
 - **Plan**: Spark (free). Firestore + Anonymous Auth only.
 - **Web config** lives in `dev/js/firebase-config.js` and **is committed**.
   Firebase web API keys are not secret — security comes from Firestore rules,
-  not key obscurity. If we ever need to lock the key down further, use Firebase
-  Console → Project Settings → API key restrictions (HTTP referrer allowlist).
+  not key obscurity. The browser key is restricted to
+  `https://blakeoutdarts.com/*` and `https://www.blakeoutdarts.com/*`, with its
+  existing 25-API allowlist preserved (verified 2026-08-30).
 
 ### Firestore rules
 
@@ -54,6 +55,8 @@ ready to ship.
 a copy pasted into docs. `firebase.json` points at it, so with the Firebase CLI
 available it deploys with `firebase deploy --only firestore:rules`; otherwise
 paste it into Firebase Console → Firestore Database → Rules → Publish.
+The canonical copy was published and verified against the live project on
+2026-08-30.
 
 It covers three things:
 

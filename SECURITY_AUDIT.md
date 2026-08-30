@@ -14,9 +14,9 @@ one Firebase project and the same client code.
 
 | # | Severity | Finding | Status |
 |---|----------|---------|--------|
-| 1 | 🔴 High | Roster is world-readable / writable / deletable by any anonymous user | ✅ **Fixed** 2026-07-26 (private rosters) — *rules must be published* |
+| 1 | 🔴 High | Roster is world-readable / writable / deletable by any anonymous user | ✅ **Fixed** 2026-07-26; rules published and verified 2026-08-30 |
 | 2 | 🔴 High | Stored XSS — unescaped player names in the winner modal | ✅ **Fixed** 2026-07-26 (`ui.js`, dev + prod) |
-| 3 | 🟠 Medium | Firebase API key has no HTTP referrer restriction | **Open** — console-only, owner action |
+| 3 | 🟠 Medium | Firebase API key has no HTTP referrer restriction | ✅ **Fixed** 2026-08-30 |
 | 4 | 🟠 Medium | No Content-Security-Policy | **Deferred** by owner |
 | 5 | 🟡 Low | Service worker caches all cross-origin GET responses | ✅ **Fixed** 2026-07-26 (`sw.js`, dev + prod) |
 | 6 | ℹ️ Info | Identity is self-asserted | Accepted tradeoff — no action |
@@ -89,9 +89,11 @@ uniqueness, share-link adoption, URL scrubbing, hostile-id rejection).
 > is the strongest model that preserves zero-friction anonymous use; real
 > per-account isolation would require non-anonymous sign-in. Accepted by owner.
 >
-> ⚠️ **Action required:** the code is deployed but the exposure is not closed
-> until the rules in `firestore.rules` are published. Until then the old
-> global `roster` collection remains world-readable.
+**Deployment verification (2026-08-30):** the canonical `firestore.rules` was
+published. With a temporary anonymous account, `/roster` returned 403,
+`/usage/2026-08` was readable (404 because no document existed), and a
+collection-group query on `players` returned 403. The temporary account was
+deleted after the check.
 
 ---
 
@@ -131,10 +133,10 @@ run.
 
 ---
 
-## 3. 🟠 Firebase API key has no referrer restriction
+## 3. 🟠 Firebase API key has no referrer restriction — ✅ FIXED 2026-08-30
 
-**Verified:** a token request with no `Referer` header succeeded, so the browser
-key is unrestricted.
+**Original verification:** a token request with no `Referer` header succeeded,
+so the browser key was unrestricted.
 
 **Impact:** anyone can mint anonymous accounts against the project — auth-list
 pollution and Spark-tier quota abuse.
@@ -143,6 +145,13 @@ pollution and Spark-tier quota abuse.
 allowlist (`https://blakeoutdarts.com/*`, `https://www.blakeoutdarts.com/*`,
 and `https://durby111.github.io/*` during migration). Console-only, no code.
 Note this raises the bar but is not an authentication control.
+
+**Resolution (2026-08-30):** restricted the Firebase browser key to
+`https://blakeoutdarts.com/*` and `https://www.blakeoutdarts.com/*`; the old
+GitHub Pages hostname now redirects to the apex domain and was not retained.
+The existing 25-API allowlist was preserved. Live requests with no `Referer`
+returned 403, while requests from both allowed origins succeeded. Temporary
+anonymous accounts created by the checks were deleted.
 
 ---
 
@@ -192,13 +201,13 @@ play. **No action** unless stats ever need to be tamper-proof.
 ## Suggested order
 
 1. ~~**#2 (XSS)**~~ — ✅ done 2026-07-26.
-2. ~~**#1 (roster privacy)**~~ — ✅ code done 2026-07-26; **rules still to be published**.
-3. **#3 (API key)** — console-only, quick win.
+2. ~~**#1 (roster privacy)**~~ — ✅ code done 2026-07-26; rules published and verified 2026-08-30.
+3. ~~**#3 (API key)**~~ — ✅ referrer allowlist applied and verified 2026-08-30.
 4. ~~**#5 (SW caching)**~~ — ✅ done 2026-07-26.
 5. **#4 (CSP)** — deferred by owner; largest and least certain.
 
-## Related pending item
+## Related item
 
-The `/usage` monthly-counter rules (see `CLAUDE.md`) are **still unpublished**,
-so the telemetry counter records nothing. Not a security issue, but it lives in
-the same rules file and is worth doing in the same sitting.
+The `/usage` monthly-counter rules (see `CLAUDE.md`) were published with the
+security rules on 2026-08-30. A live authenticated read passed; the current
+month document did not yet exist at verification time.
