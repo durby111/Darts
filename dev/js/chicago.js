@@ -5,6 +5,7 @@
 
 import { game, initCricket } from './state.js';
 import { showModal, hideModal, showWinner, updateUndoRedoButtons } from './ui.js';
+import { resetX01Input } from './x01.js';
 
 export function initChicagoControls() {
     // Chicago game selection buttons
@@ -71,6 +72,9 @@ function initChicagoLeg(gameType) {
     game.undoHistory = [];
     game.redoHistory = [];
 
+    // Ensure clean input state for keypad
+    resetX01Input();
+
     // Dispatch event so app.js can call updateDisplay
     document.dispatchEvent(new CustomEvent('chicagoLegReady'));
 }
@@ -78,6 +82,14 @@ function initChicagoLeg(gameType) {
 function handleChicagoLegWin(winnerIndex) {
     const winner = game.players[winnerIndex];
     game.chicago.legWins[winnerIndex]++;
+
+    // In Chicago rules, the loser of each leg picks the next game.
+    // For 2 players, the loser is 1 - winnerIndex. For 3+ players, rotate.
+    if (game.players.length === 2) {
+        game.chicago.whoPicksNext = 1 - winnerIndex;
+    } else {
+        game.chicago.whoPicksNext = (game.chicago.whoPicksNext + 1) % game.players.length;
+    }
 
     // Check if match is won (2 leg wins) — only reachable with 2 players,
     // since with 3+ players a single player rarely gets 2 of 3 legs.
@@ -112,7 +124,5 @@ function continueChicago() {
     hideModal('chicagoLegModal');
 
     game.chicago.currentLeg++;
-    game.chicago.whoPicksNext = (game.chicago.whoPicksNext + 1) % game.players.length;
-
     showChicagoGameSelection();
 }

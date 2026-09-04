@@ -2587,6 +2587,135 @@ async def test_header_fit_four_player(page):
     return {"boxes": {k: round(v["width"]) for k, v in boxes.items()}}
 
 
+async def test_chicago_match_flow(page):
+    # Alpha testing: Verify complete Chicago match flow across legs.
+    # Loser of each leg picks the next game, picked games are eliminated,
+    # and first to 2 leg wins triggers the final match winner modal.
+    await dismiss_onboard(page)
+    await start_game(page, "chicago", num_players="2")
+    await page.wait_for_timeout(300)
+
+    # Leg 1: picker modal pops up
+    assert await page.locator("#chicagoGameModal").is_visible(), "Chicago game modal should open"
+    await page.click("#chicagoCricketBtn")
+    await page.wait_for_timeout(300)
+    assert await page.locator("#cricketMain").is_visible(), "Cricket area should be visible"
+
+    # End leg 1 with Player 1 (index 0) winning
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            const ui = await import('./js/ui.js');
+            state.game.cricketTargets.forEach(t => {
+                state.game.players[0].cricketData[t].marks = 3;
+                state.game.players[0].cricketData[t].closed = true;
+            });
+            state.game.players[0].score = 100;
+            ui.showWinner(state.game.players[0].name);
+        })()
+    """)
+    await page.wait_for_timeout(400)
+    assert await page.locator("#chicagoLegModal").is_visible(), "Leg complete modal should show"
+    leg_winner_text = await page.locator("#chicagoLegWinner").inner_text()
+    assert "Home wins" in leg_winner_text, f"Unexpected leg winner: {leg_winner_text}"
+
+    # Continue to Leg 2: Loser (Away) must pick next
+    await page.click("#chicagoContinueBtn")
+    await page.wait_for_timeout(400)
+    picking_text = await page.locator("#chicagoPlayerPicking").inner_text()
+    assert "Away" in picking_text, f"Expected Away to pick after losing Leg 1, got: {picking_text}"
+    assert not await page.locator("#chicagoCricketBtn").is_visible(), "Cricket should be eliminated"
+    assert await page.locator("#chicago301Btn").is_visible(), "301 should be available"
+
+    # Pick 301 for Leg 2
+    await page.click("#chicago301Btn")
+    await page.wait_for_timeout(300)
+    assert await page.locator("#x01Main").is_visible(), "X01 area should be visible for 301"
+
+    # Player 2 (Away / index 1) wins Leg 2
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            const ui = await import('./js/ui.js');
+            state.game.players[1].score = 0;
+            ui.showWinner(state.game.players[1].name);
+        })()
+    """)
+    await page.wait_for_timeout(400)
+    assert await page.locator("#chicagoLegModal").is_visible(), "Leg 2 complete modal should show"
+
+    # Continue to Leg 3: Loser (Home) must pick next
+    await page.click("#chicagoContinueBtn")
+    await page.wait_for_timeout(400)
+    picking_text_l3 = await page.locator("#chicagoPlayerPicking").inner_text()
+    assert "Home" in picking_text_l3, f"Expected Home to pick after losing Leg 2, got: {picking_text_l3}"
+    assert not await page.locator("#chicago301Btn").is_visible(), "301 should now be eliminated"
+    assert await page.locator("#chicago501Btn").is_visible(), "501 should be remaining"
+
+    # Pick 501 for Leg 3
+    await page.click("#chicago501Btn")
+    await page.wait_for_timeout(300)
+
+    # Player 1 wins Leg 3 -> wins match 2-1
+    await page.evaluate("""
+        (async () => {
+            const state = await import('./js/state.js');
+            const ui = await import('./js/ui.js');
+            state.game.players[0].score = 0;
+            ui.showWinner(state.game.players[0].name);
+        })()
+    """)
+    await page.wait_for_timeout(400)
+    assert await page.locator("#winnerModal").is_visible(), "Winner modal should open for match win"
+    match_winner_html = await page.locator("#winnerName").inner_html()
+    assert "Chicago Match Winner!" in match_winner_html, f"Missing Chicago match win text: {match_winner_html}"
+    return {"chicago": "complete 3-leg match verified"}
+
+
+async def test_round_badge_all_engines(page):
+    # Verify round badge accurately tracks progress across different game engines
+    await dismiss_onboard(page)
+
+    # 1. Baseball: Inning 1 -> 2
+    await start_game(page, "baseball", num_players="1")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    badge1 = (await page.locator("#roundBadge").inner_text()).strip()
+    assert badge1 == "1", f"Baseball initial round badge should be 1, got {badge1}"
+    # Commit a turn
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(200)
+    badge2 = (await page.locator("#roundBadge").inner_text()).strip()
+    assert badge2 == "2", f"Baseball second round badge should be 2, got {badge2}"
+
+    # 2. Golf: Hole 1 -> 2
+    await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(300)
+    await start_game(page, "golf", num_players="1")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    golf_badge1 = (await page.locator("#roundBadge").inner_text()).strip()
+    assert golf_badge1 == "1", f"Golf initial hole should be 1, got {golf_badge1}"
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(200)
+    golf_badge2 = (await page.locator("#roundBadge").inner_text()).strip()
+    assert golf_badge2 == "2", f"Golf second hole should be 2, got {golf_badge2}"
+
+    # 3. Shanghai: Round 1 -> 2
+    await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_timeout(300)
+    await start_game(page, "shanghai", num_players="1")
+    await page.wait_for_selector("#targetGameMain", state="visible", timeout=3000)
+    sh_badge1 = (await page.locator("#roundBadge").inner_text()).strip()
+    assert sh_badge1 == "1", f"Shanghai initial round should be 1, got {sh_badge1}"
+    await page.click("#targetEndTurnBtn")
+    await page.wait_for_timeout(200)
+    sh_badge2 = (await page.locator("#roundBadge").inner_text()).strip()
+    assert sh_badge2 == "2", f"Shanghai second round should be 2, got {sh_badge2}"
+
+    return {"round_badges": "verified"}
+
+
 # ---------------------------------------------------------------- runner
 
 async def run_one(page, name, fn, screens_dir, keep_screens):

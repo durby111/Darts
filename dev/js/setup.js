@@ -562,7 +562,11 @@ function resumeGame() {
     document.getElementById('setupScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'flex';
 
-    if (onGameStart) onGameStart();
+    if (saved.chicago && !saved.chicago.currentGameType) {
+        showChicagoGameSelection();
+    } else if (onGameStart) {
+        onGameStart();
+    }
 }
 
 function applyGameTypeScale() {

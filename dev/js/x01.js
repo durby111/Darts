@@ -427,7 +427,7 @@ function submitGotchaScore(score, opts, player, thrower) {
 
     if (attemptedScore > target) {
         overshoot = attemptedScore - target;
-        finalScore = startingScore - overshoot;
+        finalScore = Math.max(0, startingScore - overshoot);
     } else if (score > 0 && !opts.miss && attemptedScore < target) {
         game.players.forEach((opponent, index) => {
             if (index !== game.currentPlayer && opponent.score === attemptedScore) {

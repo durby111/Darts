@@ -330,6 +330,14 @@ export function updateRoundBadge() {
         badge.textContent = game.sharkTank.round;
     } else if (game.robinHood) {
         badge.textContent = game.robinHood.round;
+    } else if (game.baseball) {
+        badge.textContent = game.baseball.inExtras ? ('X' + (game.baseball.extraInning + 1)) : game.baseball.inning;
+    } else if (game.golf) {
+        badge.textContent = game.golf.currentHole;
+    } else if (game.shanghai) {
+        badge.textContent = game.shanghai.round;
+    } else if (game.bermuda) {
+        badge.textContent = game.bermuda.targetIndex + 1;
     } else {
         badge.textContent = game.completedRounds + 1;
     }

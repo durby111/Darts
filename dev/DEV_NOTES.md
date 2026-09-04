@@ -324,6 +324,11 @@ domains. CSP (#4) remains deferred by the owner.
 - First-ever SW install triggered a `controllerchange` reload mid-setup.
   Now only reloads when a previous SW was controlling the page.
 - Config presets now persist variant selects (baseball/bermuda/golf/shanghai).
+- Chicago mode: loser of each leg now picks the next game; stale X01 typed inputs
+  are reset on leg transition; resuming between legs re-opens game choice modal.
+- Round badge now supports all target games (Baseball inning/extras, Golf hole,
+  Shanghai round, Bermuda target index).
+- Gotcha! overshoot penalty floored at 0 to prevent negative scores.
 
 - The setup QR SVG paints its modules **white** (drawn for the dark background
   photo), so on the light Arctic theme it disappeared into the white card.
@@ -336,12 +341,12 @@ domains. CSP (#4) remains deferred by the owner.
 
 ## Tests
 
-- `tests/dev_test.py` — 49-test Playwright battery (registry/picker,
+- `tests/dev_test.py` — 51-test Playwright battery (registry/picker,
   favorites/recents, chaos, shanghai ×2, themes/settings, throw order,
   responsive 3/4-player visibility, play-again/resume regressions, core
   cricket + x01, X01 live preview, scoreboard styles/family scoping, support
   button, monthly usage counter, QR contrast per theme, player-name XSS, SW
-  cache scope, private roster scoping).
+  cache scope, private roster scoping, Chicago match flow, round badge support).
   `python3 dev/tests/dev_test.py`.
 - `tests/visual_qa.py` — screenshot dump for theme/legibility review.
 - Python dependencies are pinned in `tests/requirements.txt`. In an activated
@@ -353,8 +358,6 @@ domains. CSP (#4) remains deferred by the owner.
 
 ## Known limitations / next steps
 
-- Round badge shows leg/round only for cricket/x01/121/chicago; target games
-  show their stage in the main panel instead.
 - Legacy test counts (above) will need a bump at promote time.
 - Candidates next: per-game quick-rules modal from registry `desc`,
   stats hooks for chaos/shanghai match ends (Phase 3), theme preview on
