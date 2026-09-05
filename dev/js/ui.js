@@ -7,22 +7,52 @@ import { game, canUndo, canRedo } from './state.js';
 import { currentThrower } from './teams.js';
 
 // --- SVG Mark Symbols ---
-// Hand-drawn-feeling chalk marks built from clean bezier curves.
-// The optional "#chalk" filter in index.html adds a subtle texture;
-// the paths carry the shape and character, so marks stay crisp.
+const MARKER_SLASH = {
+    body: 'M 8 68 Q 25 43 41 26 Q 55 12 66 6 L 73 12 L 69 17 Q 52 30 43 42 Q 28 59 18 74 L 10 73 Z',
+    streaks: 'M 13 68 Q 29 46 44 29 Q 58 16 67 12 M 23 61 Q 38 40 50 29 M 48 28 L 61 17',
+    edge: 'M 18 71 Q 33 51 45 38 Q 61 21 69 16'
+};
+const MARKER_DOWN = {
+    body: 'M 9 8 L 18 8 Q 35 27 48 40 Q 64 55 75 68 L 73 75 L 65 73 Q 50 56 37 44 Q 21 26 8 15 Z',
+    streaks: 'M 14 12 Q 31 31 43 43 Q 62 60 70 71 M 18 20 Q 30 34 36 38 M 46 48 L 62 64',
+    edge: 'M 11 17 Q 28 37 38 46 Q 53 60 64 72'
+};
+const MARKER_UP = {
+    body: 'M 65 7 L 74 10 L 74 15 Q 58 30 44 46 Q 30 61 17 75 L 8 73 L 9 66 Q 25 51 37 37 Q 54 18 65 7 Z',
+    streaks: 'M 13 69 Q 30 51 41 40 Q 58 20 69 12 M 26 57 Q 42 40 50 30 M 53 25 L 63 15',
+    edge: 'M 18 72 Q 33 55 46 42 Q 63 23 72 16'
+};
+const MARKER_CIRCLE = {
+    body: 'M 43 5 C 63 5 77 21 77 40 C 77 61 61 77 40 77 C 18 76 4 61 5 40 C 5 20 21 4 43 5 Z M 42 16 C 27 14 15 25 15 40 C 14 56 25 66 40 66 C 56 67 67 55 66 40 C 66 26 57 16 42 16 Z',
+    streaks: 'M 39 10 C 19 9 9 25 10 42 C 9 60 23 71 39 72 C 57 73 72 60 72 42 C 73 24 60 10 45 10 M 18 23 C 13 31 13 45 17 52 M 48 69 C 59 67 69 56 69 46',
+    edge: 'M 44 6 C 63 7 76 22 75 40 M 6 43 C 6 62 21 75 40 75',
+    overlap: 'M 38 5 Q 48 4 54 8 L 50 18 Q 44 15 38 16 Z'
+};
 
-// Slash path — an asymmetric bottom-left to top-right stroke with a
-// gentle curve so it reads as chalk, not as a straight line.
-const SLASH_PATH = 'M 14 70 C 24 58, 32 44, 44 30 C 52 22, 60 14, 68 10';
-// X strokes — mirrored diagonals with slight bow; drawn in the order
-// a person would chalk them (down-right first, then up-right).
-const X_PATH_A = 'M 14 12 C 24 22, 36 34, 44 42 C 52 50, 62 62, 70 70';
-const X_PATH_B = 'M 70 12 C 60 22, 48 34, 40 42 C 32 50, 22 62, 14 70';
-// Circle — drawn as a single closed path with uneven radii so it looks
-// hand-drawn. End overlaps start slightly to suggest chalk weight.
-const CIRCLE_PATH =
-    'M 42 8 C 60 9, 73 22, 73 40 C 73 58, 59 72, 40 72 ' +
-    'C 21 72, 8 58, 8 40 C 8 22, 22 8, 42 8 Z';
+const MARKER_CLOSING_CIRCLE = {
+    ...MARKER_CIRCLE,
+    streaks: 'M 36 9 C 21 11 10 25 11 41 M 10 48 C 14 65 29 73 44 71 C 62 70 73 55 72 39 M 70 31 C 67 18 57 10 44 11 M 18 57 Q 24 65 34 67 M 74 39 Q 74 51 68 60'
+};
+
+const CLOSED_MARK_PLACEMENTS = [
+    'translate(37 41) rotate(-7) scale(0.76 0.81) translate(-40 -40)',
+    'translate(42 38) rotate(5) scale(0.8 0.73) translate(-40 -40)',
+    'translate(39 43) rotate(-3) scale(0.74 0.79) translate(-40 -40)'
+];
+
+function markerInk(shape, inset = false) {
+    return `<g class="marker-ink">
+        <path d="${shape.body}" fill="currentColor" fill-rule="evenodd" stroke="currentColor" stroke-width="${inset ? 3 : 0}" stroke-linejoin="round" opacity="0.88"/>
+        <path d="${shape.edge}" fill="none" stroke="#000" stroke-width="1.3" opacity="0.24"/>
+        <path d="${shape.streaks}" fill="none" stroke="#fff" stroke-width="0.9" opacity="0.38" stroke-linecap="round"/>
+        ${shape.overlap ? `<path d="${shape.overlap}" fill="#000" opacity="0.2"/>` : ''}
+    </g>`;
+}
+
+function markerCross(inset = false) {
+    return `${markerInk(MARKER_DOWN, inset)}${markerInk(MARKER_UP, inset)}
+        <path d="M 39 34 L 47 42 L 40 50 L 32 42 Z" fill="#000" opacity="0.24"/>`;
+}
 
 export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, isCompact = false, target = '', showBoobie = false, playerIndex = -1, marksBeforeClose = 0) {
     const totalMarks = marks + pendingMarks;
@@ -31,9 +61,6 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     const cssClass = isPending ? 'mark pending' : 'mark';
     const compactClass = isCompact ? (game.type === 'minnesota' ? ' minnesota' : ' spanish') : '';
 
-    // Shared stroke attrs — round caps/joins give soft ends without noise.
-    const stroke = `stroke="${color}" fill="none" stroke-linecap="round" stroke-linejoin="round"`;
-
     if (totalMarks === 0) {
         return `<span class="${cssClass}${compactClass}"></span>`;
     }
@@ -41,9 +68,8 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     if (totalMarks === 1) {
         return `<span class="${cssClass}${compactClass}">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                <g filter="url(#chalk)">
-                    <path d="${SLASH_PATH}" ${stroke} stroke-width="11" opacity="0.35"/>
-                    <path d="${SLASH_PATH}" ${stroke} stroke-width="7"/>
+                <g color="${color}" filter="url(#chalk)">
+                    ${markerInk(MARKER_SLASH)}
                 </g>
             </svg>
         </span>`;
@@ -52,11 +78,8 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     if (totalMarks === 2) {
         return `<span class="${cssClass}${compactClass}">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                <g filter="url(#chalk)">
-                    <path d="${X_PATH_A}" ${stroke} stroke-width="11" opacity="0.35"/>
-                    <path d="${X_PATH_B}" ${stroke} stroke-width="11" opacity="0.35"/>
-                    <path d="${X_PATH_A}" ${stroke} stroke-width="7"/>
-                    <path d="${X_PATH_B}" ${stroke} stroke-width="7"/>
+                <g color="${color}" filter="url(#chalk)">
+                    ${markerCross()}
                 </g>
             </svg>
         </span>`;
@@ -67,20 +90,18 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     //   0 → closed in one turn → empty O, tappable to toggle a center dot
     //   1 → had a slash before → O with slash inside
     //   2 → had an X before    → O with X inside
-    const circleLayer = `
-        <path d="${CIRCLE_PATH}" ${stroke} stroke-width="11" opacity="0.3"/>
-        <path d="${CIRCLE_PATH}" ${stroke} stroke-width="7"/>`;
+    const circleLayer = markerInk(MARKER_CIRCLE);
+    const placementIndex = ((Number.parseInt(target, 10) || 0) + Math.max(0, playerIndex)) % CLOSED_MARK_PLACEMENTS.length;
+    const closedPlacement = CLOSED_MARK_PLACEMENTS[placementIndex];
 
     if (!closedInOneTurn && marksBeforeClose === 1) {
-        // Inner slash drawn smaller so it sits cleanly inside the circle.
         return `<span class="${cssClass}${compactClass}">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                <g filter="url(#chalk)">
-                    ${circleLayer}
-                    <g transform="translate(40 40) scale(0.55) translate(-40 -40)">
-                        <path d="${SLASH_PATH}" ${stroke} stroke-width="11" opacity="0.35"/>
-                        <path d="${SLASH_PATH}" ${stroke} stroke-width="9"/>
+                <g color="${color}" filter="url(#chalk)">
+                    <g transform="${closedPlacement}">
+                        ${markerInk(MARKER_SLASH, true)}
                     </g>
+                    ${circleLayer}
                 </g>
             </svg>
         </span>`;
@@ -89,14 +110,13 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     if (!closedInOneTurn && marksBeforeClose === 2) {
         return `<span class="${cssClass}${compactClass}">
             <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-                <g filter="url(#chalk)">
-                    ${circleLayer}
-                    <g transform="translate(40 40) scale(0.55) translate(-40 -40)">
-                        <path d="${X_PATH_A}" ${stroke} stroke-width="11" opacity="0.35"/>
-                        <path d="${X_PATH_B}" ${stroke} stroke-width="11" opacity="0.35"/>
-                        <path d="${X_PATH_A}" ${stroke} stroke-width="9"/>
-                        <path d="${X_PATH_B}" ${stroke} stroke-width="9"/>
+                <g color="${color}" filter="url(#chalk)">
+                    <g transform="translate(40 40) scale(0.88) translate(-40 -40)">
+                        ${markerCross()}
                     </g>
+                    <path d="M 11 55 Q 15 61 22 65 L 26 71 Q 15 68 9 59 Z M 62 14 Q 71 18 75 29 L 71 32 Q 68 22 60 19 Z" fill="currentColor" opacity="0.2"/>
+                    ${markerInk(MARKER_CLOSING_CIRCLE)}
+                    <path d="M 12 60 Q 16 64 22 66 M 66 19 Q 70 22 72 27" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.3"/>
                 </g>
             </svg>
         </span>`;
@@ -106,7 +126,7 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
     const dotClass = showBoobie ? ' show-dot' : '';
     return `<span class="${cssClass}${compactClass}${dotClass}" data-boobie="true" data-boobie-player="${playerIndex}" data-boobie-target="${target}">
         <svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
-            <g filter="url(#chalk)">
+            <g color="${color}" filter="url(#chalk)">
                 ${circleLayer}
                 <circle class="boobie-dot" cx="40" cy="40" r="11" fill="${color}" opacity="0"/>
             </g>
