@@ -4,7 +4,7 @@
    ============================================ */
 
 import { game, initCricket, getConfigs, saveConfigs, getCurrentConfig, applyConfig, saveActiveGame, loadActiveGame, clearActiveGame, restoreActiveGame } from './state.js';
-import { showChicagoGameSelection } from './chicago.js';
+import { showChicagoGameSelection, resumeChicago } from './chicago.js';
 import {
     initFirebase, onRosterChange, getRosterCache,
     upsertPlayer, deletePlayer, findPlayerByName, getInitState, isRealEmail,
@@ -562,9 +562,8 @@ function resumeGame() {
     document.getElementById('setupScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'flex';
 
-    if (saved.chicago && !saved.chicago.currentGameType) {
-        showChicagoGameSelection();
-    } else if (onGameStart) {
+    if (saved.chicago && resumeChicago()) return;
+    if (onGameStart) {
         onGameStart();
     }
 }

@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/games.css">
+    <link rel="stylesheet" href="css/setup.css">
     <link rel="stylesheet" href="css/dev.css">
 </head>
 <body class="dev-build">
@@ -29,17 +30,17 @@
 
     <!-- Setup Screen -->
     <div class="setup-screen" id="setupScreen">
-        <div class="setup-card card">
+        <div class="setup-card">
             <header class="setup-header">
                 <div class="setup-logo">
                     <img src="assets/logo.png" alt="BlakeOut" onerror="this.style.display='none'">
                 </div>
                 <div class="setup-header-text">
                     <h1>BLAKE OUT</h1>
-                    <div class="setup-subtitle">Tablet scorer</div>
+                    <div class="setup-subtitle">DARTS SCORER</div>
                 </div>
                 <div class="setup-header-side">
-                    <button type="button" class="btn btn--md btn--neutral settings-gear" id="settingsBtnSetup" aria-label="Settings">⚙ Settings</button>
+                    <button type="button" class="btn btn--md btn--neutral settings-gear" id="settingsBtnSetup" aria-label="Settings" title="Themes, wallpaper and scoreboard style">⚙ Customize</button>
                 </div>
             </header>
 
@@ -215,7 +216,7 @@
             <section class="setup-section setup-panel" id="playersSection">
                 <div class="setup-section-label">Players</div>
                 <div class="form-group" id="numPlayersGroup">
-                    <label>Number of Players</label>
+                    <label for="numPlayers">Players at the board</label>
                     <select id="numPlayers">
                         <option value="1">1 Player</option>
                         <option value="2" selected>2 Players</option>
@@ -227,12 +228,12 @@
                 <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="teamMode">
-                        <span>Team Mode (Home vs Away, 1+ players per team)</span>
+                        <span>Team mode</span>
                     </label>
                 </div>
 
                 <div class="player-order-toolbar" id="playerOrderControls">
-                    <div class="player-order-hint">Drag ☰ or use the arrows to set who throws first.</div>
+                    <div class="player-order-hint">Throw order</div>
                     <button type="button" class="btn btn--sm btn--neutral" id="randomizePlayersBtn">🎲 Randomize</button>
                 </div>
 
@@ -289,6 +290,7 @@
 
             <section class="setup-section setup-panel setup-play-panel" id="playSection">
                 <div class="setup-section-label">Play</div>
+                <div class="setup-match-title" id="selectedGameTitle" aria-live="polite">501</div>
                 <div class="setup-action-row">
                     <button class="btn btn--lg btn--primary btn--block btn--hero" id="startGameBtn">Start Game</button>
                     <button class="btn btn--lg btn--success btn--block hidden" id="resumeGameBtn">Resume Game</button>

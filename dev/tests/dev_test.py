@@ -1253,8 +1253,6 @@ async def test_settings_modal(page):
 
 
 async def test_setup_section_separation(page):
-    # Main setup choices should read as distinct, consistently styled panels
-    # on both tablets and phones. Game Options disappears when irrelevant.
     await fresh(page)
     panel_ids = [
         "gamePickerSection", "gameOptionsSection", "playersSection",
@@ -1271,18 +1269,14 @@ async def test_setup_section_separation(page):
             const style = getComputedStyle(element);
             const box = element.getBoundingClientRect();
             return {id, visible:style.display !== 'none', top:box.top, bottom:box.bottom,
-                    borderLeft:parseFloat(style.borderLeftWidth),
-                    radius:parseFloat(style.borderTopLeftRadius),
-                    background:style.backgroundColor};
+                    left:box.left, right:box.right};
         })
     """, panel_ids)
     for panel in metrics:
         assert panel["visible"], f"default 501 panel hidden: {panel}"
-        assert panel["borderLeft"] >= 4 and panel["radius"] > 0, f"panel separator missing: {panel}"
-        assert panel["background"] != "rgba(0, 0, 0, 0)", f"panel background missing: {panel}"
-    for previous, current in zip(metrics, metrics[1:]):
-        assert current["top"] >= previous["bottom"] + 8, \
-            f"panels run together: {previous['id']} -> {current['id']}"
+    assert metrics[0]["right"] < metrics[1]["left"], metrics
+    for previous, current in zip(metrics[1:], metrics[2:]):
+        assert current["top"] >= previous["bottom"] - 1, metrics
 
     await page.select_option("#gameType", "countup")
     assert not await page.locator("#gameOptionsSection").is_visible(), \
@@ -1301,7 +1295,42 @@ async def test_setup_section_separation(page):
     """)
     assert compact["documentWidth"] <= compact["viewportWidth"] + 1, compact
     assert all(width > 250 for width in compact["panelWidths"]), compact
+    dock = await page.locator("#playSection").bounding_box()
+    assert dock and dock["y"] + dock["height"] <= 844, dock
+    await page.select_option("#gameType", "teamcricket")
+    assert await page.locator("#selectedGameTitle").inner_text() == "Team Cricket/400"
     return {"labels": labels, "tablet": metrics, "compact": compact}
+
+
+async def test_setup_refresh_layout(page):
+    await fresh(page)
+    checked = []
+    for width, height in [(390, 844), (744, 1133), (1280, 800)]:
+        await page.set_viewport_size({"width": width, "height": height})
+        for theme in ["blue", "arctic", "volt"]:
+            await page.evaluate("theme => localStorage.setItem('blakeout_theme', theme)", theme)
+            await page.reload(wait_until="domcontentloaded")
+            await page.wait_for_timeout(350)
+            start = await page.locator("#startGameBtn").bounding_box()
+            assert start and start["y"] + start["height"] <= height, (width, theme, start)
+            assert await page.evaluate("document.getElementById('setupScreen').scrollWidth <= innerWidth")
+            assert await page.locator(".game-card[aria-pressed='true']").count() == 1
+            await page.select_option("#gameType", "teamcricket")
+            assert await page.locator("#selectedGameTitle").inner_text() == "Team Cricket/400"
+            title_fits = await page.locator("#selectedGameTitle").evaluate(
+                "element => element.scrollWidth <= element.clientWidth")
+            assert title_fits, (width, theme)
+            await page.fill("#gameSearchInput", "Minnesota")
+            await page.click('[data-game-value="minnesota"]')
+            for selector in ['[data-game-value="minnesota"] .game-card-label', '#selectedGameTitle']:
+                intact = await page.locator(selector).evaluate("""element => {
+                    const range = document.createRange();
+                    range.selectNodeContents(element);
+                    return range.getClientRects().length === 1 && element.scrollWidth <= element.clientWidth;
+                }""")
+                assert intact, (width, theme, selector)
+            checked.append(f"{width}x{height}/{theme}")
+    return {"checked": checked}
 
 
 async def test_private_roster_scoping(page):
@@ -2184,8 +2213,6 @@ async def test_setup_throw_order(page):
     for index, name in enumerate(names, 1):
         await page.fill(f"#player{index}", name)
 
-    # Portrait tablet: four players should be balanced as a 2×2 card grid,
-    # with each name field using the full card width beneath its controls.
     await page.set_viewport_size({"width": 744, "height": 1133})
     portrait = await page.evaluate("""
         () => {
@@ -2200,14 +2227,13 @@ async def test_setup_throw_order(page):
         }
     """)
     tolerance = 3
-    assert abs(portrait[0]["top"] - portrait[1]["top"]) <= tolerance, portrait
-    assert abs(portrait[2]["top"] - portrait[3]["top"]) <= tolerance, portrait
-    assert portrait[2]["top"] > portrait[0]["bottom"], portrait
-    assert portrait[1]["left"] > portrait[0]["right"], portrait
-    assert portrait[3]["left"] > portrait[2]["right"], portrait
+    for previous, current in zip(portrait, portrait[1:]):
+        assert current["top"] >= previous["bottom"], portrait
+        assert abs(current["left"] - previous["left"]) <= tolerance, portrait
     for row in portrait:
         assert row["inputTop"] > row["top"], row
-        assert row["inputLeft"] <= row["left"] + 15 and row["inputRight"] >= row["right"] - 15, row
+        assert row["inputLeft"] >= row["left"] and row["inputRight"] <= row["right"], row
+        assert row["inputRight"] - row["inputLeft"] >= 160, row
 
     # Phone portrait falls back to a clean one-column stack.
     await page.set_viewport_size({"width": 390, "height": 844})
@@ -2616,12 +2642,21 @@ async def test_chicago_match_flow(page):
     """)
     await page.wait_for_timeout(400)
     assert await page.locator("#chicagoLegModal").is_visible(), "Leg complete modal should show"
+    await page.reload(wait_until="domcontentloaded")
+    await page.click("#resumeGameBtn")
+    await page.wait_for_timeout(400)
+    assert await page.locator("#chicagoLegModal").is_visible(), "Reload lost the leg result"
+    assert await get_state(page, "m.game.chicago.legWins") == [1, 0]
     leg_winner_text = await page.locator("#chicagoLegWinner").inner_text()
     assert "Home wins" in leg_winner_text, f"Unexpected leg winner: {leg_winner_text}"
 
     # Continue to Leg 2: Loser (Away) must pick next
     await page.click("#chicagoContinueBtn")
     await page.wait_for_timeout(400)
+    await page.reload(wait_until="domcontentloaded")
+    await page.click("#resumeGameBtn")
+    await page.wait_for_timeout(400)
+    assert await page.locator("#chicagoGameModal").is_visible(), "Reload lost the next-leg picker"
     picking_text = await page.locator("#chicagoPlayerPicking").inner_text()
     assert "Away" in picking_text, f"Expected Away to pick after losing Leg 1, got: {picking_text}"
     assert not await page.locator("#chicagoCricketBtn").is_visible(), "Cricket should be eliminated"
@@ -2669,6 +2704,11 @@ async def test_chicago_match_flow(page):
     assert await page.locator("#winnerModal").is_visible(), "Winner modal should open for match win"
     match_winner_html = await page.locator("#winnerName").inner_html()
     assert "Chicago Match Winner!" in match_winner_html, f"Missing Chicago match win text: {match_winner_html}"
+    await page.reload(wait_until="domcontentloaded")
+    await page.click("#resumeGameBtn")
+    await page.wait_for_timeout(400)
+    assert await page.locator("#winnerModal").is_visible(), "Reload lost the match result"
+    assert await get_state(page, "m.game.chicago.legWins") == [2, 1]
     return {"chicago": "complete 3-leg match verified"}
 
 

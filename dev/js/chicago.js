@@ -3,7 +3,7 @@
    Best of 3 legs, alternating game picker
    ============================================ */
 
-import { game, initCricket } from './state.js';
+import { game, initCricket, saveActiveGame } from './state.js';
 import { showModal, hideModal, showWinner, updateUndoRedoButtons } from './ui.js';
 import { resetX01Input } from './x01.js';
 
@@ -37,6 +37,18 @@ export function showChicagoGameSelection() {
     document.getElementById('chicago501Btn').style.display = remaining.includes('501') ? 'block' : 'none';
 
     showModal('chicagoGameModal');
+}
+
+export function resumeChicago() {
+    if (game.chicago.lastLegWinnerIndex != null) {
+        showChicagoLegResult(game.chicago.lastLegWinnerIndex);
+        return true;
+    }
+    if (!game.chicago.currentGameType) {
+        showChicagoGameSelection();
+        return true;
+    }
+    return false;
 }
 
 function selectChicagoGame(selectedGame) {
@@ -74,13 +86,14 @@ function initChicagoLeg(gameType) {
 
     // Ensure clean input state for keypad
     resetX01Input();
+    game.chicago.lastLegWinnerIndex = null;
+    saveActiveGame();
 
     // Dispatch event so app.js can call updateDisplay
     document.dispatchEvent(new CustomEvent('chicagoLegReady'));
 }
 
 function handleChicagoLegWin(winnerIndex) {
-    const winner = game.players[winnerIndex];
     game.chicago.legWins[winnerIndex]++;
 
     // In Chicago rules, the loser of each leg picks the next game.
@@ -91,6 +104,13 @@ function handleChicagoLegWin(winnerIndex) {
         game.chicago.whoPicksNext = (game.chicago.whoPicksNext + 1) % game.players.length;
     }
 
+    game.chicago.lastLegWinnerIndex = winnerIndex;
+    saveActiveGame();
+    showChicagoLegResult(winnerIndex);
+}
+
+function showChicagoLegResult(winnerIndex) {
+    const winner = game.players[winnerIndex];
     // Check if match is won (2 leg wins) — only reachable with 2 players,
     // since with 3+ players a single player rarely gets 2 of 3 legs.
     const maxWins = Math.max(...game.chicago.legWins);
@@ -124,5 +144,8 @@ function continueChicago() {
     hideModal('chicagoLegModal');
 
     game.chicago.currentLeg++;
+    game.chicago.currentGameType = null;
+    game.chicago.lastLegWinnerIndex = null;
+    saveActiveGame();
     showChicagoGameSelection();
 }

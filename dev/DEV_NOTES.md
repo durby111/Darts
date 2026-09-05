@@ -3,6 +3,43 @@
 Dev-only release. Production (repo root) untouched — promote by copying
 `/dev/` → root as usual, and fold these notes into `CLAUDE.md` at that time.
 
+## September 4 Follow-Up List
+
+- [x] Commit and push approved dry-erase Cricket marks: `773fd53` (dev only).
+- [ ] Enable GitHub Pages **Enforce HTTPS** and verify HTTP redirects to HTTPS.
+  Live HEAD and GET checks on September 4 returned HTTP 200 with the app at
+  `http://blakeoutdarts.com/`, without redirecting. HTTPS certificate validation
+  succeeded; HTTPS `www` redirects to the apex domain.
+- [ ] Audit unused/orphaned app code in `dev/` and remove confirmed leftovers.
+  Trace imports from the app entry point, registry dispatch, DOM/event hooks,
+  dynamic CSS classes, and service-worker assets before deleting anything.
+  Preserve tests, prototypes, configuration, and production files. Validate
+  affected flows and the all-games boot test after removals.
+- [ ] Review hosting hardening: live responses have no CSP, HSTS,
+  X-Frame-Options, X-Content-Type-Options, or explicit Referrer-Policy header;
+  the live HTML has no CSP meta policy either. CSP was previously deferred;
+  revisit deliberately with Firebase, wallpaper, and offline regression checks.
+- [ ] Verify GitHub/domain-registrar MFA, domain renewal/lock, and Pages domain
+  verification in the owner accounts. These settings were not checked here.
+
+Roster share links grant read/write/delete access to anyone holding the link.
+The checked-in Firestore rules retain that capability-link model. The prior
+audit records deployed-rule and API-key restriction checks on August 30;
+those console settings and deployed rules were not reverified September 4.
+
+## September 4 Setup Refresh (Dev Release)
+
+- Theme-aware game library and match column replace the stacked setup card.
+- Compact player rows, selected-game title, and fixed phone start bar.
+- Existing games, favorites, rules, presets, roster, themes, wallpapers and
+  scoreboard settings remain available. Setup styles live in `css/setup.css`.
+- Rules popovers ignore queued scroll events from before they opened.
+- Chicago now persists next-leg selection and result dialogs; reload restores
+  those dialogs without incrementing leg wins again.
+- Dev cache is `blakeout-dev-v37`. Production files remain unchanged.
+- Responsive screenshots checked at 390x844, 744x1133 and 1280x800 across
+  seven themes. `setup_refresh_layout` makes the core geometry checks repeatable.
+
 ---
 
 ## Architecture: game registry
