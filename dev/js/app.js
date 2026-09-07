@@ -19,6 +19,7 @@ import { initDoubleDownControls, updateDoubleDownDisplay } from './doubledown.js
 import { initTeamCricketControls, updateTeamCricketDisplay } from './teamcricket.js';
 // Side-effect import: applies the saved theme before any UI paints.
 import './theme.js';
+import { initTournamentBridge, renderTournamentControls } from './tournament-bridge.js';
 
 // --- Safe element helper ---
 function on(id, event, handler) {
@@ -84,6 +85,7 @@ function updateDisplay() {
 setGameStartCallback(() => {
     updateDisplay();
     updateUndoRedoButtons();
+    renderTournamentControls();
 });
 
 // --- Score Keypad Modal (Minnesota) ---
@@ -389,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('settings', initSettings);
     safeInit('serviceWorker', registerServiceWorker);
     safeInit('updateButton', initUpdateButton);
+    safeInit('tournamentBridge', initTournamentBridge);
 });
 
 // Save game on page unload (refresh, close, update)

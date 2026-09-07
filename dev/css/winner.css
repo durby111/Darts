@@ -1,0 +1,167 @@
+#winnerModal,
+#chicagoLegModal {
+    background: rgba(5, 9, 16, .8);
+    backdrop-filter: blur(12px);
+    padding: 16px;
+}
+
+.winner-modal-content {
+    position: relative;
+    isolation: isolate;
+    max-width: 560px;
+    max-height: calc(100dvh - 32px);
+    padding: clamp(24px, 5vw, 40px);
+    border: 1px solid var(--color-border-light);
+    border-top: 3px solid var(--color-primary-light);
+    border-radius: 22px;
+    background:
+        radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--color-primary) 18%, transparent), transparent 65%),
+        var(--color-surface);
+    color: var(--color-text);
+    box-shadow: 0 28px 100px rgba(0, 0, 0, .5);
+    text-align: left;
+    animation: winner-arrive .35s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+.winner-brand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .15em;
+}
+
+.winner-brand span:last-child {
+    color: var(--color-text-muted);
+    font-size: 9px;
+    text-align: right;
+}
+
+.winner-emblem {
+    width: 64px;
+    height: 64px;
+    margin: 24px 0 14px;
+    color: var(--color-primary-light);
+}
+
+.winner-emblem svg {
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.winner-bull { fill: currentColor; stroke: none; }
+
+.winner-modal-content h2 {
+    font-size: clamp(32px, 7vw, 48px);
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: -.045em;
+    margin: 0 0 26px;
+}
+
+.winner-eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .2em;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+}
+
+.winner-name {
+    font-size: clamp(26px, 6vw, 40px);
+    font-weight: 750;
+    line-height: 1.15;
+    letter-spacing: -.025em;
+    overflow-wrap: anywhere;
+    margin: 0 0 24px;
+    text-shadow: none;
+}
+
+.winner-name span { display: inline-block; line-height: 1.5; letter-spacing: normal; }
+
+#winnerModal .blakeout-message {
+    padding: 14px 16px;
+    margin: 0 0 20px;
+    border: 1px solid color-mix(in srgb, var(--color-primary-light) 45%, var(--color-border));
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+    font-size: 13px;
+    color: var(--color-text);
+    text-shadow: none;
+    animation: none;
+}
+
+#winnerModal .blakeout-message strong { letter-spacing: .1em; }
+#winnerModal .blakeout-message span { display: block; margin-top: 4px; font-size: 13px; color: var(--color-text-muted); }
+
+.winner-modal-content .modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 0;
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+}
+
+.winner-modal-content button {
+    min-height: 48px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+#playAgainBtn, #chicagoContinueBtn, #winnerModal #tournamentSaveResult, #winnerModal #tournamentNextLeg {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    border: 1px solid var(--color-primary);
+    flex: 1;
+}
+
+#newGameBtn, #winnerModal #tournamentResultReturn {
+    background: var(--color-surface-elevated);
+    color: var(--color-text);
+    border: 1px solid var(--color-border-light);
+    flex: 1;
+}
+
+#winnerCancelBtn {
+    flex-basis: 100%;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+.winner-modal-content button:focus-visible { outline: 3px solid var(--color-primary-light); outline-offset: 3px; }
+.winner-modal-content [hidden] { display: none !important; }
+#winnerModal .modal-buttons:not(:has(button:not([hidden]))) { display: none; }
+#winnerModal #tournamentResultPanel { border-top: 1px solid var(--color-border); padding-top: 16px; }
+#winnerModal #tournamentResultPanel p { font-size: 14px; color: var(--color-text-muted); }
+.winner-leg-content h2 { margin-top: 28px; }
+.winner-scoreline { font-size: 18px; line-height: 1.5; color: var(--color-text-muted); margin: 0 0 24px; overflow-wrap: anywhere; }
+#chicagoContinueBtn { width: 100%; }
+
+@keyframes winner-arrive {
+    from { opacity: 0; transform: translateY(14px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-height: 650px) {
+    .winner-modal-content { padding: 22px 28px; }
+    .winner-brand { padding-bottom: 14px; }
+    .winner-emblem { width: 44px; height: 44px; margin: 16px 0 12px; }
+    .winner-modal-content h2 { font-size: 34px; margin-bottom: 20px; }
+    .winner-name { font-size: 28px; margin-bottom: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .winner-modal-content { animation: none; }
+}

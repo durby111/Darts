@@ -4,6 +4,7 @@
    ============================================ */
 
 import { game, initCricket, getConfigs, saveConfigs, getCurrentConfig, applyConfig, saveActiveGame, loadActiveGame, clearActiveGame, restoreActiveGame } from './state.js';
+import { beginScoringLeg } from './scoring-records.js';
 import { showChicagoGameSelection, resumeChicago } from './chicago.js';
 import {
     initFirebase, onRosterChange, getRosterCache,
@@ -549,11 +550,12 @@ function updateResumeButton() {
     }
 }
 
-function resumeGame() {
+export function resumeGame() {
     const saved = loadActiveGame();
     if (!saved) return;
 
     restoreActiveGame(saved);
+    if (game.tournament?.status === 'saving') game.tournament.status = 'pending';
 
     // Apply game-type scale override
     applyGameTypeScale(saved.type);
@@ -561,6 +563,7 @@ function resumeGame() {
     // Switch screens
     document.getElementById('setupScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'flex';
+    document.dispatchEvent(new CustomEvent('scorerRestored'));
 
     if (saved.chicago && resumeChicago()) return;
     if (onGameStart) {
@@ -603,6 +606,8 @@ function updateGameOptionsSection() {
 }
 
 function startGame() {
+    if (game.tournament && game.tournament.status !== 'saved' &&
+        !confirm('Leave this tournament match? Its local recovery copy will be kept; no result will be sent.')) return;
     // Warn if there's an active game being overlaid
     if (overlayMode) {
         if (!confirm('Starting a new game will end your current game. Continue?')) return;
@@ -610,6 +615,10 @@ function startGame() {
         const backBtn = document.getElementById('backToGameBtn');
         if (backBtn) backBtn.classList.add('hidden');
     }
+
+    const url = new URL(location.href);
+    url.searchParams.delete('tournamentMatch');
+    history.replaceState(null, '', url);
 
     // Auto-save config so it survives the team-builder detour too.
     const configs = getConfigs();
@@ -639,7 +648,7 @@ function beginMatchFromTeams(teams) {
     beginMatch(players, teams);
 }
 
-function beginMatch(playerSeeds, teams) {
+function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null) {
     const gameType = document.getElementById('gameType').value;
     const cricketPoints = gameType === 'cutthroat'
         ? true
@@ -664,6 +673,9 @@ function beginMatch(playerSeeds, teams) {
 
     Object.assign(game, {
         type: gameType,
+        tournament,
+        scoringRecords,
+        x01Input: null,
         players: [],
         currentPlayer: 0,
         currentInput: '',
@@ -721,8 +733,12 @@ function beginMatch(playerSeeds, teams) {
             : null,
         teamMode: !!teams,
         teams: teams ? teams.map(t => ({
+            id: t.id || null,
             name: t.name,
-            members: t.members.map(m => ({ name: m.name, rosterEmail: m.rosterEmail || null })),
+            members: t.members.map(m => ({
+                id: m.id || null, playerId: m.playerId || null,
+                name: m.name, rosterEmail: m.rosterEmail || null
+            })),
             rotationIndex: 0
         })) : null
     });
@@ -730,6 +746,8 @@ function beginMatch(playerSeeds, teams) {
     playerSeeds.forEach(seed => {
         const player = {
             name: seed.name,
+            id: seed.id || null,
+            playerId: seed.playerId || null,
             rosterEmail: seed.rosterEmail || null,
             score: 0,
             throws: 0,
@@ -776,6 +794,8 @@ function beginMatch(playerSeeds, teams) {
     resetTicTacToeInput();
 
     clearActiveGame();
+    if (tournament && !isChicago) beginScoringLeg(gameType);
+    saveActiveGame();
     const scaleSlider = document.getElementById('uiScale');
     const scale = parseFloat(scaleSlider?.value || '1.0');
     document.documentElement.style.setProperty('--ui-scale', scale);
@@ -788,6 +808,15 @@ function beginMatch(playerSeeds, teams) {
     } else if (onGameStart) {
         onGameStart();
     }
+
+}
+
+export function launchTournamentScorer(tournament, scoringRecords = null) {
+    document.getElementById('gameType').value = tournament.gameType;
+    document.getElementById('cricketPoints').checked = true;
+    document.getElementById('finishType').value = 'double-out';
+    document.getElementById('spanishBulls').checked = false;
+    beginMatch(tournament.teams.map(t => ({ name: t.name })), tournament.teams, tournament, scoringRecords);
 }
 
 export function showSetup() {
@@ -817,6 +846,10 @@ export function showSetupAsOverlay() {
 }
 
 export function playAgain() {
+    if (game.tournament) {
+        alert('Use Next leg or Save tournament result. The tournament match has been kept.');
+        return;
+    }
     clearActiveGame();
 
     // Rebuild the match through beginMatch() so every engine (cricket,
@@ -829,12 +862,12 @@ export function playAgain() {
         select.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    const seeds = game.players.map(p => ({ name: p.name, rosterEmail: p.rosterEmail || null }));
+    const seeds = game.players.map(p => ({ id: p.id, playerId: p.playerId, name: p.name, rosterEmail: p.rosterEmail || null }));
 
     // Preserve team mode + reset rotation so "Play Again" starts each team
     // from member 0.
     const preservedTeams = game.teamMode && game.teams
-        ? game.teams.map(t => ({ name: t.name, members: t.members.slice(), rotationIndex: 0 }))
+        ? game.teams.map(t => ({ id: t.id, name: t.name, members: t.members.slice(), rotationIndex: 0 }))
         : null;
 
     document.getElementById('winnerModal').style.display = 'none';

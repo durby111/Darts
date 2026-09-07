@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Brackets · BlakeOut DEV</title>
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/platform.css">
+    <link rel="stylesheet" href="../css/brackets.css">
+</head>
+<body class="dev-build platform-page brackets-page">
+    <header class="platform-header">
+        <a href="../">🎯 BlakeOut <span class="dev-badge">DEV</span></a>
+        <nav aria-label="Main navigation">
+            <a href="../">Scoring</a>
+            <a href="./" aria-current="page">Brackets</a>
+            <a href="../accounts/">Players &amp; Records</a>
+        </nav>
+    </header>
+    <main class="platform-main">
+        <h1>Doubles tournaments</h1>
+        <p>Double elimination · 2–32 teams · Live brackets and tournament history</p>
+        <p id="accountNotice">Connecting…</p>
+        <p id="message" class="platform-notice" role="status" aria-live="polite">Loading tournaments…</p>
+        <div class="platform-actions">
+            <button id="refresh" type="button">Refresh from cloud</button>
+            <button id="discard" type="button" hidden>Discard edits &amp; reload</button>
+        </div>
+        <details id="createPanel" class="platform-card" hidden>
+            <summary>Create a tournament</summary>
+            <form id="createForm">
+                <fieldset id="createControls">
+                    <div class="bracket-fields">
+                        <label>Title<input id="title" maxlength="100" required autocomplete="off"></label>
+                        <label>Date<input id="date" type="date" required></label>
+                        <label>Game<select id="gameType">
+                            <option value="chicago">Chicago</option><option value="301">301</option>
+                            <option value="501">501</option><option value="cricket">Cricket</option>
+                            <option value="spanish">Spanish Cricket</option>
+                        </select></label>
+                        <label>Best of (legs)<input id="bestOf" type="number" min="1" max="99" step="2" value="3" required disabled></label>
+                    </div>
+                    <p>Chicago is always best of 3. Minnesota is planned for a later release.</p>
+                    <button type="submit">Create tournament</button>
+                </fieldset>
+            </form>
+        </details>
+        <section id="directory" class="platform-card" aria-label="Tournament directory">
+            <h2>Current tournaments</h2><div id="currentList" class="tournament-list"></div>
+            <details><summary>History · completed tournaments</summary><div id="historyList" class="tournament-list"></div></details>
+        </section>
+        <article id="tournament" hidden>
+            <section class="platform-card">
+                <h2 id="tournamentTitle"></h2>
+                <p id="tournamentMeta"></p>
+                <p id="champion" hidden></p>
+                <p id="spectatorNote" hidden>Public view: names and bracket only. Sign in at Players &amp; Records, then ask the organizer to add your verified profile. Self-registration requests are not yet available.</p>
+                <p id="lockedNote" hidden>Roster locked. Byes advance a team but are never recorded as played wins. Completed results cannot be edited here; recorded dart statistics are immutable.</p>
+                <div id="publicTeams" class="public-teams"></div>
+            </section>
+            <section id="rosterPanel" class="platform-card" hidden>
+                <h2>Organizer roster</h2>
+                <p>Use one matching team number for both partners. Save all rows together; swaps between full teams are allowed. Payment is tracked but does not block play.</p>
+                <p>Guests belong only to this tournament. Account players are linked by verified profile ID, never by a name or email match.</p>
+                <fieldset id="rosterControls">
+                    <form id="addForm" class="bracket-fields">
+                        <label>Add player<select id="profile"><option value="">Tournament-only guest</option></select></label>
+                        <label>Guest display name<input id="guestName" maxlength="40" autocomplete="off" required></label>
+                        <button type="submit">Add to draft roster</button>
+                    </form>
+                    <form id="rosterForm">
+                        <div class="roster-scroll">
+                            <table class="roster-table">
+                                <thead><tr><th scope="col">Display name</th><th scope="col">Team number</th><th scope="col">Paid</th><th scope="col">Checked in</th><th scope="col">Standby</th><th scope="col">Remove</th></tr></thead>
+                                <tbody id="rosterRows"></tbody>
+                            </table>
+                        </div>
+                        <div class="platform-actions">
+                            <button id="saveRoster" type="submit">Save all roster changes</button>
+                            <button id="startTournament" type="button">Start &amp; lock tournament</button>
+                        </div>
+                    </form>
+                </fieldset>
+                <p id="draftStatus" aria-live="polite"></p>
+                <ul id="blockers"></ul>
+            </section>
+            <section class="platform-card bracket-section">
+                <div class="bracket-toolbar">
+                    <div><h2 id="bracketHeading">Bracket</h2><p id="bracketHelp"></p></div>
+                    <label>Diagram size<select id="diagramScale"><option value="1">100% · readable</option><option value=".75">75%</option><option value=".5">50%</option><option value="fit">Fit width · overview</option></select></label>
+                </div>
+                <div id="diagram" class="diagram-viewport" tabindex="0" aria-label="Connected tournament bracket. Scroll to see all rounds."></div>
+            </section>
+            <section id="resultPanel" class="platform-card" hidden>
+                <h2 id="resultHeading"></h2>
+                <p id="resultNames"></p>
+                <p class="platform-notice">Manual entry records the match result only. It does not create per-dart or lifetime player statistics, or change statistics previously captured by the scorer.</p>
+                <button id="launchScorer" type="button">Launch scorer</button>
+                <form id="resultForm">
+                    <fieldset id="resultControls">
+                        <div class="bracket-fields">
+                            <label>Winner<select id="winner" required></select></label>
+                            <label><span id="scoreALabel">Team A legs</span><input id="scoreA" type="number" min="0" step="1" required></label>
+                            <label><span id="scoreBLabel">Team B legs</span><input id="scoreB" type="number" min="0" step="1" required></label>
+                        </div>
+                        <label><input id="forfeit" type="checkbox">Forfeit (no leg scores)</label>
+                        <button type="submit">Save manual result</button>
+                        <button id="closeResult" type="button">Close result form</button>
+                    </fieldset>
+                </form>
+            </section>
+        </article>
+    </main>
+    <script type="module" src="../js/brackets/page.js"></script>
+</body>
+</html>

@@ -35,7 +35,10 @@ export let game = {
     // as the two "players". The actual humans throwing live in
     // game.teams[i].members and rotate per-turn.
     teamMode: false,
-    teams: null
+    teams: null,
+    tournament: null,
+    scoringRecords: null,
+    x01Input: null
 };
 
 // Undo/Redo cooldown
@@ -77,6 +80,9 @@ function snapshot() {
         shanghai: game.shanghai ? deepClone(game.shanghai) : null,
         // Snapshot teams so undo rolls back rotationIndex too.
         teams: game.teams ? deepClone(game.teams) : null,
+        tournament: game.tournament ? deepClone(game.tournament) : null,
+        scoringRecords: game.scoringRecords ? deepClone(game.scoringRecords) : null,
+        x01Input: game.x01Input ? deepClone(game.x01Input) : null,
         timestamp: Date.now()
     };
 }
@@ -100,28 +106,37 @@ function restore(state) {
         if (state[key] !== undefined) game[key] = state[key];
     });
     if (state.teams !== undefined) game.teams = state.teams;
+    game.tournament = state.tournament || null;
+    game.scoringRecords = state.scoringRecords || null;
+    game.x01Input = state.x01Input || null;
 }
 
 export function saveGameState() {
     game.undoHistory.push(snapshot());
     game.redoHistory = [];
 
-    // Persist live game to localStorage
-    saveActiveGame();
+    // Tournament engines persist after mutation, with this undo entry included.
+    if (!game.tournament) saveActiveGame();
 }
 
 export function undoLastAction(onAfterRestore) {
+    if (game.tournament && ['pending', 'saving', 'saved'].includes(game.tournament.status)) return;
     if (game.undoHistory.length === 0) return;
     game.redoHistory.push(snapshot());
     restore(game.undoHistory.pop());
     if (onAfterRestore) onAfterRestore();
+    saveActiveGame();
+    document.dispatchEvent(new CustomEvent('scorerRestored'));
 }
 
 export function redoLastAction(onAfterRestore) {
+    if (game.tournament && ['pending', 'saving', 'saved'].includes(game.tournament.status)) return;
     if (game.redoHistory.length === 0) return;
     game.undoHistory.push(snapshot());
     restore(game.redoHistory.pop());
     if (onAfterRestore) onAfterRestore();
+    saveActiveGame();
+    document.dispatchEvent(new CustomEvent('scorerRestored'));
 }
 
 export function undoWithCooldown(onAfterRestore) {
@@ -216,6 +231,151 @@ export function initCricket(type, includeBulls = false) {
 
 // --- Live Game Save/Restore (survives page reload, exit to setup, updates) ---
 
+const ACTIVE_GAME_KEY = 'blakeout_dev_active_game';
+const ACTIVE_GAME_IMPORT_KEY = 'blakeout_dev_active_game_imported';
+const MATCH_RECOVERY_PREFIX = 'blakeout_dev_match_';
+
+function archivePreviousTournament(nextResultId = null) {
+    const stored = localStorage.getItem(ACTIVE_GAME_KEY);
+    if (!stored) return;
+    let previous;
+    try { previous = JSON.parse(stored); } catch { return; }
+    const tournament = previous.tournament;
+    if (tournament?.resultId && tournament.resultId !== nextResultId && tournament.status !== 'saved') {
+        localStorage.setItem(MATCH_RECOVERY_PREFIX + tournament.resultId, stored);
+    }
+}
+
+function compactTournamentSnapshot(snapshot) {
+    if (!snapshot.tournament) return snapshot;
+    if (snapshot.tournament.status === 'saved') {
+        snapshot.undoHistory = [];
+        snapshot.redoHistory = [];
+        delete snapshot.tournament.pendingResult;
+        snapshot.scoringRecords = snapshot.scoringRecords && {
+            id: snapshot.scoringRecords.id,
+            legs: snapshot.scoringRecords.legs.map(({ id, gameType, winnerId }) => ({ id, gameType, winnerId, turns: [] }))
+        };
+        snapshot.players.forEach(player => { player.history = []; });
+        return snapshot;
+    }
+    if (['pending', 'saving'].includes(snapshot.tournament.status)) {
+        // Confirmation already locks undo. The immutable ledger also supplies pendingResult.records.
+        snapshot.undoHistory = [];
+        snapshot.redoHistory = [];
+        if (snapshot.tournament.pendingResult?.records) {
+            delete snapshot.tournament.pendingResult.records;
+            snapshot.pendingRecordsFromLedger = true;
+        }
+        return snapshot;
+    }
+
+    // Undo/redo ledgers are prefixes of the current leg; store raw turns only once.
+    // Keep an explicit fallback for unusual/non-prefix legacy histories.
+    const activeLegs = new Map((snapshot.scoringRecords?.legs || []).map(leg => [leg.id, leg]));
+    const pool = new Map(activeLegs);
+    for (const entry of [...snapshot.undoHistory, ...snapshot.redoHistory]) {
+        for (const leg of entry.scoringRecords?.legs || []) {
+            if (!pool.has(leg.id) || pool.get(leg.id).turns.length < leg.turns.length) pool.set(leg.id, leg);
+        }
+    }
+    const compactHistory = history => history.map(entry => {
+        const records = entry.scoringRecords;
+        if (!records || !records.legs.every(leg => leg.turns.every((turn, i) => pool.get(leg.id)?.turns[i]?.id === turn.id))) return entry;
+        const { scoringRecords, ...rest } = entry;
+        return {
+            ...rest,
+            scoringCursor: {
+                id: records.id,
+                legs: records.legs.map(leg => ({ id: leg.id, winnerId: leg.winnerId, turnCount: leg.turns.length }))
+            }
+        };
+    });
+    snapshot.undoHistory = compactHistory(snapshot.undoHistory);
+    snapshot.redoHistory = compactHistory(snapshot.redoHistory);
+    const values = [];
+    const valueIds = new Map();
+    const intern = value => {
+        const key = JSON.stringify(value);
+        if (!valueIds.has(key)) {
+            valueIds.set(key, values.length);
+            values.push(value);
+        }
+        return valueIds.get(key);
+    };
+    const shareContext = history => history.map(entry => {
+        const { players, teams, tournament, ...rest } = entry;
+        return {
+            ...rest,
+            playerRefs: players.map(player => {
+                if (!player.cricketData) return intern(player);
+                const { cricketData, ...fields } = player;
+                return intern({ ...fields, cricketDataRef: intern(cricketData) });
+            }),
+            tournamentContextRef: intern({ teams, tournament })
+        };
+    });
+    snapshot.undoHistory = shareContext(snapshot.undoHistory);
+    snapshot.redoHistory = shareContext(snapshot.redoHistory);
+    snapshot.historyValuePool = values;
+    snapshot.scoringRecordPool = [...pool.values()].filter(leg => leg !== activeLegs.get(leg.id));
+    return snapshot;
+}
+
+function expandTournamentSnapshot(snapshot) {
+    const pool = new Map([
+        ...(snapshot.scoringRecords?.legs || []),
+        ...(snapshot.scoringRecordPool || [])
+    ].map(leg => [leg.id, leg]));
+    const expandHistory = history => (history || []).map(entry => {
+        if (entry.playerRefs) {
+            const { playerRefs, tournamentContextRef, ...rest } = entry;
+            entry = {
+                ...rest,
+                ...deepClone(snapshot.historyValuePool[tournamentContextRef]),
+                players: playerRefs.map(index => {
+                    const player = deepClone(snapshot.historyValuePool[index]);
+                    if (player.cricketDataRef === undefined) return player;
+                    const { cricketDataRef, ...fields } = player;
+                    return { ...fields, cricketData: deepClone(snapshot.historyValuePool[cricketDataRef]) };
+                })
+            };
+        }
+        if (!entry.scoringCursor) return entry;
+        const { scoringCursor, ...rest } = entry;
+        return {
+            ...rest,
+            scoringRecords: {
+                id: scoringCursor.id,
+                legs: scoringCursor.legs.map(cursor => {
+                    const leg = pool.get(cursor.id);
+                    if (!leg || cursor.turnCount > leg.turns.length) throw new Error('Incomplete tournament undo ledger.');
+                    return { ...leg, winnerId: cursor.winnerId, turns: leg.turns.slice(0, cursor.turnCount) };
+                })
+            }
+        };
+    });
+    if (snapshot.pendingRecordsFromLedger && snapshot.tournament?.pendingResult) {
+        snapshot.tournament.pendingResult.records = deepClone(snapshot.scoringRecords);
+    }
+    return {
+        ...snapshot,
+        undoHistory: expandHistory(snapshot.undoHistory),
+        redoHistory: expandHistory(snapshot.redoHistory)
+    };
+}
+
+function pruneSavedRecoveries(confirmedResultId) {
+    localStorage.removeItem(MATCH_RECOVERY_PREFIX + confirmedResultId);
+    const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
+    for (const key of keys) {
+        if (!key?.startsWith(MATCH_RECOVERY_PREFIX)) continue;
+        let saved;
+        try { saved = JSON.parse(localStorage.getItem(key)); } catch { continue; }
+        if (saved?.tournament?.status === 'saved') localStorage.removeItem(key);
+    }
+}
+
 export function saveActiveGame() {
     const snapshot = {
         type: game.type,
@@ -243,30 +403,68 @@ export function saveActiveGame() {
         teamCricket: game.teamCricket ? deepClone(game.teamCricket) : null,
         teamMode: game.teamMode || false,
         teams: game.teams ? deepClone(game.teams) : null,
+        tournament: game.tournament ? deepClone(game.tournament) : null,
+        scoringRecords: game.scoringRecords ? deepClone(game.scoringRecords) : null,
+        x01Input: game.x01Input ? deepClone(game.x01Input) : null,
+        undoHistory: game.tournament ? game.undoHistory : [],
+        redoHistory: game.tournament ? game.redoHistory : [],
         timestamp: Date.now()
     };
     try {
-        localStorage.setItem('blakeout_active_game', JSON.stringify(snapshot));
+        archivePreviousTournament(game.tournament?.resultId);
+        const stored = JSON.stringify(compactTournamentSnapshot(snapshot));
+        localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
+        localStorage.setItem(ACTIVE_GAME_KEY, stored);
+        if (game.tournament?.status === 'saved') {
+            pruneSavedRecoveries(game.tournament.resultId);
+        } else if (game.tournament && ['pending', 'saving'].includes(game.tournament.status)) {
+            localStorage.setItem(MATCH_RECOVERY_PREFIX + game.tournament.resultId, stored);
+        }
+        return true;
     } catch (e) {
         console.warn('[BlakeOut] Failed to save game:', e);
+        if (game.tournament) {
+            document.dispatchEvent(new CustomEvent('tournamentStorageError'));
+        }
+        return false;
     }
 }
 
 export function loadActiveGame() {
-    const stored = localStorage.getItem('blakeout_active_game');
-    if (!stored) return null;
     try {
-        return JSON.parse(stored);
+        let stored = localStorage.getItem(ACTIVE_GAME_KEY);
+        if (!localStorage.getItem(ACTIVE_GAME_IMPORT_KEY)) {
+            if (stored === null) {
+                const legacy = localStorage.getItem('blakeout_active_game');
+                let parsed;
+                try { parsed = JSON.parse(legacy); } catch { /* Invalid legacy data is not imported. */ }
+                if (parsed && typeof parsed.type === 'string' && Array.isArray(parsed.players) && parsed.players.length) {
+                    // Preserve the entire snapshot, including a legacy DEV tournament ledger.
+                    localStorage.setItem(ACTIVE_GAME_KEY, legacy);
+                    stored = legacy;
+                }
+            }
+            localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
+        }
+        if (!stored) return null;
+        return expandTournamentSnapshot(JSON.parse(stored));
     } catch {
         return null;
     }
 }
 
 export function clearActiveGame() {
-    localStorage.removeItem('blakeout_active_game');
+    try {
+        archivePreviousTournament();
+        localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
+        localStorage.removeItem(ACTIVE_GAME_KEY);
+    } catch (error) {
+        console.warn('[BlakeOut] Failed to clear DEV game:', error);
+    }
 }
 
 export function restoreActiveGame(snapshot) {
+    snapshot = expandTournamentSnapshot(snapshot);
     Object.assign(game, {
         type: snapshot.type,
         players: snapshot.players,
@@ -277,8 +475,8 @@ export function restoreActiveGame(snapshot) {
         finishType: snapshot.finishType,
         pendingDarts: snapshot.pendingDarts || [],
         completedRounds: snapshot.completedRounds || 0,
-        undoHistory: [],
-        redoHistory: [],
+        undoHistory: snapshot.undoHistory || [],
+        redoHistory: snapshot.redoHistory || [],
         chicago: snapshot.chicago || null,
         game121: snapshot.game121 || null,
         baseball: snapshot.baseball || null,
@@ -294,7 +492,10 @@ export function restoreActiveGame(snapshot) {
         doubleDown: snapshot.doubleDown || null,
         teamCricket: snapshot.teamCricket || null,
         teamMode: snapshot.teamMode || false,
-        teams: snapshot.teams || null
+        teams: snapshot.teams || null,
+        tournament: snapshot.tournament || null,
+        scoringRecords: snapshot.scoringRecords || null,
+        x01Input: snapshot.x01Input || null
     });
 }
 

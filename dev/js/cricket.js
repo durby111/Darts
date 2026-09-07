@@ -6,6 +6,7 @@
 import { game, createCricketTargetState, saveGameState, saveActiveGame, undoWithCooldown } from './state.js';
 import { getMarkSymbol, updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner } from './ui.js';
 import { currentThrower, advanceRotation } from './teams.js';
+import { recordTurn, tournamentScoringLocked } from './scoring-records.js';
 
 function activeThrowerName() {
     if (!game.teamMode) return null;
@@ -50,6 +51,7 @@ function calculatePendingScoreDeltas() {
     });
 
     for (const dart of game.pendingDarts) {
+        if (dart.target === 'MISS') continue;
         const target = dart.target;
         const multiplier = dart.multiplier;
         const maxMarks = player.cricketData[target].maxMarks;
@@ -394,6 +396,7 @@ export function updateCricketDisplay() {
 }
 
 export function hitTarget(target, multiplier) {
+    if (tournamentScoringLocked()) return;
     // Max 3 pending darts
     if (game.pendingDarts.length >= 3) return;
 
@@ -450,21 +453,29 @@ export function hitTarget(target, multiplier) {
 
     updateCricketDisplay();
     updateUndoRedoButtons();
+    saveActiveGame();
 }
 
 export function cricketConfirm() {
+    if (tournamentScoringLocked()) return;
     if (game.pendingDarts.length === 0) return;
+    const originalPlayers = game.tournament ? JSON.parse(JSON.stringify(game.players)) : null;
+    if (game.tournament) saveGameState();
 
     startCooldown();
 
     const player = game.players[game.currentPlayer];
     const lastTurnMarks = {};
     let isBlakeout = false;
+    let actualDarts = 0;
+    let scoringMarks = 0;
+    const pointsBefore = player.score;
 
     // Snapshot marks BEFORE this turn, per target — needed so the
     // closed-in-one-turn flag reflects turn start, not per-dart state.
     const preTurnMarks = {};
     for (const dart of game.pendingDarts) {
+        if (dart.target === 'MISS') continue;
         if (preTurnMarks[dart.target] === undefined) {
             preTurnMarks[dart.target] = player.cricketData[dart.target].marks;
         }
@@ -472,11 +483,14 @@ export function cricketConfirm() {
 
     // Process all pending darts
     for (const dart of game.pendingDarts) {
+        actualDarts++;
+        if (dart.target === 'MISS') continue;
         const target = dart.target;
         const multiplier = dart.multiplier;
         const cricketData = player.cricketData[target];
         const maxMarks = cricketData.maxMarks;
         const marksBefore = cricketData.marks;
+        const scoreBefore = player.score;
 
         if (dart.specialScore !== undefined) {
             // Special score from Minnesota keypad
@@ -522,6 +536,9 @@ export function cricketConfirm() {
             cricketData.marksBeforeClose = preTurnMarks[target] || 0;
             cricketData.closedInOneTurn = cricketData.marksBeforeClose === 0;
         }
+        const faceValue = target === 'Bull' ? 25 : Number(target);
+        scoringMarks += Math.max(0, cricketData.marks - marksBefore) +
+            (faceValue > 0 ? Math.max(0, player.score - scoreBefore) / faceValue : 0);
 
         // Track marks for grey indicators
         if (!lastTurnMarks[target]) lastTurnMarks[target] = 0;
@@ -533,13 +550,18 @@ export function cricketConfirm() {
                 isBlakeout = true;
             }
         }
+        if (game.tournament && game.cricketTargets.every(t => player.cricketData[t].closed) &&
+            game.players.every(p => !game.cricketPoints || player.score >= p.score)) {
+            isBlakeout = target === 'Bull' && multiplier === 2;
+            break;
+        }
     }
 
     // Update throws (1 per turn, not per dart) and total marks
     player.throws++;
     let turnMarks = 0;
     Object.values(lastTurnMarks).forEach(v => { turnMarks += v; });
-    player.totalMarks += turnMarks;
+    player.totalMarks += game.tournament ? scoringMarks : turnMarks;
 
     // Check win: all targets closed AND score >= all opponents' scores (if cricketPoints)
     const allTargetsClosed = game.cricketTargets.every(t => player.cricketData[t].closed);
@@ -552,12 +574,24 @@ export function cricketConfirm() {
             });
         }
         if (hasWon) {
+            recordTurn({ points: player.score - pointsBefore, darts: actualDarts, marks: scoringMarks });
             player.lastTurnMarks = lastTurnMarks;
+            game.pendingDarts = [];
+            saveActiveGame();
             updateCricketDisplay();
             showWinner(player.name, isBlakeout);
             return;
         }
     }
+    if (game.tournament && actualDarts < 3) {
+        game.players = originalPlayers;
+        game.undoHistory.pop();
+        alert('Tournament Cricket records every dart. Add remaining hits or use Miss dart before ENTER (unless this dart wins).');
+        clearCooldown();
+        updateCricketDisplay();
+        return;
+    }
+    recordTurn({ points: player.score - pointsBefore, darts: actualDarts, marks: scoringMarks });
 
     // Save lastTurnMarks for the grey indicators
     player.lastTurnMarks = lastTurnMarks;
@@ -588,6 +622,8 @@ export function cricketConfirm() {
 }
 
 export function cricketMiss() {
+    if (tournamentScoringLocked()) return;
+    if (game.tournament && game.pendingDarts.length) return;
     const missBtn = document.getElementById('missBtn');
     if (missBtn && missBtn.disabled) return;
 
@@ -595,6 +631,7 @@ export function cricketMiss() {
     saveGameState();
 
     const player = game.players[game.currentPlayer];
+    recordTurn({ points: 0, darts: 3, marks: 0 });
 
     // Clear pending darts
     game.pendingDarts = [];

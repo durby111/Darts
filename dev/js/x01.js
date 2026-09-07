@@ -7,6 +7,7 @@ import { game, saveGameState, saveActiveGame, undoWithCooldown, redoWithCooldown
 import { updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner, show121MatchSummary } from './ui.js';
 import { handle121LegEnd, record121Round } from './game121.js';
 import { currentThrower, advanceRotation } from './teams.js';
+import { recordTurn, tournamentScoringLocked, requireActualDarts, clearActualDarts } from './scoring-records.js';
 
 function activeThrowerName() {
     if (!game.teamMode) return null;
@@ -258,7 +259,10 @@ function updateLivePreview() {
     }
 }
 
-function updateInputDisplay() {
+function updateInputDisplay(persist = true) {
+    game.x01Input = { expressionStr, remainingMode };
+    game.currentInput = expressionStr;
+    if (persist && game.players.length) saveActiveGame();
     const display = document.getElementById('inputDisplay');
     if (remainingMode) {
         const player = game.players[game.currentPlayer];
@@ -322,6 +326,8 @@ function quickScore(score) {
 }
 
 function clearInput() {
+    game.x01Input = null;
+    clearActualDarts();
     game.currentInput = '';
     expressionStr = '';
     remainingMode = false;
@@ -337,6 +343,8 @@ function clearInput() {
 // screen (and module state like remainingMode would leak) when the next
 // game starts. Called from beginMatch().
 function resetX01Input() {
+    game.x01Input = null;
+    clearActualDarts();
     game.currentInput = '';
     expressionStr = '';
     remainingMode = false;
@@ -361,10 +369,14 @@ function x01Miss() {
 }
 
 function x01Bust() {
+    if (tournamentScoringLocked()) return;
     if (isAdditiveScoreGame()) return;
     if (turnCommitLocked) return;
+    const actualDarts = requireActualDarts();
+    if (actualDarts === null) return;
     lockTurnCommit();
     saveGameState();
+    recordTurn({ points: 0, darts: actualDarts, bust: true });
     const thrower = activeThrowerName();
     const player = game.players[game.currentPlayer];
     remainingMode = false;
@@ -536,9 +548,12 @@ function submitSharkTankScore(score, opts, player, thrower) {
 // --- Core Score Submission (with bug fixes) ---
 
 function submitScore(opts = {}) {
+    if (tournamentScoringLocked()) return;
     // Guard against double-tap. x01Miss/x01Bust already locked in their
     // wrapper; direct ENTER presses and quickScore paths land here.
     if (turnCommitLocked) return;
+    const actualDarts = requireActualDarts();
+    if (actualDarts === null) return;
     lockTurnCommit();
 
     // Calculate total from expression or direct input
@@ -609,6 +624,7 @@ function submitScore(opts = {}) {
     // you have left (newScore would go negative). That's a mathematical
     // bust, not a rules call.
     if (newScore < 0) {
+        recordTurn({ points: 0, darts: actualDarts, bust: true });
         player.history.push(makeHistoryEntry(score, true, thrower));
 
         const indicator = document.getElementById('finishIndicator');
@@ -638,6 +654,9 @@ function submitScore(opts = {}) {
     // BUG FIX: newScore === 0 is ALWAYS a win. Trust the player.
     // Apply score
     player.score = newScore;
+    recordTurn({ points: score, darts: actualDarts });
+    clearActualDarts();
+    game.x01Input = null;
     player.history.push(makeHistoryEntry(score, false, thrower, !!opts.miss));
 
     // Handle 121 game dart counting + round tallies (180s, 100+, etc.)
@@ -844,6 +863,8 @@ function updateCheckoutSuggestion() {
 // --- Master Display Update ---
 
 function updateX01Display() {
+    expressionStr = game.x01Input?.expressionStr || '';
+    remainingMode = game.x01Input?.remainingMode || false;
     const numPlayers = game.players.length;
     const displayScore = index => isSharkTankGame()
         ? Math.max(0, 6 - (game.sharkTank.bites[index] || 0))
@@ -901,7 +922,7 @@ function updateX01Display() {
     renderX01ScoreHistory();
     updateCheckoutSuggestion();
     updatePlayerHeaders();
-    updateLivePreview();
+    updateInputDisplay(false);
 }
 
 // --- Event Listener Setup ---

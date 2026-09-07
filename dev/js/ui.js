@@ -190,12 +190,16 @@ export function hideModal(modalId) {
     if (el) el.style.display = 'none';
 }
 
-export function showWinner(name, isBlakeout = false, isChicagoMatchWin = false) {
+export function showWinner(name, isBlakeout = false, isChicagoMatchWin = false,
+    winnerIndex = game.tournament ? game.currentPlayer : game.players.findIndex(p => p.name === name)) {
+    if (!isChicagoMatchWin) {
+        document.dispatchEvent(new CustomEvent('scorerLegWon', { detail: { winnerIndex } }));
+    }
     // For Chicago leg wins (not match wins), delegate to chicago module
     if (game.chicago && !isChicagoMatchWin) {
         // This will be handled by chicago.js via the app dispatcher
         const event = new CustomEvent('chicagoLegWin', {
-            detail: { winnerIndex: game.players.findIndex(p => p.name === name) }
+            detail: { winnerIndex }
         });
         document.dispatchEvent(event);
         return;
@@ -215,6 +219,7 @@ export function showWinner(name, isBlakeout = false, isChicagoMatchWin = false) 
     }
 
     showModal('winnerModal');
+    document.dispatchEvent(new CustomEvent('scorerWinnerShown'));
 }
 
 export function show121MatchSummary() {

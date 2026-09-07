@@ -67,6 +67,218 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // --- Isolated DEV verified accounts and tournaments -------------------
+    // Additive only: these paths never grant access to the production paths.
+    function devVerified() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function devText(value, maximum) {
+      return value is string && value.size() <= maximum
+        && value.matches('^[^@]*$');
+    }
+
+    function devId(value) {
+      return value is string && value.matches('^[A-Za-z0-9_-]{1,128}$');
+    }
+
+    function devGame(value) {
+      return value in ['chicago', '301', '501', 'cricket', 'spanish'];
+    }
+
+    // Profile documents deliberately contain no email, authentication claims,
+    // lifetime counters, or other private account information.
+    match /blakeoutDevProfiles/{uid} {
+      allow read: if devVerified();
+      allow create, update: if devVerified() && request.auth.uid == uid
+        && request.resource.data.keys().hasAll(['name'])
+        && request.resource.data.keys().hasOnly(['name'])
+        && devText(request.resource.data.name, 40)
+        && request.resource.data.name.size() > 0;
+      allow delete: if false;
+    }
+
+    // Canonical key order is produced only at the platform storage boundary.
+    // These grammars reject unknown nested keys without iterating 64+ entries.
+    function devRegistrationPayload(value) {
+      let text = '"([^"@\\\\\\x00-\\x1F]|\\\\["\\\\/bfnrt])*"';
+      let entry = '\\{"id":' + text + ',"playerId":(null|' + text
+        + '),"name":' + text + ',"tag":' + text + '\\}';
+      return value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$');
+    }
+
+    function devPrivateRosterPayload(value) {
+      let text = '"([^"@\\\\\\x00-\\x1F]|\\\\["\\\\/bfnrt])*"';
+      let entry = '\\{"id":' + text
+        + ',"paid":(true|false),"checkedIn":(true|false),"standby":(true|false)\\}';
+      return value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$');
+    }
+
+    function devTeamPayload(value) {
+      let text = '"([^"@\\\\\\x00-\\x1F]|\\\\["\\\\/bfnrt])*"';
+      let entry = '\\{"id":' + text + ',"name":' + text
+        + ',"memberIds":\\[' + text + '(,' + text + ')?\\]\\}';
+      return value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$');
+    }
+
+    function devMatchPayload(value) {
+      let text = '"([^"@\\\\\\x00-\\x1F]|\\\\["\\\\/bfnrt])*"';
+      let nullable = '(null|' + text + ')';
+      let source = '(null|\\{"teamId":' + text + '\\}|\\{"matchCode":'
+        + text + ',"outcome":"(winner|loser)"\\})';
+      let entry = '\\{"id":' + text + ',"code":' + text
+        + ',"bracket":"(winners|losers|final|reset)","round":[0-9]+,"position":[0-9]+'
+        + ',"sourceA":' + source + ',"sourceB":' + source
+        + ',"teamA":' + nullable + ',"teamB":' + nullable
+        + ',"status":"(pending|ready|complete|bye|void)","winnerId":' + nullable
+        + ',"scoreA":(null|[0-9]+),"scoreB":(null|[0-9]+),"forfeit":(true|false)\\}';
+      return value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$');
+    }
+
+    function devTournament(data, id) {
+      return data.keys().hasAll(['id', 'ownerId', 'title', 'date', 'gameType',
+          'bestOf', 'status', 'registrations', 'teams', 'matches',
+          'revision', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'title', 'date', 'gameType',
+          'bestOf', 'status', 'registrations', 'teams', 'matches',
+          'revision', 'createdAt', 'updatedAt'])
+        && devId(id) && data.id == id && devId(data.ownerId)
+        && devText(data.title, 100) && data.title.size() > 0
+        && data.date is string && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && devGame(data.gameType)
+        && data.bestOf is int && data.bestOf >= 1 && data.bestOf <= 99
+        && data.bestOf % 2 == 1 && (data.gameType != 'chicago' || data.bestOf == 3)
+        && data.status in ['registration', 'live', 'complete']
+        // Public arrays are JSON strings on the wire (platform.js decodes them).
+        // Grammars allow normal JSON quote/backslash/control escapes but never
+        // Unicode escapes, so an escaped @ cannot bypass the no-email check.
+        // Unicode names are stored literally. Counters/emails never belong here.
+        && devText(data.registrations, 100000)
+        && devText(data.teams, 50000)
+        && devText(data.matches, 200000)
+        && devRegistrationPayload(data.registrations)
+        && devTeamPayload(data.teams)
+        && devMatchPayload(data.matches)
+        && data.revision is int && data.revision >= 0
+        && data.createdAt is int && data.createdAt > 0
+        && data.updatedAt is int && data.updatedAt >= data.createdAt;
+    }
+
+    match /blakeoutDevTournaments/{id} {
+      allow read: if true;
+      allow create: if devVerified() && devTournament(request.resource.data, id)
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.revision == 0
+        && request.resource.data.status == 'registration'
+        && devPairedPrivateRoster(id, request.resource.data);
+      allow update: if devVerified() && resource.data.ownerId == request.auth.uid
+        && devTournament(request.resource.data, id)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.revision == resource.data.revision + 1
+        && request.resource.data.updatedAt >= resource.data.updatedAt
+        && devPairedPrivateRoster(id, request.resource.data);
+      allow delete: if false;
+    }
+
+    function devPairedPrivateRoster(id, tournament) {
+      let metadata = getAfter(/databases/$(database)/documents/blakeoutDevRosterPrivate/$(id)).data;
+      return metadata.ownerId == tournament.ownerId
+        && metadata.tournamentId == id && metadata.revision == tournament.revision;
+    }
+
+    function devPrivateRoster(data, id) {
+      return data.keys().hasAll(['tournamentId', 'ownerId', 'revision', 'registrations'])
+        && data.keys().hasOnly(['tournamentId', 'ownerId', 'revision', 'registrations'])
+        && devId(id) && data.tournamentId == id && data.ownerId == request.auth.uid
+        && data.revision is int && data.revision >= 0
+        && devText(data.registrations, 100000) && devPrivateRosterPayload(data.registrations)
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.ownerId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.revision == data.revision;
+    }
+
+    match /blakeoutDevRosterPrivate/{id} {
+      // Absent-document reads allow atomic creation, but never reveal another
+      // organizer's roster flags. Listing is deliberately not supported.
+      allow get: if devVerified()
+        && (!exists(/databases/$(database)/documents/blakeoutDevRosterPrivate/$(id))
+          || resource.data.ownerId == request.auth.uid);
+      allow list: if false;
+      allow create: if devVerified() && devPrivateRoster(request.resource.data, id)
+        && request.resource.data.revision == 0;
+      allow update: if devVerified() && resource.data.ownerId == request.auth.uid
+        && devPrivateRoster(request.resource.data, id)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.revision == resource.data.revision + 1;
+      allow delete: if false;
+    }
+
+    function devParticipant(ids, index) {
+      return ids.size() <= index || (devId(ids[index])
+        && exists(/databases/$(database)/documents/blakeoutDevProfiles/$(ids[index])));
+    }
+
+    // Repeated per-map validation exceeded Firestore's 1000-expression budget
+    // with full doubles results. Canonical JSON checks all 12 Chicago counters
+    // in one regex. IDs have already passed devId, so this alternation cannot
+    // inject regex syntax. APIs decode the wire string back to ordinary arrays.
+    function devResultCounters(value, ids) {
+      let players = (ids.size() > 0 ? ids[0] : '')
+        + (ids.size() > 1 ? '|' + ids[1] : '')
+        + (ids.size() > 2 ? '|' + ids[2] : '')
+        + (ids.size() > 3 ? '|' + ids[3] : '');
+      let whole = '(0|[1-9][0-9]{0,11})';
+      let numeric = whole + '(\\.[0-9]{1,32})?([eE]-[0-9]{1,3})?';
+      let entry = '\\{"playerId":"(' + players
+        + ')","gameType":"(chicago|301|501|cricket|spanish)","points":' + numeric
+        + ',"darts":' + whole + ',"marks":' + numeric + '\\}';
+      return value is string && value.size() <= 8192
+        && ((ids.size() == 0 && value == '[]')
+          || (ids.size() > 0 && value.matches('^\\[(' + entry + '(,' + entry + '){0,11})?\\]$')));
+    }
+
+    function devResult(data) {
+      return data.keys().hasAll(['ownerId', 'tournamentId', 'participantIds',
+          'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt'])
+        && data.keys().hasOnly(['ownerId', 'tournamentId', 'participantIds',
+          'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt',
+          'winnerId', 'scoreA', 'scoreB', 'forfeit', 'records'])
+        && devId(data.ownerId) && devId(data.tournamentId)
+        && devText(data.matchId, 100) && data.matchId.size() > 0
+        && devGame(data.gameType)
+        && data.createdAt is int && data.createdAt > 0
+        && data.participantIds is list && data.participantIds.size() <= 4
+        && data.participantIds.toSet().size() == data.participantIds.size()
+        && devParticipant(data.participantIds, 0)
+        && devParticipant(data.participantIds, 1)
+        && devParticipant(data.participantIds, 2)
+        && devParticipant(data.participantIds, 3)
+        && devResultCounters(data.perPlayer, data.participantIds)
+        && data.legScores is list && data.legScores.size() <= 99;
+    }
+
+    match /blakeoutDevResults/{id} {
+      // A verified transaction may check an absent result ID for idempotency.
+      allow get: if devVerified()
+        && (!exists(/databases/$(database)/documents/blakeoutDevResults/$(id))
+          || resource.data.ownerId == request.auth.uid
+          || request.auth.uid in resource.data.participantIds);
+      allow list: if devVerified()
+        && (resource.data.ownerId == request.auth.uid
+          || request.auth.uid in resource.data.participantIds);
+      allow create: if devVerified() && devId(id)
+        && devResult(request.resource.data)
+        && request.resource.data.ownerId == request.auth.uid
+        && get(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.ownerId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.ownerId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.revision
+          == get(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.revision + 1;
+      allow update, delete: if false;
+    }
+
+    // Unknown DEV collections and all subcollections remain unmatched.
     // Anything not matched above is denied by default.
   }
 }

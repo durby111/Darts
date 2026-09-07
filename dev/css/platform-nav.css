@@ -1,0 +1,26 @@
+.dev-app-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    margin: .75rem 0;
+}
+.dev-app-nav a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: .5rem .8rem;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-light);
+    border-radius: .5rem;
+    text-decoration: none;
+    font-size: 1rem;
+}
+.dev-app-nav a[aria-current=page] {
+    border-color: var(--color-accent);
+}
+.dev-game-nav {
+    justify-content: center;
+    flex-shrink: 0;
+}

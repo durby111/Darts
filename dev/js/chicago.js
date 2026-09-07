@@ -6,6 +6,7 @@
 import { game, initCricket, saveActiveGame } from './state.js';
 import { showModal, hideModal, showWinner, updateUndoRedoButtons } from './ui.js';
 import { resetX01Input } from './x01.js';
+import { beginScoringLeg } from './scoring-records.js';
 
 export function initChicagoControls() {
     // Chicago game selection buttons
@@ -52,6 +53,7 @@ export function resumeChicago() {
 }
 
 function selectChicagoGame(selectedGame) {
+    if (game.chicago.currentGameType || !game.chicago.gamesRemaining.includes(selectedGame)) return;
     hideModal('chicagoGameModal');
 
     game.chicago.gamesRemaining = game.chicago.gamesRemaining.filter(g => g !== selectedGame);
@@ -87,6 +89,7 @@ function initChicagoLeg(gameType) {
     // Ensure clean input state for keypad
     resetX01Input();
     game.chicago.lastLegWinnerIndex = null;
+    beginScoringLeg(gameType);
     saveActiveGame();
 
     // Dispatch event so app.js can call updateDisplay
@@ -94,6 +97,7 @@ function initChicagoLeg(gameType) {
 }
 
 function handleChicagoLegWin(winnerIndex) {
+    if (game.chicago.lastLegWinnerIndex != null) return;
     game.chicago.legWins[winnerIndex]++;
 
     // In Chicago rules, the loser of each leg picks the next game.
@@ -141,6 +145,7 @@ function showChicagoLegResult(winnerIndex) {
 }
 
 function continueChicago() {
+    if (game.chicago.lastLegWinnerIndex == null) return;
     hideModal('chicagoLegModal');
 
     game.chicago.currentLeg++;

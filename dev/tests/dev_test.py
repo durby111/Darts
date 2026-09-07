@@ -148,7 +148,7 @@ async def test_long_x01_starts(page):
     # four-digit score and still subtract turns normally.
     starts = {}
     for game_type in ("901", "1101", "1501"):
-        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.evaluate("localStorage.removeItem('blakeout_dev_active_game')")
         await page.reload(wait_until="domcontentloaded")
         await page.wait_for_timeout(250)
         await start_game(page, game_type, num_players="4")
@@ -186,7 +186,7 @@ async def test_count_up(page):
     first = await get_state(page, "m.game.players[0].score")
     assert first == 100, f"Count Up should add 100, got {first}"
     stored = await page.evaluate(
-        "JSON.parse(localStorage.getItem('blakeout_active_game')).players[0].score")
+        "JSON.parse(localStorage.getItem('blakeout_dev_active_game')).players[0].score")
     assert stored == 100, f"committed Count Up turn not persisted: {stored}"
 
     # Put both players at their final turn. P1 reaches 180; P2 ties it, so
@@ -290,7 +290,7 @@ async def test_gotcha(page):
     winner = (await page.locator("#winnerName").inner_text()).strip()
     assert winner == "Away", winner
     stored = await page.evaluate(
-        "JSON.parse(localStorage.getItem('blakeout_active_game')).players[1].score")
+        "JSON.parse(localStorage.getItem('blakeout_dev_active_game')).players[1].score")
     assert stored == 301, f"Gotcha win not persisted: {stored}"
     await page.click("#playAgainBtn")
     await page.wait_for_timeout(400)
@@ -506,7 +506,7 @@ async def test_shark_tank(page):
         page, "({bites:m.game.sharkTank.bites, eliminated:m.game.sharkTank.eliminated})")
     assert final == {"bites": [0, 6, 6], "eliminated": [False, True, True]}, final
     stored = await page.evaluate(
-        "JSON.parse(localStorage.getItem('blakeout_active_game')).sharkTank.bites")
+        "JSON.parse(localStorage.getItem('blakeout_dev_active_game')).sharkTank.bites")
     assert stored == [0, 6, 6], f"Shark Tank state not persisted: {stored}"
     await page.click("#playAgainBtn")
     await page.wait_for_timeout(400)
@@ -544,7 +544,7 @@ async def test_tic_tac_toe(page):
     owner = await get_state(page, "m.game.ticTacToe.cells[0].owner")
     assert owner == 0, owner
     stored_owner = await page.evaluate(
-        "JSON.parse(localStorage.getItem('blakeout_active_game')).ticTacToe.cells[0].owner")
+        "JSON.parse(localStorage.getItem('blakeout_dev_active_game')).ticTacToe.cells[0].owner")
     assert stored_owner == 0, stored_owner
 
     # Arrange Home one claimed square away from top-row victory, then claim
@@ -616,7 +616,7 @@ async def test_robin_hood(page):
         page, "({scores:m.game.players.map(p=>p.score), rounds:m.game.completedRounds})")
     assert state == {"scores": [500, 400], "rounds": 10}, state
     stored = await page.evaluate(
-        "JSON.parse(localStorage.getItem('blakeout_active_game')).robinHood.round")
+        "JSON.parse(localStorage.getItem('blakeout_dev_active_game')).robinHood.round")
     assert stored == 10, stored
     await page.click("#playAgainBtn")
     await page.wait_for_timeout(400)
@@ -649,7 +649,7 @@ async def test_double_down_cricket(page):
     assert progress["doubles"] == [True, True], progress
     assert progress["cricket"]["20"] == 3, progress
     stored = await page.evaluate(
-        "JSON.parse(localStorage.getItem('blakeout_active_game')).doubleDown.progress[0]")
+        "JSON.parse(localStorage.getItem('blakeout_dev_active_game')).doubleDown.progress[0]")
     assert stored["doubles"] == [True, True] and stored["cricket"]["20"] == 3, stored
 
     # Prepare Home with both doubles and all six Cricket numbers closed.
@@ -817,7 +817,7 @@ async def test_team_cricket_400(page):
     winner = (await page.locator("#winnerName").inner_text()).strip()
     assert winner == "Home", winner
     stored = await page.evaluate(
-        "JSON.parse(localStorage.getItem('blakeout_active_game')).teamCricket.memberMarks[0][1]['Bull']")
+        "JSON.parse(localStorage.getItem('blakeout_dev_active_game')).teamCricket.memberMarks[0][1]['Bull']")
     assert stored == 3, f"Team Cricket state not persisted: {stored}"
     original_members = await get_state(page, "m.game.teams.map(t=>t.members.map(m=>m.name))")
     await page.click("#playAgainBtn")
@@ -1005,7 +1005,7 @@ async def test_cricket_quickie(page):
     badge = (await page.locator("#roundBadge").inner_text()).strip()
     assert rounds == 10 and badge == "10", f"Quickie round cap: rounds={rounds}, badge={badge}"
     stored = await page.evaluate(
-        "JSON.parse(localStorage.getItem('blakeout_active_game')).completedRounds")
+        "JSON.parse(localStorage.getItem('blakeout_dev_active_game')).completedRounds")
     assert stored == 10, f"Quickie final round not persisted: {stored}"
     return {"winner": winner, "rounds": rounds}
 
@@ -1702,7 +1702,7 @@ async def test_dc_scoreboard_family(page):
     assert mode == "dc", f"DC mode did not restore from storage: {mode!r}"
 
     async def reset_setup():
-        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.evaluate("localStorage.removeItem('blakeout_dev_active_game')")
         await page.reload(wait_until="domcontentloaded")
         await page.wait_for_selector("#setupScreen:not(.hidden)")
 
@@ -1949,7 +1949,7 @@ async def test_dedicated_engine_resume(page):
         page, "({owner:m.game.ticTacToe.cells[0].owner, target:m.game.ticTacToe.targets[0]})")
     assert restored_tic == {"owner": 0, "target": target}, restored_tic
 
-    await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+    await page.evaluate("localStorage.removeItem('blakeout_dev_active_game')")
     await page.reload(wait_until="domcontentloaded")
     await page.wait_for_timeout(350)
     await start_game(page, "doubledown", num_players="2")
@@ -2032,7 +2032,7 @@ async def test_all_games_boot(page):
         if g["requiresTeamMode"]:
             booted.append(g["id"])
             continue
-        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.evaluate("localStorage.removeItem('blakeout_dev_active_game')")
         await page.reload(wait_until="domcontentloaded")
         await page.wait_for_timeout(400)
         await dismiss_onboard(page)
@@ -2369,7 +2369,7 @@ async def test_multiplayer_score_visibility(page):
 
     for width, height, scale, count, game_type in scenarios:
         await page.set_viewport_size({"width": width, "height": height})
-        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.evaluate("localStorage.removeItem('blakeout_dev_active_game')")
         await page.reload(wait_until="domcontentloaded")
         await page.wait_for_timeout(250)
         await page.select_option("#numPlayers", str(count))
@@ -2455,7 +2455,7 @@ async def test_multiplayer_cricket_grid_fit(page):
     await page.set_viewport_size({"width": 390, "height": 844})
     checked = {}
     for game_type in ("cricket", "spanish", "minnesota"):
-        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.evaluate("localStorage.removeItem('blakeout_dev_active_game')")
         await page.reload(wait_until="domcontentloaded")
         await page.wait_for_timeout(250)
         await set_ui_scale(page, 1.5)
@@ -2514,7 +2514,7 @@ async def test_multiplayer_cricket_marks_visible(page):
     checked = []
     for width, height, count, game_type in scenarios:
         await page.set_viewport_size({"width": width, "height": height})
-        await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+        await page.evaluate("localStorage.removeItem('blakeout_dev_active_game')")
         await page.reload(wait_until="domcontentloaded")
         await page.wait_for_timeout(250)
         await set_ui_scale(page, 1.5)
@@ -2728,7 +2728,7 @@ async def test_round_badge_all_engines(page):
     assert badge2 == "2", f"Baseball second round badge should be 2, got {badge2}"
 
     # 2. Golf: Hole 1 -> 2
-    await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+    await page.evaluate("localStorage.removeItem('blakeout_dev_active_game')")
     await page.reload(wait_until="domcontentloaded")
     await page.wait_for_timeout(300)
     await start_game(page, "golf", num_players="1")
@@ -2741,7 +2741,7 @@ async def test_round_badge_all_engines(page):
     assert golf_badge2 == "2", f"Golf second hole should be 2, got {golf_badge2}"
 
     # 3. Shanghai: Round 1 -> 2
-    await page.evaluate("localStorage.removeItem('blakeout_active_game')")
+    await page.evaluate("localStorage.removeItem('blakeout_dev_active_game')")
     await page.reload(wait_until="domcontentloaded")
     await page.wait_for_timeout(300)
     await start_game(page, "shanghai", num_players="1")
@@ -2754,6 +2754,78 @@ async def test_round_badge_all_engines(page):
     assert sh_badge2 == "2", f"Shanghai second round should be 2, got {sh_badge2}"
 
     return {"round_badges": "verified"}
+
+
+async def test_winner_screen(page):
+    await fresh(page)
+    await page.evaluate("""async () => {
+        const { game } = await import('./js/state.js');
+        const { showWinner } = await import('./js/ui.js');
+        game.tournament = null;
+        game.chicago = null;
+        game.players = [{name:'Alex Morgan'}, {name:'Opponent'}];
+        showWinner('Alex Morgan', true);
+    }""")
+    modal = page.locator("#winnerModal")
+    assert await modal.get_attribute("role") == "dialog"
+    assert await page.locator(".winner-trophy").count() == 0
+    assert await page.locator("#blakeoutMessage").is_visible()
+    for width, height in [(800, 600), (600, 800), (390, 844)]:
+        await page.set_viewport_size({"width": width, "height": height})
+        for theme in ["blue", "red", "neon", "arctic"]:
+            await page.evaluate("theme => document.documentElement.dataset.theme = theme", theme)
+            await page.wait_for_timeout(380)
+            geometry = await modal.evaluate("""modal => {
+                const card = modal.querySelector('.modal-content');
+                const box = card.getBoundingClientRect();
+                return {left:box.left, right:box.right, top:box.top, bottom:box.bottom,
+                    overflow:card.scrollWidth > card.clientWidth};
+            }""")
+            assert geometry["left"] >= 0 and geometry["right"] <= width
+            assert geometry["top"] >= 0 and geometry["bottom"] <= height
+            assert not geometry["overflow"], (width, height, theme, geometry)
+            for button in ["playAgainBtn", "newGameBtn", "winnerCancelBtn"]:
+                await page.locator("#" + button).scroll_into_view_if_needed()
+                box = await page.locator("#" + button).bounding_box()
+                assert box["height"] >= 44 and box["width"] >= 44
+                assert box["y"] >= 0 and box["y"] + box["height"] <= height
+
+    await page.evaluate("""async () => {
+        const { showWinner } = await import('./js/ui.js');
+        showWinner('A'.repeat(160));
+    }""")
+    assert await page.locator("#blakeoutMessage").is_hidden()
+    assert await modal.evaluate("m => m.querySelector('.modal-content').scrollWidth === m.querySelector('.modal-content').clientWidth")
+    await page.evaluate("""async () => {
+        const { game } = await import('./js/state.js');
+        const { renderTournamentControls } = await import('./js/tournament-bridge.js');
+        game.tournament = {tournamentId:'layout-only', gameType:'501', bestOf:3,
+            teams:[{name:'Alex & Jordan'}, {name:'Sam & Casey'}],
+            legWins:[2,1], winnerIndex:0, legComplete:true, status:'pending'};
+        renderTournamentControls();
+    }""")
+    assert await page.locator("#playAgainBtn").is_hidden()
+    assert await page.locator("#winnerCancelBtn").is_hidden()
+    assert await page.locator("#tournamentSaveResult").is_visible()
+    assert await page.locator("#tournamentSaveResult").is_enabled()
+    await page.locator("#tournamentResultReturn").scroll_into_view_if_needed()
+    box = await page.locator("#tournamentResultReturn").bounding_box()
+    assert box["y"] + box["height"] <= 844
+    await page.evaluate("""async () => {
+        const { game } = await import('./js/state.js');
+        const { renderTournamentControls } = await import('./js/tournament-bridge.js');
+        game.tournament.status = 'saved';
+        renderTournamentControls();
+    }""")
+    assert await page.locator("#tournamentSaveResult").is_disabled()
+    await page.emulate_media(reduced_motion="reduce")
+    assert await page.locator(".winner-modal-content").first.evaluate("e => getComputedStyle(e).animationName") == "none"
+    await page.emulate_media(reduced_motion="no-preference")
+    await page.evaluate("""async () => {
+        const { game } = await import('./js/state.js');
+        game.tournament = null;
+    }""")
+    return {"winner_screen": "12 theme/tablet/mobile layouts, long names, reduced motion, tournament actions"}
 
 
 # ---------------------------------------------------------------- runner

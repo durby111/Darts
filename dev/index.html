@@ -15,6 +15,10 @@
     <link rel="stylesheet" href="css/games.css">
     <link rel="stylesheet" href="css/setup.css">
     <link rel="stylesheet" href="css/dev.css">
+    <link rel="stylesheet" href="css/platform-nav.css">
+    <link rel="stylesheet" href="css/tournament-scoring.css">
+    <link rel="stylesheet" href="css/winner.css">
+    <script type="module" src="js/platform-nav.js"></script>
 </head>
 <body class="dev-build">
     <svg style="position:absolute;width:0;height:0" aria-hidden="true">
@@ -607,19 +611,27 @@
     </div>
 
     <!-- Winner Modal -->
-    <div class="modal" id="winnerModal">
+    <div class="modal" id="winnerModal" role="dialog" aria-modal="true" aria-labelledby="winnerHeading winnerName">
         <div class="modal-content winner-modal-content">
-            <div class="winner-trophy">&#127942;</div>
-            <h2>WINNER!</h2>
+            <div class="winner-brand"><span>BLAKE OUT</span><span>DARTS / RESULTS</span></div>
+            <div class="winner-emblem" aria-hidden="true">
+                <svg viewBox="0 0 80 80" fill="none">
+                    <circle cx="36" cy="44" r="25"/><circle cx="36" cy="44" r="15"/>
+                    <circle cx="36" cy="44" r="4" class="winner-bull"/>
+                    <path d="M36 44 62 18m-8 1 1-10 10-5-1 12 12-1-5 10-10 1"/>
+                </svg>
+            </div>
+            <h2 id="winnerHeading">Game shot.</h2>
+            <p class="winner-eyebrow">The winner</p>
             <div class="winner-name" id="winnerName"></div>
             <div class="blakeout-message" id="blakeoutMessage" style="display:none;">
-                BLAKEOUT!<br>
+                <strong>BLAKEOUT FINISH</strong>
                 <span>Closed with a Double Bull!</span>
             </div>
             <div class="modal-buttons">
-                <button class="btn btn--lg btn--neutral" id="winnerCancelBtn">Cancel</button>
-                <button class="btn btn--lg btn--success" id="playAgainBtn">Play Again</button>
-                <button class="btn btn--lg btn--primary" id="newGameBtn">New Game</button>
+                <button class="btn btn--lg btn--success" id="playAgainBtn">Play again</button>
+                <button class="btn btn--lg btn--primary" id="newGameBtn">New game</button>
+                <button class="btn btn--lg btn--neutral" id="winnerCancelBtn">Undo winning turn</button>
             </div>
         </div>
     </div>
@@ -703,11 +715,12 @@
     </div>
 
     <!-- Chicago Leg Winner Modal -->
-    <div class="modal" id="chicagoLegModal" style="display:none;">
-        <div class="modal-content">
+    <div class="modal" id="chicagoLegModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="chicagoLegTitle chicagoLegWinner">
+        <div class="modal-content winner-modal-content winner-leg-content">
+            <div class="winner-brand"><span>BLAKE OUT</span><span>CHICAGO / RESULTS</span></div>
             <h2 id="chicagoLegTitle">Leg Complete!</h2>
             <div class="winner-name" id="chicagoLegWinner"></div>
-            <div id="chicagoMatchScore" style="font-size:var(--font-xl);color:var(--color-primary);margin-bottom:var(--space-xl);"></div>
+            <div id="chicagoMatchScore" class="winner-scoreline"></div>
             <button class="btn btn--lg btn--success" id="chicagoContinueBtn">Continue</button>
         </div>
     </div>

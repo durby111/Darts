@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v37';
+const CACHE_NAME = 'blakeout-dev-v39';
 const ASSETS = [
     './',
     './index.html',
@@ -9,6 +9,26 @@ const ASSETS = [
     './css/games.css',
     './css/setup.css',
     './css/dev.css',
+    './css/platform-nav.css',
+    './css/tournament-scoring.css',
+    './css/winner.css',
+    './css/platform.css',
+    './css/brackets.css',
+    './accounts/',
+    './accounts/index.html',
+    './brackets/',
+    './brackets/index.html',
+    './js/platform-nav.js',
+    './js/platform.js',
+    './js/accounts-page.js',
+    './js/brackets/engine.js',
+    './js/brackets/diagram.js',
+    './js/brackets/page.js',
+    './js/tournament-bridge.js',
+    './js/scoring-records.js',
+    './js/teams.js',
+    './js/firebase.js',
+    './js/firebase-config.js',
     './js/app.js',
     './js/state.js',
     './js/ui.js',
@@ -67,10 +87,10 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-    // Delete ALL old caches
+    // The dev app must never remove the production app's offline cache.
     event.waitUntil(
         caches.keys().then((keys) =>
-            Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+            Promise.all(keys.filter((k) => k.startsWith('blakeout-dev-') && k !== CACHE_NAME).map((k) => caches.delete(k)))
         ).then(() => self.clients.claim())
     );
 });
@@ -82,6 +102,7 @@ const SDK_ORIGIN = 'https://www.gstatic.com';
 
 function isCacheable(request) {
     const url = new URL(request.url);
+    if (url.searchParams.has('oobCode') || url.searchParams.has('apiKey')) return false;
     if (url.origin === self.location.origin) return true;
     return url.origin === SDK_ORIGIN && url.pathname.startsWith('/firebasejs/');
 }

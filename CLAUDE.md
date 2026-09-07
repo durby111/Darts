@@ -42,7 +42,8 @@ ready to ship.
 - **Project**: `blakeout`
 - **Owner account**: `DartsBlakeOut@gmail.com` (same email shown in the app
   footer / used for outbound EmailJS later). 2FA enabled.
-- **Plan**: Spark (free). Firestore + Anonymous Auth only.
+- **Plan**: Spark (free). Firestore, existing Anonymous Auth, and verified
+  email/password accounts for the isolated DEV tournament integration.
 - **Web config** lives in `dev/js/firebase-config.js` and **is committed**.
   Firebase web API keys are not secret — security comes from Firestore rules,
   not key obscurity. The browser key is restricted to
@@ -56,7 +57,11 @@ a copy pasted into docs. `firebase.json` points at it, so with the Firebase CLI
 available it deploys with `firebase deploy --only firestore:rules`; otherwise
 paste it into Firebase Console → Firestore Database → Rules → Publish.
 The canonical copy was published and verified against the live project on
-2026-08-30.
+2026-09-07. The existing production rules remain unchanged; the new DEV rules
+passed Google's actual rules compiler/simulator, including 32-team tournament
+updates and four-player/12-counter Chicago results. Unauthenticated live reads
+allow public tournaments but deny private roster flags, results, and the retired
+global roster.
 
 It covers three things:
 
@@ -65,6 +70,68 @@ It covers three things:
 | `rosters/{rosterId}/players/{playerId}` | Read/write/delete for anyone who knows the 128-bit `rosterId`. Writes restricted to exactly `email`/`name`/`updatedAt`, `email` must equal the doc id, name 1–40 chars. |
 | `roster/{document}` | **Denied** — retired global collection from the 2026-07-26 fix. |
 | `usage/{period}` | Read for any signed-in client; writes pinned to an exact `+1` on a two-field doc. |
+
+The DEV integration adds separate collections without changing those rules:
+
+| Path | Access |
+|------|--------|
+| `blakeoutDevProfiles/{uid}` | Verified users can read public display names; only that UID can save its name. No email fields. |
+| `blakeoutDevTournaments/{id}` | Public bracket/team data; only the verified owner can create/update, with revision checks. |
+| `blakeoutDevRosterPrivate/{id}` | Owner-only paid/check-in/standby flags, atomically revision-paired with the public tournament. |
+| `blakeoutDevResults/{id}` | Immutable organizer-recorded dart results, readable only by owner or verified participants. |
+
+### DEV scoring, brackets, and accounts
+
+- `/dev/` remains the ordinary offline scorer. `/dev/brackets/` runs doubles
+  double-elimination tournaments; `/dev/accounts/` manages verified profiles
+  and tournament dart records. Navigation is also available in Game Menu.
+- Winner and Chicago leg-result dialogs use the theme-aware `dev/css/winner.css`
+  design: dart emblem, clear winner/score hierarchy, double-bull finish callout,
+  touch-sized actions and reduced-motion support. Existing scoring, undo and
+  tournament-save behavior is unchanged.
+- Initial tournament games: Chicago, 301, 501, Cricket, Spanish Cricket.
+  Minnesota remains available casually but is not yet tournament-enabled.
+- Owners can also play: add their own verified profile to the roster.
+  Guests are tournament-only and never contribute to lifetime account stats.
+- One matching team number per partner builds pairs. The live preview does
+  not start the tournament. Explicit start shuffles once and locks the roster.
+  Completed events appear in History. Byes are not played wins.
+- The pure `dev/js/brackets/engine.js` has no Firebase dependency. All storage
+  goes through `dev/js/platform.js`. Public arrays and result `perPlayer`
+  counters use canonical JSON strings on the wire for strict rules grammar
+  validation within Firebase's expression budget; callers receive arrays.
+  Spectator roster flags are redacted, so never derive teams from them.
+- A ready match launches the existing scorer after online owner verification.
+  X01 requires actual darts thrown; Cricket includes explicit missed darts.
+  Human rotation, busts, undo/redo and Chicago leg changes retain the raw ledger.
+  Saving confirms the result and atomically advances the bracket. Local pending
+  results survive retries; the same result ID cannot duplicate statistics.
+- DEV active games use `blakeout_dev_active_game`, with a one-time copy of any
+  legacy shared save. The production save is never modified. Lossless snapshot
+  packing preserves undo/redo without repeatedly storing the full dart ledger.
+  Pending matches remain recoverable; confirmed cloud saves prune redundant
+  local backups instead of filling device storage across a tournament.
+- Manual bracket results require leg scores (or an explicit forfeit) and do
+  not fabricate dart statistics. Completed results are not editable in this
+  DEV UI while correction/invalidation of immutable records is pending.
+- Account averages derive from summed raw points/darts or marks/darts, not
+  averages of averages. These are organizer-entered records, not certified
+  competition statistics. Users can export their records as JSON.
+- Verified email/password is the default: sign up, verify the email, then
+  sign in normally. Passwords are never placed in app storage. Legacy email
+  links still complete, but Spark permits only 5 sign-in emails/day versus
+  1,000 verification emails/day ([Firebase limits](https://firebase.google.com/docs/auth/limits)).
+  No billing upgrade is required for the current test.
+- The named Firebase app `blakeout-dev-accounts` keeps this login separate from
+  the existing anonymous scorer. Only DEV collections and assets are added;
+  do not promote them to the production root automatically.
+- Still pending: player self-registration requests, casual-game verified
+  account attribution/sync, result correction with record invalidation, and
+  tournament Minnesota. For this version, organizers add guests or existing
+  verified profiles; only tournament-scored matches populate account records.
+- Targeted browser tests (existing Python/Chrome environment):
+  `dev/tests/bracket_engine_test.py`, `dev/tests/platform_test.py`,
+  `dev/tests/brackets_ui_test.py`, `dev/tests/scoring_bridge_test.py`.
 
 The `email == doc id` check matters: even players added without an email get
 a synthetic id (`noemail-{hex}`) stored as both the doc id and the email field
@@ -279,13 +346,14 @@ captured in `cricket.js` at the moment of closure.
 - `game.players[]` stays as the engine's "team-as-player" view; per-dart
   attribution to the actual thrower lands on each dart record
 
-### Phase 3 — Lifetime stats per player  ⏳
-- Match-end hooks: `cricket.js:showWinner`, `x01.js:showWinner`,
-  `chicago.js` match win, `game121.js` match summary
-- New `dev/js/stats.js`: compute per-player deltas from `game`, write to
-  Firestore via `updateDoc(playerRef, { 'stats.x01.totalScore':
-  increment(score), ... })`
-- Stats viewer in setup: dropdown picks a roster member, shows career table
+### Phase 3 — Lifetime stats per player (tournament slice implemented)
+- DEV tournament matches now retain actual human dart records and show
+  cumulative statistics under Players & Records; see the integration above.
+- Verified Firebase UIDs supersede the earlier proposed email/roster identity
+  for lifetime statistics. Never claim a verified account by matching a name,
+  synthetic guest ID, or legacy roster email.
+- Casual-game sync and any scalable aggregate counters remain future work.
+  Raw results are immutable and exportable; keep scoring/storage decoupled.
 
 ### Phase 4 — Emailed summaries + offline queue  ⏳
 - EmailJS in browser (free tier). Service id / template id / public key
@@ -299,8 +367,8 @@ captured in `cricket.js` at the moment of closure.
 
 ## Decisions that have been confirmed
 
-- Backend: Firebase (Firestore + Anonymous Auth). Free tier covers this app
-  many times over.
+- Backend: Firebase (Firestore + Anonymous Auth, plus verified DEV accounts).
+  Monitor reads, writes, storage and auth quotas before expanding usage.
 - Email backend: EmailJS, not Firebase Trigger Email extension (less vendor
   lock-in for Phase 4).
 - Team rotation: whole turn each member, then swap teams.

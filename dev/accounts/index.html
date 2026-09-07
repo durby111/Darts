@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Accounts · BlakeOut DEV</title>
+    <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/platform.css">
+</head>
+<body class="dev-build platform-page">
+    <header class="platform-header">
+        <a href="../">🎯 BlakeOut <span class="dev-badge">DEV</span></a>
+        <nav aria-label="Main navigation">
+            <a href="../">Scorer</a>
+            <a href="../brackets/">Tournaments</a>
+            <a href="./" aria-current="page">Accounts</a>
+        </nav>
+    </header>
+    <main class="platform-main">
+        <h1>Your verified account</h1>
+        <p>Sign in with email and password, then verify your email to keep the same player ID across devices. Your email is private; only your chosen display name is shared with signed-in players. Passwords are handled by Firebase and never saved by this page.</p>
+        <p id="accountStatus" class="platform-notice" role="status" aria-live="polite">Connecting to Firebase…</p>
+        <section class="platform-card" id="signInPanel">
+            <h2>Sign in or create an account</h2>
+            <p>Entering a name or email alone never gives someone else’s account or records. New accounts must verify their email before accessing profiles, records, or organizer actions.</p>
+            <form id="passwordForm">
+                <label for="accountEmail">Your email</label>
+                <input id="accountEmail" name="email" type="email" autocomplete="email" required maxlength="254">
+                <label for="accountPassword">Password</label>
+                <input id="accountPassword" name="password" type="password" autocomplete="current-password" required minlength="6">
+                <div class="platform-actions">
+                    <button id="passwordSignIn" type="submit" disabled>Sign in</button>
+                    <button id="passwordRegister" type="button" disabled>Create account</button>
+                    <button id="passwordReset" type="button" disabled>Reset password</button>
+                </div>
+            </form>
+            <details id="emailLinkPanel">
+                <summary>Optional email-link sign-in</summary>
+                <p>Existing email links still work. Spark email-link delivery has a low daily quota; email/password is the recommended sign-in method.</p>
+                <form id="emailForm">
+                    <label for="linkEmail">Email for this sign-in link</label>
+                    <input id="linkEmail" name="linkEmail" type="email" autocomplete="email" required maxlength="254">
+                    <button id="sendLink" type="submit" disabled>Send optional sign-in link</button>
+                    <button id="completeLink" type="button" hidden>Complete email sign-in</button>
+                </form>
+                <p id="linkHelp" hidden>Enter the same email address that received this link, then complete sign-in. This also works on a different device.</p>
+            </details>
+        </section>
+        <section class="platform-card" id="verificationPanel" hidden>
+            <h2>Verify your email</h2>
+            <p id="verificationIdentity"></p>
+            <p>Open the verification email, follow its link, then return here. Until verification is complete, profiles, account records, and organizer actions remain unavailable.</p>
+            <div class="platform-actions">
+                <button id="sendVerification" type="button">Resend verification email</button>
+                <button id="refreshVerification" type="button">I’ve verified — refresh account</button>
+            </div>
+        </section>
+        <section class="platform-card" id="profilePanel" hidden>
+            <h2>Your profile</h2>
+            <p id="identity"></p>
+            <form id="profileForm">
+                <label for="displayName">Public display name</label>
+                <input id="displayName" name="name" autocomplete="nickname" maxlength="40" required>
+                <button type="submit">Save name</button>
+            </form>
+            <p>Names are labels, not account identifiers. Guests have no account ID and are excluded from lifetime statistics. The existing scorer’s anonymous sign-in is separate and unchanged.</p>
+        </section>
+        <section class="platform-card" id="accountControls" hidden>
+            <button id="signOut" type="button">Sign out of this account</button>
+        </section>
+        <section class="platform-card" id="recordsPanel" hidden>
+            <h2>Your recorded matches</h2>
+            <p>These are organizer-recorded tournament results, not independently certified scores. Only matches linked to your verified player ID count here.</p>
+            <div class="platform-actions">
+                <button id="refreshRecords" type="button">Refresh records</button>
+                <button id="exportRecords" type="button" disabled>Export my records (JSON)</button>
+            </div>
+            <div id="lifetimeSummary"></div>
+            <div id="records"></div>
+        </section>
+        <details class="platform-card">
+            <summary>Firebase setup and DEV data</summary>
+            <p>This is a separate DEV account system in the existing BlakeOut Firebase project. No third-party analytics or email vendor is used.</p>
+            <p>Project administrators must enable Authentication → Sign-in method → Email/Password, authorize the hosting domain, and publish the isolated <code>blakeoutDevProfiles</code>, <code>blakeoutDevTournaments</code>, <code>blakeoutDevRosterPrivate</code>, and <code>blakeoutDevResults</code> rules from <code>firestore.rules</code>. Email link (passwordless sign-in) is optional. These changes are not deployed by this page. Payment, check-in, and standby flags are visible only to the tournament organizer.</p>
+            <p><code>auth/operation-not-allowed</code> means the selected sign-in method is not enabled. <code>auth/unauthorized-domain</code> means the hosting domain must be authorized. <code>auth/too-many-requests</code> or a quota error means to wait before retrying; do not repeatedly request emails. <code>permission-denied</code> usually means verification is incomplete, DEV rules have not been published, or this account lacks permission. The ordinary scorer remains available.</p>
+        </details>
+    </main>
+    <script type="module" src="../js/accounts-page.js"></script>
+</body>
+</html>

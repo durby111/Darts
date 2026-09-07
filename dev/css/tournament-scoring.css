@@ -1,0 +1,178 @@
+#tournamentScoringControls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    min-height: 52px;
+    padding: 4px 48px 4px 10px;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+    font-size: 15px;
+    line-height: 1.2;
+}
+
+#tournamentScoringControls[hidden],
+#tournamentScoringControls [hidden],
+#tournamentResultPanel[hidden],
+#tournamentReturn[hidden] {
+    display: none !important;
+}
+
+.tournament-series {
+    flex: 1;
+    min-width: 0;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.tournament-darts-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+#tournamentScoringControls button,
+#tournamentActualDarts,
+#tournamentReturn,
+#tournamentResultPanel button,
+#tournamentHelpClose {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+    font: inherit;
+    font-weight: 600;
+    touch-action: manipulation;
+}
+
+#tournamentActualDarts {
+    min-width: 90px;
+}
+
+#tournamentActualDarts:focus,
+#tournamentScoringControls button:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+}
+
+#tournamentHelpModal .modal-content {
+    max-width: 480px;
+}
+
+#tournamentHelpModal p {
+    margin: 16px 0;
+    line-height: 1.45;
+}
+
+#tournamentReturn,
+#tournamentHelpClose {
+    width: 100%;
+    margin-top: 8px;
+}
+
+#tournamentResultPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+#tournamentResultPanel p {
+    line-height: 1.4;
+}
+
+#gameScreen[data-tournament] {
+    --cricket-center-col: clamp(164px, 28vw, 220px);
+}
+
+#gameScreen[data-tournament] button {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+#gameScreen[data-tournament] #menuBtn {
+    min-width: 44px;
+    min-height: 44px;
+}
+
+#gameScreen[data-tournament] .cricket-row {
+    min-height: 48px;
+}
+
+#gameScreen[data-tournament] .cricket-dt-btn {
+    padding: 4px;
+    font-size: 16px;
+}
+
+/* Preserve room for the scoreboard and a five-row, 44px quick-score pad. */
+@media (max-height: 850px) {
+    #gameScreen[data-tournament] #scoreHeader .player-header { padding: 2px 8px; }
+    #gameScreen[data-tournament] #scoreHeader .player-name { font-size: 20px; }
+    #gameScreen[data-tournament] #scoreHeader .thrower-name { font-size: 14px; }
+    #gameScreen[data-tournament] #scoreHeader .score-big {
+        font-size: clamp(40px, 7dvh, 60px);
+        padding: 2px 8px;
+    }
+    #gameScreen[data-tournament] #scoreHeader .score-delta { font-size: 11px; }
+    #gameScreen[data-tournament] #scoreHeader .center-logo { padding: 2px; }
+    #gameScreen[data-tournament] #scoreHeader .round-badge { width: 32px; height: 32px; font-size: 20px; }
+    #gameScreen[data-tournament] #x01Main .score-history-entry {
+        min-height: 30px;
+        padding: 2px;
+        font-size: 24px;
+    }
+    #gameScreen[data-tournament] #x01Controls {
+        min-height: 0;
+        padding: 4px;
+        gap: 4px;
+    }
+    #gameScreen[data-tournament] #x01Controls .checkout-suggestion {
+        font-size: 20px;
+        line-height: 1.15;
+        padding: 4px;
+        margin: 0 auto;
+    }
+    #gameScreen[data-tournament] #x01Controls .finish-indicator {
+        min-height: 20px;
+        font-size: 14px;
+        padding: 0;
+    }
+    #gameScreen[data-tournament] #x01Controls .x01-input-row { margin: 0 auto; }
+    #gameScreen[data-tournament] #x01Controls .input-display {
+        min-height: 44px;
+        font-size: 24px;
+        padding: 4px 8px;
+    }
+    #gameScreen[data-tournament] #x01Controls .btn {
+        min-height: 44px;
+        padding: 6px 12px;
+        font-size: 18px;
+    }
+    #gameScreen[data-tournament] #x01Controls .number-pad { min-height: 236px; gap: 4px; }
+    #gameScreen[data-tournament] #x01Controls .quick-col,
+    #gameScreen[data-tournament] #x01Controls .pad-center { gap: 4px; }
+    #gameScreen[data-tournament] #x01Controls .x01-num-btn,
+    #gameScreen[data-tournament] #x01Controls .x01-quick-btn {
+        min-height: 44px;
+        padding: 4px;
+        font-size: 18px;
+    }
+    #gameScreen[data-tournament] #x01Controls .x01-bottom-row { margin: 0 auto; }
+    #gameScreen[data-tournament] #cricketMain { padding: 0; }
+    #gameScreen[data-tournament] #cricketControls { padding: 4px; }
+    #gameScreen[data-tournament] #cricketControls .btn {
+        min-height: 48px;
+        padding: 6px 14px;
+        font-size: 20px;
+    }
+}
+
+@media (max-width: 450px) {
+    #tournamentScoringControls { gap: 4px; padding-left: 4px; font-size: 13px; }
+    .tournament-darts-label { gap: 4px; }
+    #tournamentActualDarts { min-width: 72px; padding-inline: 6px; }
+}
