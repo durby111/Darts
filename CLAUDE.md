@@ -8,6 +8,9 @@ This file is the source of truth for *how the app is supposed to work*. If
 something here drifts from reality, the code wins — but update this file in
 the same commit.
 
+Brand spelling is **BlakeOut**, with that exact casing and no space, in all
+new or updated user-facing text. Do not rename storage keys or identifiers.
+
 ---
 
 ## Repo layout
@@ -47,8 +50,18 @@ ready to ship.
 - **Web config** lives in `dev/js/firebase-config.js` and **is committed**.
   Firebase web API keys are not secret — security comes from Firestore rules,
   not key obscurity. The browser key is restricted to
-  `https://blakeoutdarts.com/*` and `https://www.blakeoutdarts.com/*`, with its
-  existing 25-API allowlist preserved (verified 2026-08-30).
+  `https://blakeoutdarts.com/*`, `https://www.blakeoutdarts.com/*`, and
+  `https://blakeout.firebaseapp.com/*`, with its existing 25-API allowlist
+  preserved. The Firebase host is required by the default email verification
+  and password-reset action handler. Added and verified 2026-09-07: invalid-code
+  probes reach action validation on both approved hosts; other referrers remain
+  blocked. Never remove website restrictions to fix email action links.
+- Email branding is not yet configured: Firebase Console rejected sender/subject
+  edits on 2026-09-07 with "Email template updates are currently unavailable for
+  this project" and directed us to Firebase Support. The built-in verification
+  message body is locked, so a logo requires a custom email-sending integration.
+  Do not claim a logo, custom sender domain, SPF/DKIM/DMARC changes, or inbox
+  placement is configured until independently verified.
 
 ### Firestore rules
 

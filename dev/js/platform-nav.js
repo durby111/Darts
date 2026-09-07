@@ -1,7 +1,7 @@
 const base = new URL('../', import.meta.url);
 const nav = document.createElement('nav');
 nav.className = 'dev-app-nav';
-nav.setAttribute('aria-label', 'Blake Out apps');
+nav.setAttribute('aria-label', 'BlakeOut apps');
 for (const [label, path] of [['Scoring', './'], ['Brackets', 'brackets/'], ['Players & Records', 'accounts/']]) {
     const link = document.createElement('a');
     link.href = new URL(path, base).href;

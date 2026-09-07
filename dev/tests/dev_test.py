@@ -1305,6 +1305,9 @@ async def test_setup_section_separation(page):
 async def test_app_navigation_layout(page):
     await fresh(page)
     await page.locator("#casualRecordingSetup").wait_for()
+    assert await page.locator(".setup-header h1").inner_text() == "BlakeOut"
+    assert await page.locator(".setup-card > .dev-app-nav").get_attribute("aria-label") == "BlakeOut apps"
+    assert await page.locator(".winner-brand span:first-child").all_text_contents() == ["BlakeOut", "BlakeOut"]
     checked = []
     for width, height in [(320, 740), (390, 844), (800, 1024), (1024, 768), (1366, 768)]:
         await page.set_viewport_size({"width": width, "height": height})
