@@ -3,8 +3,9 @@
    Form handling, config save/load
    ============================================ */
 
-import { game, initCricket, getConfigs, saveConfigs, getCurrentConfig, applyConfig, saveActiveGame, loadActiveGame, clearActiveGame, restoreActiveGame } from './state.js';
+import { game, recordingSession, initCricket, getConfigs, saveConfigs, getCurrentConfig, applyConfig, saveActiveGame, loadActiveGame, clearActiveGame, restoreActiveGame } from './state.js';
 import { beginScoringLeg } from './scoring-records.js';
+import { prepareCasualRecording } from './casual-recording.js';
 import { showChicagoGameSelection, resumeChicago } from './chicago.js';
 import {
     initFirebase, onRosterChange, getRosterCache,
@@ -555,7 +556,7 @@ export function resumeGame() {
     if (!saved) return;
 
     restoreActiveGame(saved);
-    if (game.tournament?.status === 'saving') game.tournament.status = 'pending';
+    if (recordingSession()?.status === 'saving') recordingSession().status = 'pending';
 
     // Apply game-type scale override
     applyGameTypeScale(saved.type);
@@ -605,9 +606,13 @@ function updateGameOptionsSection() {
     section.setAttribute('aria-hidden', String(!hasVisibleOptions));
 }
 
-function startGame() {
-    if (game.tournament && game.tournament.status !== 'saved' &&
-        !confirm('Leave this tournament match? Its local recovery copy will be kept; no result will be sent.')) return;
+async function startGame() {
+    if (recordingSession()?.status === 'saving') {
+        alert('Wait for the current result save to finish before starting another game.');
+        return;
+    }
+    if (recordingSession() && recordingSession().status !== 'saved' &&
+        !confirm('Leave this recorded game? Its local recovery copy will be kept; no result will be sent.')) return;
     // Warn if there's an active game being overlaid
     if (overlayMode) {
         if (!confirm('Starting a new game will end your current game. Continue?')) return;
@@ -638,17 +643,28 @@ function startGame() {
         const rosterMatch = findPlayerByName(name);
         players.push({ name, rosterEmail: rosterMatch ? rosterMatch.email : null });
     }
-    beginMatch(players, null);
+    await beginOptionalMatch(players, null);
 }
 
-function beginMatchFromTeams(teams) {
+async function beginMatchFromTeams(teams) {
     // In team mode, game.players represents the two TEAMS. Members live in
     // game.teams[i].members and rotate per-turn (see teams.js).
     const players = teams.map(t => ({ name: t.name, rosterEmail: null }));
-    beginMatch(players, teams);
+    await beginOptionalMatch(players, teams);
 }
 
-function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null) {
+async function beginOptionalMatch(playerSeeds, teams, force = false) {
+    try {
+        const prepared = await prepareCasualRecording(playerSeeds, teams, force);
+        if (prepared) beginMatch(prepared.playerSeeds, prepared.teams, null, null, prepared.recording);
+        else document.getElementById('setupScreen').style.display = 'flex';
+    } catch (error) {
+        alert(`Unable to prepare recording: ${error.message}. Your previous game is unchanged.`);
+        document.getElementById('setupScreen').style.display = 'flex';
+    }
+}
+
+function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null, recording = null) {
     const gameType = document.getElementById('gameType').value;
     const cricketPoints = gameType === 'cutthroat'
         ? true
@@ -674,8 +690,10 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
     Object.assign(game, {
         type: gameType,
         tournament,
+        recording,
         scoringRecords,
         x01Input: null,
+        minnesotaInput: null,
         players: [],
         currentPlayer: 0,
         currentInput: '',
@@ -794,7 +812,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
     resetTicTacToeInput();
 
     clearActiveGame();
-    if (tournament && !isChicago) beginScoringLeg(gameType);
+    if (recordingSession() && !isChicago) beginScoringLeg(gameType);
     saveActiveGame();
     const scaleSlider = document.getElementById('uiScale');
     const scale = parseFloat(scaleSlider?.value || '1.0');
@@ -835,6 +853,7 @@ export function showSetup() {
     document.getElementById('setupScreen').style.display = 'flex';
     updateSavedConfigsList();
     updateResumeButton();
+    document.dispatchEvent(new CustomEvent('casualRecordingChanged'));
 }
 
 export function showSetupAsOverlay() {
@@ -845,12 +864,15 @@ export function showSetupAsOverlay() {
     updateResumeButton();
 }
 
-export function playAgain() {
+export async function playAgain() {
+    if (recordingSession()?.status === 'saving') return;
     if (game.tournament) {
         alert('Use Next leg or Save tournament result. The tournament match has been kept.');
         return;
     }
-    clearActiveGame();
+    if (game.recording && game.recording.status !== 'saved' &&
+        !confirm('Start another game? This recorded game will be kept locally without sending a result.')) return;
+    const recordAgain = !!game.recording;
 
     // Rebuild the match through beginMatch() so every engine (cricket,
     // x01, chicago, 121, target games, chaos) re-initializes correctly.
@@ -871,7 +893,7 @@ export function playAgain() {
         : null;
 
     document.getElementById('winnerModal').style.display = 'none';
-    beginMatch(seeds, preservedTeams);
+    await beginOptionalMatch(seeds, preservedTeams, recordAgain);
 }
 
 // Quick Start — one tap from the picker: re-apply the last-used config

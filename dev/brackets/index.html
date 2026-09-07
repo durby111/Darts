@@ -38,10 +38,11 @@
                             <option value="chicago">Chicago</option><option value="301">301</option>
                             <option value="501">501</option><option value="cricket">Cricket</option>
                             <option value="spanish">Spanish Cricket</option>
+                            <option value="minnesota">Minnesota Cricket</option>
                         </select></label>
                         <label>Best of (legs)<input id="bestOf" type="number" min="1" max="99" step="2" value="3" required disabled></label>
                     </div>
-                    <p>Chicago is always best of 3. Minnesota is planned for a later release.</p>
+                    <p>Chicago is always best of 3. Other games use your selected odd-numbered series length.</p>
                     <button type="submit">Create tournament</button>
                 </fieldset>
             </form>
@@ -55,8 +56,26 @@
                 <h2 id="tournamentTitle"></h2>
                 <p id="tournamentMeta"></p>
                 <p id="champion" hidden></p>
-                <p id="spectatorNote" hidden>Public view: names and bracket only. Sign in at Players &amp; Records, then ask the organizer to add your verified profile. Self-registration requests are not yet available.</p>
+                <p id="spectatorNote" hidden>Public view: registered names, teams and bracket only. Join immediately with your verified profile or as a tournament-only guest while registration is open. The organizer pairs teams and manages check-in.</p>
+                <div class="join-panel">
+                    <button id="joinTournament" type="button" disabled>Join tournament</button>
+                    <p id="joinHelp" aria-live="polite"></p>
+                    <a id="joinProfileLink" href="../accounts/">Sign in or create your player profile</a>
+                    <button id="refreshJoinProfile" type="button" hidden>Refresh my profile</button>
+                    <form id="guestJoinForm">
+                        <fieldset id="guestJoinControls">
+                            <label for="guestJoinName">Join with a guest display name</label>
+                            <input id="guestJoinName" maxlength="40" required autocomplete="nickname">
+                            <p>Tournament only · no lifetime statistics. No account, email or name matching. This device’s guest entry is separate from verified player profiles.</p>
+                            <button id="joinGuest" type="submit">Join as tournament-only guest</button>
+                        </fieldset>
+                    </form>
+                    <p id="guestJoinHelp" aria-live="polite"></p>
+                </div>
                 <p id="lockedNote" hidden>Roster locked. Byes advance a team but are never recorded as played wins. Completed results cannot be edited here; recorded dart statistics are immutable.</p>
+                <h3 id="publicRosterHeading">Registered players</h3>
+                <ul id="publicRoster" class="public-roster"></ul>
+                <h3>Saved teams</h3>
                 <div id="publicTeams" class="public-teams"></div>
             </section>
             <section id="rosterPanel" class="platform-card" hidden>

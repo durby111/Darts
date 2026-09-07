@@ -79,20 +79,35 @@ The DEV integration adds separate collections without changing those rules:
 | `blakeoutDevTournaments/{id}` | Public bracket/team data; only the verified owner can create/update, with revision checks. |
 | `blakeoutDevRosterPrivate/{id}` | Owner-only paid/check-in/standby flags, atomically revision-paired with the public tournament. |
 | `blakeoutDevResults/{id}` | Immutable organizer-recorded dart results, readable only by owner or verified participants. |
+| `blakeoutDevSignupState/{id}` | Public membership/revision index; transactional self-joins or owner roster updates only. |
+| `blakeoutDevSignups/{id}/players/{uid}` | Public verified or anonymous guest signup; own registration only, with owner removal. No private flags. |
+| `blakeoutDevCasualResults/{id}` | Immutable verified-scorekeeper records; private to the scorekeeper and verified participants with receipts. |
+| `blakeoutDevCasualReceipts/{resultId}${uid}` | Per-participant access receipt, created only by the original scorekeeper for a declared verified profile. |
 
 ### DEV scoring, brackets, and accounts
 
 - `/dev/` remains the ordinary offline scorer. `/dev/brackets/` runs doubles
   double-elimination tournaments; `/dev/accounts/` manages verified profiles
-  and tournament dart records. Navigation is also available in Game Menu.
+  and tournament/casual dart records. Navigation is also available in Game Menu.
 - Winner and Chicago leg-result dialogs use the theme-aware `dev/css/winner.css`
   design: dart emblem, clear winner/score hierarchy, double-bull finish callout,
   touch-sized actions and reduced-motion support. Existing scoring, undo and
   tournament-save behavior is unchanged.
-- Initial tournament games: Chicago, 301, 501, Cricket, Spanish Cricket.
-  Minnesota remains available casually but is not yet tournament-enabled.
-- Owners can also play: add their own verified profile to the roster.
-  Guests are tournament-only and never contribute to lifetime account stats.
+- Tournament and recorded casual games: Chicago, 301, 501, Cricket, Spanish
+  Cricket, and Minnesota. Other scorer games remain playable without recording.
+- Players join immediately while registration is open, either with a verified
+  account or a name-only guest signup. Owners can also register and play.
+  New arrivals are unpaid, unchecked, and not standby; only owners change
+  those private flags. Unpaired arrivals are visible in the public roster.
+  Guests never contribute to lifetime account statistics.
+- Guest signup uses a separate `blakeout-dev-guests` anonymous Firebase app.
+  One guest identity per device/event is supported; another person on the same
+  device should ask the organizer to add them. Account/scorer logins are retained.
+  Repeated joins are idempotent, and explicitly removed players can join again.
+- The signup index supplies the logical revision while arrivals are not yet
+  materialized into the owner's roster. Owner saves atomically merge signups
+  and private flags, or remove their signup membership. Dirty owner drafts
+  conflict safely rather than silently overwriting newly registered players.
 - One matching team number per partner builds pairs. The live preview does
   not start the tournament. Explicit start shuffles once and locks the roster.
   Completed events appear in History. Byes are not played wins.
@@ -106,6 +121,13 @@ The DEV integration adds separate collections without changing those rules:
   Human rotation, busts, undo/redo and Chicago leg changes retain the raw ledger.
   Saving confirms the result and atomically advances the bracket. Local pending
   results survive retries; the same result ID cannot duplicate statistics.
+- Casual setup offers opt-in **Record verified player stats**. Select each
+  human's verified profile explicitly; names never infer identity. Singles,
+  unequal teams, guests, and a non-playing scorekeeper are supported. Minnesota
+  Bed counts three actual darts. A completed game requires an explicit save;
+  offline results remain recoverable and retries resume receipt delivery.
+  The original verified scorekeeper must save the result. The backend accepts
+  up to 128 verified participants and 384 counters, rejecting excess explicitly.
 - DEV active games use `blakeout_dev_active_game`, with a one-time copy of any
   legacy shared save. The production save is never modified. Lossless snapshot
   packing preserves undo/redo without repeatedly storing the full dart ledger.
@@ -115,8 +137,9 @@ The DEV integration adds separate collections without changing those rules:
   not fabricate dart statistics. Completed results are not editable in this
   DEV UI while correction/invalidation of immutable records is pending.
 - Account averages derive from summed raw points/darts or marks/darts, not
-  averages of averages. These are organizer-entered records, not certified
-  competition statistics. Users can export their records as JSON.
+  averages of averages. Records identify tournament/organizer or
+  casual/scorekeeper provenance; they are not certified competition statistics.
+  Users can export their records as JSON.
 - Verified email/password is the default: sign up, verify the email, then
   sign in normally. Passwords are never placed in app storage. Legacy email
   links still complete, but Spark permits only 5 sign-in emails/day versus
@@ -125,10 +148,7 @@ The DEV integration adds separate collections without changing those rules:
 - The named Firebase app `blakeout-dev-accounts` keeps this login separate from
   the existing anonymous scorer. Only DEV collections and assets are added;
   do not promote them to the production root automatically.
-- Still pending: player self-registration requests, casual-game verified
-  account attribution/sync, result correction with record invalidation, and
-  tournament Minnesota. For this version, organizers add guests or existing
-  verified profiles; only tournament-scored matches populate account records.
+- Still pending: completed-result correction with immutable-record invalidation.
 - Targeted browser tests (existing Python/Chrome environment):
   `dev/tests/bracket_engine_test.py`, `dev/tests/platform_test.py`,
   `dev/tests/brackets_ui_test.py`, `dev/tests/scoring_bridge_test.py`.

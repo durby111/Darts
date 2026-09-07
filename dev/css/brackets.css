@@ -9,6 +9,10 @@
 .tournament-link span { color: var(--color-text); font-size: .85rem; }
 .public-teams { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
 .public-teams span { overflow-wrap: anywhere; }
+.public-roster { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: .4rem 1.5rem; padding-left: 1.25rem; }
+.public-roster li { overflow-wrap: anywhere; }
+.join-panel { padding: .75rem 0 1rem; border-block: 1px solid var(--color-border); }
+.join-panel p { margin: .5rem 0; }
 .roster-scroll { overflow-x: auto; margin-top: 1rem; }
 .roster-table { width: 100%; border-collapse: collapse; min-width: 670px; }
 .roster-table th, .roster-table td { padding: .5rem; text-align: left; border-bottom: 1px solid var(--color-border); }

@@ -71,8 +71,13 @@ service cloud.firestore {
     // Additive only: these paths never grant access to the production paths.
     function devVerified() {
       return request.auth != null
-        && request.auth.token.email_verified == true
+        && request.auth.token.get('email_verified', false) == true
         && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
+    function devGuest() {
+      return request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'anonymous';
     }
 
     function devText(value, maximum) {
@@ -85,7 +90,7 @@ service cloud.firestore {
     }
 
     function devGame(value) {
-      return value in ['chicago', '301', '501', 'cricket', 'spanish'];
+      return value in ['chicago', 'minnesota', '301', '501', 'cricket', 'spanish'];
     }
 
     // Profile documents deliberately contain no email, authentication claims,
@@ -172,14 +177,16 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.revision == 0
         && request.resource.data.status == 'registration'
-        && devPairedPrivateRoster(id, request.resource.data);
+        && devPairedPrivateRoster(id, request.resource.data)
+        && devPairedSignupState(id, request.resource.data.revision);
       allow update: if devVerified() && resource.data.ownerId == request.auth.uid
         && devTournament(request.resource.data, id)
         && request.resource.data.ownerId == resource.data.ownerId
         && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.revision == resource.data.revision + 1
+        && request.resource.data.revision == devNextRevision(id, resource.data.revision)
         && request.resource.data.updatedAt >= resource.data.updatedAt
-        && devPairedPrivateRoster(id, request.resource.data);
+        && devPairedPrivateRoster(id, request.resource.data)
+        && devPairedSignupState(id, request.resource.data.revision);
       allow delete: if false;
     }
 
@@ -211,8 +218,84 @@ service cloud.firestore {
       allow update: if devVerified() && resource.data.ownerId == request.auth.uid
         && devPrivateRoster(request.resource.data, id)
         && request.resource.data.ownerId == resource.data.ownerId
-        && request.resource.data.revision == resource.data.revision + 1;
+        && request.resource.data.revision == devNextRevision(id, resource.data.revision);
       allow delete: if false;
+    }
+
+    // Deployed-v1 tournaments have no signup-state document. Missing state is
+    // an explicit bootstrap case, not an alternative packed-payload schema.
+    function devNextRevision(id, legacyRevision) {
+      return exists(/databases/$(database)/documents/blakeoutDevSignupState/$(id))
+        ? get(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.revision + 1
+        : legacyRevision + 1;
+    }
+
+    function devPairedSignupState(id, revision) {
+      return !existsAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id))
+        || (getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.revision == revision
+          && getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.lastJoiner == null);
+    }
+
+    function devSignupOwnerWrite(id, revision) {
+      return getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.ownerId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.revision == revision;
+    }
+
+    function devSelfJoin(id, revision) {
+      return get(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.status == 'registration'
+        && !exists(/databases/$(database)/documents/blakeoutDevSignups/$(id)/players/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/blakeoutDevSignups/$(id)/players/$(request.auth.uid)).data.joinRevision == revision;
+    }
+
+    function devSignupMembers(id) {
+      return exists(/databases/$(database)/documents/blakeoutDevSignupState/$(id))
+        ? get(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.members : [];
+    }
+
+    match /blakeoutDevSignupState/{id} {
+      allow read: if true;
+      allow create, update: if (devVerified() || devGuest()) && devId(id)
+        && request.resource.data.keys().hasAll(['tournamentId', 'revision', 'lastJoiner', 'members'])
+        && request.resource.data.keys().hasOnly(['tournamentId', 'revision', 'lastJoiner', 'members'])
+        && request.resource.data.tournamentId == id
+        && request.resource.data.members is list && request.resource.data.members.size() <= 128
+        && request.resource.data.members.toSet().size() == request.resource.data.members.size()
+        && request.resource.data.revision is int
+        && request.resource.data.revision == (
+          exists(/databases/$(database)/documents/blakeoutDevTournaments/$(id))
+            ? devNextRevision(id, get(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.revision)
+            : 0)
+        && ((devVerified() && request.resource.data.lastJoiner == null
+              && request.resource.data.members.hasOnly(devSignupMembers(id))
+              && devSignupOwnerWrite(id, request.resource.data.revision))
+          || (request.resource.data.lastJoiner == request.auth.uid
+              && request.resource.data.members == devSignupMembers(id).concat([request.auth.uid])
+              && devSelfJoin(id, request.resource.data.revision)));
+      allow delete: if false;
+    }
+
+    match /blakeoutDevSignups/{id}/players/{uid} {
+      allow read: if true;
+      allow create: if (devVerified() || devGuest()) && uid == request.auth.uid && devId(uid)
+        && request.resource.data.keys().hasAll(['playerId', 'registrationId', 'name', 'joinRevision'])
+        && request.resource.data.keys().hasOnly(['playerId', 'registrationId', 'name', 'joinRevision'])
+        && devText(request.resource.data.name, 40) && request.resource.data.name.trim().size() > 0
+        && ((devVerified() && request.resource.data.playerId == uid
+            && request.resource.data.registrationId == 'self-' + uid
+            && request.resource.data.name == get(/databases/$(database)/documents/blakeoutDevProfiles/$(uid)).data.name)
+          || (devGuest() && request.resource.data.playerId == null
+            && request.resource.data.registrationId == 'guest-' + uid))
+        && get(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.status == 'registration'
+        && getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.lastJoiner == uid
+        && request.resource.data.joinRevision == getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.revision;
+      allow update: if false;
+      allow delete: if devVerified()
+        && get(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.ownerId == request.auth.uid
+        && devSignupOwnerWrite(id, getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.revision)
+        && getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.lastJoiner == null
+        && !(uid in getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.members)
+        && getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.revision
+          == devNextRevision(id, get(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.revision);
     }
 
     function devParticipant(ids, index) {
@@ -232,7 +315,7 @@ service cloud.firestore {
       let whole = '(0|[1-9][0-9]{0,11})';
       let numeric = whole + '(\\.[0-9]{1,32})?([eE]-[0-9]{1,3})?';
       let entry = '\\{"playerId":"(' + players
-        + ')","gameType":"(chicago|301|501|cricket|spanish)","points":' + numeric
+        + ')","gameType":"(chicago|minnesota|301|501|cricket|spanish)","points":' + numeric
         + ',"darts":' + whole + ',"marks":' + numeric + '\\}';
       return value is string && value.size() <= 8192
         && ((ids.size() == 0 && value == '[]')
@@ -275,6 +358,73 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.ownerId == request.auth.uid
         && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.revision
           == get(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.revision + 1;
+      allow update, delete: if false;
+    }
+
+    function devCasualGame(value) {
+      return value in ['301', '501', '701', '801', '901', '1101', '1501',
+        'cricket', 'spanish', 'minnesota', 'chaos', 'quickie', 'cutthroat',
+        'wildcard', 'hammer', 'teamhammer', 'chicago', '121', 'baseball',
+        'bermuda', 'golf', 'shanghai', 'countup', 'gotcha', 'sharktank',
+        'tictactoe', 'robinhood', 'doubledown', 'teamcricket'];
+    }
+
+    function devCasualCounters(value, ids) {
+      let games = '(301|501|701|801|901|1101|1501|cricket|spanish|minnesota|chaos|quickie|cutthroat|wildcard|hammer|teamhammer|chicago|121|baseball|bermuda|golf|shanghai|countup|gotcha|sharktank|tictactoe|robinhood|doubledown|teamcricket)';
+      let whole = '(0|[1-9][0-9]{0,11})';
+      let numeric = whole + '(\\.[0-9]{1,32})?([eE]-[0-9]{1,3})?';
+      let entry = '\\{"playerId":"(' + ids.join('|') + ')","gameType":"' + games
+        + '","points":' + numeric + ',"darts":' + whole + ',"marks":' + numeric + '\\}';
+      // A bounded repetition would expand the 128-UID alternation hundreds of
+      // times in RE2. Flat canonical objects permit a separate native count.
+      return value is string && value.size() <= 100000
+        && ((ids.size() == 0 && value == '[]')
+          || (ids.size() > 0 && value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$')
+            && value.split('\\},\\{').size() <= 384));
+    }
+
+    match /blakeoutDevCasualResults/{id} {
+      allow get: if devVerified()
+        && (!exists(/databases/$(database)/documents/blakeoutDevCasualResults/$(id))
+          || resource.data.ownerId == request.auth.uid
+          || exists(/databases/$(database)/documents/blakeoutDevCasualReceipts/$(id + '$' + request.auth.uid)));
+      allow list: if devVerified() && resource.data.ownerId == request.auth.uid;
+      allow create: if devVerified() && devId(id)
+        && request.resource.data.keys().hasAll(['ownerId', 'participantIds', 'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerId', 'participantIds', 'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt', 'winnerId', 'winnerIds', 'scoreA', 'scoreB', 'forfeit', 'records'])
+        && request.resource.data.ownerId == request.auth.uid
+        && devCasualGame(request.resource.data.gameType)
+        && devText(request.resource.data.matchId, 128) && request.resource.data.matchId.size() > 0
+        && request.resource.data.createdAt is int && request.resource.data.createdAt > 0
+        && request.resource.data.get('winnerIds', []) is list
+        && request.resource.data.get('winnerIds', []).size() <= 128
+        && (request.resource.data.get('winnerIds', []).size() == 0
+          || (request.resource.data.winnerIds == request.resource.data.winnerIds.join(',').split(',')
+            && request.resource.data.winnerIds.join(',').matches('^[A-Za-z0-9_-]{1,128}(,[A-Za-z0-9_-]{1,128})*$')))
+        && request.resource.data.legScores is list && request.resource.data.legScores.size() <= 99
+        && request.resource.data.participantIds is list && request.resource.data.participantIds.size() <= 128
+        && request.resource.data.participantIds.toSet().size() == request.resource.data.participantIds.size()
+        && (request.resource.data.participantIds.size() == 0
+          || (request.resource.data.participantIds == request.resource.data.participantIds.join(',').split(',')
+            && request.resource.data.participantIds.join(',').matches('^[A-Za-z0-9_-]{1,128}(,[A-Za-z0-9_-]{1,128})*$')))
+        && devCasualCounters(request.resource.data.perPlayer, request.resource.data.participantIds);
+      allow update, delete: if false;
+    }
+
+    match /blakeoutDevCasualReceipts/{id} {
+      allow get: if devVerified()
+        && (!exists(/databases/$(database)/documents/blakeoutDevCasualReceipts/$(id))
+          || resource.data.playerId == request.auth.uid || resource.data.ownerId == request.auth.uid);
+      allow list: if devVerified() && resource.data.playerId == request.auth.uid;
+      allow create: if devVerified()
+        && request.resource.data.keys().hasAll(['resultId', 'playerId', 'ownerId'])
+        && request.resource.data.keys().hasOnly(['resultId', 'playerId', 'ownerId'])
+        && devId(request.resource.data.resultId) && devId(request.resource.data.playerId)
+        && id == request.resource.data.resultId + '$' + request.resource.data.playerId
+        && request.resource.data.ownerId == request.auth.uid
+        && get(/databases/$(database)/documents/blakeoutDevCasualResults/$(request.resource.data.resultId)).data.ownerId == request.auth.uid
+        && request.resource.data.playerId in get(/databases/$(database)/documents/blakeoutDevCasualResults/$(request.resource.data.resultId)).data.participantIds
+        && exists(/databases/$(database)/documents/blakeoutDevProfiles/$(request.resource.data.playerId));
       allow update, delete: if false;
     }
 

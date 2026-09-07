@@ -27,9 +27,12 @@ export const query=(collection,filter)=>({...collection,filter});
 export const where=(field,op,value)=>({field,op,value});
 export const getDocsFromServer=async ref=>{
   online();
+  if(localStorage.__slowProfiles==='1' && ref.path==='blakeoutDevProfiles')
+    await new Promise(resolve=>{globalThis.releaseProfiles=resolve;});
   return {docs:Object.entries(read())
     .filter(([path,value])=>path.startsWith(ref.path+'/') &&
-      (!ref.filter || value[ref.filter.field].includes(ref.filter.value)))
+      (!ref.filter || (ref.filter.op==='==' ? value[ref.filter.field]===ref.filter.value :
+        value[ref.filter.field].includes(ref.filter.value))))
     .map(([path])=>snapshot({path,id:path.split('/').at(-1)}))};
 };
 export const runTransaction=async(db,callback)=>{
@@ -46,7 +49,7 @@ export const runTransaction=async(db,callback)=>{
     .filter(([path])=>path.startsWith('blakeoutDevResults/'))
     .map(([path,value])=>[path.split('/')[1],value]));
   if(Object.keys(results).length)localStorage.__results=JSON.stringify(results);
-  if(localStorage.__lostReply==='1' && writes.some(([path])=>path.startsWith('blakeoutDevResults/')))
+  if(localStorage.__lostReply==='1' && writes.some(([path])=>path.startsWith('blakeoutDevResults/') || path.startsWith('blakeoutDevCasualResults/')))
     throw Error('Connection lost after commit');
   return result;
 };
@@ -165,11 +168,15 @@ async def storage_migration(page, base):
 
 
 async def storage_budget(page, base):
-    for kind in ["501", "cricket"]:
-        await fixture(page, base, kind)
+    for kind, casual in [("501", False), ("cricket", False), ("501", True), ("cricket", True)]:
+        if casual:
+            await casual_fixture(page, base, kind, teams=[2, 3], links=["u1", "u2", "u3", "u4", "u5"])
+        else:
+            await fixture(page, base, kind)
         measured = await page.evaluate("""async kind=>{
           const s=await import('./js/state.js'), r=await import('./js/scoring-records.js');
           const teams=await import('./js/teams.js');
+          s.recordingSession().bestOf=3;
           let peak=0;
           const bytes=()=>2*localStorage.blakeout_dev_active_game.length;
           const same=(a,b)=>JSON.stringify(a,(_,value)=>value&&typeof value==='object'&&!Array.isArray(value)
@@ -212,55 +219,66 @@ async def storage_budget(page, base):
             visits:s.game.scoringRecords.legs.reduce((n,l)=>n+l.turns.length,0)};
         }""", kind)
         await page.evaluate("localStorage.__offline='1'")
-        await page.evaluate("(async()=>{await (await import('./js/tournament-bridge.js')).saveTournamentResult()})()")
-        pending_id = await state(page, "game.tournament.resultId")
-        pending_key = f"blakeout_dev_match_{pending_id}"
+        await page.evaluate("""async casual=>{
+          if(casual)await (await import('./js/casual-recording.js')).saveCasualResult();
+          else await (await import('./js/tournament-bridge.js')).saveTournamentResult();
+        }""", casual)
+        pending_id = await state(page, "(game.recording||game.tournament).resultId")
+        prefix = "blakeout_dev_casual_" if casual else "blakeout_dev_match_"
+        pending_key = prefix + pending_id
         pending_bytes = await page.evaluate("key=>localStorage.getItem(key)", pending_key)
         await page.evaluate("localStorage.__offline='0'")
-        completed = await page.evaluate("""async kind=>{
+        completed = await page.evaluate("""async ({kind,casual,prefix})=>{
           const s=await import('./js/state.js'), p=await import('./js/platform.js');
           const e=await import('./js/brackets/engine.js'), b=await import('./js/tournament-bridge.js');
-          const original=await p.getTournament('test');
-          localStorage.setItem('blakeout_dev_match_old-confirmed',JSON.stringify({
-            ...globalThis.budgetTemplate,tournament:{...globalThis.budgetTemplate.tournament,status:'saved'}
+          const c=await import('./js/casual-recording.js');
+          const original=casual?null:await p.getTournament('test');
+          const field=casual?'recording':'tournament';
+          localStorage.setItem(prefix+'old-confirmed',JSON.stringify({
+            ...globalThis.budgetTemplate,undoHistory:[],redoHistory:[],
+            [field]:{...globalThis.budgetTemplate[field],status:'saved'}
           }));
           for(let i=0;i<12;i++){
-            let t=await p.createTournamentDocument(e.createTournament({
-              id:'budget_'+kind+'_'+i,ownerId:'owner',title:'Budget',date:'2026-09-07',gameType:kind,bestOf:3
-            }));
-            t=await p.updateTournament(t.id,t.revision,x=>e.saveRoster(x,original.registrations));
-            const random=Math.random;Math.random=()=>0.99;
-            let started;try{started=e.startTournament(t);}finally{Math.random=random;}
-            t=await p.updateTournament(t.id,t.revision,()=>started);
+            let t;
+            if(!casual){
+              t=await p.createTournamentDocument(e.createTournament({
+                id:'budget_'+kind+'_'+i,ownerId:'owner',title:'Budget',date:'2026-09-07',gameType:kind,bestOf:3
+              }));
+              t=await p.updateTournament(t.id,t.revision,x=>e.saveRoster(x,original.registrations));
+              const random=Math.random;Math.random=()=>0.99;
+              let started;try{started=e.startTournament(t);}finally{Math.random=random;}
+              t=await p.updateTournament(t.id,t.revision,()=>started);
+            }
             s.restoreActiveGame(structuredClone(globalThis.budgetTemplate));
-            const session=s.game.tournament;
-            session.tournamentId=t.id;session.revision=t.revision;session.resultId=crypto.randomUUID();
+            const session=s.recordingSession();
+            if(t){session.tournamentId=t.id;session.revision=t.revision;}
+            session.resultId=crypto.randomUUID();
             s.game.scoringRecords.id=session.resultId;
             s.game.scoringRecords.legs.forEach(leg=>{
               leg.id=crypto.randomUUID();leg.turns.forEach(turn=>{turn.id=crypto.randomUUID();});
             });
             s.game.undoHistory=[];s.game.redoHistory=[];
             s.saveActiveGame();
-            await b.saveTournamentResult();
-            if(s.game.tournament.status!=='saved')throw Error('Budget match failed to save');
+            if(casual)await c.saveCasualResult();else await b.saveTournamentResult();
+            if(session.status!=='saved')throw Error('Budget match failed to save');
             const saved=JSON.parse(localStorage.blakeout_dev_active_game);
-            if(saved.undoHistory.length || saved.redoHistory.length || saved.tournament.pendingResult ||
+            if(saved.undoHistory.length || saved.redoHistory.length || s.recordingSession(saved).pendingResult ||
                 saved.scoringRecords.legs.some(l=>l.turns.length))
               throw Error('Confirmed saved state retained redundant raw history');
-            if(localStorage.getItem('blakeout_dev_match_'+session.resultId))
+            if(localStorage.getItem(prefix+session.resultId))
               throw Error('Confirmed recovery copy was not pruned');
           }
           const keys=Object.keys(localStorage).filter(key=>key==='blakeout_dev_active_game' ||
-            (key.startsWith('blakeout_dev_match_')&&key!=='blakeout_dev_match_launch'));
+            (key.startsWith(prefix)&&key!=='blakeout_dev_match_launch'&&key!=='blakeout_dev_casual_history'));
           return {completed:12,retainedKeys:keys,savedSummaryBytes:2*localStorage.blakeout_dev_active_game.length,
             retainedBytes:keys.reduce((n,k)=>n+2*(k.length+localStorage[k].length),0)};
-        }""", kind)
+        }""", {"kind": kind, "casual": casual, "prefix": prefix})
         assert await page.evaluate("key=>localStorage.getItem(key)", pending_key) == pending_bytes
         assert measured["visits"] == 297
         assert measured["peakBytes"] < 500_000, measured
         assert len(completed["retainedKeys"]) == 2, completed
         assert completed["retainedBytes"] < 500_000, completed
-        print(f"PASS storage budget {kind}: {json.dumps({**measured, **completed})}")
+        print(f"PASS storage budget {'casual' if casual else 'tournament'} {kind}: {json.dumps({**measured, **completed})}")
 
 
 async def score(page, points, darts=None):
@@ -282,19 +300,293 @@ async def checkout(page, player=0):
     await score(page, 40, 1)
 
 
+async def casual_fixture(page, base, kind="301", players=2, teams=None, links=None, start=True):
+    await page.goto(base + "/dev/")
+    await page.evaluate("""async production=>{
+      localStorage.clear();
+      localStorage.blakeout_active_game=production;
+      localStorage.__productionBaseline=production;
+      localStorage.blakeout_dev_active_game_imported='1';
+      const p=await import('./js/platform.js');await p.initPlatform();
+      for(const uid of ['u1','u2','u3','u4','u5','owner']){
+        changeTestUser({uid,emailVerified:true,isAnonymous:false});await p.saveProfile('Same');
+      }
+    }""", PRODUCTION_SNAPSHOT)
+    await page.select_option("#gameType", kind)
+    await page.select_option("#numPlayers", str(players))
+    await page.check("#recordCasualStats")
+    if teams:
+        await page.evaluate("""sizes=>{
+          localStorage.blakeout_last_team_setup=JSON.stringify({
+            teams:sizes.map((n,team)=>Array.from({length:n},(_,i)=>({name:'Same '+team+'-'+i}))),firstTeam:0
+          });
+        }""", teams)
+        await page.check("#teamMode")
+    else:
+        await page.uncheck("#teamMode")
+        for i in range(players):
+            await page.fill(f"#player{i+1}", "Same")
+    await page.click("#startGameBtn")
+    if teams:
+        await page.click("#teamStartMatchBtn")
+    await page.wait_for_selector("#casualLink0")
+    await page.wait_for_function("document.getElementById('casualLinkStatus').textContent.includes('Verified scorekeeper ID')")
+    assert await page.locator("#casualLink0").input_value() == ""
+    links = links if links is not None else ["u1"] + [""] * ((sum(teams) if teams else players) - 1)
+    for i, uid in enumerate(links):
+        await page.select_option(f"#casualLink{i}", uid)
+    if not start:
+        return
+    await page.click("#casualLinkStart")
+    await page.wait_for_function("document.getElementById('casualLinkModal').style.display==='none'")
+    assert await state(page, "game.tournament") is None
+    assert await state(page, "game.recording.source") == "casual"
+
+
+async def close_cricket_leg(page, winner=0):
+    await page.evaluate("""async winner=>{
+      const {game}=await import('./js/state.js');
+      game.currentPlayer=winner;
+      game.cricketTargets.forEach(t=>{
+        game.players[winner].cricketData[t].marks=3;game.players[winner].cricketData[t].closed=true;
+      });
+      game.players[winner].cricketData['20'].marks=2;game.players[winner].cricketData['20'].closed=false;
+      const c=await import('./js/cricket.js');c.hitTarget('20',1);c.cricketConfirm();
+    }""", winner)
+
+
+async def personal_results(page, uid="u1"):
+    return await page.evaluate("""async uid=>{
+      const p=await import('./js/platform.js');
+      changeTestUser({uid,emailVerified:true,isAnonymous:false});
+      try{return await p.listMyResults();}
+      finally{changeTestUser({uid:'owner',emailVerified:true,isAnonymous:false});}
+    }""", uid)
+
+
+async def casual_cases(page, base):
+    for kind in ["301", "501", "cricket", "spanish", "minnesota", "chicago"]:
+        await casual_fixture(page, base, kind)
+        if kind == "chicago":
+            await page.click("#chicago301Btn")
+            await checkout(page)
+            await page.click("#chicagoContinueBtn")
+            await page.click("#chicagoCricketBtn")
+            await close_cricket_leg(page)
+        elif kind in ["301", "501"]:
+            await checkout(page)
+        else:
+            await close_cricket_leg(page)
+        assert await state(page, "game.recording.legComplete")
+        await page.click("#casualSaveResult")
+        await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
+        results = await personal_results(page)
+        assert len(results) == 1 and results[0]["source"] == "casual"
+        assert results[0]["participantIds"] == ["u1"]
+        assert sum(s["darts"] for s in results[0]["perPlayer"]) == (2 if kind == "chicago" else 1)
+    print("PASS six casual games through real platform, single-slot UID selection, guest exclusion")
+
+    await casual_fixture(page, base, teams=[2, 3], links=["u1", "u2", "u3", "u4", "u5"])
+    assert await state(page, "game.teams.map(t=>t.members.length)") == [2, 3]
+    for _ in range(6):
+        await score(page, 9, 3)
+    assert await state(page, "game.scoringRecords.legs[0].turns.map(t=>t.playerId)") == ["u1", "u3", "u2", "u4", "u1", "u5"]
+    await page.evaluate("(async()=>{const s=await import('./js/state.js');s.undoLastAction();s.redoLastAction();})()")
+    await page.reload()
+    await page.click("#resumeGameBtn")
+    assert await state(page, "game.scoringRecords.legs[0].turns.at(-1).playerId") == "u5"
+    await checkout(page)
+    await page.evaluate("changeTestUser({uid:'u4',emailVerified:true,isAnonymous:false})")
+    await page.click("#casualSaveResult")
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('original verified scorekeeper')")
+    pending_id = await state(page, "game.recording.resultId")
+    await page.evaluate("changeTestUser({uid:'owner',emailVerified:true,isAnonymous:false});localStorage.__offline='1'")
+    await page.click("#casualSaveResult")
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Not saved')")
+    await page.click("#newGameBtn")
+    await page.uncheck("#recordCasualStats")
+    await page.uncheck("#teamMode")
+    await page.click("#startGameBtn")
+    assert await state(page, "game.recording") is None
+    await page.reload()
+    await page.click("#casualLocalHistory summary")
+    await page.click(f"#casualResume-{pending_id}")
+    assert await state(page, "game.recording.resultId") == pending_id
+    await page.evaluate("localStorage.__offline='0';localStorage.__lostReply='1'")
+    await page.click("#casualSaveResult")
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Not saved')")
+    await page.evaluate("localStorage.__lostReply='0'")
+    await page.click("#casualSaveResult")
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
+    for uid in ["u1", "u2", "u3", "u4", "u5"]:
+        results = await personal_results(page, uid)
+        assert len(results) == 1 and len(results[0]["participantIds"]) == 5
+    assert await page.evaluate("Object.keys(JSON.parse(localStorage.__documents)).filter(k=>k.startsWith('blakeoutDevCasualResults/')).length") == 1
+    print("PASS five-human team rotation, identity undo/reload, wrong account, offline recovery and duplicate save")
+
+    await casual_fixture(page, base, "301", players=4, links=["owner", "u2", "", "u4"])
+    for _ in range(4):
+        await score(page, 9, 3)
+    assert await state(page, "game.scoringRecords.legs[0].turns.map(t=>t.playerId)") == ["owner", "u2", None, "u4"]
+    await checkout(page, 1)
+    second_side = await state(page, "game.recording.teams[1].id")
+    assert await state(page, "game.recording.winnerIndex") == 1
+    assert await state(page, "game.scoringRecords.legs[0].winnerId") == second_side
+    await page.evaluate("localStorage.__slowProfiles='1'")
+    await page.click("#casualSaveResult")
+    await page.wait_for_function("typeof globalThis.releaseProfiles==='function'")
+    assert await page.locator("#playAgainBtn").is_disabled()
+    assert await page.locator("#newGameBtn").is_disabled()
+    saving_id = await state(page, "game.recording.resultId")
+    await page.evaluate("(async()=>(await import('./js/setup.js')).playAgain())()")
+    assert await state(page, "game.recording.resultId") == saving_id
+    await page.evaluate("localStorage.__slowProfiles='0';globalThis.releaseProfiles()")
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
+    second_winner_result = (await personal_results(page, "owner"))[0]
+    assert second_winner_result["participantIds"] == ["owner", "u2", "u4"]
+    assert second_winner_result["winnerId"] == second_side
+    assert second_winner_result["records"]["winnerIds"] == [second_side]
+    assert second_winner_result["legScores"][0]["winnerId"] == second_side
+    print("PASS four singles, scorekeeper also playing and in-flight save protects the current game")
+
+    await casual_fixture(page, base, "301", players=1)
+    await checkout(page)
+    await page.click("#casualSaveResult")
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
+    assert len((await personal_results(page))[0]["records"]["winnerIds"]) == 1
+
+    await casual_fixture(page, base, "chicago", players=3, links=["u1", "u2", "u3"])
+    await page.click("#chicago301Btn")
+    await checkout(page, 0)
+    await page.click("#chicagoContinueBtn")
+    await page.click("#chicago501Btn")
+    await checkout(page, 1)
+    await page.reload()
+    await page.click("#resumeGameBtn")
+    await page.click("#chicagoContinueBtn")
+    await page.click("#chicagoCricketBtn")
+    await close_cricket_leg(page, 2)
+    assert await state(page, "game.recording.legWins") == [1, 1, 1]
+    tied_sides = await state(page, "game.recording.teams.map(t=>t.id)")
+    await page.click("#casualSaveResult")
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
+    result = (await personal_results(page))[0]
+    assert result["winnerId"] is None and result["records"]["winnerIds"] == tied_sides
+    assert [leg["winnerId"] for leg in result["legScores"]] == tied_sides
+    assert [leg["gameType"] for leg in result["legScores"]] == ["301", "501", "cricket"]
+    print("PASS solo recording and three-player Chicago tied series with inter-leg resume")
+
+    await casual_fixture(page, base, links=["u1", "u1"], start=False)
+    await page.click("#casualLinkStart")
+    await page.wait_for_function("document.getElementById('casualLinkStatus').textContent.includes('only one human slot')")
+    assert await state(page, "game.recording") is None
+    await page.select_option("#casualLink1", "u2")
+    await page.evaluate("changeTestUser({uid:'u4',emailVerified:true,isAnonymous:false})")
+    await page.click("#casualLinkStart")
+    await page.wait_for_function("document.getElementById('casualLinkStatus').textContent.includes('current verified scorekeeper')")
+    await page.evaluate("""()=>{
+      changeTestUser({uid:'owner',emailVerified:true,isAnonymous:false});
+      const docs=JSON.parse(localStorage.__documents);delete docs['blakeoutDevProfiles/u2'];localStorage.__documents=JSON.stringify(docs);
+    }""")
+    await page.click("#casualLinkStart")
+    await page.wait_for_function("document.getElementById('casualLinkStatus').textContent.includes('no longer available')")
+    await page.evaluate("localStorage.__slowProfiles='1'")
+    await page.click("#casualLinkReload")
+    await page.click("#casualLinkSkip")
+    assert await state(page, "game.recording") is None
+    assert await state(page, "game.players.length") == 2
+    await page.evaluate("localStorage.__slowProfiles='0';globalThis.releaseProfiles?.()")
+    print("PASS duplicate UID, changed scorekeeper, authoritative missing profile and nonblocking ordinary play")
+
+    await page.goto(base + "/dev/")
+    await page.evaluate("localStorage.clear();localStorage.__offline='1'")
+    await page.reload()
+    await page.select_option("#gameType", "901")
+    await page.check("#recordCasualStats")
+    assert "not recorded" in await page.locator("#casualRecordingHint").inner_text()
+    await page.click("#startGameBtn")
+    assert await state(page, "game.recording") is None
+    assert await state(page, "game.players[0].score") == 901
+    print("PASS unsupported games remain playable unrecorded offline")
+    await page.evaluate("(async()=>(await import('./js/setup.js')).showSetup())()")
+    await page.select_option("#gameType", "301")
+    await page.uncheck("#recordCasualStats")
+    await page.click("#startGameBtn")
+    await score(page, 9)
+    assert await state(page, "game.players[0].score") == 292
+    assert await state(page, "game.recording") is None
+    print("PASS supported ordinary game stays offline without darts/identity requirements")
+
+
+async def minnesota_cases(page, base):
+    for casual in [False, True]:
+        if casual:
+            await casual_fixture(page, base, "minnesota")
+        else:
+            await fixture(page, base, "minnesota", 3)
+        await page.evaluate("""async()=>{
+          const c=await import('./js/cricket.js');c.hitTarget('Bed',1);c.cricketConfirm();
+        }""")
+        first = await state(page, "game.scoringRecords.legs[0].turns[0]")
+        assert first["darts"] == 3 and first["marks"] == 1
+        await page.evaluate("""async()=>{
+          const s=await import('./js/state.js');s.undoLastAction();
+          if(s.game.scoringRecords.legs[0].turns.length)throw Error('Bed undo retained statistics');
+          s.redoLastAction();
+        }""")
+        await page.evaluate("""async()=>{
+          const {game}=await import('./js/state.js');game.currentPlayer=0;
+          game.players[0].cricketData.Triples.marks=3;game.players[0].cricketData.Triples.closed=true;
+          (await import('./js/cricket.js')).hitTarget('Triples',1);
+        }""")
+        await page.click("[data-keypad='6']")
+        await page.click("[data-keypad='0']")
+        await page.reload()
+        if casual:
+            await page.click("#resumeGameBtn")
+        await page.wait_for_selector("#scoreKeypadModal", state="visible")
+        assert await page.locator("#keypadDisplay").inner_text() == "60"
+        await page.click("[data-keypad='OK']")
+        await page.click("#tournamentMissDart")
+        await page.click("#tournamentMissDart")
+        await page.click("#enterBtn")
+        turn = await state(page, "game.scoringRecords.legs[0].turns.at(-1)")
+        assert (turn["points"], turn["darts"], turn["marks"]) == (60, 3, 1)
+        await page.evaluate("""async()=>{
+          const {game}=await import('./js/state.js');game.currentPlayer=0;
+          game.players[0].cricketData.Bed.marks=3;game.players[0].cricketData.Bed.closed=true;
+          (await import('./js/cricket.js')).hitTarget('Bed',1);
+        }""")
+        await page.click("[data-keypad='8']")
+        await page.click("[data-keypad='0']")
+        await page.click("[data-keypad='OK']")
+        await page.click("#enterBtn")
+        turn = await state(page, "game.scoringRecords.legs[0].turns.at(-1)")
+        assert (turn["points"], turn["darts"], turn["marks"]) == (80, 3, 1)
+        await close_cricket_leg(page)
+        if not casual:
+            await page.click("#tournamentNextLeg")
+            await close_cricket_leg(page)
+        await page.click("#casualSaveResult" if casual else "#tournamentSaveResult")
+        await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.toLowerCase().includes('result saved')")
+        result = (await personal_results(page))[0]
+        assert result["perPlayer"][0]["gameType"] == "minnesota"
+    print("PASS Minnesota tournament/casual Bed darts, special scoring marks, keypad persistence and result save")
+
+
 async def tablet_layouts(page, base):
     shots = ROOT / "Screenshots/tournament-tablets"
     if os.environ.get("SCORING_SCREENSHOTS"):
         shots.mkdir(parents=True, exist_ok=True)
     for width, height in [(800, 600), (600, 800)]:
         await page.set_viewport_size({"width": width, "height": height})
-        for kind, leg_type in [("301", None), ("cricket", None), ("chicago", "301"), ("chicago", "cricket")]:
+        for kind, leg_type in [("301", None), ("cricket", None), ("minnesota", None), ("chicago", "301"), ("chicago", "cricket")]:
             await fixture(page, base, kind)
             skin = os.environ.get("SCORING_TABLET_SKIN", "modern")
             await page.evaluate("async skin=>(await import('./js/settings.js')).applyScoreSkin(skin)", skin)
             if leg_type:
                 await page.click("#chicago301Btn" if leg_type == "301" else "#chicagoCricketBtn")
-            cricket = (leg_type or kind) == "cricket"
+            cricket = (leg_type or kind) in ["cricket", "minnesota"]
             assert await page.locator("#tournamentActualDarts").is_visible() == (not cricket)
             assert await page.locator("#tournamentMissDart").is_visible() == cricket
             await page.click("#tournamentHelp")
@@ -314,25 +606,70 @@ async def tablet_layouts(page, base):
                 await page.locator(".x01-num-btn[data-digit='0']").click()
             if os.environ.get("SCORING_SCREENSHOTS"):
                 await page.screenshot(path=str(shots / f"{kind}-{leg_type or kind}-{width}x{height}-{skin}.png"))
-            metrics = await page.evaluate("""cricket=>{
+            metrics = await page.evaluate("""({cricket,minnesota})=>{
               const screen=document.getElementById('gameScreen');
               const selectors=cricket
-                ? '#scoreHeader,#menuBtn,#tournamentHelp,#tournamentScoringControls,#cricketControls,#enterBtn,#tournamentMissDart,.cricket-num-btn,.cricket-dt-btn:not(.fake-spacer)'
+                ? '#scoreHeader,#menuBtn,#tournamentHelp,#tournamentScoringControls,#cricketControls,#enterBtn,#tournamentMissDart'+
+                  (minnesota?'':',.cricket-num-btn,.cricket-dt-btn:not(.fake-spacer)')
                 : '#scoreHeader,#menuBtn,#tournamentHelp,#tournamentScoringControls,#x01Controls,#inputDisplay,#tournamentActualDarts,#x01EnterBtn,.x01-num-btn,.x01-quick-btn';
               return {overflow:screen.scrollHeight-screen.clientHeight,
                 elements:[...document.querySelectorAll(selectors)].filter(el=>el.getClientRects().length)
                   .map(el=>{const r=el.getBoundingClientRect();const hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
                     return {id:el.id||el.className,top:r.top,bottom:r.bottom,width:r.width,height:r.height,
                       interactive:el.matches('button,select'),hit:hit===el||el.contains(hit)};})};
-            }""", cricket)
+            }""", {"cricket": cricket, "minnesota": kind == "minnesota"})
             assert metrics["overflow"] <= 1, (width, height, kind, metrics)
             for item in metrics["elements"]:
                 assert item["top"] >= 0 and item["bottom"] <= height + 1, (width, height, kind, item)
                 if item["interactive"]:
                     assert item["width"] >= 44 and item["height"] >= 44 and item["hit"], (width, height, kind, item)
+            if kind == "minnesota":
+                for target in ["Triples", "Doubles", "Bed"]:
+                    control = page.locator(f".cricket-num-btn[data-target='{target}']")
+                    await control.scroll_into_view_if_needed()
+                    assert await control.evaluate("""el=>{
+                      const r=el.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+                      return r.width>=44&&r.height>=44&&(hit===el||el.contains(hit));
+                    }""")
             await page.click("#enterBtn" if cricket else "#x01EnterBtn")
             assert await state(page, "game.scoringRecords.legs[0].turns.length") == 1
             print(f"PASS tablet {kind}/{leg_type or kind} {width}x{height}")
+        for kind in ["301", "cricket", "minnesota"]:
+            await casual_fixture(page, base, kind, players=4 if kind != "minnesota" else 2,
+                                 teams=[2, 3] if kind == "minnesota" else None,
+                                 start=False)
+            assert await page.locator("#casualLinkStart").evaluate("""el=>{
+              const r=el.getBoundingClientRect();
+              return r.top>=0&&r.bottom<=innerHeight&&r.height>=44;
+            }""")
+            if os.environ.get("SCORING_SCREENSHOTS"):
+                await page.screenshot(path=str(shots / f"casual-link-{kind}-{width}x{height}.png"))
+            await page.click("#casualLinkStart")
+            await page.wait_for_function("document.getElementById('casualLinkModal').style.display==='none'")
+            skin = os.environ.get("SCORING_TABLET_SKIN", "modern")
+            await page.evaluate("async skin=>(await import('./js/settings.js')).applyScoreSkin(skin)", skin)
+            assert await page.evaluate("""cricket=>{
+              const screen=document.getElementById('gameScreen');
+              const selectors='#scoreHeader,#menuBtn,#tournamentScoringControls,'+
+                (cricket?'#cricketControls,#enterBtn':'#x01Controls,#x01EnterBtn,#inputDisplay,.x01-num-btn,.x01-quick-btn');
+              return screen.scrollHeight<=screen.clientHeight+1 &&
+                [...document.querySelectorAll(selectors)].every(el=>{
+                  if(!el.getClientRects().length)return true;
+                  const r=el.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+                  return r.top>=0&&r.bottom<=innerHeight+1&&(!el.matches('button')||
+                    (r.width>=44&&r.height>=44&&(hit===el||el.contains(hit))));
+                });
+            }""", kind != "301")
+            if os.environ.get("SCORING_SCREENSHOTS"):
+                await page.screenshot(path=str(shots / f"casual-{kind}-{width}x{height}-{skin}.png"))
+            if kind == "301":
+                await checkout(page)
+                await page.locator("#casualSaveResult").scroll_into_view_if_needed()
+                assert await page.locator("#playAgainBtn").is_visible()
+                assert await page.locator("#newGameBtn").is_visible()
+                if os.environ.get("SCORING_SCREENSHOTS"):
+                    await page.screenshot(path=str(shots / f"casual-winner-{width}x{height}-{skin}.png"))
+            print(f"PASS casual tablet {kind} and linking/result UI {width}x{height}")
     await page.set_viewport_size({"width": 1000, "height": 1400})
 
 
@@ -376,6 +713,17 @@ async def run():
             page.on("pageerror", lambda e: (errors.append(str(e)), print("BROWSER ERROR:", e)))
             cancel_ordinary = False
             page.on("dialog", lambda dialog: dialog.dismiss() if cancel_ordinary and "ordinary game" in dialog.message else dialog.accept())
+            if os.environ.get("SCORING_CASUAL_ONLY"):
+                await casual_cases(page, base)
+                await minnesota_cases(page, base)
+                assert not errors, errors
+                await browser.close()
+                return
+            if os.environ.get("SCORING_TABLETS_ONLY"):
+                await tablet_layouts(page, base)
+                assert not errors, errors
+                await browser.close()
+                return
             await storage_migration(page, base)
             if os.environ.get("SCORING_STORAGE_ONLY"):
                 assert not errors, errors
@@ -387,10 +735,8 @@ async def run():
                 await browser.close()
                 return
             await tablet_layouts(page, base)
-            if os.environ.get("SCORING_TABLETS_ONLY"):
-                assert not errors, errors
-                await browser.close()
-                return
+            await casual_cases(page, base)
+            await minnesota_cases(page, base)
 
             await fixture(page, base, account="intruder")
             assert "Only the tournament owner" in await page.locator("#tournamentBridgeNotice").inner_text()

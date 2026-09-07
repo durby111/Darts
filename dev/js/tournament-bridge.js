@@ -1,11 +1,12 @@
-import { game, saveActiveGame, loadActiveGame, restoreActiveGame, saveGameState } from './state.js';
+import { game, recordingSession, saveActiveGame, loadActiveGame, restoreActiveGame, saveGameState } from './state.js';
 import { launchTournamentScorer, resumeGame } from './setup.js';
 import { showModal, hideModal } from './ui.js';
 import { updateCricketDisplay } from './cricket.js';
-import { newRecordId, finishScoringLeg, scoringStats, tournamentScoringLocked } from './scoring-records.js';
+import { newRecordId, finishScoringLeg, scoringResult, tournamentScoringLocked, RECORDING_GAMES, recordingComplete, recordingWinnerIds, pendingDartCount } from './scoring-records.js';
+import { saveCasualResult } from './casual-recording.js';
 
 const LAUNCH_KEY = 'blakeout_dev_match_launch';
-const SUPPORTED = new Set(['chicago', '301', '501', 'cricket', 'spanish']);
+const SUPPORTED = RECORDING_GAMES;
 let saving = false;
 let initialized = false;
 
@@ -117,7 +118,7 @@ export async function launchRequestedMatch() {
 }
 
 function seriesComplete() {
-    return game.tournament && Math.max(...game.tournament.legWins) >= Math.floor(game.tournament.bestOf / 2) + 1;
+    return recordingComplete();
 }
 
 function button(label, id, handler) {
@@ -159,12 +160,9 @@ export async function saveTournamentResult() {
     const session = game.tournament;
     const winnerId = session.teams[session.winnerIndex].id;
     session.pendingResult ||= {
+        ...scoringResult(),
         matchId: session.matchId, gameType: session.gameType, winnerId,
-        scoreA: session.legWins[0], scoreB: session.legWins[1],
-        legScores: game.scoringRecords.legs.map(({ id, gameType, winnerId }) => ({ id, gameType, winnerId })),
-        records: JSON.parse(JSON.stringify(game.scoringRecords)),
-        participantIds: [...new Set(session.teams.flatMap(t => t.members.map(m => m.playerId)).filter(Boolean))],
-        perPlayer: scoringStats(game.scoringRecords)
+        scoreA: session.legWins[0], scoreB: session.legWins[1]
     };
     session.status = 'pending';
     if (!saveActiveGame()) return;
@@ -202,19 +200,21 @@ export async function saveTournamentResult() {
 }
 
 export function renderTournamentControls(message = '') {
-    const session = game.tournament;
+    const session = recordingSession();
+    const casual = session?.source === 'casual';
     const screen = document.getElementById('gameScreen');
     screen.toggleAttribute('data-tournament', !!session);
     let controls = document.getElementById('tournamentScoringControls');
     if (!controls) {
         controls = document.createElement('section');
         controls.id = 'tournamentScoringControls';
-        controls.setAttribute('aria-label', 'Tournament scoring');
+        controls.setAttribute('aria-label', 'Recorded game scoring');
         screen.prepend(controls);
     }
     controls.hidden = !session;
     for (const id of ['playAgainBtn', 'newGameBtn']) {
-        document.getElementById(id).hidden = !!session;
+        document.getElementById(id).hidden = !!session && !casual;
+        document.getElementById(id).disabled = session?.status === 'saving';
     }
     document.getElementById('winnerCancelBtn').hidden = !!session && ['pending', 'saving', 'saved'].includes(session.status);
     let panel = document.getElementById('tournamentResultPanel');
@@ -230,16 +230,18 @@ export function renderTournamentControls(message = '') {
         returnButton = button('Return to tournament brackets', 'tournamentReturn', returnToBrackets);
         document.querySelector('#gameMenuModal h2').after(returnButton);
     }
-    returnButton.hidden = !session;
+    returnButton.hidden = !game.tournament;
     if (!session) return;
     if (session.legComplete) {
-        document.getElementById('winnerName').textContent = `${session.teams[session.winnerIndex].name} wins — ${session.legWins.join(' – ')}`;
+        const winners = recordingWinnerIds();
+        document.getElementById('winnerName').textContent = `${session.teams.filter(t => winners.includes(t.id)).map(t => t.name).join(' & ')} wins — ${session.legWins.join(' – ')}`;
     }
     controls.replaceChildren();
     const effectiveType = game.chicago?.currentGameType || game.type;
     const status = document.createElement('span');
     status.className = 'tournament-series';
-    status.textContent = `Series ${session.legWins.join(' – ')} · best of ${session.bestOf}`;
+    status.textContent = casual ? `Casual stats · ${session.legWins.join(' – ')}` : `Series ${session.legWins.join(' – ')} · best of ${session.bestOf}`;
+    if (effectiveType === 'minnesota') status.textContent += ' · Scroll targets ↕';
     controls.append(status);
     const label = document.createElement('label');
     label.className = 'tournament-darts-label';
@@ -251,13 +253,13 @@ export function renderTournamentControls(message = '') {
     label.append(select);
     const miss = button('Miss dart', 'tournamentMissDart', () => {
         const type = game.chicago?.currentGameType || game.type;
-        if (!['cricket', 'spanish'].includes(type) || tournamentScoringLocked() || game.pendingDarts.length >= 3) return;
+        if (!['cricket', 'spanish', 'minnesota'].includes(type) || tournamentScoringLocked() || pendingDartCount() >= 3) return;
         saveGameState();
         game.pendingDarts.push({ target: 'MISS', multiplier: 0 });
         saveActiveGame();
         updateCricketDisplay();
     });
-    miss.hidden = !['cricket', 'spanish'].includes(effectiveType);
+    miss.hidden = !['cricket', 'spanish', 'minnesota'].includes(effectiveType);
     controls.append(label, miss, button('Help', 'tournamentHelp', () => showModal('tournamentHelpModal')));
     if (!document.getElementById('tournamentHelpModal')) {
         const help = document.createElement('div');
@@ -269,27 +271,28 @@ export function renderTournamentControls(message = '') {
         help.setAttribute('aria-labelledby', 'tournamentHelpTitle');
         const content = document.createElement('div');
         content.className = 'modal-content';
-        content.innerHTML = '<h2 id="tournamentHelpTitle">Tournament scoring</h2>' +
+        content.innerHTML = '<h2 id="tournamentHelpTitle">Recorded scoring</h2>' +
             '<p><strong>301 / 501:</strong> select the actual darts thrown on every turn, including misses and the bust or checkout dart. Follow the selected finish rules.</p>' +
-            '<p><strong>Cricket / Spanish:</strong> enter every dart in order, using Miss dart for individual misses. Press ENTER after three darts or the winning dart. The regular MISS button records a whole three-dart missed turn.</p>' +
-            '<p>Progress stays on this device offline. Guests play without account statistics. Results are sent only after you confirm Save tournament result. Use Menu to return to brackets.</p>';
+            '<p><strong>Cricket / Spanish / Minnesota:</strong> enter every dart in order, using Miss dart for individual misses. A Minnesota Bed uses all three darts and counts as one row mark; a Triple or Double row entry uses one dart. Enter only that dart’s score when prompted. Press ENTER after three darts or the winning dart. The regular MISS button records a whole three-dart missed turn.</p>' +
+            '<p>Progress stays on this device offline. Guests receive no account statistics. Results are sent only with your confirmation. Casual records are declared by a verified scorekeeper, not certified competition results.</p>';
         content.append(button('Back to scoring', 'tournamentHelpClose', () => hideModal('tournamentHelpModal')));
         help.append(content);
         document.body.append(help);
     }
     const text = document.createElement('p');
     text.setAttribute('role', 'status');
-    text.textContent = message || `Series: ${session.legWins.join(' – ')}. ${session.status === 'saved' ? 'Saved.' : 'Not yet sent.'}`;
+    text.textContent = message || `${casual ? 'Scorekeeper-declared casual record.' : 'Series: ' + session.legWins.join(' – ') + '.'} ${session.status === 'saved' ? 'Saved.' : 'Not yet sent.'}`;
     panel.append(text);
-    if (session.legComplete && !seriesComplete() && !game.chicago) {
+    if (!casual && session.legComplete && !seriesComplete() && !game.chicago) {
         panel.append(button('Next leg', 'tournamentNextLeg', nextLeg));
     }
     if (seriesComplete()) {
-        const save = button('Save tournament result', 'tournamentSaveResult', saveTournamentResult);
-        save.disabled = saving || session.status === 'saved';
+        const save = casual ? button('Save casual result', 'casualSaveResult', saveCasualResult) :
+            button('Save tournament result', 'tournamentSaveResult', saveTournamentResult);
+        save.disabled = saving || ['saving', 'saved'].includes(session.status);
         panel.append(save);
     }
-    panel.append(button('Return to brackets', 'tournamentResultReturn', returnToBrackets));
+    if (!casual) panel.append(button('Return to brackets', 'tournamentResultReturn', returnToBrackets));
 }
 
 export function initTournamentBridge() {
@@ -297,17 +300,18 @@ export function initTournamentBridge() {
     initialized = true;
     document.addEventListener('scorerLegWon', event => {
         finishScoringLeg(event.detail.winnerIndex);
-        if (game.tournament) saveActiveGame();
+        if (recordingSession()) saveActiveGame();
     });
     document.addEventListener('scorerWinnerShown', () => renderTournamentControls());
+    document.addEventListener('casualRecordingChanged', event => renderTournamentControls(event.detail?.message || ''));
     document.addEventListener('chicagoLegReady', () => renderTournamentControls());
     document.addEventListener('scorerRestored', () => {
         renderTournamentControls();
-        if (game.tournament?.legComplete && (!game.chicago || seriesComplete())) showModal('winnerModal');
+        if (recordingSession()?.legComplete && (!game.chicago || seriesComplete())) showModal('winnerModal');
         else hideModal('winnerModal');
     });
     document.addEventListener('tournamentStorageError', () => {
-        alert('Local storage is full or unavailable. This tournament cannot be safely saved. Keep this page open and free storage before continuing.');
+        alert('Local storage is full or unavailable. This recorded game cannot be safely saved. Keep this page open and free storage before continuing.');
     });
     if (new URLSearchParams(location.search).get('tournamentMatch') === '1') launchRequestedMatch();
 }

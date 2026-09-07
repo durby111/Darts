@@ -37,8 +37,10 @@ export let game = {
     teamMode: false,
     teams: null,
     tournament: null,
+    recording: null,
     scoringRecords: null,
-    x01Input: null
+    x01Input: null,
+    minnesotaInput: null
 };
 
 // Undo/Redo cooldown
@@ -48,6 +50,10 @@ let redoCooldown = false;
 
 export function deepClone(obj) {
     return JSON.parse(JSON.stringify(obj));
+}
+
+export function recordingSession(state = game) {
+    return state.recording || state.tournament || null;
 }
 
 export function resetGameState(newState) {
@@ -81,8 +87,10 @@ function snapshot() {
         // Snapshot teams so undo rolls back rotationIndex too.
         teams: game.teams ? deepClone(game.teams) : null,
         tournament: game.tournament ? deepClone(game.tournament) : null,
+        recording: game.recording ? deepClone(game.recording) : null,
         scoringRecords: game.scoringRecords ? deepClone(game.scoringRecords) : null,
         x01Input: game.x01Input ? deepClone(game.x01Input) : null,
+        minnesotaInput: game.minnesotaInput ? deepClone(game.minnesotaInput) : null,
         timestamp: Date.now()
     };
 }
@@ -107,8 +115,10 @@ function restore(state) {
     });
     if (state.teams !== undefined) game.teams = state.teams;
     game.tournament = state.tournament || null;
+    game.recording = state.recording || null;
     game.scoringRecords = state.scoringRecords || null;
     game.x01Input = state.x01Input || null;
+    game.minnesotaInput = state.minnesotaInput || null;
 }
 
 export function saveGameState() {
@@ -116,11 +126,11 @@ export function saveGameState() {
     game.redoHistory = [];
 
     // Tournament engines persist after mutation, with this undo entry included.
-    if (!game.tournament) saveActiveGame();
+    if (!recordingSession()) saveActiveGame();
 }
 
 export function undoLastAction(onAfterRestore) {
-    if (game.tournament && ['pending', 'saving', 'saved'].includes(game.tournament.status)) return;
+    if (['pending', 'saving', 'saved'].includes(recordingSession()?.status)) return;
     if (game.undoHistory.length === 0) return;
     game.redoHistory.push(snapshot());
     restore(game.undoHistory.pop());
@@ -130,7 +140,7 @@ export function undoLastAction(onAfterRestore) {
 }
 
 export function redoLastAction(onAfterRestore) {
-    if (game.tournament && ['pending', 'saving', 'saved'].includes(game.tournament.status)) return;
+    if (['pending', 'saving', 'saved'].includes(recordingSession()?.status)) return;
     if (game.redoHistory.length === 0) return;
     game.undoHistory.push(snapshot());
     restore(game.redoHistory.pop());
@@ -234,24 +244,30 @@ export function initCricket(type, includeBulls = false) {
 const ACTIVE_GAME_KEY = 'blakeout_dev_active_game';
 const ACTIVE_GAME_IMPORT_KEY = 'blakeout_dev_active_game_imported';
 const MATCH_RECOVERY_PREFIX = 'blakeout_dev_match_';
+const CASUAL_RECOVERY_PREFIX = 'blakeout_dev_casual_';
+
+function recoveryKey(session) {
+    return (session.source === 'casual' ? CASUAL_RECOVERY_PREFIX : MATCH_RECOVERY_PREFIX) + session.resultId;
+}
 
 function archivePreviousTournament(nextResultId = null) {
     const stored = localStorage.getItem(ACTIVE_GAME_KEY);
     if (!stored) return;
     let previous;
     try { previous = JSON.parse(stored); } catch { return; }
-    const tournament = previous.tournament;
+    const tournament = recordingSession(previous);
     if (tournament?.resultId && tournament.resultId !== nextResultId && tournament.status !== 'saved') {
-        localStorage.setItem(MATCH_RECOVERY_PREFIX + tournament.resultId, stored);
+        localStorage.setItem(recoveryKey(tournament), stored);
     }
 }
 
 function compactTournamentSnapshot(snapshot) {
-    if (!snapshot.tournament) return snapshot;
-    if (snapshot.tournament.status === 'saved') {
+    const session = recordingSession(snapshot);
+    if (!session) return snapshot;
+    if (session.status === 'saved') {
         snapshot.undoHistory = [];
         snapshot.redoHistory = [];
-        delete snapshot.tournament.pendingResult;
+        delete session.pendingResult;
         snapshot.scoringRecords = snapshot.scoringRecords && {
             id: snapshot.scoringRecords.id,
             legs: snapshot.scoringRecords.legs.map(({ id, gameType, winnerId }) => ({ id, gameType, winnerId, turns: [] }))
@@ -259,12 +275,12 @@ function compactTournamentSnapshot(snapshot) {
         snapshot.players.forEach(player => { player.history = []; });
         return snapshot;
     }
-    if (['pending', 'saving'].includes(snapshot.tournament.status)) {
+    if (['pending', 'saving'].includes(session.status)) {
         // Confirmation already locks undo. The immutable ledger also supplies pendingResult.records.
         snapshot.undoHistory = [];
         snapshot.redoHistory = [];
-        if (snapshot.tournament.pendingResult?.records) {
-            delete snapshot.tournament.pendingResult.records;
+        if (session.pendingResult?.records) {
+            delete session.pendingResult.records;
             snapshot.pendingRecordsFromLedger = true;
         }
         return snapshot;
@@ -304,7 +320,7 @@ function compactTournamentSnapshot(snapshot) {
         return valueIds.get(key);
     };
     const shareContext = history => history.map(entry => {
-        const { players, teams, tournament, ...rest } = entry;
+        const { players, teams, tournament, recording, ...rest } = entry;
         return {
             ...rest,
             playerRefs: players.map(player => {
@@ -312,7 +328,7 @@ function compactTournamentSnapshot(snapshot) {
                 const { cricketData, ...fields } = player;
                 return intern({ ...fields, cricketDataRef: intern(cricketData) });
             }),
-            tournamentContextRef: intern({ teams, tournament })
+            tournamentContextRef: intern({ teams, tournament, recording })
         };
     });
     snapshot.undoHistory = shareContext(snapshot.undoHistory);
@@ -355,8 +371,9 @@ function expandTournamentSnapshot(snapshot) {
             }
         };
     });
-    if (snapshot.pendingRecordsFromLedger && snapshot.tournament?.pendingResult) {
-        snapshot.tournament.pendingResult.records = deepClone(snapshot.scoringRecords);
+    const session = recordingSession(snapshot);
+    if (snapshot.pendingRecordsFromLedger && session?.pendingResult) {
+        session.pendingResult.records = deepClone(snapshot.scoringRecords);
     }
     return {
         ...snapshot,
@@ -365,14 +382,14 @@ function expandTournamentSnapshot(snapshot) {
     };
 }
 
-function pruneSavedRecoveries(confirmedResultId) {
-    localStorage.removeItem(MATCH_RECOVERY_PREFIX + confirmedResultId);
+function pruneSavedRecoveries(session) {
+    localStorage.removeItem(recoveryKey(session));
     const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
     for (const key of keys) {
-        if (!key?.startsWith(MATCH_RECOVERY_PREFIX)) continue;
+        if (!key?.startsWith(MATCH_RECOVERY_PREFIX) && !key?.startsWith(CASUAL_RECOVERY_PREFIX)) continue;
         let saved;
         try { saved = JSON.parse(localStorage.getItem(key)); } catch { continue; }
-        if (saved?.tournament?.status === 'saved') localStorage.removeItem(key);
+        if (recordingSession(saved || {})?.status === 'saved') localStorage.removeItem(key);
     }
 }
 
@@ -404,26 +421,29 @@ export function saveActiveGame() {
         teamMode: game.teamMode || false,
         teams: game.teams ? deepClone(game.teams) : null,
         tournament: game.tournament ? deepClone(game.tournament) : null,
+        recording: game.recording ? deepClone(game.recording) : null,
         scoringRecords: game.scoringRecords ? deepClone(game.scoringRecords) : null,
         x01Input: game.x01Input ? deepClone(game.x01Input) : null,
-        undoHistory: game.tournament ? game.undoHistory : [],
-        redoHistory: game.tournament ? game.redoHistory : [],
+        minnesotaInput: game.minnesotaInput ? deepClone(game.minnesotaInput) : null,
+        undoHistory: recordingSession() ? game.undoHistory : [],
+        redoHistory: recordingSession() ? game.redoHistory : [],
         timestamp: Date.now()
     };
     try {
-        archivePreviousTournament(game.tournament?.resultId);
+        const session = recordingSession();
+        archivePreviousTournament(session?.resultId);
         const stored = JSON.stringify(compactTournamentSnapshot(snapshot));
         localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
         localStorage.setItem(ACTIVE_GAME_KEY, stored);
-        if (game.tournament?.status === 'saved') {
-            pruneSavedRecoveries(game.tournament.resultId);
-        } else if (game.tournament && ['pending', 'saving'].includes(game.tournament.status)) {
-            localStorage.setItem(MATCH_RECOVERY_PREFIX + game.tournament.resultId, stored);
+        if (session?.status === 'saved') {
+            pruneSavedRecoveries(session);
+        } else if (session && ['pending', 'saving'].includes(session.status)) {
+            localStorage.setItem(recoveryKey(session), stored);
         }
         return true;
     } catch (e) {
         console.warn('[BlakeOut] Failed to save game:', e);
-        if (game.tournament) {
+        if (recordingSession()) {
             document.dispatchEvent(new CustomEvent('tournamentStorageError'));
         }
         return false;
@@ -463,6 +483,22 @@ export function clearActiveGame() {
     }
 }
 
+export function localRecordingRecoveries(source = 'casual') {
+    const found = new Map();
+    try {
+        const prefix = source === 'casual' ? CASUAL_RECOVERY_PREFIX : MATCH_RECOVERY_PREFIX;
+        for (const key of Object.keys(localStorage)) {
+            if (!key.startsWith(prefix) && key !== ACTIVE_GAME_KEY) continue;
+            let saved;
+            try { saved = JSON.parse(localStorage.getItem(key)); } catch { continue; }
+            const session = recordingSession(saved || {});
+            if (!session || (session.source || 'tournament') !== source) continue;
+            if (!found.has(session.resultId) || saved.timestamp >= found.get(session.resultId).timestamp) found.set(session.resultId, saved);
+        }
+    } catch { /* The setup panel remains usable without local storage. */ }
+    return [...found.values()].sort((a, b) => b.timestamp - a.timestamp);
+}
+
 export function restoreActiveGame(snapshot) {
     snapshot = expandTournamentSnapshot(snapshot);
     Object.assign(game, {
@@ -494,8 +530,10 @@ export function restoreActiveGame(snapshot) {
         teamMode: snapshot.teamMode || false,
         teams: snapshot.teams || null,
         tournament: snapshot.tournament || null,
+        recording: snapshot.recording || null,
         scoringRecords: snapshot.scoringRecords || null,
-        x01Input: snapshot.x01Input || null
+        x01Input: snapshot.x01Input || null,
+        minnesotaInput: snapshot.minnesotaInput || null
     });
 }
 

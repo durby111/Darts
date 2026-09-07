@@ -71,7 +71,7 @@
         </section>
         <section class="platform-card" id="recordsPanel" hidden>
             <h2>Your recorded matches</h2>
-            <p>These are organizer-recorded tournament results, not independently certified scores. Only matches linked to your verified player ID count here.</p>
+            <p>Includes organizer-recorded tournaments and scorekeeper-recorded casual matches, clearly labeled by source. These are not independently certified scores. Only matches linked to your verified player ID count here; guests are excluded. Minnesota and other Cricket variants use marks per round (MPR).</p>
             <div class="platform-actions">
                 <button id="refreshRecords" type="button">Refresh records</button>
                 <button id="exportRecords" type="button" disabled>Export my records (JSON)</button>
@@ -83,6 +83,9 @@
             <summary>Firebase setup and DEV data</summary>
             <p>This is a separate DEV account system in the existing BlakeOut Firebase project. No third-party analytics or email vendor is used.</p>
             <p>Project administrators must enable Authentication → Sign-in method → Email/Password, authorize the hosting domain, and publish the isolated <code>blakeoutDevProfiles</code>, <code>blakeoutDevTournaments</code>, <code>blakeoutDevRosterPrivate</code>, and <code>blakeoutDevResults</code> rules from <code>firestore.rules</code>. Email link (passwordless sign-in) is optional. These changes are not deployed by this page. Payment, check-in, and standby flags are visible only to the tournament organizer.</p>
+            <p>Immediate self-registration uses separate public <code>blakeoutDevSignups</code> entries and a <code>blakeoutDevSignupState</code> revision index. Players can join with a verified account or enter a guest display name on the tournament page. Guest device authentication is separate from your account, never links a name to an account, and grants no lifetime statistics, bracket, or private-roster privileges. There is no approval queue; check-in and team assignment remain separate event logistics.</p>
+            <p>Each device can self-register one guest per event. The organizer can add more name-only guests on a shared tablet. Guest registration does not sign you out of a verified account.</p>
+            <p>Casual results use <code>blakeoutDevCasualResults</code> with verified-player <code>blakeoutDevCasualReceipts</code>. Interrupted delivery can be retried without rewriting scores. Larger teams are supported: up to 128 verified participants and 384 per-player game counters, with explicit errors rather than truncation. Self-registration allows up to 128 players per event; tournament brackets still support 32 doubles teams.</p>
             <p><code>auth/operation-not-allowed</code> means the selected sign-in method is not enabled. <code>auth/unauthorized-domain</code> means the hosting domain must be authorized. <code>auth/too-many-requests</code> or a quota error means to wait before retrying; do not repeatedly request emails. <code>permission-denied</code> usually means verification is incomplete, DEV rules have not been published, or this account lacks permission. The ordinary scorer remains available.</p>
         </details>
     </main>

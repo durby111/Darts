@@ -3,6 +3,7 @@ import {
     isAccountLink, pendingAccountEmail, signOutAccount, saveProfile, getProfile, listMyResults,
     registerAccount, signInAccount, sendAccountVerification, resetAccountPassword, refreshAccount
 } from './platform.js';
+import { GAME_REGISTRY } from './registry.js';
 
 const $ = id => document.getElementById(id);
 let records = [];
@@ -32,9 +33,11 @@ function renderRecords(uid) {
     $('records').replaceChildren();
     for (const record of records) {
         const item = document.createElement('p');
+        item.style.overflowWrap = 'anywhere';
         const date = typeof record.createdAt === 'number'
             ? new Date(record.createdAt).toLocaleDateString() : '';
-        item.textContent = `${date} · ${record.gameType} · Match ${record.matchId}`;
+        const source = record.source === 'casual' ? 'Casual · scorekeeper-recorded' : 'Tournament · organizer-recorded';
+        item.textContent = `${date} · ${source} · ${record.gameType} · Match ${record.matchId}`;
         $('records').append(item);
         const seenGames = new Set();
         for (const player of record.perPlayer || []) {
@@ -51,12 +54,12 @@ function renderRecords(uid) {
     $('lifetimeSummary').replaceChildren();
     for (const [type, counters] of Object.entries(summary)) {
         const item = document.createElement('p');
-        const cricket = ['cricket', 'spanish'].includes(type);
+        const cricket = ['cricket', 'teamcricket'].includes(GAME_REGISTRY.find(game => game.id === type)?.engine);
         const rate = counters.darts ? ((cricket ? counters.marks * 3 : counters.points) / counters.darts).toFixed(2) : '—';
         item.textContent = `${type}: ${counters.matches} matches · ${counters.darts} actual darts · ${cricket ? counters.marks + ' marks' : counters.points + ' points'} · ${rate} ${cricket ? 'MPR' : 'PPD'}`;
         $('lifetimeSummary').append(item);
     }
-    if (!records.length) $('records').textContent = 'No recorded tournament matches for this verified player ID yet.';
+    if (!records.length) $('records').textContent = 'No recorded matches for this verified player ID yet.';
     $('exportRecords').disabled = false;
 }
 

@@ -1,0 +1,37 @@
+.casual-recording-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    font-weight: 700;
+}
+.casual-recording-toggle input { width: 24px; height: 24px; }
+#casualRecordingSetup p { margin: 10px 0; line-height: 1.4; }
+#casualLocalHistory summary { min-height: 44px; padding-block: 12px; cursor: pointer; }
+#casualLinkModal .modal-content {
+    display: flex;
+    flex-direction: column;
+    max-width: 680px;
+    max-height: 90dvh;
+    overflow: hidden;
+}
+#casualLinkModal h2 { flex: none; font-size: clamp(20px, 3vw, 28px); }
+#casualLinkModal p { flex: none; margin: 8px 0; font-size: 14px; line-height: 1.4; }
+#casualLinkSlots { min-height: 80px; overflow-y: auto; overscroll-behavior: contain; padding-inline: 4px; }
+.casual-link-slot { display: grid; min-width: 0; gap: 6px; margin-block: 12px; }
+.casual-link-slot span { font-weight: 700; overflow-wrap: anywhere; }
+.casual-link-slot select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px;
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+}
+#casualLinkActions { display: grid; flex: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+#casualLinkActions button, .casual-history-row button { min-height: 44px; }
+.casual-history-row { display: flex; gap: 12px; align-items: center; padding-block: 8px; }
+.casual-history-row span { flex: 1; overflow-wrap: anywhere; }
+#casualRecoveryList p { overflow-wrap: anywhere; }

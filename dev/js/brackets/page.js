@@ -3,12 +3,16 @@ import * as engine from './engine.js';
 import { renderDiagram, teamLabel } from './diagram.js';
 
 const $ = id => document.getElementById(id);
-const GAMES = { chicago: 'Chicago', '301': '301', '501': '501', cricket: 'Cricket', spanish: 'Spanish Cricket' };
+const GAMES = { chicago: 'Chicago', '301': '301', '501': '501', cricket: 'Cricket', spanish: 'Spanish Cricket', minnesota: 'Minnesota Cricket' };
 let current = null, draft = [], profiles = [], rosterDirty = false, resultDirty = false;
 let selectedMatch = null, busy = false, refreshing = false, previewTimer;
 let list = [], diagramState = null;
 let renderedAccount = null;
 let needsAccountReload = false;
+let ownProfile = null, ownProfileState = 'loading', ownProfileError = '';
+let latestCloud = null;
+let profileRequest = 0;
+const guestReceipts = new Map();
 
 const verified = () => {
     const user = platform.getAccount();
@@ -62,6 +66,70 @@ function controls() {
     const eligible = current && owner() && current.status === 'registration' && !engine.readiness(current).length;
     $('startTournament').disabled = busy || needsAccountReload || dirty() || !eligible;
     $('saveRoster').disabled = busy || needsAccountReload || !rosterDirty;
+    joinUI();
+}
+
+function joinUI() {
+    if (!current) return;
+    const tournament = latestCloud?.id === current.id ? latestCloud : current;
+    const joined = verified() && tournament.registrations.some(entry => entry.playerId === platform.getAccount().uid);
+    const closed = tournament.status !== 'registration';
+    $('joinTournament').textContent = joined ? 'Already registered' : closed ? 'Registration closed' : 'Join tournament';
+    $('joinTournament').disabled = busy || needsAccountReload || !verified() || joined || closed || ownProfileState !== 'ready';
+    $('joinProfileLink').hidden = !!joined || closed || (!!verified() && ownProfileState === 'ready');
+    $('refreshJoinProfile').hidden = !verified() || !!joined || closed || !['missing', 'error'].includes(ownProfileState);
+    $('refreshJoinProfile').disabled = busy;
+    const guestId = guestReceipts.get(tournament.id);
+    const guest = guestId && tournament.registrations.find(entry => entry.id === guestId && entry.playerId === null);
+    $('guestJoinControls').disabled = busy || needsAccountReload || closed || !!guest;
+    $('joinGuest').textContent = guest ? 'Guest already registered' : closed ? 'Registration closed' : 'Join as tournament-only guest';
+    $('guestJoinHelp').textContent = guest
+        ? `${guest.name} is confirmed in the cloud as a tournament-only guest. No lifetime statistics will be linked to this entry.`
+        : closed ? 'Guest registration is closed.'
+            : 'Your guest name appears in the public roster immediately after the server confirms registration. Repeating a request on this device does not create another entry.';
+    $('joinHelp').textContent = joined
+        ? (closed ? 'You are registered. Registration is now closed.' : 'Your registration is confirmed in the cloud. The organizer will assign your team.')
+        : closed ? 'New registrations are closed because the tournament has started or finished.'
+            : !verified() ? 'Sign in and verify your account at Players & Records to join with your own player identity.'
+                : ownProfileState === 'loading' ? 'Checking your public player profile…'
+                    : ownProfileState === 'missing' ? 'Create your public player profile at Players & Records, then refresh your profile here.'
+                        : ownProfileState === 'error' ? `Your profile could not be loaded: ${ownProfileError}. Retry before joining.`
+                            : `Join immediately as ${ownProfile.name}. No organizer approval is required. Use the guest form instead only if you do not want this entry linked to your verified player profile.`;
+}
+
+async function loadOwnProfile() {
+    const request = ++profileRequest;
+    const userId = verified() ? platform.getAccount().uid : null;
+    ownProfile = null;
+    ownProfileError = '';
+    ownProfileState = userId ? 'loading' : 'missing';
+    joinUI();
+    if (!userId) return;
+    try {
+        const profile = await platform.getProfile();
+        if (request !== profileRequest || !verified() || platform.getAccount().uid !== userId) return;
+        ownProfile = profile;
+        ownProfileState = profile ? 'ready' : 'missing';
+    } catch (error) {
+        if (request !== profileRequest || !verified() || platform.getAccount().uid !== userId) return;
+        ownProfileState = 'error';
+        ownProfileError = error.message;
+    }
+    joinUI();
+}
+
+function publicRoster(tournament) {
+    $('publicRosterHeading').textContent = `Registered players · ${tournament.registrations.length}`;
+    $('publicRoster').replaceChildren();
+    for (const entry of tournament.registrations) $('publicRoster').append(textElement('li', entry.name));
+    $('publicTeams').replaceChildren();
+    for (const team of tournament.teams) $('publicTeams').append(textElement('span', teamLabel(tournament, team.id)));
+}
+
+function observeCloud(tournament) {
+    latestCloud = tournament;
+    publicRoster(tournament);
+    joinUI();
 }
 
 async function action(operation) {
@@ -197,6 +265,7 @@ function renderList() {
 function accept(tournament) {
     needsAccountReload = false;
     current = tournament;
+    latestCloud = tournament;
     draft = structuredClone(tournament.registrations);
     rosterDirty = false;
     resultDirty = false;
@@ -216,9 +285,8 @@ function renderTournament() {
     $('spectatorNote').hidden = !!owner();
     $('lockedNote').hidden = current.status === 'registration';
     $('resultPanel').hidden = true;
-    $('publicTeams').replaceChildren();
     // Do not render organizer flags or account IDs into spectator markup.
-    for (const team of current.teams) $('publicTeams').append(textElement('span', teamLabel(current, team.id)));
+    publicRoster(current);
     $('champion').hidden = current.status !== 'complete';
     if (current.status === 'complete') {
         const final = current.matches.find(m => m.code === 'GF2' && m.status === 'complete') || current.matches.find(m => m.code === 'GF1');
@@ -257,6 +325,7 @@ export async function refreshSelected({ discard = false } = {}) {
             // A read started before a successful write can finish after that write.
             if (next.revision < current.revision) return;
             if (dirty() && !discard) {
+                observeCloud(next);
                 notice(next.revision !== current.revision
                     ? 'Newer cloud changes are available. Your unsaved edits are preserved. Discard & reload before editing the newer revision.'
                     : 'Unsaved edits preserved; cloud refresh did not replace your form.');
@@ -403,7 +472,49 @@ $('launchScorer').addEventListener('click', () => action(async () => {
     resultDirty = false;
     location.assign(new URL('../?tournamentMatch=1', location.href).href);
 }));
-$('refresh').addEventListener('click', () => refreshSelected());
+$('joinTournament').addEventListener('click', () => action(async () => {
+    const user = platform.requireVerifiedAccount();
+    const selectedId = current.id;
+    if (current.status !== 'registration') throw new Error('Registration is closed.');
+    if (ownProfileState !== 'ready') throw new Error('Create your public player profile before joining.');
+    const saved = await platform.joinTournament(selectedId);
+    if (!verified() || platform.getAccount().uid !== user.uid || current?.id !== selectedId) {
+        throw new Error('The active account changed. Reload to see the current registration.');
+    }
+    if (!saved.registrations.some(entry => entry.playerId === user.uid)) {
+        throw new Error('The server did not confirm your registration. Refresh before retrying.');
+    }
+    if (dirty()) {
+        observeCloud(saved);
+        notice('Registration confirmed in cloud. Your unsaved organizer edits are preserved; discard & reload before saving against the new roster.');
+    } else {
+        accept(saved);
+        notice('You are registered! Your name is immediately visible to the organizer and other players.');
+    }
+}));
+$('guestJoinForm').addEventListener('submit', event => {
+    event.preventDefault();
+    action(async () => {
+        const tournamentId = current.id;
+        if (current.status !== 'registration') throw new Error('Registration is closed.');
+        const name = publicLabel($('guestJoinName').value, 'Guest name');
+        const { tournament, registrationId } = await platform.joinTournamentAsGuest(tournamentId, name);
+        if (current?.id !== tournamentId || tournament?.id !== tournamentId) throw new Error('Reload this tournament to confirm the guest registration.');
+        const entry = tournament.registrations.find(item => item.id === registrationId && item.playerId === null);
+        if (!entry) throw new Error('The server did not confirm this device’s guest entry. Refresh before retrying.');
+        guestReceipts.set(tournamentId, registrationId);
+        if (dirty()) {
+            observeCloud(tournament);
+            notice('Guest registration confirmed in cloud. Your unsaved organizer edits are preserved; discard & reload before saving against the new roster.');
+        } else {
+            accept(tournament);
+            notice('Guest registration confirmed! Your name is publicly visible. This tournament-only entry has no lifetime statistics.');
+        }
+        $('guestJoinName').value = entry.name;
+    });
+});
+$('refreshJoinProfile').addEventListener('click', loadOwnProfile);
+$('refresh').addEventListener('click', () => { refreshSelected(); loadOwnProfile(); });
 $('discard').addEventListener('click', () => {
     if (confirm('Discard your unsaved edits and reload from cloud?')) refreshSelected({ discard: true });
 });
@@ -433,7 +544,7 @@ async function boot() {
             refreshSelected({ discard: true });
         }
         renderedAccount = accountId;
-        if (accountChanged && !busy) loadProfiles();
+        if (accountChanged && !busy) { loadProfiles(); loadOwnProfile(); }
         if (!accountId) { profiles = []; renderProfiles(); }
         controls();
     });
@@ -449,7 +560,7 @@ async function boot() {
             accept(tournament);
         }
         notice('Cloud connected. Choose a tournament or create one. Live view refreshes every 8 seconds.');
-        await loadProfiles();
+        await Promise.all([loadProfiles(), loadOwnProfile()]);
     } catch (error) { notice(`Cloud unavailable: ${error.message}. Nothing has been saved offline. Scoring remains available from the navigation.`, true); }
     busy = false;
     controls();

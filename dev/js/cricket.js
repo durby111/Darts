@@ -3,10 +3,10 @@
    Standard Cricket, Spanish Cricket, Minnesota Cricket
    ============================================ */
 
-import { game, createCricketTargetState, saveGameState, saveActiveGame, undoWithCooldown } from './state.js';
+import { game, recordingSession, createCricketTargetState, saveGameState, saveActiveGame, undoWithCooldown } from './state.js';
 import { getMarkSymbol, updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner } from './ui.js';
 import { currentThrower, advanceRotation } from './teams.js';
-import { recordTurn, tournamentScoringLocked } from './scoring-records.js';
+import { recordTurn, tournamentScoringLocked, pendingDartCount } from './scoring-records.js';
 
 function activeThrowerName() {
     if (!game.teamMode) return null;
@@ -398,7 +398,7 @@ export function updateCricketDisplay() {
 export function hitTarget(target, multiplier) {
     if (tournamentScoringLocked()) return;
     // Max 3 pending darts
-    if (game.pendingDarts.length >= 3) return;
+    if (pendingDartCount() >= 3) return;
 
     const specialTargets = ['Triples', 'Doubles', 'Bed'];
     const isSpecial = specialTargets.includes(target);
@@ -435,7 +435,7 @@ export function hitTarget(target, multiplier) {
             return p.cricketData[target].closed;
         });
 
-        if (playerClosed && !allOpponentsClosed) {
+        if (playerClosed && !allOpponentsClosed && (!recordingSession() || game.cricketPoints)) {
             // Dispatch custom event to show score keypad
             const event = new CustomEvent('showScoreKeypad', {
                 detail: { target, multiplier }
@@ -459,8 +459,8 @@ export function hitTarget(target, multiplier) {
 export function cricketConfirm() {
     if (tournamentScoringLocked()) return;
     if (game.pendingDarts.length === 0) return;
-    const originalPlayers = game.tournament ? JSON.parse(JSON.stringify(game.players)) : null;
-    if (game.tournament) saveGameState();
+    const originalPlayers = recordingSession() ? JSON.parse(JSON.stringify(game.players)) : null;
+    if (recordingSession()) saveGameState();
 
     startCooldown();
 
@@ -483,7 +483,7 @@ export function cricketConfirm() {
 
     // Process all pending darts
     for (const dart of game.pendingDarts) {
-        actualDarts++;
+        actualDarts += dart.target === 'Bed' ? 3 : 1;
         if (dart.target === 'MISS') continue;
         const target = dart.target;
         const multiplier = dart.multiplier;
@@ -494,7 +494,8 @@ export function cricketConfirm() {
 
         if (dart.specialScore !== undefined) {
             // Special score from Minnesota keypad
-            player.score += dart.specialScore;
+            if (!recordingSession() || (game.cricketPoints && game.players.some((p, i) =>
+                i !== game.currentPlayer && !p.cricketData[target].closed))) player.score += dart.specialScore;
             cricketData.marks = Math.min(cricketData.marks + 1, maxMarks);
         } else {
             const newMarks = marksBefore + multiplier;
@@ -538,7 +539,8 @@ export function cricketConfirm() {
         }
         const faceValue = target === 'Bull' ? 25 : Number(target);
         scoringMarks += Math.max(0, cricketData.marks - marksBefore) +
-            (faceValue > 0 ? Math.max(0, player.score - scoreBefore) / faceValue : 0);
+            (faceValue > 0 ? Math.max(0, player.score - scoreBefore) / faceValue :
+                (dart.specialScore > 0 && player.score > scoreBefore ? 1 : 0));
 
         // Track marks for grey indicators
         if (!lastTurnMarks[target]) lastTurnMarks[target] = 0;
@@ -550,7 +552,7 @@ export function cricketConfirm() {
                 isBlakeout = true;
             }
         }
-        if (game.tournament && game.cricketTargets.every(t => player.cricketData[t].closed) &&
+        if (recordingSession() && game.cricketTargets.every(t => player.cricketData[t].closed) &&
             game.players.every(p => !game.cricketPoints || player.score >= p.score)) {
             isBlakeout = target === 'Bull' && multiplier === 2;
             break;
@@ -561,7 +563,7 @@ export function cricketConfirm() {
     player.throws++;
     let turnMarks = 0;
     Object.values(lastTurnMarks).forEach(v => { turnMarks += v; });
-    player.totalMarks += game.tournament ? scoringMarks : turnMarks;
+    player.totalMarks += recordingSession() ? scoringMarks : turnMarks;
 
     // Check win: all targets closed AND score >= all opponents' scores (if cricketPoints)
     const allTargetsClosed = game.cricketTargets.every(t => player.cricketData[t].closed);
@@ -583,10 +585,10 @@ export function cricketConfirm() {
             return;
         }
     }
-    if (game.tournament && actualDarts < 3) {
+    if (recordingSession() && actualDarts < 3) {
         game.players = originalPlayers;
         game.undoHistory.pop();
-        alert('Tournament Cricket records every dart. Add remaining hits or use Miss dart before ENTER (unless this dart wins).');
+        alert('Recorded Cricket counts every dart. Add remaining hits or use Miss dart before ENTER (unless this dart wins). A Bed uses three darts.');
         clearCooldown();
         updateCricketDisplay();
         return;
@@ -623,7 +625,7 @@ export function cricketConfirm() {
 
 export function cricketMiss() {
     if (tournamentScoringLocked()) return;
-    if (game.tournament && game.pendingDarts.length) return;
+    if (recordingSession() && game.pendingDarts.length) return;
     const missBtn = document.getElementById('missBtn');
     if (missBtn && missBtn.disabled) return;
 

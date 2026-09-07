@@ -2756,6 +2756,26 @@ async def test_round_badge_all_engines(page):
     return {"round_badges": "verified"}
 
 
+async def test_casual_history_failure(page):
+    await fresh(page)
+    await start_game(page, "301")
+    result = await page.evaluate("""async () => {
+        const { renderCasualHistory } = await import('./js/casual-recording.js');
+        const before = localStorage.getItem('blakeout_dev_active_game');
+        const broken = '{"not":"a history list"}';
+        localStorage.setItem('blakeout_dev_casual_history', broken);
+        renderCasualHistory();
+        return {
+            warning: document.querySelector('#casualRecoveryList [role="alert"]')?.textContent,
+            historyPreserved: localStorage.getItem('blakeout_dev_casual_history') === broken,
+            gamePreserved: localStorage.getItem('blakeout_dev_active_game') === before
+        };
+    }""")
+    assert "could not be read" in result["warning"]
+    assert result["historyPreserved"] and result["gamePreserved"]
+    return {"history_errors": "surfaced without overwriting saved data"}
+
+
 async def test_winner_screen(page):
     await fresh(page)
     await page.evaluate("""async () => {

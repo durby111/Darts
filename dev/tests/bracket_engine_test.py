@@ -283,7 +283,7 @@ async def test_sizes_and_finals(page):
 
 async def test_scores(page):
     return await page.evaluate("""() => {
-        for (const gameType of ['chicago', '301', '501', 'cricket', 'spanish']) {
+        for (const gameType of ['chicago', '301', '501', 'cricket', 'spanish', 'minnesota']) {
             for (const bestOf of [1, 3, 5, 7]) {
                 const t = engine.startTournament(freeze(fixture(2, true, gameType, bestOf)));
                 equal(t.bestOf, gameType === 'chicago' ? 3 : bestOf);
@@ -296,7 +296,7 @@ async def test_scores(page):
                 equal(match(t, m.code).winnerId, null, 'No input mutation');
             }
         }
-        rejects(() => fixture(2, true, 'minnesota'), 'Unsupported');
+        rejects(() => fixture(2, true, 'baseball'), 'Unsupported');
         for (const bestOf of [0, -1, 2, 2.5, '3', NaN, Infinity]) {
             rejects(() => fixture(2, true, '501', bestOf), 'positive odd');
         }

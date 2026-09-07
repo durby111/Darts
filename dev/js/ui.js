@@ -3,7 +3,7 @@
    Modals, SVG marks, display helpers
    ============================================ */
 
-import { game, canUndo, canRedo } from './state.js';
+import { game, recordingSession, canUndo, canRedo } from './state.js';
 import { currentThrower } from './teams.js';
 
 // --- SVG Mark Symbols ---
@@ -191,7 +191,7 @@ export function hideModal(modalId) {
 }
 
 export function showWinner(name, isBlakeout = false, isChicagoMatchWin = false,
-    winnerIndex = game.tournament ? game.currentPlayer : game.players.findIndex(p => p.name === name)) {
+    winnerIndex = recordingSession() ? game.currentPlayer : game.players.findIndex(p => p.name === name)) {
     if (!isChicagoMatchWin) {
         document.dispatchEvent(new CustomEvent('scorerLegWon', { detail: { winnerIndex } }));
     }

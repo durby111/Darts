@@ -2,7 +2,7 @@
 // Team memberIds refer to registration IDs. Sources are null, {teamId}, or
 // {matchCode, outcome: 'winner'|'loser'}. Only 'complete' matches count as played;
 // 'bye' winners advance without a win/loss. Other statuses: pending, ready, void.
-const GAME_TYPES = new Set(['chicago', '301', '501', 'cricket', 'spanish']);
+const GAME_TYPES = new Set(['chicago', '301', '501', 'cricket', 'spanish', 'minnesota']);
 const clone = value => JSON.parse(JSON.stringify(value));
 const ref = (matchCode, outcome) => ({ matchCode, outcome });
 

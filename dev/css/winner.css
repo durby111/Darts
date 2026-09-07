@@ -118,7 +118,7 @@
     font-weight: 700;
 }
 
-#playAgainBtn, #chicagoContinueBtn, #winnerModal #tournamentSaveResult, #winnerModal #tournamentNextLeg {
+#playAgainBtn, #chicagoContinueBtn, #winnerModal #tournamentSaveResult, #winnerModal #casualSaveResult, #winnerModal #tournamentNextLeg {
     background: var(--color-primary);
     color: var(--color-on-primary);
     border: 1px solid var(--color-primary);

@@ -3,7 +3,7 @@
    Screen routing, display dispatcher, PWA
    ============================================ */
 
-import { game, undoWithCooldown, redoWithCooldown, saveActiveGame, clearActiveGame } from './state.js';
+import { game, recordingSession, undoWithCooldown, redoWithCooldown, saveActiveGame, clearActiveGame } from './state.js';
 import { updateUndoRedoButtons, updatePlayerHeaders, showModal, hideModal } from './ui.js';
 import { updateCricketDisplay, initCricketControls } from './cricket.js';
 import { updateX01Display, initX01Controls, clearInput } from './x01.js';
@@ -20,6 +20,7 @@ import { initTeamCricketControls, updateTeamCricketDisplay } from './teamcricket
 // Side-effect import: applies the saved theme before any UI paints.
 import './theme.js';
 import { initTournamentBridge, renderTournamentControls } from './tournament-bridge.js';
+import { initCasualRecording } from './casual-recording.js';
 
 // --- Safe element helper ---
 function on(id, event, handler) {
@@ -94,12 +95,23 @@ let keypadInput = '';
 let keypadTarget = '';
 
 function initKeypadControls() {
+    const showKeypad = () => {
+        document.getElementById('scoreKeypadTitle').textContent = `Score for ${keypadTarget}${recordingSession() ? (keypadTarget === 'Bed' ? ' (3 darts)' : ' (1 dart)') : ''}`;
+        document.getElementById('keypadDisplay').textContent = keypadInput || '0';
+        showModal('scoreKeypadModal');
+    };
     document.addEventListener('showScoreKeypad', (e) => {
         keypadTarget = e.detail.target;
         keypadInput = '';
-        document.getElementById('scoreKeypadTitle').textContent = `Enter Score for ${keypadTarget}`;
-        document.getElementById('keypadDisplay').textContent = '0';
-        showModal('scoreKeypadModal');
+        game.minnesotaInput = { target: keypadTarget, input: keypadInput };
+        saveActiveGame();
+        showKeypad();
+    });
+    document.addEventListener('scorerRestored', () => {
+        if (!game.minnesotaInput) { hideModal('scoreKeypadModal'); return; }
+        keypadTarget = game.minnesotaInput.target;
+        keypadInput = game.minnesotaInput.input;
+        showKeypad();
     });
 
     document.querySelectorAll('[data-keypad]').forEach(btn => {
@@ -111,6 +123,12 @@ function initKeypadControls() {
             } else if (val === 'OK') {
                 const scoreValue = parseInt(keypadInput) || 0;
                 if (scoreValue < 0 || scoreValue > 180) return;
+                if (recordingSession()) {
+                    const valid = keypadTarget === 'Triples' ? scoreValue >= 3 && scoreValue <= 60 && scoreValue % 3 === 0 :
+                        keypadTarget === 'Doubles' ? (scoreValue >= 2 && scoreValue <= 40 && scoreValue % 2 === 0) || scoreValue === 50 :
+                            keypadTarget === 'Bed' && scoreValue >= 3 && scoreValue <= 180;
+                    if (!valid) { alert('Enter the actual score of this qualifying dart, or all three darts for a Bed.'); return; }
+                }
 
                 const thrower = game.teamMode
                     ? (currentThrower(game.currentPlayer)?.name || null)
@@ -125,11 +143,17 @@ function initKeypadControls() {
                 hideModal('scoreKeypadModal');
                 keypadInput = '';
                 keypadTarget = '';
+                game.minnesotaInput = null;
+                saveActiveGame();
                 updateDisplay();
             } else {
                 keypadInput += val;
                 if (parseInt(keypadInput) > 180) keypadInput = '180';
                 document.getElementById('keypadDisplay').textContent = keypadInput || '0';
+            }
+            if (keypadTarget) {
+                game.minnesotaInput = { target: keypadTarget, input: keypadInput };
+                saveActiveGame();
             }
         });
     });
@@ -138,6 +162,8 @@ function initKeypadControls() {
         hideModal('scoreKeypadModal');
         keypadInput = '';
         keypadTarget = '';
+        game.minnesotaInput = null;
+        saveActiveGame();
     });
 }
 
@@ -392,6 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('serviceWorker', registerServiceWorker);
     safeInit('updateButton', initUpdateButton);
     safeInit('tournamentBridge', initTournamentBridge);
+    safeInit('casualRecording', initCasualRecording);
 });
 
 // Save game on page unload (refresh, close, update)
