@@ -1302,6 +1302,44 @@ async def test_setup_section_separation(page):
     return {"labels": labels, "tablet": metrics, "compact": compact}
 
 
+async def test_app_navigation_layout(page):
+    await fresh(page)
+    await page.locator("#casualRecordingSetup").wait_for()
+    checked = []
+    for width, height in [(320, 740), (390, 844), (800, 1024), (1024, 768), (1366, 768)]:
+        await page.set_viewport_size({"width": width, "height": height})
+        for theme in ["blue", "arctic", "volt"]:
+            await page.evaluate("theme => document.documentElement.dataset.theme = theme", theme)
+            metrics = await page.evaluate("""() => {
+                const nav = document.querySelector('.setup-card > .dev-app-nav');
+                const box = element => {
+                    const r = element.getBoundingClientRect();
+                    return {top:r.top, bottom:r.bottom, left:r.left, right:r.right, height:r.height};
+                };
+                return {nav:box(nav), links:[...nav.querySelectorAll('a')].map(box),
+                    header:box(document.querySelector('.setup-header')),
+                    picker:box(document.getElementById('gamePickerSection')),
+                    recording:box(document.getElementById('casualRecordingSetup')),
+                    width:document.getElementById('setupScreen').scrollWidth};
+            }""")
+            assert metrics["width"] <= width, (width, theme, metrics)
+            assert metrics["nav"]["height"] <= 104, (width, theme, metrics)
+            assert all(44 <= link["height"] <= 48 for link in metrics["links"]), metrics
+            assert metrics["nav"]["top"] >= metrics["header"]["bottom"] - 1, metrics
+            assert metrics["picker"]["top"] >= metrics["nav"]["bottom"], metrics
+            assert metrics["recording"]["top"] >= metrics["nav"]["bottom"], metrics
+            checked.append(f"{width}/{theme}")
+    nav = page.locator(".setup-card > .dev-app-nav")
+    assert await nav.locator('[aria-current="page"]').inner_text() == "Scoring"
+    assert await nav.locator('a[href$="/brackets/"]').count() == 1
+    assert await nav.locator('a[href$="/accounts/"]').count() == 1
+    await nav.locator('a').nth(1).focus()
+    assert await nav.locator('a').nth(1).evaluate(
+        "element => getComputedStyle(element).outlineStyle") != "none"
+    assert await page.locator("#gameMenuModal .dev-game-nav a").count() == 3
+    return {"checked": checked}
+
+
 async def test_setup_refresh_layout(page):
     await fresh(page)
     checked = []

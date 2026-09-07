@@ -9,7 +9,7 @@
 .setup-screen .setup-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
-    grid-template-areas: 'header header' 'back back' 'library options' 'library players' 'library presets' 'library play' 'roster maintenance' 'credit qr';
+    grid-template-areas: 'header header' 'navigation navigation' 'back back' 'library options' 'library players' 'library presets' 'library recording' 'library play' 'roster maintenance' 'credit qr';
     gap: 0 40px;
     max-width: 1200px;
     margin: 0 auto;
@@ -24,6 +24,8 @@
 
 .setup-screen .setup-card * { letter-spacing: 0; }
 .setup-header { grid-area: header; }
+.setup-card > .dev-app-nav { grid-area: navigation; }
+#casualRecordingSetup { grid-area: recording; }
 #backToGameBtn { grid-area: back; }
 #gamePickerSection { grid-area: library; }
 #gameOptionsSection { grid-area: options; }
