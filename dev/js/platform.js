@@ -1,4 +1,7 @@
 // Dev accounts deliberately use a named app, never the scorer's anonymous auth.
+import { ACCOUNT_EMAIL_SERVICE_URL } from './account-email-config.js';
+import { sendAccountEmail } from './account-email.js';
+
 const SDK_BASE = 'https://www.gstatic.com/firebasejs/10.13.2';
 const APP_NAME = 'blakeout-dev-accounts';
 const EMAIL_KEY = 'blakeout_dev_email_link';
@@ -112,12 +115,23 @@ export async function sendAccountVerification() {
     const user = getAccount();
     if (!user || user.isAnonymous) throw new Error('Sign in before requesting a verification email.');
     if (user.emailVerified) throw new Error('This email address is already verified.');
-    await authSDK.sendEmailVerification(user, accountReturnSettings());
+    if (ACCOUNT_EMAIL_SERVICE_URL) {
+        const token = await user.getIdToken(true);
+        if (getAccount()?.uid !== user.uid) throw new Error('The signed-in account changed. Try again.');
+        await sendAccountEmail(ACCOUNT_EMAIL_SERVICE_URL, 'verify-email', { token });
+    } else {
+        await authSDK.sendEmailVerification(user, accountReturnSettings());
+    }
 }
 
 export async function resetAccountPassword(email) {
     await initPlatform();
-    await authSDK.sendPasswordResetEmail(auth, accountEmail(email), accountReturnSettings());
+    email = accountEmail(email);
+    if (ACCOUNT_EMAIL_SERVICE_URL) {
+        await sendAccountEmail(ACCOUNT_EMAIL_SERVICE_URL, 'reset-password', { email });
+    } else {
+        await authSDK.sendPasswordResetEmail(auth, email, accountReturnSettings());
+    }
 }
 
 export async function refreshAccount() {

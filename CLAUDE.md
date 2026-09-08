@@ -56,12 +56,30 @@ ready to ship.
   and password-reset action handler. Added and verified 2026-09-07: invalid-code
   probes reach action validation on both approved hosts; other referrers remain
   blocked. Never remove website restrictions to fix email action links.
-- Email branding is not yet configured: Firebase Console rejected sender/subject
+- Firebase Console rejected sender/subject
   edits on 2026-09-07 with "Email template updates are currently unavailable for
   this project" and directed us to Firebase Support. The built-in verification
   message body is locked, so a logo requires a custom email-sending integration.
-  Do not claim a logo, custom sender domain, SPF/DKIM/DMARC changes, or inbox
-  placement is configured until independently verified.
+  Branded verification/reset infrastructure now uses the free Cloudflare Worker
+  `blakeout-email-dev.dartsblakeout.workers.dev` and Resend. GoDaddy SPF/DKIM
+  records and the Resend domain are verified; the existing DMARC is unchanged.
+  Worker secrets `RESEND_API_KEY` and `FIREBASE_SERVICE_ACCOUNT` stay only in
+  Cloudflare. Dedicated IAM grants only `firebaseauth.users.get` and
+  `firebaseauth.users.sendEmail`; D1 binding `EMAIL_LIMITS` enforces conservative
+  free-tier budgets. See `dev/email-worker/README.md`.
+  Rollout remains gated by `dev/js/account-email-config.js`: an empty URL uses
+  Firebase; a configured Worker failure never silently falls back or sends twice.
+  Worker health, Google authentication/link generation, and Resend delivery were
+  verified on September 7: the owner confirmed receipt of the branded reset email
+  with its logo. The frontend URL is enabled for DEV verification/password resets.
+  Optional email-link sign-in still uses Firebase. Authentication does not
+  guarantee inbox placement; receipt alone does not prove account verification.
+  Worker fetch rejects `redirect: 'error'` despite browser support; provider
+  fetches must use `manual` and reject 3xx before reading any body. Never follow
+  redirects with provider credentials. Chrome mocks must enforce this difference.
+  Source upload success does not prove edge propagation: check the version in a
+  live health-request log before using a limited email attempt after deployment.
+  Never enable billing or paid upgrades without the owner's approval.
 
 ### Firestore rules
 

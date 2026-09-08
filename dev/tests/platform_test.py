@@ -1044,6 +1044,9 @@ async def run():
                 filename = url.rsplit("/", 1)[-1]
                 if filename in modules:
                     await request.fulfill(content_type="text/javascript", body=modules[filename])
+                elif filename == "account-email-config.js":
+                    await request.fulfill(content_type="text/javascript",
+                                          body="export const ACCOUNT_EMAIL_SERVICE_URL='';")
                 elif url.startswith(base):
                     await request.continue_()
                 else:
@@ -1137,6 +1140,100 @@ async def run():
             assert await page.locator("#passwordSignIn").is_disabled()
             print("PASS missing Firebase config visibly surfaced")
             await context.close()
+            email_context = await browser.new_context(service_workers="block")
+            email_calls = []
+            email_response = {"status": 200, "body": {"status": "sent"}}
+
+            async def email_route(route):
+                url = route.request.url
+                filename = url.rsplit("/", 1)[-1]
+                modules = {"firebase-app.js": APP, "firebase-auth.js": AUTH, "firebase-firestore.js": STORE}
+                if filename in modules:
+                    await route.fulfill(content_type="text/javascript", body=modules[filename])
+                elif filename == "account-email-config.js":
+                    await route.fulfill(content_type="text/javascript", body=(
+                        "export const ACCOUNT_EMAIL_SERVICE_URL="
+                        "'https://blakeout-email-dev.dartsblakeout.workers.dev';"))
+                elif url.startswith("https://blakeout-email-dev.dartsblakeout.workers.dev/"):
+                    if route.request.method == "OPTIONS":
+                        await route.fulfill(status=204, headers={
+                            "Access-Control-Allow-Origin": base,
+                            "Access-Control-Allow-Methods": "POST",
+                            "Access-Control-Allow-Headers": "authorization,content-type"})
+                    else:
+                        email_calls.append({"url": url, "body": route.request.post_data_json,
+                                            "headers": route.request.headers})
+                        await route.fulfill(status=email_response["status"],
+                                            content_type="application/json",
+                                            headers={"Access-Control-Allow-Origin": base,
+                                                     "Access-Control-Expose-Headers": "Retry-After",
+                                                     "Retry-After": "60"},
+                                            body=email_response.get("raw", json.dumps(email_response["body"])))
+                elif url.startswith(base):
+                    await route.continue_()
+                else:
+                    await route.abort()
+
+            await email_context.route("**/*", email_route)
+            email_page = await email_context.new_page()
+            await email_page.goto(base + "/dev/accounts/")
+            await email_page.wait_for_function("typeof changeTestUser === 'function'")
+            await email_page.evaluate("""async () => {
+                const p = await import('/dev/js/platform.js');
+                await p.initPlatform();
+                changeTestUser(null);
+                await p.registerAccount('new@example.com', 'PrivateTestPassword123!');
+            }""")
+            assert len(email_calls) == 1
+            assert email_calls[-1]["url"].endswith("/verify-email")
+            assert email_calls[-1]["body"] == {}
+            assert email_calls[-1]["headers"].get("authorization") == "Bearer verified"
+            assert not await email_page.evaluate("!!globalThis.sentVerification"), "No duplicate Firebase email"
+            email_response.update(status=429, body={"error": {
+                "code": "email/rate-limited", "message": "Private upstream details must not display"}})
+            await email_page.locator("#sendVerification").click()
+            await email_page.wait_for_function(
+                "document.querySelector('#accountStatus').textContent.includes('email/rate-limited')")
+            assert "Private upstream" not in await email_page.locator("#accountStatus").inner_text()
+            assert "Wait at least 1 minute(s)" in await email_page.locator("#accountStatus").inner_text()
+            assert "may take longer" in await email_page.locator("#accountStatus").inner_text()
+            assert await email_page.locator("#sendVerification").is_enabled()
+            email_response.update(status=200, body={"status": "accepted"})
+            await email_page.evaluate("""async () => {
+                const p = await import('/dev/js/platform.js');
+                await p.signOutAccount();
+                await p.resetAccountPassword(' person@example.com ');
+            }""")
+            assert email_calls[-1]["url"].endswith("/reset-password")
+            assert email_calls[-1]["body"] == {"email": "person@example.com"}
+            assert "authorization" not in email_calls[-1]["headers"]
+            assert not await email_page.evaluate("!!globalThis.sentReset")
+            for response_status, body in [(200, {}), (503, {"error": {"code": "unknown", "message": "secret"}})]:
+                email_response.update(status=response_status, body=body)
+                error = await email_page.evaluate("""async () => {
+                    try { await (await import('/dev/js/platform.js')).resetAccountPassword('person@example.com'); }
+                    catch (error) { return error.message; }
+                }""")
+                assert error and "secret" not in error
+            for response_status in [200, 502]:
+                email_response.update(status=response_status, raw="private-provider-text is not JSON")
+                error = await email_page.evaluate("""async () => {
+                    try { await (await import('/dev/js/platform.js')).resetAccountPassword('person@example.com'); }
+                    catch (error) { return error.message; }
+                }""")
+                assert error == "The email service returned an invalid response. Please try again later."
+                del email_response["raw"]
+            count_before = len(email_calls)
+            await email_page.evaluate("""async () => {
+                const p = await import('/dev/js/platform.js');
+                changeTestUser({uid:'switching',email:'one@example.com',emailVerified:false,isAnonymous:false});
+                p.getAccount().getIdToken = async () => { changeTestUser(null); return 'old-token'; };
+                try { await p.sendAccountVerification(); throw new Error('Unexpected success'); }
+                catch (error) { if (!error.message.includes('account changed')) throw error; }
+            }""")
+            assert len(email_calls) == count_before, "Account switch must not send old token"
+            print("PASS branded email transport (registration/resend/reset, no duplicate sends, errors, account switch)")
+            await email_context.close()
             await browser.close()
             emulator_checks(output["wire"], output["privateWire"])
     finally:

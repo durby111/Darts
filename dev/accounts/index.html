@@ -37,7 +37,7 @@
             </form>
             <details id="emailLinkPanel">
                 <summary>Optional email-link sign-in</summary>
-                <p>Existing email links still work. Spark email-link delivery has a low daily quota; email/password is the recommended sign-in method.</p>
+                <p>Existing email links still work. These optional sign-in emails still come from Firebase, not the branded sender. Spark email-link delivery has a low daily quota; email/password is the recommended sign-in method.</p>
                 <form id="emailForm">
                     <label for="linkEmail">Email for this sign-in link</label>
                     <input id="linkEmail" name="linkEmail" type="email" autocomplete="email" required maxlength="254">
@@ -51,6 +51,7 @@
             <h2>Verify your email</h2>
             <p id="verificationIdentity"></p>
             <p>Open the verification email, follow its link, then return here. Until verification is complete, profiles, account records, and organizer actions remain unavailable.</p>
+            <p>Branded account emails come from BlakeOut &lt;noreply@blakeoutdarts.com&gt;. Check Spam or Junk if an email is missing. The verification link opens Firebase's secure account page.</p>
             <div class="platform-actions">
                 <button id="sendVerification" type="button">Resend verification email</button>
                 <button id="refreshVerification" type="button">I’ve verified — refresh account</button>
@@ -81,7 +82,7 @@
         </section>
         <details class="platform-card">
             <summary>Firebase setup and DEV data</summary>
-            <p>This is a separate DEV account system in the existing BlakeOut Firebase project. No third-party analytics or email vendor is used.</p>
+            <p>This is a separate DEV account system in the existing BlakeOut Firebase project. No third-party analytics is used. Branded verification and password-reset requests are processed through Cloudflare, Firebase, and Resend. Resend receives your email address and the account-action email for delivery; your password is not sent to Cloudflare or Resend.</p>
             <p>Project administrators must enable Authentication → Sign-in method → Email/Password, authorize the hosting domain, and publish the isolated <code>blakeoutDevProfiles</code>, <code>blakeoutDevTournaments</code>, <code>blakeoutDevRosterPrivate</code>, and <code>blakeoutDevResults</code> rules from <code>firestore.rules</code>. Email link (passwordless sign-in) is optional. These changes are not deployed by this page. Payment, check-in, and standby flags are visible only to the tournament organizer.</p>
             <p>Immediate self-registration uses separate public <code>blakeoutDevSignups</code> entries and a <code>blakeoutDevSignupState</code> revision index. Players can join with a verified account or enter a guest display name on the tournament page. Guest device authentication is separate from your account, never links a name to an account, and grants no lifetime statistics, bracket, or private-roster privileges. There is no approval queue; check-in and team assignment remain separate event logistics.</p>
             <p>Each device can self-register one guest per event. The organizer can add more name-only guests on a shared tablet. Guest registration does not sign you out of a verified account.</p>
