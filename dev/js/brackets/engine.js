@@ -84,7 +84,10 @@ function rosterTeams(registrations, previousTeams = []) {
         // Injective tag-derived IDs survive roster reorder, swaps, removal and re-addition.
         const id = `team-${encodeURIComponent(tag)}`;
         const previous = previousTeams.find(team => team.id === id);
-        return { id, name: previous?.name || `Team ${tag}`, memberIds };
+        // Moving display rows must not reorder an established pair's players.
+        const sameMembers = previous?.memberIds.length === memberIds.length
+            && memberIds.every(memberId => previous.memberIds.includes(memberId));
+        return { id, name: previous?.name || `Team ${tag}`, memberIds: sameMembers ? [...previous.memberIds] : memberIds };
     });
 }
 

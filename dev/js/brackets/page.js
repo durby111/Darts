@@ -235,6 +235,29 @@ function renderRoster() {
             if (field === 'name') cell.append(textElement('small', entry.playerId ? 'Verified profile · tournament display name' : 'Tournament-only guest'));
             row.append(cell);
         }
+        const orderCell = document.createElement('td');
+        for (const [direction, offset, label] of [['up', -1, '↑'], ['down', 1, '↓']]) {
+            const move = textElement('button', label);
+            move.type = 'button';
+            move.dataset.move = direction;
+            move.setAttribute('aria-label', `Move row ${index + 1} (${entry.name}) ${direction}`);
+            move.disabled = index + offset < 0 || index + offset >= draft.length;
+            move.addEventListener('click', () => {
+                if (!owner() || busy || needsAccountReload || current.status !== 'registration') return;
+                const from = draft.findIndex(item => item.id === entry.id);
+                const to = from + offset;
+                if (from < 0 || to < 0 || to >= draft.length) return;
+                [draft[from], draft[to]] = [draft[to], draft[from]];
+                markRosterDirty();
+                renderRoster();
+                updatePreview();
+                const movedRow = [...$('rosterRows').rows].find(item => item.dataset.registration === entry.id);
+                const sameDirection = movedRow.querySelector(`[data-move="${direction}"]`);
+                (sameDirection.disabled ? movedRow.querySelector('[data-move]:not(:disabled)') : sameDirection)?.focus();
+            });
+            orderCell.append(move);
+        }
+        row.append(orderCell);
         const cell = document.createElement('td');
         const remove = textElement('button', 'Remove');
         remove.type = 'button';

@@ -278,7 +278,7 @@ async def test_roster_counts(browser, base):
         await page.wait_for_function("document.querySelector('#rosterSummary').textContent.includes('6 in complete pairs')")
         assert await summary.inner_text() == "8 total · 1 standby · 7 non-standby · 6 in complete pairs · 1 without a complete pair"
         assert await page.evaluate('__api.writes') == 0, "Counts describe drafts without saving"
-        await page.locator('#rosterRows tr').last.locator('button').click()
+        await page.locator('#rosterRows tr').last.locator('button:not([data-move])').click()
         assert await page.locator('#rosterRows th[scope="row"]').all_text_contents() == [str(i) for i in range(1, 8)]
         assert await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)') == ids[:-1]
         assert await summary.inner_text() == "7 total · 1 standby · 6 non-standby · 4 in complete pairs · 2 without a complete pair"
@@ -363,6 +363,45 @@ async def test_bulk_flags_and_odd_warning(browser, base):
             assert await control.is_disabled()
         assert await page.locator('#rosterWarning').is_hidden()
         return "bulk all/none/mixed, private draft state, failed/stale saves, explicit standby scope, odd-warning-only and empty roster"
+    finally:
+        await context.close()
+
+
+async def test_roster_order(browser, base):
+    context, page = await fresh(browser, base)
+    try:
+        ids = await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)')
+        original = await page.evaluate('structuredClone(__api.docs.demo)')
+        assert await page.locator('#rosterRows [data-move="up"]').first.is_disabled()
+        assert await page.locator('#rosterRows [data-move="down"]').last.is_disabled()
+        await page.locator('#rosterRows [data-move="down"]').first.click()
+        assert await page.evaluate('document.activeElement.closest("tr").dataset.registration') == ids[0]
+        await page.keyboard.press('Enter')
+        expected = [ids[1],ids[2],ids[0],*ids[3:]]
+        assert await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)') == expected
+        assert await page.locator('#rosterRows th[scope="row"]').all_text_contents() == [str(i) for i in range(1,9)]
+        assert await page.evaluate('__api.writes') == 0
+        assert await page.locator('#startTournament').is_disabled()
+        await page.evaluate('__api.conflict=true')
+        await page.locator('#saveRoster').click()
+        await page.wait_for_function("document.querySelector('#message').textContent.includes('another device')")
+        assert await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)') == expected
+        await page.evaluate('__api.conflict=false')
+        await page.locator('#saveRoster').click()
+        await page.wait_for_function('__api.writes===1')
+        saved = await page.evaluate('__api.docs.demo')
+        assert [r['id'] for r in saved['registrations']] == expected
+        assert {r['id']:r for r in saved['registrations']} == {r['id']:r for r in original['registrations']}
+        assert {t['id']:t for t in saved['teams']} == {t['id']:t for t in original['teams']}, "Partner order and team IDs must stay stable"
+        for width in (744, 1133, 390):
+            await page.set_viewport_size({"width":width,"height":900})
+            assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+        await page.locator('#startTournament').click()
+        await page.wait_for_function("__api.docs.demo.status==='live'")
+        assert await page.locator('#rosterRows [data-move]').count() == 0
+        assert await page.locator('.match-card.pending').first.evaluate("e=>getComputedStyle(e).borderStyle") == 'dashed'
+        assert await page.locator('.match-card.ready').first.evaluate("e=>getComputedStyle(e).borderStyle") == 'solid'
+        return "keyboard/touch reordering, focus, numbering, stable registrations/teams/partner order, stale-save preservation and locked controls"
     finally:
         await context.close()
 
@@ -614,7 +653,7 @@ async def test_owner_join_and_concurrent_arrivals(browser, base):
         await joined.locator('[data-field="name"]').fill("Tournament owner name")
         await page.locator("#saveRoster").click()
         await page.wait_for_function("__api.docs.demo.registrations.some(r=>r.name==='Tournament owner name')")
-        await joined.locator("button").click()
+        await joined.locator("button:not([data-move])").click()
         await page.locator("#saveRoster").click()
         await page.wait_for_function("document.querySelector('#joinTournament').textContent==='Join tournament'")
         await page.locator("#joinTournament").click()
@@ -855,7 +894,7 @@ async def test_real_verified_selfjoin(browser, base):
         await row.locator('[data-field="name"]').fill("Organizer tournament name")
         await page.locator("#saveRoster").click()
         await page.wait_for_function("document.querySelector('#publicRoster').textContent.includes('Organizer tournament name')")
-        await row.locator("button").click()
+        await row.locator("button:not([data-move])").click()
         await page.locator("#saveRoster").click()
         await page.wait_for_function("document.querySelector('#joinTournament').textContent==='Join tournament'")
         assert not await page.evaluate("testDocs.has('blakeoutDevSignups/selfjoin-integration/players/verified_owner')")
@@ -914,7 +953,7 @@ async def test_real_guest_selfjoin_and_race(browser, base):
         await page.evaluate("changeTestUser({uid:'verified_owner',emailVerified:true,isAnonymous:false})")
         await page.wait_for_function("!document.querySelector('#rosterControls').disabled")
         row = page.locator("#rosterRows tr").filter(has=page.locator(f'[data-field="name"][aria-label="Display name for {guest["name"]}"]'))
-        await row.locator("button").click()
+        await row.locator("button:not([data-move])").click()
         await page.locator("#saveRoster").click()
         await page.wait_for_function("!document.querySelector('#publicRoster').textContent.includes('Device Guest')")
         await page.fill("#guestJoinName", "Device Guest Rejoined")
@@ -970,6 +1009,7 @@ async def test_real_guest_selfjoin_and_race(browser, base):
 TESTS = {
     "owner_roster": test_owner_roster,
     "roster_counts": test_roster_counts,
+    "roster_order": test_roster_order,
     "bulk_flags_and_odd_warning": test_bulk_flags_and_odd_warning,
     "failures_and_polling": test_failures_and_polling,
     "spectator_and_layout": test_spectator_and_layout,

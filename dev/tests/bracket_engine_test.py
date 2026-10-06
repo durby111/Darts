@@ -94,6 +94,7 @@ async def test_roster(page):
         equal(rows[0].tag, '  1  ', 'Input roster must not mutate');
         equal(saved.registrations[0].tag, '1');
         const reversed = engine.saveRoster(saved, [...saved.registrations].reverse());
+        for (const team of reversed.teams) equal(team.memberIds, saved.teams.find(item => item.id === team.id).memberIds, 'Roster display order must preserve established partner order');
         equal(reversed.teams.map(t => t.id).sort(), saved.teams.map(t => t.id).sort());
         const swapped = structuredClone(saved.registrations);
         [swapped[0].tag, swapped[2].tag] = [swapped[2].tag, swapped[0].tag];

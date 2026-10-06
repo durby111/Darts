@@ -12,7 +12,7 @@ out of scope. No network or security permission changes are authorized.
 | Tablet Start/Resume visibility | Published `d5b09ab` | Pages run [37459450018](https://github.com/durby111/Darts/actions/runs/37459450018) succeeded; local 55/55 regressions and 15 layout combinations passed. Actual served site cannot be reached from this executor. |
 | Account verification refresh concurrency | Published in `b8e8d96` | Shared reload/token request per user, replacement-user refresh and obsolete-session guards; 13 new mock API assertions and delayed account-switch UI test pass. Actual email/link/token propagation still unverified. |
 | Playing roster payment requirement | Published in `b8e8d96` | Assigned playing members must be paid; standby excluded. Engine and organizer UI checks pass. Existing private flags and schema retained. |
-| DEV service worker | v46 published; v47 accompanies Cricket layout fixes | Production cache/source unchanged. |
+| DEV service worker | v47 published; v48 accompanies draft ordering | Production cache/source unchanged. |
 | Organizer row numbering and counts | Published `3e5fbc6` | Draft/standby/pair counts; identity preservation, tablet/mobile containment and signout privacy checks pass. |
 
 ## Saved work blocked on transfer
@@ -69,18 +69,23 @@ not deliver functional result correction.
 - [x] Add roster row numbering and explicit total/non-standby/standby/pair counts.
 - [x] Add owner-only bulk flag controls with revision-safe saves.
 - [x] Add odd non-standby roster warning without changing Start eligibility.
-- [ ] Dim unavailable bracket matches and indicate actual active play. Ready
-  alone does not establish that a match is being played.
+- [x] Subdue pending/not-required bracket cards with dashed borders while
+  preserving text readability.
+- [ ] Indicate actual active play. Ready alone does not establish that a match
+  is being played; cross-device activity needs an authoritative state contract.
 - [ ] Review distance readability on real tablets.
-- [ ] Improve ordering/grouping with accessible controls, stable IDs and clear
-  behavior after roster lock; confirm the post-lock editing contract.
+- [x] Add accessible draft row ordering with stable IDs and existing partner
+  order preserved. Controls disappear after Start.
+- [ ] Any additional drag/grouping or post-lock editing needs a clear contract.
 - [x] Align tablet one/two-player Cricket target/marks/turn badges; preserve compact corner badges.
 - [x] Fix DC Cricket button containment at high scale; published baseline allowed adjacent-row taps.
 - [ ] Consider aggregates if raw-record statistics reads become costly.
 - [ ] Match-summary emails remain a proposal, not delivered behavior.
 - [ ] Finish detailed unused-export/DOM/CSS audit before removal. Module-level
   audit found all 36 DEV JavaScript modules reachable from the four HTML
-  entrypoints; no orphan module was removed.
+  entrypoints; no orphan module was removed. Four single-reference exports
+  (`findPlayerByEmail`, `engineOf`, `listThemes`, `resetGameState`) are candidates,
+  not proven dead APIs; compare the saved archives before deleting them.
 - [ ] Separately review HTTPS enforcement, hosting headers/CSP, domain renewal,
   account MFA, and domain controls. Do not change settings without authorization.
 
@@ -100,8 +105,9 @@ not deliver functional result correction.
 - Account/payment release `b8e8d96` passed Pages run `37462591260`.
 - Roster count release `3e5fbc6` passed Pages run `37462941482`.
 - Bulk flag/warning release `3a45116` passed Pages run `37463707288`.
-- Next release scope: Cricket tablet badge alignment, DC button containment,
-  targeted regression coverage, cache v47, and development notes.
+- Cricket release `3f0946c` passed Pages run `37464754031`; full DEV suite 57/57.
+- Next release scope: draft row arrows, stable partner ordering, subdued
+  pending bracket cards, tests, cache v48, and development notes.
 
 ## Evening DEV test checklist
 
@@ -116,7 +122,9 @@ not deliver functional result correction.
    toggling Standby. Try the Paid/Checked-in/Standby column checkboxes: they
    apply to all draft rows, including standby, and require Save. Mixed flags
    show a mixed checkbox. Discard & reload restores the saved roster. An odd
-   non-standby count warns without independently blocking Start.
+   non-standby count warns without independently blocking Start. Use the row
+   arrows to arrange the draft, save, and check that partners/team numbers
+   stay intact. Row arrows disappear once the tournament starts.
 5. In tablet Cricket, enter T20 and single 19: the +3/+1 badges should align
    with their targets on one/two-player boards. At landscape 1.5× DC mode,
    tap 19 in Spanish Cricket and confirm it records 19, not the row below.
@@ -126,6 +134,6 @@ not deliver functional result correction.
 
 Deferred: dedicated Start & Lock feedback, safe correction integration, event
 name distinctions, active-match
-indication, real-tablet distance review and ordering. The
+indication, real-tablet distance review and advanced/post-lock ordering. The
 original feedback/correction archives remain transfer-blocked. Do not expect
 result correction functionality from these releases.

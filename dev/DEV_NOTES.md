@@ -87,6 +87,22 @@ Dev-only release. Production (repo root) untouched — promote by copying
   36 DEV JavaScript modules are reachable from HTML entrypoints; no files
   were removed based on an unproven unused-code assumption.
 
+## October 6 Accessible Draft Order and Bracket States
+
+- Organizer row arrows work with touch or keyboard, preserve focus on the
+  moved row, and update visible numbering. They change draft order only and
+  use the existing explicit, revision-checked Save. Locked rosters expose no
+  move controls; failed/stale saves retain the arranged draft.
+- Reordering the display preserves registration IDs, flags, team numbers,
+  team IDs and established partner order. A genuinely changed pair still
+  derives its membership from the edited roster.
+- Pending/not-required bracket cards use a subdued background and dashed
+  border. Text remains fully readable. Ready continues to mean ready, not
+  actively playing; no new activity state is inferred or stored.
+- Engine 7/7 and bracket UI 18/18 groups pass, including keyboard/touch moves,
+  focus, stable identity/partner order, stale-save recovery and locked controls.
+  DEV cache v48 accompanies this batch.
+
 ## September 4 Follow-Up List
 
 - [x] Commit and push approved dry-erase Cricket marks: `773fd53` (dev only).

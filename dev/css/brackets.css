@@ -37,6 +37,7 @@
 h3.diagram-heading { color: var(--color-accent); font-size: 19px; }
 .match-card { position: absolute; width: 280px; height: 220px; padding: 8px 10px; background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: 7px; }
 .match-card.ready { border-color: var(--color-accent); }
+.match-card.pending, .match-card.void { background: var(--color-surface-alt); border-style: dashed; }
 .match-card:focus { outline: 3px solid #ffda8a; outline-offset: 3px; }
 .match-header { margin: 0 0 4px; font-size: 14px; height: 24px; line-height: 24px; }
 .match-slot { height: 67px; position: relative; padding: 3px 0; border-top: 1px solid var(--color-border); }
