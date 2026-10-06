@@ -43,7 +43,9 @@ h3.diagram-heading { color: var(--color-accent); font-size: 19px; }
 .match-slot { height: 67px; position: relative; padding: 3px 0; border-top: 1px solid var(--color-border); }
 .slot-label { display: block; font-size: 14px; line-height: 18px; max-height: 36px; overflow: hidden; overflow-wrap: anywhere; padding-right: 50px; }
 .slot-score { position: absolute; right: 0; top: 4px; font-size: 12px; }
-.won .slot-score { color: #a6edac; font-weight: bold; }
+.match-slot.won { outline: 2px solid #258942; outline-offset: -2px; }
+.match-slot.lost { outline: 2px solid #d04747; outline-offset: -2px; }
+.won .slot-score, .lost .slot-score { color: var(--color-text); font-weight: bold; }
 .brackets-page .source-jump { display: block; margin: 0; min-height: 24px; padding: 0 2px; border: 0; background: transparent; color: var(--color-accent); font-size: 12px; line-height: 24px; text-align: left; }
 .brackets-page .match-action { width: 100%; min-height: 40px; height: 40px; margin: 2px 0 0; padding: 3px 8px; font-size: 14px; }
 #champion { font-weight: 750; color: #a6edac; }

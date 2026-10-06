@@ -516,6 +516,32 @@ async def test_spectator_and_layout(browser, base):
         await context.close()
 
 
+async def assert_outcome_styles(page, code):
+    card=page.locator(f'[data-code="{code}"]')
+    assert await card.locator('.match-slot.won').count()==1
+    assert await card.locator('.match-slot.lost').count()==1
+    assert 'Won' in await card.locator('.won .slot-score').inner_text()
+    assert 'Lost' in await card.locator('.lost .slot-score').inner_text()
+    for theme in ('blue','arctic'):
+        await page.evaluate("theme=>document.documentElement.dataset.theme=theme",theme)
+        result=await card.evaluate("""card=>{
+            const lum=color=>{
+                const rgb=color.match(/[0-9.]+/g).slice(0,3).map(Number).map(x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4;});
+                return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
+            };
+            const contrast=(a,b)=>(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
+            const bg=lum(getComputedStyle(card).backgroundColor);
+            return [...card.querySelectorAll('.match-slot')].map(slot=>{
+                const style=getComputedStyle(slot), text=getComputedStyle(slot.querySelector('.slot-score'));
+                return {state:slot.className,width:style.outlineWidth,style:style.outlineStyle,
+                    outlineContrast:contrast(lum(style.outlineColor),bg),textContrast:contrast(lum(text.color),bg)};
+            });
+        }""")
+        assert all(r['width']=='2px' and r['style']=='solid' and r['outlineContrast']>=3 and r['textContrast']>=4.5 for r in result),(theme,result)
+    await page.evaluate("document.documentElement.dataset.theme='blue'")
+    assert await page.locator('.match-card:not(.complete) .won, .match-card:not(.complete) .lost').count()==0
+
+
 async def test_manual_results_and_history(browser, base):
     context, page = await fresh(browser, base, status="live", count=2)
     try:
@@ -528,6 +554,7 @@ async def test_manual_results_and_history(browser, base):
         await page.locator("#resultForm button[type=submit]").click()
         await page.wait_for_function("__api.writes===1")
         assert "No per-dart" in await page.locator("#message").inner_text()
+        await assert_outcome_styles(page,"W1.1")
         assert await page.evaluate("__api.statsWrites") == 0
         assert await page.locator('[data-code="GF1"] .match-action').is_visible()
         await page.locator('[data-code="GF1"] .match-action').click()
@@ -597,6 +624,7 @@ async def test_manual_reset(browser, base):
         await page.wait_for_function("__api.docs.demo.status==='complete'")
         assert "Forfeit" in await page.locator('[data-code="GF2"]').inner_text()
         assert await page.evaluate("__api.statsWrites") == 0
+        await assert_outcome_styles(page,"GF2")
         return "lower-bracket GF1 victory requires GF2; scoreless manual forfeit completes reset"
     finally:
         await context.close()

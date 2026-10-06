@@ -120,7 +120,7 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
             const source = match[`source${side}`];
             const played = !preview && match.status === 'complete';
             const won = played && teamId && match.winnerId === teamId;
-            const slot = element('div', `match-slot${won ? ' won' : ''}`);
+            const slot = element('div', `match-slot${won ? ' won' : played && teamId ? ' lost' : ''}`);
             const label = teamId ? teamLabel(tournament, teamId, labels) : source ? 'Not decided' : 'Bye';
             const text = element('span', 'slot-label', label);
             text.title = label;

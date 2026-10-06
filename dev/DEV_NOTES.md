@@ -124,6 +124,18 @@ Dev-only release. Production (repo root) untouched — promote by copying
   the precise rules/emulator boundary. No Ready-to-Playing inference or live
   activity writes are introduced. DEV cache v49 adds the label module.
 
+## October 6 Original-Handoff Audit and Completed Outcomes
+
+- Re-read all 503 lines of the original HANDOFF_DOT.md and reconciled each
+  saved requirement in EVENING_AUDIT.md. The original feedback/correction ZIPs
+  remain separate, unreadable and unapplied; their reported tests are not local
+  evidence. Physical-device and provider validation remain explicit gaps.
+- Added the handoff's missing completed-outcome styling: green winner and red
+  loser outlines, with explicit Won/Lost text. Byes, pending and void matches
+  never receive played-result outlines. Forfeits retain their explicit label.
+- Outline contrast exceeds 3:1 and outcome text exceeds 4.5:1 against the card
+  in tested Blue and Arctic themes. All 19 bracket UI groups pass. Cache v50.
+
 ## September 4 Follow-Up List
 
 - [x] Commit and push approved dry-erase Cricket marks: `773fd53` (dev only).

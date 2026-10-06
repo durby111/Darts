@@ -5,6 +5,8 @@ source remains unchanged. October 6 daytime authorization covers tested DEV-only
 rebuild is understood. Production source, behavior, configuration and data remain
 out of scope. No network or security permission changes are authorized.
 
+Full original-handoff reconciliation and tonight’s actions: [EVENING_AUDIT.md](EVENING_AUDIT.md).
+
 ## Delivered and locally reviewed
 
 | Work | Status | Evidence / remaining check |
@@ -12,7 +14,7 @@ out of scope. No network or security permission changes are authorized.
 | Tablet Start/Resume visibility | Published `d5b09ab` | Pages run [37459450018](https://github.com/durby111/Darts/actions/runs/37459450018) succeeded; local 55/55 regressions and 15 layout combinations passed. Actual served site cannot be reached from this executor. |
 | Account verification refresh concurrency | Published in `b8e8d96` | Shared reload/token request per user, replacement-user refresh and obsolete-session guards; 13 new mock API assertions and delayed account-switch UI test pass. Actual email/link/token propagation still unverified. |
 | Playing roster payment requirement | Published in `b8e8d96` | Assigned playing members must be paid; standby excluded. Engine and organizer UI checks pass. Existing private flags and schema retained. |
-| DEV service worker | v48 published; v49 accompanies event display labels | Production cache/source unchanged. |
+| DEV service worker | v49 published; v50 accompanies completed-match outlines | Production cache/source unchanged. |
 | Organizer row numbering and counts | Published `3e5fbc6` | Draft/standby/pair counts; identity preservation, tablet/mobile containment and signout privacy checks pass. |
 
 ## Saved work blocked on transfer
@@ -70,6 +72,7 @@ not deliver functional result correction.
 - [x] Add roster row numbering and explicit total/non-standby/standby/pair counts.
 - [x] Add owner-only bulk flag controls with revision-safe saves.
 - [x] Add odd non-standby roster warning without changing Start eligibility.
+- [x] Outline completed winners green and losers red, retaining Won/Lost text.
 - [x] Subdue pending/not-required bracket cards with dashed borders while
   preserving text readability.
 - [ ] Indicate actual active play. Ready alone does not establish that a match
@@ -85,7 +88,7 @@ not deliver functional result correction.
 - [ ] Consider aggregates if raw-record statistics reads become costly.
 - [ ] Match-summary emails remain a proposal, not delivered behavior.
 - [ ] Finish detailed unused-export/DOM/CSS audit before removal. Module-level
-  audit found all 36 DEV JavaScript modules reachable from the four HTML
+  audit found all 37 current DEV JavaScript modules reachable from the four HTML
   entrypoints; no orphan module was removed. Four single-reference exports
   (`findPlayerByEmail`, `engineOf`, `listThemes`, `resetGameState`) are candidates,
   not proven dead APIs; compare the saved archives before deleting them.
@@ -110,8 +113,9 @@ not deliver functional result correction.
 - Bulk flag/warning release `3a45116` passed Pages run `37463707288`.
 - Cricket release `3f0946c` passed Pages run `37464754031`; full DEV suite 57/57.
 - Draft order release `8cdcaae` passed Pages run `37465245055`.
-- Next release scope: view-only event labels and local scorer label snapshot,
-  regression/compatibility tests, active-state design notes, cache v49.
+- Event-label release `6bdc6c2` passed Pages run `37467746048`.
+- This audit release: completed winner/loser outlines, contrast/result tests,
+  original-handoff reconciliation, and cache v50.
   No stored tournament schema, result schema, security rules or provider settings change.
 
 ## Evening DEV test checklist
@@ -139,6 +143,7 @@ not deliver functional result correction.
    Saved names remain unchanged; editing/rejoining may renumber labels.
 7. Start a short DEV tournament game, reload/resume, and submit once. Local
    interrupted/retry tests pass; real provider behavior still needs observation.
+   Check the green Won/red Lost outlines. Do not clear site storage.
 
 Deferred: dedicated Start & Lock feedback, safe correction integration, active-match
 indication, real-tablet distance review and advanced/post-lock ordering. The
