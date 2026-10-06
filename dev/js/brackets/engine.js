@@ -100,7 +100,7 @@ export function saveRoster(tournament, registrations) {
     return next;
 }
 
-/** Start blockers; payment is tracked but is deliberately not an eligibility rule. */
+/** Start blockers; payment is required for playing team members, not standby. */
 export function readiness(tournament) {
     const blockers = [];
     if (tournament.status !== 'registration') blockers.push('Registration is closed.');
@@ -125,7 +125,10 @@ export function readiness(tournament) {
         for (const id of team.memberIds) {
             const entry = registrations.get(id);
             if (!entry) blockers.push(`${team.name} has a player not registered in this tournament.`);
-            else if (!entry.checkedIn || entry.standby) blockers.push(`${entry.name} must be checked in and not on standby.`);
+            else {
+                if (!entry.checkedIn || entry.standby) blockers.push(`${entry.name} must be checked in and not on standby.`);
+                if (!entry.standby && !entry.paid) blockers.push(`${entry.name} must be marked paid before starting.`);
+            }
             if (assigned.has(id)) blockers.push('A player cannot belong to more than one team.');
             assigned.add(id);
         }

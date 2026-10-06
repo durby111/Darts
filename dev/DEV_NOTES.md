@@ -3,7 +3,7 @@
 Dev-only release. Production (repo root) untouched — promote by copying
 `/dev/` → root as usual, and fold these notes into `CLAUDE.md` at that time.
 
-## October 6 Setup Action Visibility (Local Review)
+## October 6 Setup Action Visibility (Published)
 
 - Tablet and desktop setup keeps the Play panel at the bottom of the visible
   scroll area when the options/player/recording column is taller than the
@@ -14,8 +14,9 @@ Dev-only release. Production (repo root) untouched — promote by copying
 - Expanded the setup layout regression to five phone/tablet/desktop sizes in
   three themes, including portrait 744×1133 and landscape 1133×744, with a
   hit-test check for an unobstructed Start Game button.
-- This is a local CSS fix against the September 7 base. The saved Start & Lock
-  feedback and result-correction archives have not yet been applied.
+- Published as `d5b09ab`; Pages build/deploy run `37459450018` succeeded.
+  Served-site verification is blocked by this executor’s network policy. The
+  saved Start & Lock and result-correction archives have not yet been applied.
 
 ## October 6 Account Verification Follow-Up (Local, Unpublished)
 
@@ -28,6 +29,18 @@ Dev-only release. Production (repo root) untouched — promote by copying
 - Prepared DEV cache v44 for these application changes. Production cache/source
   stays unchanged. Genuine email receipt, link completion, and the owner's
   verified account status still require an authorized real-world check.
+
+## October 6 Playing-Roster Payment Gate (Local, Unpublished)
+
+- Start requires every assigned playing team member to be marked paid. Unpaid
+  standby players and unassigned arrivals do not add a payment blocker;
+  existing check-in, pairing, and roster-validity requirements still apply.
+- Promoting a standby player into a playing team requires payment before Start.
+  The organizer sees the named payment blocker and can mark paid, save, and retry.
+- This is an application readiness rule using existing owner-private flags,
+  not a deployed security-rules change. No data schema or production source changed.
+- Engine, organizer UI, and platform adapter regressions pass. See
+  [BACKLOG.md](BACKLOG.md) for remaining work and verification gaps.
 
 ## September 4 Follow-Up List
 

@@ -52,7 +52,7 @@ async () => {
         const registrations = Array.from({length: count * 2}, (_, index) => ({
             id: `entry-${index}`, playerId: index % 2 ? `verified-${index}` : null,
             name: `Player ${index}`, tag: String(Math.floor(index / 2) + 1),
-            paid: false, checkedIn, standby: false,
+            paid: true, checkedIn, standby: false,
         }));
         return engine.saveRoster(freeze(tournament), freeze(registrations));
     };
@@ -90,7 +90,7 @@ async def test_roster(page):
         rows.forEach(r => { r.tag = `  ${r.tag}  `; r.checkedIn = true; });
         const saved = engine.saveRoster(freeze(t), freeze(rows));
         equal(saved.teams, t.teams, 'Whitespace must preserve teams and IDs');
-        equal(engine.readiness(saved), [], 'Payment is not a start requirement');
+        equal(engine.readiness(saved), [], 'Paid, checked-in pairs are ready');
         equal(rows[0].tag, '  1  ', 'Input roster must not mutate');
         equal(saved.registrations[0].tag, '1');
         const reversed = engine.saveRoster(saved, [...saved.registrations].reverse());
@@ -129,6 +129,32 @@ async def test_roster(page):
         rejects(() => engine.startTournament(fixture(1)), 'between 2 and 32');
         rejects(() => engine.startTournament(fixture(33)), 'between 2 and 32');
         return 'roster normalization, stable IDs, eligibility, atomic swaps/removal';
+    }""")
+
+
+async def test_paid_start(page):
+    return await page.evaluate("""() => {
+        const ready = fixture(2);
+        const unpaid = engine.saveRoster(ready, ready.registrations.map((r,i) => ({...r, paid:i!==0})));
+        const before = JSON.stringify(unpaid);
+        assert(engine.readiness(unpaid).some(text => text.includes('Player 0') && text.includes('paid')));
+        rejects(() => engine.startTournament(freeze(unpaid)), 'paid');
+        equal(JSON.stringify(unpaid), before, 'Rejected start must not mutate the roster or bracket');
+        const standby = engine.saveRoster(ready, [...ready.registrations, {
+            id:'standby-unpaid',playerId:null,name:'Standby Guest',tag:'1',
+            paid:false,checkedIn:true,standby:true,
+        }, {
+            id:'arrival-unpaid',playerId:null,name:'Unassigned arrival',tag:'',
+            paid:false,checkedIn:false,standby:false,
+        }]);
+        equal(engine.readiness(standby), [], 'Only the playing team roster requires payment');
+        equal(engine.startTournament(standby).status, 'live');
+        const movedToPlay = engine.saveRoster(standby, standby.registrations.map(r =>
+            r.id==='entry-0' ? {...r,standby:true} : r.id==='standby-unpaid' ? {...r,standby:false} : r));
+        rejects(() => engine.startTournament(movedToPlay), 'paid');
+        const paid = engine.saveRoster(unpaid, unpaid.registrations.map(r => ({...r,paid:true})));
+        equal(engine.startTournament(paid).status, 'live');
+        return 'unpaid playing members blocked; unpaid standby/unassigned arrivals excluded; promotion and paid retry';
     }""")
 
 
@@ -378,6 +404,7 @@ async def test_corrections(page):
 
 
 TESTS = {
+    "paid_start": test_paid_start,
     "roster": test_roster,
     "preview_and_shuffle": test_preview_and_shuffle,
     "topology": test_topology,

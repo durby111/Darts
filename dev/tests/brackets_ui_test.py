@@ -105,7 +105,7 @@ function fixture(count, status='registration', ownerId='owner') {
     let t = engine.createTournament({id:'demo',ownerId,title:'Friday Doubles',date:'2026-09-07',gameType:'chicago'});
     t = engine.saveRoster(t, Array.from({length:count*2},(_,i)=>({
         id:`r${i}`,playerId:i===0?'profile-a':null,name:`Player ${i+1}`,tag:String(Math.floor(i/2)+1),
-        checkedIn:true,paid:i%2===0,standby:false,
+        checkedIn:true,paid:true,standby:false,
     })));
     if(status!=='registration') t=engine.startTournament(t);
     if(status==='complete') {
@@ -249,6 +249,12 @@ async def test_owner_roster(browser, base):
             await row.locator('[data-field="checkedIn"]').check()
         await page.locator("#saveRoster").click()
         await page.wait_for_function("__api.writes === 2")
+        assert await page.locator("#startTournament").is_disabled(), "Unpaid playing members must block start"
+        assert "marked paid" in await page.locator("#blockers").inner_text()
+        for row in await page.locator("#rosterRows tr").all():
+            await row.locator('[data-field="paid"]').check()
+        await page.locator("#saveRoster").click()
+        await page.wait_for_function("__api.writes === 3")
         assert await page.locator("#startTournament").is_enabled()
         await page.locator("#startTournament").click()
         await page.wait_for_function("__api.docs.demo.status === 'live'")
@@ -664,6 +670,7 @@ async def test_real_platform_adapter(browser, base):
         for index, row in enumerate(await page.locator("#rosterRows tr").all()):
             await row.locator('[data-field="tag"]').fill(str(index // 2 + 1))
             await row.locator('[data-field="checkedIn"]').check()
+            await row.locator('[data-field="paid"]').check()
         await page.locator("#saveRoster").click()
         await page.wait_for_function("document.querySelector('#message').textContent.includes('All roster changes saved')")
         assert await page.locator('#rosterRows [data-field="name"]').first.input_value() == profile_name
@@ -716,7 +723,7 @@ docs.set('blakeoutDevProfiles/verified_joiner',{name:'Verified Arrival'});
         let t=e.createTournament({id:'selfjoin-integration',ownerId:'verified_owner',
             title:'Real selfjoin integration',date:'2026-09-07',gameType:'minnesota',bestOf:3});
         t=e.saveRoster(t,Array.from({length:8},(_,i)=>({id:'seed-'+i,playerId:null,
-            name:'Seed player '+i,tag:String(Math.floor(i/2)+1),paid:false,checkedIn:true,standby:false})));
+            name:'Seed player '+i,tag:String(Math.floor(i/2)+1),paid:true,checkedIn:true,standby:false})));
         await p.createTournamentDocument(t);
     }""")
     await page.locator("#refresh").click()

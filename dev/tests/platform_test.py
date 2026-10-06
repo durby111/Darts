@@ -408,7 +408,7 @@ NEW_FEATURE_TESTS = r"""async () => {
  login('verified_owner');
  await reject(()=>p.updateTournament(t.id,0,current=>e.saveRoster(current,[])),'stale owner draft cannot discard signup');
  t=await p.getTournament(t.id);
- const guests=[['partner','A'],['other1','B'],['other2','B']].map(([id,tag])=>({id,tag,name:id,playerId:null,paid:false,checkedIn:true,standby:false}));
+ const guests=[['partner','A'],['other1','B'],['other2','B']].map(([id,tag])=>({id,tag,name:id,playerId:null,paid:true,checkedIn:true,standby:false}));
  t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,[{...current.registrations[0],tag:'A',paid:true,checkedIn:true},...guests]));
  const materialized={public:structuredClone(testDocs.get('blakeoutDevTournaments/join_event')),
  private:structuredClone(testDocs.get('blakeoutDevRosterPrivate/join_event')),
@@ -425,7 +425,7 @@ NEW_FEATURE_TESTS = r"""async () => {
  assert(rejoined.registrations.filter(r=>r.playerId==='self_player').length===1,'removed player can immediately rejoin');
  login('verified_owner');
  t=await p.getTournament(t.id);
- t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,current.registrations.map(r=>r.playerId==='self_player'?{...r,tag:'A',checkedIn:true}:r)));
+ t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,current.registrations.map(r=>r.playerId==='self_player'?{...r,tag:'A',checkedIn:true,paid:true}:r)));
  const beforeRace=t.revision;let transactions=0;
  globalThis.beforeTransaction=async()=>{
    if(++transactions!==1)return;
@@ -547,14 +547,14 @@ GUEST_TESTS = r"""async () => {
  changeGuestTestUser({uid:'anonymous_guest_two',emailVerified:false,isAnonymous:true});
  t=(await p.joinTournamentAsGuest(t.id,label)).tournament;
  assert(t.registrations.length===2&&t.registrations.every(r=>r.playerId===null),'separate devices with identical names remain distinct guests');
- const extra=['guest_partner1','guest_partner2'].map(id=>({id,playerId:null,name:id,tag:'B',paid:false,checkedIn:true,standby:false}));
- t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,[...current.registrations.map(r=>({...r,tag:'A',checkedIn:true})),...extra]));
+ const extra=['guest_partner1','guest_partner2'].map(id=>({id,playerId:null,name:id,tag:'B',paid:true,checkedIn:true,standby:false}));
+ t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,[...current.registrations.map(r=>({...r,tag:'A',checkedIn:true,paid:true})),...extra]));
  t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,current.registrations.filter(r=>r.id!=='guest-anonymous_guest')));
  assert(!testDocs.has('blakeoutDevSignups/guest_event/players/anonymous_guest')&&testDocs.has('blakeoutDevSignups/guest_event/players/anonymous_guest_two'),'owner removes only targeted null-ID guest signup');
  changeGuestTestUser({uid:'anonymous_guest',emailVerified:false,isAnonymous:true});
  t=(await p.joinTournamentAsGuest(t.id,label)).tournament;
  assert(t.registrations.filter(r=>r.id==='guest-anonymous_guest').length===1,'removed guest can rejoin without approval');
- t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,current.registrations.map(r=>r.id==='guest-anonymous_guest'?{...r,tag:'A',checkedIn:true}:r)));
+ t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,current.registrations.map(r=>r.id==='guest-anonymous_guest'?{...r,tag:'A',checkedIn:true,paid:true}:r)));
  const started=e.startTournament(t);
  t=await p.updateTournament(t.id,t.revision,()=>started);
  assert((await p.joinTournamentAsGuest(t.id,label)).tournament.status==='live','committed guest signup retries after start');
