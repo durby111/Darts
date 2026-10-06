@@ -17,6 +17,18 @@ Dev-only release. Production (repo root) untouched — promote by copying
 - This is a local CSS fix against the September 7 base. The saved Start & Lock
   feedback and result-correction archives have not yet been applied.
 
+## October 6 Account Verification Follow-Up (Local, Unpublished)
+
+- Manual refresh and returning from an email share one account reload/token
+  refresh. A replacement account can refresh while an old request is pending;
+  late responses/errors do not reset its UI or restore a signed-out session.
+- Added delayed-request checks for overlapping refreshes, retry after failure,
+  account switches during reload/token refresh, and preservation of a new
+  account's unsaved profile edit. These tests use mocked Firebase only.
+- Prepared DEV cache v44 for these application changes. Production cache/source
+  stays unchanged. Genuine email receipt, link completion, and the owner's
+  verified account status still require an authorized real-world check.
+
 ## September 4 Follow-Up List
 
 - [x] Commit and push approved dry-erase Cricket marks: `773fd53` (dev only).

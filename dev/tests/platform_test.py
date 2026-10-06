@@ -48,7 +48,10 @@ export const initializeApp=(config,name)=>{const app={name};apps.push(app);retur
 AUTH = """
 const key='platform-test-auth';
 const initial={uid:'verified_owner',email:'owner@example.com',emailVerified:true,isAnonymous:false};
-const hydrate=user=>user&&({...user,getIdToken:async()=> 'verified'});
+const hydrate=user=>user&&({...user,getIdToken:async force=>{
+ (globalThis.tokenRefreshCalls ||= []).push({uid:user.uid,force});
+ return globalThis.tokenRefreshHook ? await globalThis.tokenRefreshHook(user) : 'verified';
+}});
 const auth={currentUser:hydrate(JSON.parse(localStorage.getItem(key)||JSON.stringify(initial)))};
 const listeners=[];
 const guestKey='platform-test-guest-auth';
@@ -101,8 +104,84 @@ export const sendEmailVerification=async(user,settings)=>{
 export const sendPasswordResetEmail=async(auth,email,settings)=>{
  fail();globalThis.sentReset={email,settings};
 };
-export const reload=async user=>{fail();globalThis.reloadCount=(globalThis.reloadCount||0)+1;if(globalThis.mockVerified)user.emailVerified=true;};
+export const reload=async user=>{
+ globalThis.reloadCount=(globalThis.reloadCount||0)+1;
+ if(globalThis.reloadHook)await globalThis.reloadHook(user);
+ fail();if(globalThis.mockVerified)user.emailVerified=true;
+};
 """
+
+ACCOUNT_REFRESH_TESTS = """async () => {
+ const p=await import('/dev/js/platform.js');
+ const checks=[];
+ const assert=(ok,message)=>{if(!ok)throw Error(message);checks.push(message);};
+ const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
+ const user=uid=>({uid,email:uid+'@example.com',emailVerified:false,isAnonymous:false});
+ let stop=()=>{};
+ try {
+  changeTestUser(user('refresh_same'));
+  globalThis.mockVerified=true;
+  let release;
+  globalThis.reloadHook=()=>new Promise(resolve=>{release=resolve;});
+  const reloads=globalThis.reloadCount||0, tokens=tokenRefreshCalls.length;
+  let notifications=0;
+  stop=p.subscribeAccount(()=>notifications++);notifications=0;
+  const first=p.refreshAccount(),second=p.refreshAccount();
+  await tick();
+  assert(reloadCount===reloads+1,'simultaneous refreshes share one Firebase reload');
+  release();await Promise.all([first,second]);
+  assert(tokenRefreshCalls.length===tokens+1,'simultaneous refreshes force one token refresh');
+  assert(notifications===1,'one completed refresh publishes once');
+  assert(p.requireVerifiedAccount().uid==='refresh_same','verification preserves the original UID');
+  stop();stop=()=>{};
+
+  changeTestUser(user('refresh_failure'));
+  globalThis.reloadHook=null;
+  globalThis.tokenRefreshHook=async()=>{throw Error('Token refresh unavailable');};
+  let failed=false;
+  try {await p.refreshAccount();} catch(error){failed=error.message==='Token refresh unavailable';}
+  assert(failed,'current-account token failure remains visible');
+  globalThis.tokenRefreshHook=null;
+  await p.refreshAccount();
+  assert(p.requireVerifiedAccount().uid==='refresh_failure','failed refresh can be retried');
+
+  changeTestUser(user('refresh_old'));
+  globalThis.reloadHook=value=>value.uid==='refresh_old'?new Promise(resolve=>{release=resolve;}):Promise.resolve();
+  const old=p.refreshAccount();await tick();
+  changeTestUser(user('refresh_new'));
+  await p.refreshAccount();
+  assert(p.requireVerifiedAccount().uid==='refresh_new','new account can refresh while old request is pending');
+  notifications=0;stop=p.subscribeAccount(()=>notifications++);notifications=0;
+  release();await old;
+  assert(!tokenRefreshCalls.some(call=>call.uid==='refresh_old'),'obsolete account is not token-refreshed');
+  assert(notifications===0,'late reload does not republish or reset the new account UI');
+  stop();stop=()=>{};
+
+  changeTestUser(user('refresh_token_old'));
+  globalThis.reloadHook=null;
+  globalThis.tokenRefreshHook=()=>new Promise(resolve=>{release=resolve;});
+  const tokenPending=p.refreshAccount();await tick();
+  changeTestUser(user('refresh_token_new'));
+  notifications=0;stop=p.subscribeAccount(()=>notifications++);notifications=0;
+  release('fixture-token');await tokenPending;
+  assert(notifications===0,'late token completion does not republish a replacement account');
+  assert(p.getAccount().uid==='refresh_token_new'&&!p.getAccount().emailVerified,'replacement account stays unverified');
+  stop();stop=()=>{};
+
+  changeTestUser(user('refresh_signed_out'));
+  globalThis.tokenRefreshHook=null;
+  let reject;
+  globalThis.reloadHook=()=>new Promise((resolve,fail)=>{reject=fail;});
+  const signedOut=p.refreshAccount();await tick();
+  await p.signOutAccount();reject(Error('Old request failed'));
+  assert(await signedOut===null,'obsolete refresh failure does not overwrite signed-out state');
+  assert(!p.getAccount(),'refresh never restores a signed-out account');
+  return checks;
+ } finally {
+  stop();globalThis.reloadHook=null;globalThis.tokenRefreshHook=null;globalThis.mockVerified=false;
+  changeTestUser({uid:'verified_owner',email:'owner@example.com',emailVerified:true,isAnonymous:false});
+ }
+}"""
 
 STORE = """
 export const getFirestore=app=>({appName:app.name});
@@ -1056,6 +1135,8 @@ async def run():
             await page.goto(base + "/dev/accounts/")
             output = await page.evaluate(API_TESTS)
             print(f"PASS platform APIs ({len(output['checks'])} assertions)")
+            refresh_checks = await page.evaluate(ACCOUNT_REFRESH_TESTS)
+            print(f"PASS account verification refresh concurrency ({len(refresh_checks)} assertions)")
             features = await page.evaluate(NEW_FEATURE_TESTS)
             print(f"PASS self-registration/casual/Minnesota APIs ({len(features['checks'])} assertions)")
             guests = await page.evaluate(GUEST_TESTS)
@@ -1133,6 +1214,33 @@ async def run():
             await page.locator("#passwordSignIn").click()
             await page.wait_for_function("document.querySelector('#profilePanel').hidden === false")
             print("PASS password UI (register, verification gate, unverified signout, quota errors, return reload, reset, sign-in)")
+            await page.evaluate("""() => {
+                mockVerified=false;
+                changeTestUser({uid:'return-old',email:'old@example.com',emailVerified:false,isAnonymous:false});
+                globalThis.reloadHook=user=>user.uid==='return-old'
+                    ? new Promise((resolve,reject)=>{globalThis.rejectOldRefresh=reject;}) : Promise.resolve();
+                globalThis.beforeReturnReloads=reloadCount;
+                dispatchEvent(new Event('focus'));
+            }""")
+            await page.wait_for_function("typeof rejectOldRefresh === 'function'")
+            await page.locator("#refreshVerification").click()
+            assert await page.evaluate("reloadCount === beforeReturnReloads + 1"), "Manual and return refresh must coalesce"
+            await page.evaluate("""() => {
+                changeTestUser({uid:'return-new',email:'new@example.com',emailVerified:false,isAnonymous:false});
+                mockVerified=true;dispatchEvent(new Event('focus'));
+            }""")
+            await page.wait_for_function("!document.querySelector('#profilePanel').hidden")
+            await page.wait_for_function("document.querySelector('#identity').textContent.includes('return-new')")
+            # Let profile/record rendering finish before making an unsaved edit.
+            await page.wait_for_function("!document.querySelector('#exportRecords').disabled")
+            await page.locator("#displayName").fill("Unsaved new account name")
+            await page.evaluate("rejectOldRefresh(Error('Old verification request failed'))")
+            await page.wait_for_function("!document.querySelector('#refreshVerification').disabled")
+            assert await page.locator("#displayName").input_value() == "Unsaved new account name"
+            assert await page.locator("#accountStatus").get_attribute("role") == "status"
+            assert "verified email" in await page.locator("#accountStatus").inner_text()
+            await page.evaluate("globalThis.reloadHook=null;globalThis.mockVerified=false")
+            print("PASS account return UI (manual/focus coalescing, replacement account refresh, late failure preserves draft/status)")
             await context.route("**/firebase-config.js", lambda request: request.abort())
             await page.reload()
             await page.wait_for_function("document.querySelector('#accountStatus').getAttribute('role') === 'alert'")

@@ -17,6 +17,7 @@ const COLLECTIONS = Object.freeze({
 const listeners = new Set();
 let initialization, auth, db, authSDK, storeSDK, account = null;
 let guestInitialization;
+let accountRefresh;
 
 function publishAccount(user) {
     account = user;
@@ -137,12 +138,27 @@ export async function resetAccountPassword(email) {
 export async function refreshAccount() {
     await initPlatform();
     const user = auth.currentUser;
-    if (user) {
-        await authSDK.reload(user);
-        await user.getIdToken(true);
-    }
-    publishAccount(auth.currentUser);
-    return getAccount();
+    if (!user) return null;
+    // Focus/visibility events and the refresh button can arrive together.
+    if (accountRefresh?.user === user) return accountRefresh.promise;
+    const refresh = { user };
+    refresh.promise = (async () => {
+        try {
+            await authSDK.reload(user);
+            if (auth.currentUser !== user) return getAccount();
+            await user.getIdToken(true);
+            if (auth.currentUser === user) publishAccount(user);
+            return getAccount();
+        } catch (error) {
+            // An old request must not replace a newer account's UI/status.
+            if (auth.currentUser !== user) return getAccount();
+            throw error;
+        } finally {
+            if (accountRefresh === refresh) accountRefresh = null;
+        }
+    })();
+    accountRefresh = refresh;
+    return refresh.promise;
 }
 
 export async function sendAccountLink(email) {

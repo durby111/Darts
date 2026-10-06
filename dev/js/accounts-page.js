@@ -127,9 +127,12 @@ async function passwordAuth(create) {
 
 async function refreshVerificationOnReturn() {
     const user = getAccount();
-    if (!user || user.isAnonymous || user.emailVerified || verificationRefresh) return;
-    verificationRefresh = refreshAccount().catch(showError);
-    try { await verificationRefresh; } finally { verificationRefresh = null; }
+    if (!user || user.isAnonymous || user.emailVerified || verificationRefresh?.user === user) return;
+    const refresh = { user };
+    verificationRefresh = refresh;
+    try { await refreshAccount(); }
+    catch (error) { if (getAccount() === user) showError(error); }
+    finally { if (verificationRefresh === refresh) verificationRefresh = null; }
 }
 
 $('passwordForm').addEventListener('submit', event => {
