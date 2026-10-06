@@ -66,6 +66,13 @@ function controls() {
     const eligible = current && owner() && current.status === 'registration' && !engine.readiness(current).length;
     $('startTournament').disabled = busy || needsAccountReload || dirty() || !eligible;
     $('saveRoster').disabled = busy || needsAccountReload || !rosterDirty;
+    for (const input of document.querySelectorAll('[data-bulk-field]')) {
+        const rows = owner() && current.status === 'registration' ? draft : [];
+        const count = rows.filter(entry => entry[input.dataset.bulkField]).length;
+        input.checked = rows.length > 0 && count === rows.length;
+        input.indeterminate = count > 0 && count < rows.length;
+        input.disabled = busy || needsAccountReload || !rows.length;
+    }
     joinUI();
 }
 
@@ -158,6 +165,8 @@ function updatePreview() {
     $('draftStatus').textContent = rosterDirty ? 'Unsaved changes · preview only. Save all changes before starting.' : 'Roster saved to cloud.';
     $('blockers').replaceChildren();
     $('rosterSummary').textContent = '';
+    $('rosterWarning').textContent = '';
+    $('rosterWarning').hidden = true;
     if (current.status === 'registration' && owner()) {
         const playing = draft.filter(entry => !entry.standby);
         const groups = new Map();
@@ -167,6 +176,10 @@ function updatePreview() {
         }
         const paired = playing.filter(entry => groups.get(entry.tag.trim()) === 2).length;
         $('rosterSummary').textContent = `${draft.length} total · ${draft.length - playing.length} standby · ${playing.length} non-standby · ${paired} in complete pairs · ${playing.length - paired} without a complete pair`;
+        if (playing.length % 2) {
+            $('rosterWarning').textContent = 'There is an odd number of non-standby players. Check who is playing and who should be on standby. This warning alone does not block Start; the requirements below still apply.';
+            $('rosterWarning').hidden = false;
+        }
         try {
             const candidate = engine.saveRoster(current, validRoster());
             const preview = engine.createPreview(candidate);
@@ -439,6 +452,15 @@ $('rosterForm').addEventListener('submit', event => {
         notice('All roster changes saved to cloud. Preview remains unlocked.');
     });
 });
+for (const input of document.querySelectorAll('[data-bulk-field]')) {
+    input.addEventListener('change', () => {
+        if (!owner() || busy || needsAccountReload || current.status !== 'registration' || !draft.length) return;
+        for (const entry of draft) entry[input.dataset.bulkField] = input.checked;
+        markRosterDirty();
+        renderRoster();
+        updatePreview();
+    });
+}
 $('startTournament').addEventListener('click', () => action(async () => {
     if (dirty()) throw new Error('Save all roster edits before starting.');
     if (!confirm('Start this tournament? This shuffles the draw once and permanently locks the roster.')) return;

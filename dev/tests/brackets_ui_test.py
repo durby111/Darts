@@ -297,6 +297,76 @@ async def test_roster_counts(browser, base):
         await context.close()
 
 
+async def test_bulk_flags_and_odd_warning(browser, base):
+    context, page = await fresh(browser, base)
+    try:
+        paid = page.locator('[data-bulk-field="paid"]')
+        checkin = page.locator('[data-bulk-field="checkedIn"]')
+        standby = page.locator('[data-bulk-field="standby"]')
+        ids = await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)')
+        assert await paid.is_checked() and await checkin.is_checked()
+        assert not await standby.is_checked()
+        await page.locator('#rosterRows [data-field="paid"]').first.uncheck()
+        assert await paid.evaluate('(input)=>input.indeterminate')
+        await paid.click()
+        assert await page.locator('#rosterRows [data-field="paid"]:checked').count() == 8
+        assert not await paid.evaluate('(input)=>input.indeterminate')
+        await paid.uncheck()
+        await checkin.uncheck()
+        await standby.check()
+        assert await page.locator('#rosterRows [data-field="paid"]:checked').count() == 0
+        assert await page.locator('#rosterRows [data-field="checkedIn"]:checked').count() == 0
+        assert await page.locator('#rosterRows [data-field="standby"]:checked').count() == 8
+        assert await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)') == ids
+        assert await page.evaluate('__api.writes') == 0
+        assert await page.locator('#startTournament').is_disabled()
+        await page.evaluate('__api.failWrite=true')
+        await page.locator('#saveRoster').click()
+        await page.wait_for_function("document.querySelector('#message').textContent.includes('permission-denied')")
+        assert await standby.is_checked(), "Failed bulk save preserves draft"
+        await page.evaluate('__api.failWrite=false;__api.conflict=true')
+        await page.locator('#saveRoster').click()
+        await page.wait_for_function("document.querySelector('#message').textContent.includes('another device')")
+        assert await standby.is_checked() and not await paid.is_checked()
+        assert await page.evaluate('__api.writes') == 0
+        await page.evaluate('__api.conflict=false')
+        await page.locator('#discard').click()
+        await page.wait_for_function("!document.querySelector('[data-bulk-field=standby]').checked")
+        assert await paid.is_checked() and await checkin.is_checked()
+        await page.fill('#guestName', 'Unpaired arrival')
+        await page.locator('#addForm button').click()
+        assert await page.locator('#rosterWarning').is_visible()
+        await page.locator('#saveRoster').click()
+        await page.wait_for_function('__api.writes===1')
+        assert await page.locator('#startTournament').is_enabled(), "Odd total alone must not block ready teams"
+        assert await page.locator('#rosterWarning').is_visible()
+        await page.locator('#rosterRows [data-field="standby"]').last.check()
+        await page.wait_for_function("document.querySelector('#rosterWarning').hidden")
+        assert await standby.evaluate('(input)=>input.indeterminate')
+        await paid.check()
+        assert await page.locator('#rosterRows [data-field="paid"]:checked').count() == 9, "Bulk explicitly includes standby"
+        await page.locator('#saveRoster').click()
+        await page.wait_for_function('__api.writes===2')
+        assert await page.evaluate('__api.docs.demo.registrations.every(r=>r.paid)')
+        await page.evaluate('__api.account=null;__api.accountChanged(null)')
+        await page.wait_for_function("document.querySelector('#rosterPanel').hidden")
+        for control in (paid, checkin, standby):
+            assert await control.is_disabled()
+            assert not await control.is_checked()
+            assert not await control.evaluate('(input)=>input.indeterminate')
+        assert await page.locator('#rosterWarning').text_content() == ''
+    finally:
+        await context.close()
+    context, page = await fresh(browser, base, count=0)
+    try:
+        for control in await page.locator('[data-bulk-field]').all():
+            assert await control.is_disabled()
+        assert await page.locator('#rosterWarning').is_hidden()
+        return "bulk all/none/mixed, private draft state, failed/stale saves, explicit standby scope, odd-warning-only and empty roster"
+    finally:
+        await context.close()
+
+
 async def test_failures_and_polling(browser, base):
     context, page = await fresh(browser, base)
     try:
@@ -900,6 +970,7 @@ async def test_real_guest_selfjoin_and_race(browser, base):
 TESTS = {
     "owner_roster": test_owner_roster,
     "roster_counts": test_roster_counts,
+    "bulk_flags_and_odd_warning": test_bulk_flags_and_odd_warning,
     "failures_and_polling": test_failures_and_polling,
     "spectator_and_layout": test_spectator_and_layout,
     "manual_results_and_history": test_manual_results_and_history,

@@ -12,8 +12,8 @@ out of scope. No network or security permission changes are authorized.
 | Tablet Start/Resume visibility | Published `d5b09ab` | Pages run [37459450018](https://github.com/durby111/Darts/actions/runs/37459450018) succeeded; local 55/55 regressions and 15 layout combinations passed. Actual served site cannot be reached from this executor. |
 | Account verification refresh concurrency | Published in `b8e8d96` | Shared reload/token request per user, replacement-user refresh and obsolete-session guards; 13 new mock API assertions and delayed account-switch UI test pass. Actual email/link/token propagation still unverified. |
 | Playing roster payment requirement | Published in `b8e8d96` | Assigned playing members must be paid; standby excluded. Engine and organizer UI checks pass. Existing private flags and schema retained. |
-| DEV service worker | v44 published; v45 accompanies roster counts | Production cache/source unchanged. |
-| Organizer row numbering and counts | Implemented and locally tested | Draft/standby/pair counts; identity preservation, tablet/mobile containment and signout privacy checks pass. |
+| DEV service worker | v45 published; v46 accompanies bulk controls | Production cache/source unchanged. |
+| Organizer row numbering and counts | Published `3e5fbc6` | Draft/standby/pair counts; identity preservation, tablet/mobile containment and signout privacy checks pass. |
 
 ## Saved work blocked on transfer
 
@@ -67,8 +67,8 @@ not deliver functional result correction.
   player/registration IDs. Define labels and normalization for organizer edits,
   self-registration, and concurrent signup before implementation.
 - [x] Add roster row numbering and explicit total/non-standby/standby/pair counts.
-- [ ] Add owner-only bulk flag controls with revision-safe saves.
-- [ ] Improve odd-roster warnings without confusing warnings with pair blockers.
+- [x] Add owner-only bulk flag controls with revision-safe saves.
+- [x] Add odd non-standby roster warning without changing Start eligibility.
 - [ ] Dim unavailable bracket matches and indicate actual active play. Ready
   alone does not establish that a match is being played.
 - [ ] Review distance readability on real tablets.
@@ -95,8 +95,9 @@ not deliver functional result correction.
   were explicitly approved. Subsequent tested DEV-only batches are authorized
   through October 6 evening; preserve production and report deployed scope.
 - Account/payment release `b8e8d96` passed Pages run `37462591260`.
-- Next release scope: organizer row numbers and count summary, corresponding
-  column styling, regression test, cache v45, and development notes.
+- Roster count release `3e5fbc6` passed Pages run `37462941482`.
+- Next release scope: organizer bulk flag controls, odd-roster warning, their
+  regression tests, cache v46, and development notes.
 
 ## Evening DEV test checklist
 
@@ -108,12 +109,15 @@ not deliver functional result correction.
    a named payment blocker. Mark paid and save. Unpaid standby players should
    not block an otherwise ready roster.
 4. Check roster row numbers and counts while adding/removing a player or
-   toggling Standby. Counts describe the draft; Save is still required.
+   toggling Standby. Try the Paid/Checked-in/Standby column checkboxes: they
+   apply to all draft rows, including standby, and require Save. Mixed flags
+   show a mixed checkbox. Discard & reload restores the saved roster. An odd
+   non-standby count warns without independently blocking Start.
 5. Start a short DEV tournament game, reload/resume, and submit once. Local
    interrupted/retry tests pass; real provider behavior still needs observation.
 
 Deferred: dedicated Start & Lock feedback, safe correction integration, event
-name distinctions, bulk flag controls, odd-roster warning polish, active-match
+name distinctions, active-match
 indication, real-tablet distance review, ordering and Cricket alignment. The
 original feedback/correction archives remain transfer-blocked. Do not expect
 result correction functionality from these releases.

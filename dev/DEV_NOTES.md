@@ -55,6 +55,19 @@ Dev-only release. Production (repo root) untouched — promote by copying
 - DEV cache v45 includes the updated page, roster column styling and script.
   Production source, data schemas and rules remain unchanged.
 
+## October 6 Bulk Roster Flags and Odd-Roster Warning
+
+- Paid, Checked-in and Standby column checkboxes set/clear all draft rows,
+  including standby. Mixed flags use the native mixed checkbox state. Empty,
+  locked, spectator and busy rosters cannot use the controls.
+- Changes require the existing revision-checked Save; failed or stale saves
+  preserve the draft. Discard & reload restores cloud flags. No automatic
+  write or change to owner-only private flag storage is introduced.
+- An odd non-standby count prompts the organizer to review participation and
+  pairings. It is advisory: existing payment/check-in/pair rules decide Start.
+- All 17 bracket UI groups pass, including mixed/all/none flags, failed and
+  stale saves, standby scope, empty rosters and signout privacy. Cache v46.
+
 ## September 4 Follow-Up List
 
 - [x] Commit and push approved dry-erase Cricket marks: `773fd53` (dev only).

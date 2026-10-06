@@ -81,6 +81,7 @@
             <section id="rosterPanel" class="platform-card" hidden>
                 <h2>Organizer roster</h2>
                 <p id="rosterSummary" aria-live="polite"></p>
+                <p id="rosterWarning" aria-live="polite" hidden></p>
                 <p>Use one matching team number for both partners. Save all rows together; swaps between full teams are allowed. Every playing team member must be checked in and marked paid before starting. Standby players do not need to be paid.</p>
                 <p>Guests belong only to this tournament. Account players are linked by verified profile ID, never by a name or email match.</p>
                 <fieldset id="rosterControls">
@@ -90,9 +91,10 @@
                         <button type="submit">Add to draft roster</button>
                     </form>
                     <form id="rosterForm">
+                        <p>Column checkboxes set or clear that flag for every draft row, including standby players. Save all roster changes when ready.</p>
                         <div class="roster-scroll">
                             <table class="roster-table">
-                                <thead><tr><th scope="col">#</th><th scope="col">Display name</th><th scope="col">Team number</th><th scope="col">Paid</th><th scope="col">Checked in</th><th scope="col">Standby</th><th scope="col">Remove</th></tr></thead>
+                                <thead><tr><th scope="col">#</th><th scope="col">Display name</th><th scope="col">Team number</th><th scope="col"><label>Paid<input type="checkbox" data-bulk-field="paid" aria-label="Paid for all roster players"></label></th><th scope="col"><label>Checked in<input type="checkbox" data-bulk-field="checkedIn" aria-label="Checked in for all roster players"></label></th><th scope="col"><label>Standby<input type="checkbox" data-bulk-field="standby" aria-label="Standby for all roster players"></label></th><th scope="col">Remove</th></tr></thead>
                                 <tbody id="rosterRows"></tbody>
                             </table>
                         </div>
