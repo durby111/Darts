@@ -1,4 +1,5 @@
 // Geometry ported from tournament-manager's bracket_layout.py; sources alone route edges.
+import { registrationLabels } from './labels.js';
 const WIDTH = 280, HEIGHT = 220, COLUMN = 340, ROW = 246;
 const LABELS = { winners: 'Winners bracket', losers: 'Losers bracket', final: 'Grand final', reset: 'Reset · if needed' };
 
@@ -62,10 +63,10 @@ export function buildLayout(matches) {
     };
 }
 
-export function teamLabel(tournament, teamId) {
+export function teamLabel(tournament, teamId, labels = registrationLabels(tournament.registrations)) {
     const team = tournament.teams.find(item => item.id === teamId);
     if (!team) return 'Not decided';
-    const names = team.memberIds.map(id => tournament.registrations.find(entry => entry.id === id)?.name || 'Unknown player');
+    const names = team.memberIds.map(id => labels.get(id) || 'Unknown player');
     return `${team.name} — ${names.join(' & ')}`;
 }
 
@@ -77,6 +78,7 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
         return;
     }
     const layout = buildLayout(tournament.matches);
+    const labels = registrationLabels(tournament.registrations);
     const spacer = element('div', 'diagram-spacer');
     const canvas = element('div', 'diagram-canvas');
     canvas.style.width = `${layout.width}px`;
@@ -119,7 +121,7 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
             const played = !preview && match.status === 'complete';
             const won = played && teamId && match.winnerId === teamId;
             const slot = element('div', `match-slot${won ? ' won' : ''}`);
-            const label = teamId ? teamLabel(tournament, teamId) : source ? 'Not decided' : 'Bye';
+            const label = teamId ? teamLabel(tournament, teamId, labels) : source ? 'Not decided' : 'Bye';
             const text = element('span', 'slot-label', label);
             text.title = label;
             slot.append(text);

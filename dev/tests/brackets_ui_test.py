@@ -406,6 +406,41 @@ async def test_roster_order(browser, base):
         await context.close()
 
 
+async def test_event_name_labels(browser, base):
+    context, page = await fresh(browser, base)
+    try:
+        await page.evaluate("""() => {
+            __api.docs.demo.registrations[0].name='Alex';
+            __api.docs.demo.registrations[1].name='Alex';
+            __api.docs.demo.registrations[2].name='(1) Alex';
+            __api.docs.demo.revision++;
+        }""")
+        await page.locator('#refresh').click()
+        await page.wait_for_function("document.querySelector('#publicRoster').textContent.includes('(2) Alex')")
+        labels=await page.locator('#publicRoster li').all_text_contents()
+        assert labels[:3]==['(2) Alex','(3) Alex','(1) Alex']
+        assert '(2) Alex & (3) Alex' in await page.locator('#publicTeams').inner_text()
+        assert '(2) Alex & (3) Alex' in await page.locator('#diagram').inner_text()
+        assert await page.locator('#rosterRows [data-field="name"]').first.input_value()=='Alex'
+        assert await page.locator('#rosterRows .event-name-label').first.inner_text()=='Event label: (2) Alex'
+        await page.locator('#rosterRows [data-move="down"]').first.click()
+        assert await page.locator('#publicRoster li').all_text_contents()==labels, 'Draft order must not change saved public labels'
+        assert await page.locator('#rosterRows .event-name-label').nth(1).inner_text()=='Event label: (2) Alex'
+        await page.locator('#rosterRows [data-field="name"]').nth(1).fill('Sam')
+        await page.wait_for_function("document.querySelectorAll('#rosterRows .event-name-label')[1].hidden")
+        assert await page.evaluate('__api.writes')==0
+        await page.locator('#saveRoster').click()
+        await page.wait_for_function('__api.writes===1')
+        assert (await page.locator('#publicRoster li').all_text_contents())[:3]==['Alex','Sam','(1) Alex']
+        assert await page.evaluate('__api.docs.demo.registrations.slice(0,3).map(r=>r.name)')==['Alex','Sam','(1) Alex']
+        await page.evaluate('__api.account=null;__api.accountChanged(null)')
+        await page.wait_for_function("document.querySelector('#rosterPanel').hidden")
+        assert (await page.locator('#publicRoster li').all_text_contents())[:3]==['Alex','Sam','(1) Alex']
+        return 'saved public roster/bracket labels, draft-only hints, reorder consistency, owner rename and spectator consistency without name ownership'
+    finally:
+        await context.close()
+
+
 async def test_failures_and_polling(browser, base):
     context, page = await fresh(browser, base)
     try:
@@ -1009,6 +1044,7 @@ async def test_real_guest_selfjoin_and_race(browser, base):
 TESTS = {
     "owner_roster": test_owner_roster,
     "roster_counts": test_roster_counts,
+    "event_name_labels": test_event_name_labels,
     "roster_order": test_roster_order,
     "bulk_flags_and_odd_warning": test_bulk_flags_and_odd_warning,
     "failures_and_polling": test_failures_and_polling,

@@ -1,6 +1,7 @@
 import * as platform from '../platform.js';
 import * as engine from './engine.js';
 import { renderDiagram, teamLabel } from './diagram.js';
+import { registrationLabels } from './labels.js';
 
 const $ = id => document.getElementById(id);
 const GAMES = { chicago: 'Chicago', '301': '301', '501': '501', cricket: 'Cricket', spanish: 'Spanish Cricket', minnesota: 'Minnesota Cricket' };
@@ -126,11 +127,27 @@ async function loadOwnProfile() {
 }
 
 function publicRoster(tournament) {
+    const labels = registrationLabels(tournament.registrations);
     $('publicRosterHeading').textContent = `Registered players · ${tournament.registrations.length}`;
     $('publicRoster').replaceChildren();
-    for (const entry of tournament.registrations) $('publicRoster').append(textElement('li', entry.name));
+    for (const entry of tournament.registrations) $('publicRoster').append(textElement('li', labels.get(entry.id)));
     $('publicTeams').replaceChildren();
-    for (const team of tournament.teams) $('publicTeams').append(textElement('span', teamLabel(tournament, team.id)));
+    for (const team of tournament.teams) $('publicTeams').append(textElement('span', teamLabel(tournament, team.id, labels)));
+}
+
+function updateEventLabels() {
+    const labels = registrationLabels(draft);
+    for (const row of $('rosterRows').rows) {
+        const entry = draft.find(item => item.id === row.dataset.registration);
+        const label = labels.get(entry.id);
+        const hint = row.querySelector('.event-name-label');
+        hint.hidden = label === entry.name;
+        hint.textContent = hint.hidden ? '' : `Event label: ${label}`;
+        for (const input of row.querySelectorAll('[data-field]')) {
+            input.setAttribute('aria-label', `${{ name: 'Display name', tag: 'Team number', paid: 'Paid', checkedIn: 'Checked in', standby: 'Standby' }[input.dataset.field]} for ${label}`);
+        }
+        row.querySelector('button:not([data-move])').setAttribute('aria-label', `Remove ${label}`);
+    }
 }
 
 function observeCloud(tournament) {
@@ -168,6 +185,7 @@ function updatePreview() {
     $('rosterWarning').textContent = '';
     $('rosterWarning').hidden = true;
     if (current.status === 'registration' && owner()) {
+        updateEventLabels();
         const playing = draft.filter(entry => !entry.standby);
         const groups = new Map();
         for (const entry of playing) {
@@ -232,7 +250,10 @@ function renderRoster() {
                 markRosterDirty();
             });
             cell.append(input);
-            if (field === 'name') cell.append(textElement('small', entry.playerId ? 'Verified profile · tournament display name' : 'Tournament-only guest'));
+            if (field === 'name') {
+                cell.append(textElement('small', entry.playerId ? 'Verified profile · tournament display name' : 'Tournament-only guest'));
+                cell.append(textElement('small', '', 'event-name-label'));
+            }
             row.append(cell);
         }
         const orderCell = document.createElement('td');

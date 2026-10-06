@@ -331,7 +331,9 @@ function updateThrowerLines() {
             }
         }
         const isActive = game.currentPlayer === teamIdx;
-        line.textContent = (isActive ? 'Throwing: ' : 'Next: ') + thrower.name;
+        const labels = game.tournament?.eventLabels;
+        const name = labels && Object.hasOwn(labels, thrower.id) ? labels[thrower.id] : thrower.name;
+        line.textContent = (isActive ? 'Throwing: ' : 'Next: ') + name;
         line.classList.toggle('active', isActive);
     });
 }

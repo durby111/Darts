@@ -61,9 +61,9 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-async def fixture(page, base, game_type="301", best_of=3, account="owner", stale=False, ordinary=False):
+async def fixture(page, base, game_type="301", best_of=3, account="owner", stale=False, ordinary=False, name="Same"):
     await page.goto(base + "/dev/")
-    await page.evaluate("""async ({gameType,bestOf,account,stale,ordinary,production}) => {
+    await page.evaluate("""async ({gameType,bestOf,account,stale,ordinary,production,displayName}) => {
       localStorage.clear();
       localStorage.blakeout_active_game=production;
       localStorage.__productionBaseline=production;
@@ -77,8 +77,8 @@ async def fixture(page, base, game_type="301", best_of=3, account="owner", stale
       }
       let t = await p.createTournamentDocument(e.createTournament({id:'test',ownerId:'owner',title:'Test',date:'2026-09-07',gameType,bestOf}));
       t = await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current, [
-        {id:'r1',playerId:'u1',name:'Same',tag:'A',paid:true,checkedIn:true,standby:false},
-        {id:'r2',playerId:'u2',name:'Same',tag:'A',paid:true,checkedIn:true,standby:false},
+        {id:'r1',playerId:'u1',name:displayName,tag:'A',paid:true,checkedIn:true,standby:false},
+        {id:'r2',playerId:'u2',name:displayName,tag:'A',paid:true,checkedIn:true,standby:false},
         {id:'r3',playerId:null,name:'Guest',tag:'B',paid:true,checkedIn:true,standby:false},
         {id:'r4',playerId:'u4',name:'Human',tag:'B',paid:true,checkedIn:true,standby:false}
       ]));
@@ -97,7 +97,7 @@ async def fixture(page, base, game_type="301", best_of=3, account="owner", stale
         type:'501',players:[{name:'Ordinary',score:321},{name:'Other',score:456}],
         currentPlayer:0,pendingDarts:[],tournament:null
       });
-    }""", {"gameType": game_type, "bestOf": best_of, "account": account, "stale": stale, "ordinary": ordinary, "production": PRODUCTION_SNAPSHOT})
+    }""", {"gameType": game_type, "bestOf": best_of, "account": account, "stale": stale, "ordinary": ordinary, "production": PRODUCTION_SNAPSHOT, "displayName": name})
     await page.goto(base + "/dev/?tournamentMatch=1")
     await page.wait_for_function("""() => {
       const n=document.getElementById('tournamentBridgeNotice');
@@ -112,6 +112,46 @@ async def state(page, expression):
         throw Error('DEV changed the production snapshot');
       return {expression};
     }}""")
+
+
+async def event_label_cases(page, base):
+    await fixture(page, base)
+    assert await state(page, "game.tournament.eventLabels.r1") == "(1) Same"
+    assert await state(page, "game.tournament.eventLabels.r2") == "(2) Same"
+    assert "(1) Same" in ' '.join(await page.locator('.thrower-name').all_text_contents())
+    assert await state(page, "game.teams[0].members.map(m=>m.name)") == ["Same", "Same"]
+    assert not await page.evaluate("localStorage.__documents.includes('(1) Same')"), "Aliases never enter cloud documents"
+    await score(page, 60, 3)
+    assert "(2) Same" in ' '.join(await page.locator('.thrower-name').all_text_contents())
+    await page.evaluate("localStorage.__offline='1'")
+    await page.goto(base + '/dev/')
+    await page.locator('#resumeGameBtn').click()
+    assert "(2) Same" in ' '.join(await page.locator('.thrower-name').all_text_contents())
+    assert await state(page, "game.tournament.eventLabels.r1") == "(1) Same"
+    assert not await page.evaluate("async()=>JSON.stringify((await import('./js/scoring-records.js')).scoringResult()).includes('(1) Same')")
+    await page.evaluate("""async()=>{
+        localStorage.__offline='0';
+        const s=await import('./js/state.js');
+        delete s.game.tournament.eventLabels;
+        s.saveActiveGame();
+    }""")
+    await page.goto(base + '/dev/?tournamentMatch=1')
+    await page.wait_for_function("!document.querySelector('#tournamentBridgeNotice').textContent.includes('Verifying')")
+    assert await state(page, "game.tournament.eventLabels.r1") == "(1) Same", "Online launch upgrades an older saved context"
+    assert await state(page, "game.teams[0].members.map(m=>m.name)") == ["Same", "Same"]
+    await fixture(page, base, name='A' * 40)
+    await page.set_viewport_size({'width':744,'height':1133})
+    from dev_test import set_ui_scale
+    await set_ui_scale(page, 1.5)
+    assert await page.locator('.thrower-name').first.evaluate("""line=>{
+        const text=line.firstChild, start=text.textContent.indexOf('(1)');
+        if(start<0)return false;
+        const range=document.createRange();range.setStart(text,start);range.setEnd(text,start+3);
+        const prefix=range.getBoundingClientRect(), box=line.getBoundingClientRect();
+        return prefix.left>=box.left-1 && prefix.right<=box.right+1;
+    }"""), 'The distinguishing prefix remains visible even when the name is ellipsized'
+    await page.set_viewport_size({'width':1000,'height':1400})
+    print('PASS event labels in thrower rotation, offline resume, older-session upgrade and long-name visibility; raw identity, records and cloud names unchanged')
 
 
 async def storage_migration(page, base):
@@ -721,6 +761,11 @@ async def run():
                 return
             if os.environ.get("SCORING_TABLETS_ONLY"):
                 await tablet_layouts(page, base)
+                assert not errors, errors
+                await browser.close()
+                return
+            await event_label_cases(page, base)
+            if os.environ.get("SCORING_LABELS_ONLY"):
                 assert not errors, errors
                 await browser.close()
                 return

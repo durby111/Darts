@@ -103,6 +103,27 @@ Dev-only release. Production (repo root) untouched — promote by copying
   focus, stable identity/partner order, stale-save recovery and locked controls.
   DEV cache v48 accompanies this batch.
 
+## October 6 View-Only Event Name Labels
+
+- Matching names receive numbered prefixes within the current event snapshot,
+  keeping the distinguishing number visible when a scorer name is ellipsized.
+  Matching uses Unicode NFKC, trimmed/collapsed whitespace and lowercase;
+  original saved names are not normalized or overwritten. Literal names like
+  `(1) Alex` are reserved so generated labels cannot collide with them.
+- Ordering by registration ID makes labels independent of row order and the
+  order concurrent signups are returned. Fresh clients reading the same roster
+  converge. Labels can change when the roster/names change; IDs remain identity.
+- Public roster, teams, bracket and owner draft hints share the same projector.
+  The scorer stores a local label snapshot for thrower display/offline resume;
+  an online relaunch upgrades older saved contexts. Raw member names, profile
+  UIDs, statistics, cloud documents and result payloads remain unchanged.
+- No global ownership, duplicate-signup rejection or identity deletion. The
+  existing join transactions and revision-checked owner saves remain intact.
+- Active-match state is design-only: current packed match grammar rejects
+  active/playing statuses and extra fields. See MATCH_ACTIVITY_DESIGN.md for
+  the precise rules/emulator boundary. No Ready-to-Playing inference or live
+  activity writes are introduced. DEV cache v49 adds the label module.
+
 ## September 4 Follow-Up List
 
 - [x] Commit and push approved dry-erase Cricket marks: `773fd53` (dev only).

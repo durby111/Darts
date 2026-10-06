@@ -4,6 +4,7 @@ import { showModal, hideModal } from './ui.js';
 import { updateCricketDisplay } from './cricket.js';
 import { newRecordId, finishScoringLeg, scoringResult, tournamentScoringLocked, RECORDING_GAMES, recordingComplete, recordingWinnerIds, pendingDartCount } from './scoring-records.js';
 import { saveCasualResult } from './casual-recording.js';
+import { registrationLabels } from './brackets/labels.js';
 
 const LAUNCH_KEY = 'blakeout_dev_match_launch';
 const SUPPORTED = RECORDING_GAMES;
@@ -83,6 +84,7 @@ export async function launchRequestedMatch() {
         const existing = recoverMatch(request.tournamentId, request.matchId);
         const retrying = existing && ['pending', 'saving', 'saved'].includes(existing.tournament.status);
         const { teams } = authoritativeMatch(tournament, request.matchId, account.uid, retrying);
+        const eventLabels = Object.fromEntries(registrationLabels(tournament.registrations));
         const active = loadActiveGame();
         const replacingOrdinary = active?.players?.length && !active.tournament;
         if (replacingOrdinary && !confirm('Replace your saved ordinary game with this tournament match? Cancel keeps the ordinary game available with Resume.')) {
@@ -94,6 +96,7 @@ export async function launchRequestedMatch() {
                 existing.tournament.gameType !== tournament.gameType || existing.tournament.bestOf !== tournament.bestOf) {
                 throw new Error('The team roster or format changed. Your local result is kept, but cannot be applied to this match.');
             }
+            existing.tournament.eventLabels = eventLabels;
             restoreActiveGame(existing);
             saveActiveGame();
             resumeGame();
@@ -106,7 +109,7 @@ export async function launchRequestedMatch() {
             launchTournamentScorer({
                 tournamentId: tournament.id, matchId: request.matchId, revision: tournament.revision,
                 ownerId: account.uid, gameType: tournament.gameType, bestOf: tournament.bestOf,
-                teams, resultId: newRecordId(), legWins: [0, 0], legComplete: false,
+                teams, eventLabels, resultId: newRecordId(), legWins: [0, 0], legComplete: false,
                 winnerIndex: null, status: 'scoring'
             });
         }

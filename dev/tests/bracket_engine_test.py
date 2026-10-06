@@ -133,6 +133,30 @@ async def test_roster(page):
     }""")
 
 
+async def test_event_labels(page):
+    return await page.evaluate("""async () => {
+        const {registrationLabels} = await import('/js/brackets/labels.js');
+        const rows=freeze([{id:'b',name:'Alex'},{id:'a',name:' alex '},{id:'c',name:'(1) Alex'},{id:'d',name:'Zoë'}]);
+        const before=JSON.stringify(rows), labels=registrationLabels(rows);
+        equal(labels.get('a'),'(2) alex'); equal(labels.get('b'),'(3) Alex');
+        equal(labels.get('c'),'(1) Alex'); equal(labels.get('d'),'Zoë');
+        const reordered=registrationLabels([...rows].reverse());
+        for(const row of rows) equal(reordered.get(row.id),labels.get(row.id),'Same snapshot labels ignore roster order');
+        equal(JSON.stringify(rows),before,'Names and identities are never mutated');
+        equal(registrationLabels([{id:'b',name:'Alex'}]).get('b'),'Alex','Another event has no global name ownership');
+        const unicode=registrationLabels([{id:'1',name:'Ａｌｅｘ'},{id:'2',name:'Alex'}]);
+        assert(unicode.get('1').includes('(1)') && unicode.get('2').includes('(2)'));
+        const spaced=registrationLabels([{id:'1',name:'Alex  Smith'},{id:'2',name:'alex smith'}]);
+        assert(spaced.get('1')!==spaced.get('2'));
+        const literal=registrationLabels([{id:'1',name:'<b>Alex</b>'},{id:'2',name:'<b>Alex</b>'}]);
+        equal(literal.get('1'),'(1) <b>Alex</b>');
+        const max=Array.from({length:128},(_,i)=>({id:String(i).padStart(3,'0'),name:'Alex'}));
+        equal(new Set(registrationLabels(max).values()).size,128);
+        equal(registrationLabels([]).size,0);
+        return 'event-only deterministic labels, raw-label collision avoidance, reorder/concurrency convergence, Unicode, 128 players and no mutation';
+    }""")
+
+
 async def test_paid_start(page):
     return await page.evaluate("""() => {
         const ready = fixture(2);
@@ -405,6 +429,7 @@ async def test_corrections(page):
 
 
 TESTS = {
+    "event_labels": test_event_labels,
     "paid_start": test_paid_start,
     "roster": test_roster,
     "preview_and_shuffle": test_preview_and_shuffle,

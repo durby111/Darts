@@ -839,6 +839,12 @@ def grammar_checks(wire, private_wire):
         if field == "registrations":
             entries[0]["paid"] = True
             assert not regex.fullmatch(json.dumps(entries, ensure_ascii=False, separators=(",", ":"))), "private flag allowed in public schema"
+        if field == "matches":
+            for key, value in [('status','active'),('status','playing'),('activeSession','session-1'),('leaseExpiresAt',123)]:
+                changed=json.loads(packed)
+                changed[0][key]=value
+                assert not regex.fullmatch(json.dumps(changed,ensure_ascii=False,separators=(",", ":"))), f"Unsupported activity representation accepted: {key}"
+                count += 1
         count += 6
     print(f"PASS packed schema grammar ({count} checks; Python regex, not emulator)")
 
