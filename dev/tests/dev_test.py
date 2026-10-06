@@ -1346,14 +1346,18 @@ async def test_app_navigation_layout(page):
 async def test_setup_refresh_layout(page):
     await fresh(page)
     checked = []
-    for width, height in [(390, 844), (744, 1133), (1280, 800)]:
+    for width, height in [(390, 844), (744, 1133), (800, 1024), (1133, 744), (1280, 800)]:
         await page.set_viewport_size({"width": width, "height": height})
         for theme in ["blue", "arctic", "volt"]:
             await page.evaluate("theme => localStorage.setItem('blakeout_theme', theme)", theme)
             await page.reload(wait_until="domcontentloaded")
             await page.wait_for_timeout(350)
             start = await page.locator("#startGameBtn").bounding_box()
-            assert start and start["y"] + start["height"] <= height, (width, theme, start)
+            assert start and 0 <= start["y"] and start["y"] + start["height"] <= height, (width, theme, start)
+            assert await page.locator("#startGameBtn").evaluate("""element => {
+                const box = element.getBoundingClientRect();
+                return element.contains(document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2));
+            }"""), (width, theme, "Start Game is covered")
             assert await page.evaluate("document.getElementById('setupScreen').scrollWidth <= innerWidth")
             assert await page.locator(".game-card[aria-pressed='true']").count() == 1
             await page.select_option("#gameType", "teamcricket")

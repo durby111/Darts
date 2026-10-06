@@ -151,6 +151,12 @@
 .setup-screen .player-order-toolbar { align-items: center; gap: 8px; }
 .setup-screen .player-order-hint { font-size: 12px; }
 .setup-screen #playSection { display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, 1.2fr); align-items: center; gap: 12px; }
+/* Keep Start/Resume reachable when the setup column exceeds the viewport.
+   Sticky retains the panel's space, so every setup field can scroll above it. */
+@media (min-width: 721px) {
+    .setup-screen { scroll-padding-bottom: 190px; }
+    .setup-screen #playSection { position: sticky; bottom: 0; z-index: 5; background: var(--color-surface); }
+}
 .setup-screen #playSection > .setup-section-label { display: none; }
 .setup-screen .setup-match-title { font-family: Impact, 'DejaVu Sans Condensed', sans-serif; font-size: 24px; line-height: 1.15; font-weight: 900; margin: 0; overflow-wrap: normal; word-break: normal; hyphens: none; }
 .setup-screen .setup-action-row { display: grid; gap: 8px; }
@@ -162,6 +168,7 @@
 
 @media (min-width: 721px) and (max-width: 1000px) {
     .setup-screen .setup-card { grid-template-columns: minmax(0, 1fr) 300px; gap: 0 24px; }
+    .setup-screen #playSection { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 720px) {
     .setup-screen { padding: 0 16px 16px; }

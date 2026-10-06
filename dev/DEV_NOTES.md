@@ -3,6 +3,20 @@
 Dev-only release. Production (repo root) untouched — promote by copying
 `/dev/` → root as usual, and fold these notes into `CLAUDE.md` at that time.
 
+## October 6 Setup Action Visibility (Local Review)
+
+- Tablet and desktop setup keeps the Play panel at the bottom of the visible
+  scroll area when the options/player/recording column is taller than the
+  viewport. Its normal layout space is retained; setup fields can scroll above
+  the panel. The existing phone dock is unchanged.
+- At 721–1000px, the selected game title sits above full-width Start/Resume
+  buttons so long game names fit the narrow match column.
+- Expanded the setup layout regression to five phone/tablet/desktop sizes in
+  three themes, including portrait 744×1133 and landscape 1133×744, with a
+  hit-test check for an unobstructed Start Game button.
+- This is a local CSS fix against the September 7 base. The saved Start & Lock
+  feedback and result-correction archives have not yet been applied.
+
 ## September 4 Follow-Up List
 
 - [x] Commit and push approved dry-erase Cricket marks: `773fd53` (dev only).
