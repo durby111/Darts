@@ -18,7 +18,7 @@ Dev-only release. Production (repo root) untouched — promote by copying
   Served-site verification is blocked by this executor’s network policy. The
   saved Start & Lock and result-correction archives have not yet been applied.
 
-## October 6 Account Verification Follow-Up (Local, Unpublished)
+## October 6 Account Verification Follow-Up (Published)
 
 - Manual refresh and returning from an email share one account reload/token
   refresh. A replacement account can refresh while an old request is pending;
@@ -26,11 +26,12 @@ Dev-only release. Production (repo root) untouched — promote by copying
 - Added delayed-request checks for overlapping refreshes, retry after failure,
   account switches during reload/token refresh, and preservation of a new
   account's unsaved profile edit. These tests use mocked Firebase only.
-- Prepared DEV cache v44 for these application changes. Production cache/source
+- Published with DEV cache v44 in `b8e8d96`; Pages run `37462591260`
+  succeeded. Production cache/source
   stays unchanged. Genuine email receipt, link completion, and the owner's
   verified account status still require an authorized real-world check.
 
-## October 6 Playing-Roster Payment Gate (Local, Unpublished)
+## October 6 Playing-Roster Payment Gate (Published)
 
 - Start requires every assigned playing team member to be marked paid. Unpaid
   standby players and unassigned arrivals do not add a payment blocker;
@@ -41,6 +42,18 @@ Dev-only release. Production (repo root) untouched — promote by copying
   not a deployed security-rules change. No data schema or production source changed.
 - Engine, organizer UI, and platform adapter regressions pass. See
   [BACKLOG.md](BACKLOG.md) for remaining work and verification gaps.
+
+## October 6 Organizer Roster Counts
+
+- Added row numbers and a live draft summary: total, standby, non-standby,
+  players in complete pairs, and players without a complete pair. A complete
+  pair means exactly two non-standby entries sharing a team number; it does
+  not assert payment, check-in, or Start readiness.
+- Counts follow unsaved edits without cloud writes. Removing a row renumbers
+  the display while preserving registration IDs. Standby-derived counts are
+  cleared when organizer access ends and never added to spectator markup.
+- DEV cache v45 includes the updated page, roster column styling and script.
+  Production source, data schemas and rules remain unchanged.
 
 ## September 4 Follow-Up List
 

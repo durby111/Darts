@@ -267,6 +267,36 @@ async def test_owner_roster(browser, base):
         await context.close()
 
 
+async def test_roster_counts(browser, base):
+    context, page = await fresh(browser, base)
+    try:
+        summary = page.locator("#rosterSummary")
+        assert await summary.inner_text() == "8 total · 0 standby · 8 non-standby · 8 in complete pairs · 0 without a complete pair"
+        assert await page.locator('#rosterRows th[scope="row"]').all_text_contents() == [str(i) for i in range(1, 9)]
+        ids = await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)')
+        await page.locator('#rosterRows [data-field="standby"]').first.check()
+        await page.wait_for_function("document.querySelector('#rosterSummary').textContent.includes('6 in complete pairs')")
+        assert await summary.inner_text() == "8 total · 1 standby · 7 non-standby · 6 in complete pairs · 1 without a complete pair"
+        assert await page.evaluate('__api.writes') == 0, "Counts describe drafts without saving"
+        await page.locator('#rosterRows tr').last.locator('button').click()
+        assert await page.locator('#rosterRows th[scope="row"]').all_text_contents() == [str(i) for i in range(1, 8)]
+        assert await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)') == ids[:-1]
+        assert await summary.inner_text() == "7 total · 1 standby · 6 non-standby · 4 in complete pairs · 2 without a complete pair"
+        for width in (744, 1133, 390):
+            await page.set_viewport_size({"width": width, "height": 900})
+            assert await page.evaluate('document.documentElement.scrollWidth <= innerWidth+1'), f"Body overflow at {width}"
+        await page.locator('#saveRoster').click()
+        await page.wait_for_function('__api.writes===1')
+        assert await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)') == ids[:-1]
+        await page.evaluate('__api.account=null;__api.accountChanged(null)')
+        await page.wait_for_function("document.querySelector('#rosterPanel').hidden")
+        assert await summary.text_content() == '', "Private standby-derived counts cleared on signout"
+        assert await page.locator('#rosterRows tr').count() == 0
+        return "draft counts, standby/pair breakdown, renumbering preserves IDs, responsive widths and signout privacy"
+    finally:
+        await context.close()
+
+
 async def test_failures_and_polling(browser, base):
     context, page = await fresh(browser, base)
     try:
@@ -869,6 +899,7 @@ async def test_real_guest_selfjoin_and_race(browser, base):
 
 TESTS = {
     "owner_roster": test_owner_roster,
+    "roster_counts": test_roster_counts,
     "failures_and_polling": test_failures_and_polling,
     "spectator_and_layout": test_spectator_and_layout,
     "manual_results_and_history": test_manual_results_and_history,

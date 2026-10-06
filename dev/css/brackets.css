@@ -17,7 +17,7 @@
 .roster-table { width: 100%; border-collapse: collapse; min-width: 670px; }
 .roster-table th, .roster-table td { padding: .5rem; text-align: left; border-bottom: 1px solid var(--color-border); }
 .roster-table th { font-size: .85rem; }
-.roster-table td:first-child { min-width: 180px; width: 40%; }
+.roster-table td:nth-child(2) { min-width: 180px; width: 40%; }
 .roster-table td:nth-child(2) { min-width: 100px; width: 18%; }
 .roster-table small { display: block; color: var(--color-text-muted); }
 .roster-table button { margin: 0; }

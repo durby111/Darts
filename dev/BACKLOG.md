@@ -1,16 +1,19 @@
 # BlakeOut development status — October 6, 2026
 
 This checklist reconciles HANDOFF_DOT.md with the reviewed checkout. Production
-source remains unchanged. Local work is not publication approval.
+source remains unchanged. October 6 daytime authorization covers tested DEV-only batches; the shared-site
+rebuild is understood. Production source, behavior, configuration and data remain
+out of scope. No network or security permission changes are authorized.
 
 ## Delivered and locally reviewed
 
 | Work | Status | Evidence / remaining check |
 | --- | --- | --- |
 | Tablet Start/Resume visibility | Published `d5b09ab` | Pages run [37459450018](https://github.com/durby111/Darts/actions/runs/37459450018) succeeded; local 55/55 regressions and 15 layout combinations passed. Actual served site cannot be reached from this executor. |
-| Account verification refresh concurrency | Local, unpublished | Shared reload/token request per user, replacement-user refresh and obsolete-session guards; 13 new mock API assertions and delayed account-switch UI test pass. Actual email/link/token propagation still unverified. |
-| Playing roster payment requirement | Local, unpublished | Assigned playing members must be paid; standby excluded. Engine and organizer UI checks pass. Existing private flags and schema retained. |
-| DEV service worker | Local v44, unpublished | Cache bump accompanies account/payment application changes; production cache/source unchanged. |
+| Account verification refresh concurrency | Published in `b8e8d96` | Shared reload/token request per user, replacement-user refresh and obsolete-session guards; 13 new mock API assertions and delayed account-switch UI test pass. Actual email/link/token propagation still unverified. |
+| Playing roster payment requirement | Published in `b8e8d96` | Assigned playing members must be paid; standby excluded. Engine and organizer UI checks pass. Existing private flags and schema retained. |
+| DEV service worker | v44 published; v45 accompanies roster counts | Production cache/source unchanged. |
+| Organizer row numbering and counts | Implemented and locally tested | Draft/standby/pair counts; identity preservation, tablet/mobile containment and signout privacy checks pass. |
 
 ## Saved work blocked on transfer
 
@@ -63,7 +66,7 @@ not deliver functional result correction.
 - [ ] Distinguish duplicate names within each event, not globally; retain stable
   player/registration IDs. Define labels and normalization for organizer edits,
   self-registration, and concurrent signup before implementation.
-- [ ] Add roster row numbering and explicit total/playing/standby/unpaired counts.
+- [x] Add roster row numbering and explicit total/non-standby/standby/pair counts.
 - [ ] Add owner-only bulk flag controls with revision-safe saves.
 - [ ] Improve odd-roster warnings without confusing warnings with pair blockers.
 - [ ] Dim unavailable bracket matches and indicate actual active play. Ready
@@ -88,8 +91,29 @@ not deliver functional result correction.
 - Firestore emulator is not configured (`FIRESTORE_EMULATOR_HOST` unset), so the
   suite explicitly skips compilation and live emulator checks. No rules changed.
 - DEV is `/dev/` on the shared GitHub Pages main site. A main push rebuilds the
-  whole site even with DEV-only source changes. The earlier tablet publication
-  had explicit approval; no subsequent push/deploy is covered by this checklist.
-- Next release scope: DEV account refresh, payment readiness/help text, cache
-  v44, their regression tests, and these development notes. Review final scope
-  and shared-site impact before publication. Production files stay identical.
+  whole site even with DEV-only source changes. The tablet and account/payment publications
+  were explicitly approved. Subsequent tested DEV-only batches are authorized
+  through October 6 evening; preserve production and report deployed scope.
+- Account/payment release `b8e8d96` passed Pages run `37462591260`.
+- Next release scope: organizer row numbers and count summary, corresponding
+  column styling, regression test, cache v45, and development notes.
+
+## Evening DEV test checklist
+
+1. On a tablet, expand setup options, start a game, leave it, and Resume. The
+   action buttons should stay reachable in portrait and landscape.
+2. At Players & Records, return from a verification email and use Refresh if
+   needed. Actual provider delivery/link completion is still unverified here.
+3. In an organizer draft, leave one playing member unpaid: Start should show
+   a named payment blocker. Mark paid and save. Unpaid standby players should
+   not block an otherwise ready roster.
+4. Check roster row numbers and counts while adding/removing a player or
+   toggling Standby. Counts describe the draft; Save is still required.
+5. Start a short DEV tournament game, reload/resume, and submit once. Local
+   interrupted/retry tests pass; real provider behavior still needs observation.
+
+Deferred: dedicated Start & Lock feedback, safe correction integration, event
+name distinctions, bulk flag controls, odd-roster warning polish, active-match
+indication, real-tablet distance review, ordering and Cricket alignment. The
+original feedback/correction archives remain transfer-blocked. Do not expect
+result correction functionality from these releases.

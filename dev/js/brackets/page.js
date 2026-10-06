@@ -157,7 +157,16 @@ function updatePreview() {
     if (!current) return;
     $('draftStatus').textContent = rosterDirty ? 'Unsaved changes · preview only. Save all changes before starting.' : 'Roster saved to cloud.';
     $('blockers').replaceChildren();
+    $('rosterSummary').textContent = '';
     if (current.status === 'registration' && owner()) {
+        const playing = draft.filter(entry => !entry.standby);
+        const groups = new Map();
+        for (const entry of playing) {
+            const tag = entry.tag.trim();
+            if (tag) groups.set(tag, (groups.get(tag) || 0) + 1);
+        }
+        const paired = playing.filter(entry => groups.get(entry.tag.trim()) === 2).length;
+        $('rosterSummary').textContent = `${draft.length} total · ${draft.length - playing.length} standby · ${playing.length} non-standby · ${paired} in complete pairs · ${playing.length - paired} without a complete pair`;
         try {
             const candidate = engine.saveRoster(current, validRoster());
             const preview = engine.createPreview(candidate);
@@ -185,9 +194,12 @@ function markRosterDirty() {
 
 function renderRoster() {
     $('rosterRows').replaceChildren();
-    for (const entry of draft) {
+    for (const [index, entry] of draft.entries()) {
         const row = document.createElement('tr');
         row.dataset.registration = entry.id;
+        const number = textElement('th', String(index + 1));
+        number.scope = 'row';
+        row.append(number);
         for (const field of ['name', 'tag', 'paid', 'checkedIn', 'standby']) {
             const cell = document.createElement('td');
             const input = document.createElement('input');
