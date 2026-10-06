@@ -12,7 +12,7 @@ out of scope. No network or security permission changes are authorized.
 | Tablet Start/Resume visibility | Published `d5b09ab` | Pages run [37459450018](https://github.com/durby111/Darts/actions/runs/37459450018) succeeded; local 55/55 regressions and 15 layout combinations passed. Actual served site cannot be reached from this executor. |
 | Account verification refresh concurrency | Published in `b8e8d96` | Shared reload/token request per user, replacement-user refresh and obsolete-session guards; 13 new mock API assertions and delayed account-switch UI test pass. Actual email/link/token propagation still unverified. |
 | Playing roster payment requirement | Published in `b8e8d96` | Assigned playing members must be paid; standby excluded. Engine and organizer UI checks pass. Existing private flags and schema retained. |
-| DEV service worker | v45 published; v46 accompanies bulk controls | Production cache/source unchanged. |
+| DEV service worker | v46 published; v47 accompanies Cricket layout fixes | Production cache/source unchanged. |
 | Organizer row numbering and counts | Published `3e5fbc6` | Draft/standby/pair counts; identity preservation, tablet/mobile containment and signout privacy checks pass. |
 
 ## Saved work blocked on transfer
@@ -74,10 +74,13 @@ not deliver functional result correction.
 - [ ] Review distance readability on real tablets.
 - [ ] Improve ordering/grouping with accessible controls, stable IDs and clear
   behavior after roster lock; confirm the post-lock editing contract.
-- [ ] Review Cricket target/marks/+1/+3 row alignment.
+- [x] Align tablet one/two-player Cricket target/marks/turn badges; preserve compact corner badges.
+- [x] Fix DC Cricket button containment at high scale; published baseline allowed adjacent-row taps.
 - [ ] Consider aggregates if raw-record statistics reads become costly.
 - [ ] Match-summary emails remain a proposal, not delivered behavior.
-- [ ] Audit orphaned code via import/DOM/cache reachability before removal.
+- [ ] Finish detailed unused-export/DOM/CSS audit before removal. Module-level
+  audit found all 36 DEV JavaScript modules reachable from the four HTML
+  entrypoints; no orphan module was removed.
 - [ ] Separately review HTTPS enforcement, hosting headers/CSP, domain renewal,
   account MFA, and domain controls. Do not change settings without authorization.
 
@@ -96,8 +99,9 @@ not deliver functional result correction.
   through October 6 evening; preserve production and report deployed scope.
 - Account/payment release `b8e8d96` passed Pages run `37462591260`.
 - Roster count release `3e5fbc6` passed Pages run `37462941482`.
-- Next release scope: organizer bulk flag controls, odd-roster warning, their
-  regression tests, cache v46, and development notes.
+- Bulk flag/warning release `3a45116` passed Pages run `37463707288`.
+- Next release scope: Cricket tablet badge alignment, DC button containment,
+  targeted regression coverage, cache v47, and development notes.
 
 ## Evening DEV test checklist
 
@@ -113,11 +117,15 @@ not deliver functional result correction.
    apply to all draft rows, including standby, and require Save. Mixed flags
    show a mixed checkbox. Discard & reload restores the saved roster. An odd
    non-standby count warns without independently blocking Start.
-5. Start a short DEV tournament game, reload/resume, and submit once. Local
+5. In tablet Cricket, enter T20 and single 19: the +3/+1 badges should align
+   with their targets on one/two-player boards. At landscape 1.5× DC mode,
+   tap 19 in Spanish Cricket and confirm it records 19, not the row below.
+   Phone and three/four-player badges retain their compact corner layout.
+6. Start a short DEV tournament game, reload/resume, and submit once. Local
    interrupted/retry tests pass; real provider behavior still needs observation.
 
 Deferred: dedicated Start & Lock feedback, safe correction integration, event
 name distinctions, active-match
-indication, real-tablet distance review, ordering and Cricket alignment. The
+indication, real-tablet distance review and ordering. The
 original feedback/correction archives remain transfer-blocked. Do not expect
 result correction functionality from these releases.

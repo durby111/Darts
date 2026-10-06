@@ -2249,6 +2249,76 @@ async def test_cricket_pending_mark_count(page):
     return {"pending": pending, "badges": badges}
 
 
+async def test_cricket_tablet_badge_alignment(page):
+    samples = []
+    for game_type in ("cricket", "spanish", "minnesota"):
+        for width, height, scale, mode, players in (
+            (744, 1133, 1, "standard", "2"),
+            (744, 1133, 1.5, "standard", "2"),
+            (1133, 744, 1.5, "dc", "2"),
+            (800, 600, .7, "standard", "1"),
+        ):
+            await page.set_viewport_size({"width": width, "height": height})
+            await fresh(page)
+            await set_ui_scale(page, scale)
+            await page.evaluate("mode => document.documentElement.setAttribute('data-scoreboard-mode', mode)", mode)
+            await start_game(page, game_type, players)
+            await page.locator('.cricket-dt-btn[data-target="20"][data-multiplier="3"]').click()
+            await page.locator('.cricket-num-btn[data-target="19"]').click()
+            async def measure():
+                return await page.locator('.cricket-row').evaluate_all("""rows => rows.flatMap(row => {
+                    const target = row.querySelector('.cricket-num-btn').getBoundingClientRect();
+                    return [...row.querySelectorAll('.last-turn-indicator')].map(badge => {
+                        const b=badge.getBoundingClientRect(), m=badge.parentElement.querySelector('.mark').getBoundingClientRect();
+                        return {text:badge.textContent, badgeError:Math.abs(b.y+b.height/2-target.y-target.height/2),
+                            markError:Math.abs(m.y+m.height/2-target.y-target.height/2),
+                            overlapX:Math.min(b.right,m.right)-Math.max(b.left,m.left)};
+                    });
+                })""")
+            pending = await measure()
+            assert [entry['text'] for entry in pending] == ['+3', '+1'], pending
+            for entry in pending:
+                assert entry['badgeError'] < 1 and entry['markError'] < 1, (game_type,width,height,scale,mode,entry)
+                assert entry['overlapX'] <= 0, (game_type,width,height,scale,mode,'badge overlaps mark',entry)
+            if players == "2":
+                await page.click('#enterBtn')
+                await page.locator('.cricket-num-btn[data-target="20"]').click()
+                for entry in await measure():
+                    assert entry['badgeError'] < 1 and entry['markError'] < 1, entry
+                    assert entry['overlapX'] <= 0, entry
+            samples.append([game_type,width,height,scale,mode,players])
+    return {"aligned_tablet_cases": samples}
+
+
+async def test_cricket_dc_target_hitboxes(page):
+    checked = []
+    for game_type in ("cricket", "spanish", "minnesota"):
+        for players in ("2", "3", "4"):
+            for width, height in ((1133, 744), (744, 1133)):
+                await page.set_viewport_size({"width": width, "height": height})
+                await fresh(page)
+                await set_ui_scale(page, 1.5)
+                await page.evaluate("document.documentElement.setAttribute('data-scoreboard-mode','dc')")
+                await start_game(page, game_type, players)
+                failures = await page.locator('.cricket-buttons button').evaluate_all("""buttons => buttons.flatMap(button => {
+                    const b=button.getBoundingClientRect(), r=button.closest('.cricket-row').getBoundingClientRect();
+                    const main=document.querySelector('#cricketMain').getBoundingClientRect();
+                    const x=b.x+b.width/2, y=b.y+b.height/2;
+                    const inside=y>main.top && y<main.bottom && x>0 && x<innerWidth;
+                    const hit=inside ? document.elementFromPoint(x,y) : button;
+                    return b.top<r.top-1 || b.bottom>r.bottom+1 || b.height<20 || b.width<20
+                        || parseFloat(getComputedStyle(button).fontSize)<10 || hit!==button
+                        ? [{target:button.dataset.target, multiplier:button.dataset.multiplier, height:b.height,
+                            rowHeight:r.height, hitTarget:hit?.dataset.target}] : [];
+                })""")
+                assert not failures, (game_type,players,width,height,failures)
+                # A real click must hit 19, not the next row's enlarged button.
+                await page.locator('.cricket-num-btn[data-target="19"]').click()
+                assert await get_state(page, 'm.game.pendingDarts[0].target') == '19'
+                checked.append([game_type,players,width,height])
+    return {"target_hitbox_cases": checked}
+
+
 async def test_setup_throw_order(page):
     # a9: standard-player order supports pointer drag, accessible arrows,
     # deterministic randomization, and survives beginMatch + Play Again.

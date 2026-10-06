@@ -68,6 +68,25 @@ Dev-only release. Production (repo root) untouched — promote by copying
 - All 17 bracket UI groups pass, including mixed/all/none flags, failed and
   stale saves, standby scope, empty rosters and signout privacy. Cache v46.
 
+## October 6 Cricket Tablet Alignment and DC Hit Targets
+
+- Reproduced the published tablet badge offset: at 744×1133 the target and
+  mark centers matched while +3/+1 badges sat 43.4px above them. On tablet
+  one/two-player boards, badges now share the row center; font caps keep
+  enlarged badges beside the marks. Phone and multiplayer corner badges stay.
+- New touch checks found a separate pre-existing DC Spanish Cricket issue at
+  1133×744 and 1.5× scale: the 19 button was 96.6px tall in a 37.3px row, and
+  its center hit the 18 button. DC target controls now fit their grid row;
+  font sizes are constrained by both the control width and height.
+- Added 12 target/mark/pending/previous-badge alignment scenarios and 18 DC
+  target hitbox scenarios across Cricket, Spanish and Minnesota, portrait/
+  landscape and two/three/four players. No scoring calculations changed.
+- Full DEV suite passes 57/57; fresh cache installation preserves production
+  cache and starts an offline game. Prepared DEV cache v47.
+- Static module reachability audit also confirmed all
+  36 DEV JavaScript modules are reachable from HTML entrypoints; no files
+  were removed based on an unproven unused-code assumption.
+
 ## September 4 Follow-Up List
 
 - [x] Commit and push approved dry-erase Cricket marks: `773fd53` (dev only).
