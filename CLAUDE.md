@@ -479,3 +479,8 @@ Dot Better result dialogs share the eligible game's palette without changing
 page-global theme settings. CSS-only winner celebrations are theme-driven,
 finite, non-interactive and disabled under reduced motion; scoring and modal
 callbacks remain unchanged. Automated browser/device validation is still pending.
+
+October 8's larger winner presentation keeps the same dartboard/strike concept:
+centered oversized emblem and result hierarchy, viewport-wide decorative rings
+and sparks behind the card, a finite 4.2-second maximum, and reduced-motion and
+forced-colors fallbacks. Production/scoring/storage stay unchanged; see DEV notes.

@@ -613,3 +613,23 @@ domains. CSP (#4) remains deferred by the owner.
   The CSS sequence has 11 finite keyframes, a longest effect of 2.29 seconds,
   and explicit reduced-motion/forced-colors fallbacks. This is source-level
   evidence, not an observed browser animation or physical-device pass.
+
+
+## October 8 larger winner celebration
+
+- Builds on the existing dartboard assembly/strike, rings and sparks, with a
+  centered 144–208px emblem, larger heading/name and a wider result stage.
+  Match wins gain viewport-wide expanding target rings and 24 spark ribbons
+  behind the card. The longest sequence is finite at 4.2 seconds; Chicago leg
+  results retain their shorter treatment. No new celebration copy or sound.
+- Result text and controls stay above the decorative layers. Decorative
+  surfaces ignore pointer input, and the existing scrollable result card keeps
+  controls reachable on short screens and with long names. Compact screens use
+  a 100px emblem. Reduced motion and forced colors remove the arena effects.
+- Only presentation CSS, structural checks, DEV cache and project notes change.
+  Scoring, saved games, result actions and production application bytes are
+  unchanged. DEV cache is `blakeout-dev-v54-winner`.
+- Available source checks: 5/5 celebration structural groups and 9/9 Dot Better
+  static/unit groups pass, plus JavaScript syntax and whitespace checks. Actual
+  cloud-browser baseline testing confirmed winner display and undo dismissal;
+  post-deployment browser checks are tracked separately from these source tests.

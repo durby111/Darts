@@ -64,7 +64,7 @@ function blocks(source) {
 
 const properties = new Set(('animation animation-duration animation-delay transition aspect-ratio background ' +
     'background-repeat border border-radius border-width box-sizing color content display font-size height inset ' +
-    'left margin opacity overflow overflow-x overscroll-behavior pointer-events position right stroke-dasharray ' +
+    'left margin max-width text-align letter-spacing isolation opacity overflow overflow-x overscroll-behavior pointer-events position right stroke-dasharray ' +
     'stroke-dashoffset top transform transform-box transform-origin width z-index').split(' '));
 function declarations(body) {
     return splitTop(body, ';').map(declaration => {
@@ -94,7 +94,7 @@ function walk(source, media = '') {
         } else {
             assert.ok(!prelude.startsWith('@'), `Unexpected at-rule: ${prelude}`);
             for (const selector of splitTop(prelude, ',')) {
-                assert.match(selector, /^(#winnerModal |#chicagoLegModal |:is\(#winnerModal, #chicagoLegModal\) )/);
+                assert.match(selector, /^(#winnerModal(?: |::before$|::after$|$)|#chicagoLegModal |:is\(#winnerModal, #chicagoLegModal\) )/);
                 rules.push({ selector, media, declarations: declarations(body) });
             }
         }
@@ -117,7 +117,7 @@ for (const { declarations: values } of rules) {
     for (const { name, value } of values) {
         if (name.startsWith('animation')) {
             for (const match of value.matchAll(/(^|\s)([.\d]+)s(?=\s|$)/g)) {
-                assert.ok(Number(match[2]) > 0 && Number(match[2]) <= 2.5, `Unbounded time: ${value}`);
+                assert.ok(Number(match[2]) > 0 && Number(match[2]) <= 4.5, `Unbounded time: ${value}`);
             }
         }
     }
@@ -152,8 +152,12 @@ for (const { selector, media, declarations: values } of rules) {
             assert.match(media, /prefers-reduced-motion|forced-colors/);
             assert.match(selector, /::(before|after)$/);
         }
-        if (name === 'z-index') assert.equal(value, '-1');
-        if (name === 'position') assert.notEqual(value, 'fixed');
+        if (name === 'z-index') {
+            const expected = /^#winnerModal::(?:before|after)$/.test(selector) ? '0'
+                : selector === '#winnerModal .winner-modal-content' ? '1' : '-1';
+            assert.equal(value, expected);
+        }
+        if (name === 'position' && value === 'fixed') assert.match(selector, /^#winnerModal::(?:before|after)$/);
     }
 }
 assert.ok(read('css/winner.css').includes('isolation: isolate;'));
@@ -171,9 +175,26 @@ for (const suffix of ['.winner-modal-content', '.winner-modal-content *', '.winn
 assert.ok(reduced.some(rule => rule.selector === '#winnerModal .winner-emblem::after' &&
     rule.declarations.some(d => d.name === 'display' && d.value === 'none')));
 assert.ok(rules.some(rule => rule.media.includes('(max-height: 650px)') &&
-    rule.selector === '#winnerModal .winner-emblem' && rule.declarations.some(d => d.name === 'height' && d.value === '64px')));
+    rule.selector === '#winnerModal .winner-emblem' && rule.declarations.some(d => d.name === 'height' && d.value === '100px')));
 assert.ok(rules.filter(rule => rule.media.includes('max-width: 360px')).every(rule => rule.media.includes('min-height: 651px')));
-pass('reduced-motion cancels all card/descendant/pseudo animations; compact-height rule wins on small phones');
+for (const pseudo of ['#winnerModal::before', '#winnerModal::after']) {
+    const base = rules.filter(rule => rule.selector === pseudo && !rule.media);
+    assert.ok(base.some(rule => rule.declarations.some(d => d.name === 'position' && d.value === 'fixed')));
+    assert.ok(base.some(rule => rule.declarations.some(d => d.name === 'inset' && d.value === '0')));
+    assert.ok(base.some(rule => rule.declarations.some(d => d.name === 'pointer-events' && d.value === 'none')));
+    for (const query of ['prefers-reduced-motion', 'forced-colors']) {
+        assert.ok(rules.some(rule => rule.selector === pseudo && rule.media.includes(query) &&
+            rule.declarations.some(d => d.name === 'display' && d.value === 'none')));
+    }
+    assert.ok(reduced.some(rule => rule.selector === pseudo &&
+        rule.declarations.some(d => d.name === 'animation' && d.value === 'none !important')));
+}
+assert.ok(rules.some(rule => rule.selector === '#winnerModal' &&
+    rule.declarations.some(d => d.name === 'isolation' && d.value === 'isolate')));
+assert.ok(rules.some(rule => rule.selector === '#winnerModal .winner-emblem' && !rule.media &&
+    rule.declarations.some(d => d.name === 'width' && d.value === 'clamp(144px, 32vw, 208px)')));
+pass('viewport-bounded decoration stays behind card; larger centered stage; reduced-motion/forced-colors remove arena effects');
+
 
 const html = read('index.html');
 const emblem = html.match(/<div class="winner-emblem" aria-hidden="true">([\s\S]*?)<\/div>/)?.[1];
