@@ -532,3 +532,84 @@ domains. CSP (#4) remains deferred by the owner.
 - Candidates next: per-game quick-rules modal from registry `desc`,
   stats hooks for chaos/shanghai match ends (Phase 3), theme preview on
   long-press, favorites-first ordering in the grid.
+
+## October 7 Dot Better (owner-approved DEV release)
+
+- Adds an optional **Dot Better** choice beside Modern, Classic and DC Mode in
+  Menu → Visual Settings. Modern remains the default; the existing
+  `blakeout_x01_skin` setting and score-style attributes are reused.
+- One additive stylesheet is scoped to this choice and X01/Cricket-family
+  boards. X01 keeps player scores at the top and the full-width keypad at the
+  bottom, with the remaining center area used by a readable, bounded history
+  panel. Newest rows sit at the bottom; older rows scroll out of view and remain
+  available without deleting any recorded turns. Panels
+  align; history and round rows share fixed geometry. Charcoal surfaces,
+  restrained blue/orange, active-player outline/arrow, and at least 44px X01
+  scoring keys target tablet portrait/landscape use. Short screens can scroll.
+- Cricket-family boards retain their existing layout with the same palette;
+  globally closed targets retain a distinct muted/dashed appearance. Unrelated
+  game boards, existing style rules and gameplay/state modules are unchanged.
+- DEV cache `blakeout-dev-v53-dot-better` includes the new stylesheet. No
+  production app files, scoring calculations, ledger/storage schema or cloud
+  rules are modified. The owner approved publishing the corrected private phone
+  preview to DEV; no production-app promotion is included.
+- Baseline was verified byte-for-byte against GitHub main `ee0fe57` via Git tree
+  `644f8fc278860c75b337d40e7e7ea346d07adf70`.
+- Validation: nine static/settings/renderer-unit groups pass with
+  `node --experimental-vm-modules dev/tests/dot_better_static_test.mjs`;
+  JavaScript/Python syntax and diff whitespace checks pass. Main declared text
+  color pairs exceed 4.5:1. These are not visual or end-to-end test results.
+- Added `dev/tests/dot_better_test.py` for real-browser style persistence,
+  scoring/undo/miss/bust/reload, existing-style isolation, responsive touch
+  targets, Cricket, and service-worker offline behavior. It has NOT RUN here:
+  Chromium process startup is blocked by socket policy and the managed cloud
+  browser rejects the local preview URL. No automated visual-pass claim is
+  available. The owner reviewed the separate private phone preview and approved
+  DEV publication. Run the browser tests and existing full DEV regression suite,
+  inspect tablet portrait/landscape screenshots, and test physical iPad/Safari
+  before any production promotion.
+
+### October 7 phone-review correction
+
+- Owner feedback confirmed the private phone review works, but requested the
+  familiar top scores / central history / bottom scoring layout. Corrected only
+  the optional Dot Better stylesheet; all scoring and state modules remain
+  byte-identical. A first-row auto margin bottom-aligns short histories, while
+  existing chronological rendering and auto-scroll retain every older turn.
+- The separate owner-private ChatGPT Sites review mirrors these styles with
+  live accounts and result uploads disabled. Those review-only changes are not
+  included in DEV: account modules, bootstrap, scoring and storage stay unchanged.
+- Added history-retention/scroll unit fixtures and an eighth real-browser group
+  for overflowing histories. Browser groups remain NOT RUN in this workspace.
+
+### October 7 result-popup theme correction and celebration
+
+- Winner, Chicago leg-result and 121 summary dialogs are siblings of the game
+  container. They now receive Dot Better's palette when that optional style is
+  selected for an eligible game. No page-global palette or unrelated modal is
+  changed; the other score styles keep their selected app theme.
+- Primary result actions use accessible blue/white contrast, while result
+  headings/status ink remain light. 121 summary text and new-record rows are
+  explicitly covered under light base themes. Modal geometry and scoring
+  callbacks are unchanged.
+- Added browser coverage for actual wins in light/dark themes and all four
+  styles, result-action hit tests, undo-winning-turn/re-win/play-again, and
+  reduced-motion behavior. These browser tests remain NOT RUN here.
+
+- `winner-celebration.css` adds a finite board-assembly/dart-strike sequence,
+  expanding rings, a theme-colored spark fan and large winner-title reveal.
+  Chicago leg results receive a shorter related celebration. Decorative layers
+  ignore pointer input; result controls are never individually hidden or delayed.
+  Modal display/close naturally restarts/cancels the CSS animation. Reduced
+  motion removes celebration motion and sparks. No audio, timers, new markup,
+  gameplay callbacks or external assets were added.
+- The final DEV cache is `blakeout-dev-v53-dot-better`, including both optional
+  styling and winner celebration stylesheets. Production app bytes remain
+  unchanged; only the shared GitHub Pages site rebuild is triggered.
+
+- Final available checks: 9/9 Dot Better static/settings/history-renderer groups
+  and 5/5 winner-celebration structural groups pass; JavaScript syntax, Python
+  AST and whitespace checks pass. Nine browser suites are authored but NOT RUN.
+  The CSS sequence has 11 finite keyframes, a longest effect of 2.29 seconds,
+  and explicit reduced-motion/forced-colors fallbacks. This is source-level
+  evidence, not an observed browser animation or physical-device pass.

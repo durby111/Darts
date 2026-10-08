@@ -1,0 +1,524 @@
+/* Dot Better is an opt-in, DEV-only presentation layer. No scoring/state
+   rules live here. Keep every rule scoped so all existing styles stay intact. */
+/* Results are siblings of the game screen. Share only palette tokens with
+   those dialogs, gated to games that actually use this optional style. */
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family],
+:root[data-scoreboard-mode="dot-better"]:has(#gameScreen[data-scoreboard-family]) :is(#winnerModal, #chicagoLegModal, #game121SummaryModal) {
+    --color-bg: #14191f;
+    --color-surface: #1d242d;
+    --color-surface-alt: #252e39;
+    --color-surface-elevated: #303b49;
+    --color-border: #3e4d60;
+    --color-border-light: #64758c;
+    --color-text: #f5f7fc;
+    --color-text-muted: #bfccdc;
+    --color-text-dim: #aab9cd;
+    --color-primary: #327dcc;
+    --color-primary-light: #8cc8ff;
+    --color-primary-dark: #24476b;
+    --color-on-primary: #fff;
+    --color-success: #286eb7;
+    --color-on-success: #fff;
+    --color-pending: #ffc286;
+    --color-warning: #ffc286;
+    --color-danger: #ff9a91;
+    --color-undo: #d9823c;
+    --color-prev-turn: #bfccdc;
+    --color-miss: #354357;
+    --color-bust: #94552e;
+}
+
+/* Modal primary is also used as inline status ink. Keep that ink light;
+   the primary action buttons below use a darker accessible blue surface. */
+:root[data-scoreboard-mode="dot-better"]:has(#gameScreen[data-scoreboard-family]) :is(#winnerModal, #chicagoLegModal, #game121SummaryModal) {
+    --color-primary: #8cc8ff;
+    --color-success-dark: #24476b;
+    color: var(--color-text);
+}
+
+:root[data-scoreboard-mode="dot-better"]:has(#gameScreen[data-scoreboard-family]) :is(#winnerModal, #chicagoLegModal) :is(#playAgainBtn, #chicagoContinueBtn, #tournamentSaveResult, #casualSaveResult, #tournamentNextLeg) {
+    background: #286eb7;
+    color: #fff;
+    border-color: #8cc8ff;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] {
+    --db-gap: clamp(8px, 1.2vw, 14px);
+    --db-rail: clamp(72px, 12vw, 112px);
+    background: var(--color-bg);
+    color: var(--color-text);
+    gap: var(--db-gap);
+    padding: max(12px, env(safe-area-inset-top)) clamp(10px, 1.6vw, 20px)
+        max(12px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] > * {
+    width: 100%;
+    max-width: 1100px;
+    margin-inline: auto;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .score-header {
+    background: transparent;
+    gap: 8px;
+    order: 0;
+}
+
+/* X01 columns track the history below; Cricket keeps its target/mark lanes. */
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .score-header {
+    --cricket-center-col: var(--db-rail);
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .player-header {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border: 1px solid var(--color-border);
+    border-top: 4px solid var(--color-border);
+    border-radius: 16px;
+    padding: 12px 8px;
+    opacity: 1;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .player-header.active {
+    background: #20354c;
+    border-color: #73baff;
+    box-shadow: inset 0 0 0 1px #73baff;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .player-name {
+    font-size: clamp(17px, calc(2.6vw * var(--ui-scale)), 28px);
+    font-weight: 700;
+    letter-spacing: 0;
+    color: #d8e4f3;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .player-header.active .player-name::before {
+    content: '▶ ';
+    color: #8cc8ff;
+    font-size: .7em;
+    vertical-align: .1em;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .score-big {
+    background: transparent;
+    color: #f5f7fc;
+    text-shadow: none;
+    border-radius: 9px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    padding: 2px;
+    font-size: clamp(42px, min(calc(13vw * var(--ui-scale)), 33cqi), 120px);
+    line-height: 1.08;
+    letter-spacing: -.035em;
+    font-weight: 800;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .score-big.score-preview {
+    background: #4b3e31;
+    box-shadow: inset 0 0 0 2px #ffc286;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .score-big.score-preview-bust {
+    background: #552c31;
+    box-shadow: inset 0 0 0 2px #ff9a91;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .score-delta {
+    background: #4b3e31;
+    border-color: #ffc286;
+    color: #ffe0be;
+    font-size: clamp(12px, 1.8vw, 18px);
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .score-delta.bust {
+    color: #ffd3cf;
+    border-color: #ff9a91;
+    background: #552c31;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .center-logo {
+    background: transparent;
+    min-width: 0;
+    gap: 7px;
+    padding: 0;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .end-game-btn {
+    min-height: 44px;
+    min-width: 64px;
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 16px;
+    border: 1px solid #64758c;
+    border-radius: 10px;
+    background: #252e39;
+    color: #f5f7fc;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .round-badge {
+    background: transparent;
+    color: #ffc286;
+    font-size: 30px;
+    width: auto;
+    height: auto;
+    flex-direction: column;
+    line-height: 1.05;
+    gap: 4px;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .round-badge::before {
+    content: 'ROUND';
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    color: #bfccdc;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .version-text {
+    color: #bfccdc;
+    font-size: 9px;
+}
+
+/* Keep the familiar scoring stack: header, flexible history, bottom keypad.
+   The history viewport absorbs extra height; the scoring controls do not grow. */
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] #x01Controls {
+    order: 2;
+    min-height: 0;
+    padding: clamp(10px, 1.7vw, 18px);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    background: var(--color-surface);
+    flex: 0 0 auto;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] #x01Controls > * {
+    width: 100%;
+    max-width: none;
+    margin-inline: 0;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .finish-indicator:empty {
+    display: none;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .finish-indicator {
+    font-size: clamp(13px, 1.8vw, 19px);
+    min-height: 0;
+    padding: 0 0 10px;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .checkout-suggestion {
+    background: #263a4f;
+    color: #d4ebff;
+    border: 1px solid #5d91c1;
+    font-size: clamp(18px, 2.8vw, 28px);
+    padding: 9px;
+    margin-bottom: 9px;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .x01-input-row {
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: stretch;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .input-display {
+    min-width: 0;
+    min-height: 60px;
+    padding: 8px 10px;
+    border: 1px solid #64758c;
+    border-radius: 10px;
+    background: #141c26;
+    color: #f5f7fc;
+    font-size: clamp(28px, calc(3.3dvh * var(--ui-scale)), 44px);
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .input-display.remaining-mode {
+    border: 2px solid #8cc8ff;
+    color: #b4dcff;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .number-pad {
+    display: grid;
+    grid-template-columns: clamp(48px, 11vw, 90px) minmax(0, 1fr) clamp(48px, 11vw, 90px);
+    gap: 8px;
+    flex: none;
+    height: clamp(252px, 32dvh, 400px);
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .quick-col {
+    display: grid;
+    grid-template-rows: repeat(5, minmax(44px, 1fr));
+    width: auto;
+    gap: 7px;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .pad-center {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(44px, 1fr));
+    gap: 7px;
+    min-width: 0;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] :is(.x01-num-btn, .x01-quick-btn) {
+    padding: 4px;
+    min-width: 0;
+    min-height: 44px;
+    border: 1px solid #64758c;
+    border-radius: 10px;
+    box-shadow: 0 2px 0 #101721;
+    background: #303c4b;
+    color: #f5f7fc;
+    font-weight: 700;
+    font-size: clamp(24px, calc(3.3dvh * var(--ui-scale)), 36px);
+    line-height: 1;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] :is(.x01-quick-btn, .x01-num-btn[data-op]) {
+    background: #24405d;
+    border-color: #547eaa;
+    color: #b9ddff;
+    font-size: clamp(17px, calc(2dvh * var(--ui-scale)), 25px);
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .x01-bottom-row {
+    margin-top: 10px;
+    gap: 10px;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] :is(.x01-input-row, .x01-bottom-row) .btn {
+    min-height: 52px;
+    min-width: 60px;
+    padding: 8px 10px;
+    border: 1px solid #64758c;
+    border-radius: 10px;
+    font-size: clamp(14px, calc(2dvh * var(--ui-scale)), 22px);
+    color: #f5f7fc;
+    box-shadow: none;
+    background: #354357;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] #undoBtnX01 {
+    color: #ffd9b7;
+    background: #503924;
+    border-color: #b27b48;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] #x01BustBtn {
+    color: #ffdac3;
+    background: #633d2b;
+    border-color: #c08a64;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] #x01EnterBtn {
+    background: #286eb7;
+    color: #fff;
+    border-color: #8cc8ff;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] button:focus-visible {
+    outline: 3px solid #ffc286;
+    outline-offset: 2px;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] button:disabled {
+    opacity: .48;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .x01-main {
+    order: 1;
+    position: relative;
+    min-height: 96px;
+    flex: 1 1 0;
+    max-height: none;
+    padding: 40px 8px 8px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+    column-gap: 8px;
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) var(--db-rail) minmax(0, 1fr);
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .x01-main::before {
+    content: 'TURN HISTORY';
+    position: absolute;
+    inset: 13px 16px auto;
+    color: #bfccdc;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .12em;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .x01-main.three-player {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--db-rail) minmax(0, 2fr);
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .x01-main.four-player {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) var(--db-rail) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] :is(.score-history-col, .round-numbers-col) {
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    color: #dce7f5;
+    scrollbar-color: #64758c #1d242d;
+}
+
+/* Free space stays above the first row, keeping the newest row near the
+   keypad even before the viewport fills. Auto margins collapse on overflow,
+   so older rows remain reachable by scrolling; no history is removed. The
+   existing chronological renderer scrolls each lane to its latest row. */
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] :is(.score-history-col, .round-numbers-col) > :first-child {
+    margin-top: auto;
+}
+
+/* Identical fixed row geometry keeps rounds aligned across every lane. */
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] :is(.score-history-entry, .round-number) {
+    height: 48px;
+    min-height: 48px;
+    flex: 0 0 48px;
+    margin: 0 0 4px;
+    padding: 4px 2px;
+    border-radius: 7px;
+    background: #252e39;
+    color: #e5edf8;
+    font-size: clamp(20px, calc(2.4dvh * var(--ui-scale)), 30px);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .round-number {
+    width: 100%;
+    color: #bfccdc;
+    background: #1d242d;
+    font-size: 16px;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry.current {
+    color: #b4dcff;
+    background: #233d59;
+    border: 1px solid #547eaa;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry.bust {
+    color: #ffcfad;
+    background: #4f362b;
+    font-size: clamp(13px, 2vw, 20px);
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry.miss {
+    color: #d4deed;
+    font-size: clamp(13px, 2vw, 20px);
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .bottom-bar {
+    order: 3;
+    border-radius: 10px;
+}
+
+/* Cricket-family games retain their gameplay geometry and use the same calm
+   palette, including visible marks, pending hits, and touch controls. */
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="cricket"] :is(.cricket-main, .double-down-main, .team-cricket-main) {
+    background: #1d242d;
+    border: 1px solid #3e4d60;
+    border-radius: 14px;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="cricket"] .cricket-row {
+    border-bottom: 1px solid #3e4d60;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="cricket"] .cricket-cell.active {
+    background: #20354c;
+    box-shadow: none;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="cricket"] .mark {
+    --color-primary: #8cc8ff;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="cricket"] .btn--undo {
+    background: #805029;
+    color: #f5f7fc;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="cricket"] :is(.cricket-num-btn, .cricket-dt-btn) {
+    background: #2d4764;
+    color: #f5f7fc;
+    border-color: #7895b4;
+    box-shadow: none;
+}
+
+/* Preserve the closed-for-everyone cue despite the palette override above.
+   A dashed edge provides a non-color distinction without changing scoring. */
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="cricket"] :is(.cricket-num-btn, .cricket-dt-btn).dimmed {
+    background: #252e39;
+    color: #aab9cd;
+    border: 1px dashed #64758c;
+}
+
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="cricket"] :is(.bottom-controls, .double-down-controls, .team-cricket-controls) {
+    background: #1d242d;
+    border: 1px solid #3e4d60;
+    border-radius: 14px;
+}
+
+@media (orientation: landscape) {
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .player-header {
+        padding-block: 6px;
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .score-big {
+        font-size: clamp(32px, min(calc(10dvh * var(--ui-scale)), 30cqi), 80px);
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .number-pad {
+        height: 248px;
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .input-display {
+        min-height: 48px;
+    }
+}
+
+@media (max-width: 600px) {
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] {
+        --db-gap: 8px;
+        --db-rail: 64px;
+        padding-inline: 8px;
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .score-header {
+        gap: 4px;
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .player-header {
+        padding: 8px 3px;
+        border-radius: 11px;
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] .player-name {
+        font-size: clamp(12px, 3.5vw, 18px);
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family] :is(.three-player, .four-player) .score-big {
+        font-size: clamp(19px, 38cqi, 42px);
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] #x01Controls {
+        padding: 8px;
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .number-pad {
+        gap: 5px;
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] .x01-main {
+        padding-inline: 4px;
+        column-gap: 4px;
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] :is(.three-player, .four-player) .score-history-entry {
+        font-size: 17px;
+    }
+    :root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family="x01"] :is(.three-player, .four-player) .score-history-entry:is(.bust, .miss) {
+        font-size: 14px;
+    }
+}

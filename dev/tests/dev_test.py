@@ -1662,7 +1662,7 @@ async def test_monthly_usage_counter(page):
 
 
 async def test_x01_keypad_skin(page):
-    # The shared game-style selector exposes Modern, Classic and DC Mode.
+    # The shared selector exposes Modern, Classic, DC Mode and Dot Better.
     # Classic must still restore the original pad and every choice persists.
     await fresh(page)
 
@@ -1689,12 +1689,12 @@ async def test_x01_keypad_skin(page):
     assert default["padDisplay"] == "grid", default
     assert default["keyImage"] != "none", f"modern keys are gradient-filled: {default}"
 
-    # Settings exposes both options, Modern marked active.
+    # Settings exposes all options, Modern marked active.
     await page.click("#settingsBtnSetup")
     await page.wait_for_timeout(400)
     choices = await page.eval_on_selector_all(
         "#scoreSkinChoices [data-score-skin]", "els => els.map(e => e.dataset.scoreSkin)")
-    assert choices == ["modern", "classic", "dc"], choices
+    assert choices == ["modern", "classic", "dc", "dot-better"], choices
     assert await page.locator("#scoreSkinChoices .score-skin-choice.active").get_attribute(
         "data-score-skin") == "modern"
 

@@ -463,3 +463,19 @@ captured in `cricket.js` at the moment of closure.
 - Don't silently swallow errors in user-triggered actions (Add Player, Save
   Stats, etc.). Show an alert or inline message — silent failures look like
   the app is broken.
+
+## Optional Dot Better DEV style (October 7)
+
+`dev/css/dot-better.css` is an additive opt-in X01/Cricket presentation selected
+through the existing Visual Settings picker. Modern remains the default.
+X01 uses top scores → flexible center history → bottom keypad order, with
+the newest history rows at the bottom and older rows scrollable; gameplay and storage
+modules are unchanged. The owner approved DEV publication after reviewing the
+corrected private phone preview. Nine static/unit groups pass; automated browser,
+offline-runtime and physical iPad verification remain unverified. See the October 7
+entry in `dev/DEV_NOTES.md` and `dev/tests/dot_better_test.py` before production promotion.
+
+Dot Better result dialogs share the eligible game's palette without changing
+page-global theme settings. CSS-only winner celebrations are theme-driven,
+finite, non-interactive and disabled under reduced motion; scoring and modal
+callbacks remain unchanged. Automated browser/device validation is still pending.

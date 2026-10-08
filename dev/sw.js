@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v50';
+const CACHE_NAME = 'blakeout-dev-v53-dot-better';
 const ASSETS = [
     './',
     './index.html',
@@ -13,6 +13,8 @@ const ASSETS = [
     './css/tournament-scoring.css',
     './css/casual-recording.css',
     './css/winner.css',
+    './css/winner-celebration.css',
+    './css/dot-better.css',
     './css/platform.css',
     './css/brackets.css',
     './accounts/',
