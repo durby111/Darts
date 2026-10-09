@@ -21,6 +21,7 @@ import { initTeamCricketControls, updateTeamCricketDisplay } from './teamcricket
 import './theme.js';
 import { initTournamentBridge, renderTournamentControls } from './tournament-bridge.js';
 import { initCasualRecording } from './casual-recording.js';
+import { APP_BASE_URL, clearBuildCaches, getBuildServiceWorker } from './build-context.js';
 
 // --- Safe element helper ---
 function on(id, event, handler) {
@@ -236,11 +237,10 @@ function initGameMenuControls() {
         }
         try {
             if ('caches' in window) {
-                const keys = await caches.keys();
-                await Promise.all(keys.map(k => caches.delete(k)));
+                await clearBuildCaches(caches);
             }
             if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.getRegistration();
+                const reg = await getBuildServiceWorker(navigator.serviceWorker);
                 if (reg) {
                     await reg.update();
                     if (reg.waiting) reg.waiting.postMessage('skipWaiting');
@@ -335,7 +335,7 @@ function registerServiceWorker() {
         window.location.reload();
     });
 
-    navigator.serviceWorker.register('./sw.js').then(reg => {
+    navigator.serviceWorker.register(new URL('sw.js', APP_BASE_URL).href, { scope: APP_BASE_URL }).then(reg => {
         reg.update().catch(() => {});
         if (reg.waiting) reg.waiting.postMessage('skipWaiting');
         reg.addEventListener('updatefound', () => {
@@ -361,17 +361,13 @@ function initUpdateButton() {
         btn.disabled = true;
 
         try {
-            // Unregister service worker entirely for clean slate
+            // Reset only this app; DEV and production share the same origin.
             if ('serviceWorker' in navigator) {
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                for (const reg of registrations) {
-                    await reg.unregister();
-                }
+                const reg = await getBuildServiceWorker(navigator.serviceWorker);
+                if (reg) await reg.unregister();
             }
-            // Clear all caches
             if ('caches' in window) {
-                const keys = await caches.keys();
-                await Promise.all(keys.map(k => caches.delete(k)));
+                await clearBuildCaches(caches);
             }
             if (status) status.textContent = 'Reloading with latest version...';
             setTimeout(() => window.location.reload(true), 300);

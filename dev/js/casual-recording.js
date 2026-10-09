@@ -1,8 +1,11 @@
 import { game, recordingSession, saveActiveGame, restoreActiveGame, localRecordingRecoveries } from './state.js';
 import { showModal, hideModal } from './ui.js';
 import { RECORDING_GAMES, newRecordId, recordingComplete, recordingWinnerIds, scoringResult } from './scoring-records.js';
+import { isFeatureAvailable } from './feature-availability.js';
+import { BUILD_STORAGE } from './build-context.js';
 
-const HISTORY_KEY = 'blakeout_dev_casual_history';
+const HISTORY_KEY = BUILD_STORAGE.casualRecoveryPrefix + 'history';
+const ACCOUNTS_NOTICE = 'Players & Records is coming soon. Cloud saving is unavailable; your recorded games and results stay on this device. Use Resume to continue local scoring.';
 let preparing = false;
 let saving = false;
 
@@ -17,6 +20,7 @@ function button(text, id, action) {
 }
 
 async function verifiedProfiles() {
+    if (!isFeatureAvailable('accounts')) throw new Error(ACCOUNTS_NOTICE);
     const api = await import('./platform.js');
     await api.initPlatform();
     const account = api.requireVerifiedAccount();
@@ -37,7 +41,21 @@ export function initCasualRecording() {
     panel.innerHTML = '<label class="casual-recording-toggle"><input type="checkbox" id="recordCasualStats"> Record verified player stats (optional)</label>' +
         '<p id="casualRecordingHint"></p><details id="casualLocalHistory"><summary>Recorded games on this device</summary><div id="casualRecoveryList"></div></details>';
     document.getElementById('playSection').before(panel);
+    const toggle = document.getElementById('recordCasualStats');
+    if (!isFeatureAvailable('accounts')) {
+        toggle.checked = false;
+        toggle.disabled = true;
+        toggle.setAttribute('aria-describedby', 'casualRecordingHint');
+        const badge = document.createElement('span');
+        badge.className = 'feature-coming-soon-badge';
+        badge.textContent = 'Coming soon';
+        toggle.parentElement.append(badge);
+    }
     const updateHint = () => {
+        if (!isFeatureAvailable('accounts')) {
+            document.getElementById('casualRecordingHint').textContent = ACCOUNTS_NOTICE;
+            return;
+        }
         const supported = RECORDING_GAMES.has(document.getElementById('gameType').value);
         document.getElementById('casualRecordingHint').textContent = supported
             ? 'Start Game will let a verified scorekeeper link each person to a profile. Guests and normal offline play still work. Records are scorekeeper-declared, not certified results.'
@@ -51,6 +69,7 @@ export function initCasualRecording() {
 }
 
 export async function prepareCasualRecording(playerSeeds, teams, force = false) {
+    if (!isFeatureAvailable('accounts')) return { playerSeeds, teams, recording: null };
     const gameType = document.getElementById('gameType').value;
     if ((!force && !document.getElementById('recordCasualStats')?.checked) || !RECORDING_GAMES.has(gameType)) {
         return { playerSeeds, teams, recording: null };
@@ -176,6 +195,10 @@ function rememberSaved(session) {
 }
 
 export async function saveCasualResult() {
+    if (!isFeatureAvailable('accounts')) {
+        document.dispatchEvent(new CustomEvent('casualRecordingChanged', { detail: { message: ACCOUNTS_NOTICE } }));
+        return;
+    }
     const session = game.recording;
     if (!session || !recordingComplete() || session.status === 'saved' || saving) return;
     if (!confirm('Save these scorekeeper-declared casual results and actual dart statistics? They are not certified competition results.')) return;
@@ -211,7 +234,7 @@ export async function saveCasualResult() {
     } finally {
         saving = false;
         const save = document.getElementById('casualSaveResult');
-        if (save) save.disabled = session.status === 'saved';
+        if (save) save.disabled = !isFeatureAvailable('accounts') || session.status === 'saved';
     }
 }
 
@@ -249,14 +272,18 @@ export function renderCasualHistory() {
                 list.append(row);
             }
             const note = document.createElement('p');
-            note.textContent = `${history.length} recent confirmed casual records on this device. Linked players can view their full statistics in Accounts.`;
+            note.textContent = `${history.length} recent confirmed casual records on this device. ` + (isFeatureAvailable('accounts')
+                ? 'Linked players can view their full statistics in Accounts.'
+                : 'Players & Records is coming soon; local recorded games remain available above.');
             list.append(note);
         }
     } catch (error) {
         console.warn('[Casual recording] Could not read the local saved-game index.', error);
         const warning = document.createElement('p');
         warning.setAttribute('role', 'alert');
-        warning.textContent = 'Saved-game history could not be read on this device. Pending games above are separate and have not been removed; cloud records remain available in Accounts.';
+        warning.textContent = 'Saved-game history could not be read on this device. Pending games above are separate and have not been removed. ' + (isFeatureAvailable('accounts')
+            ? 'Cloud records remain available in Accounts.'
+            : 'Players & Records is coming soon.');
         list.append(warning);
     }
     if (!list.children.length) list.textContent = 'No local recorded games yet.';

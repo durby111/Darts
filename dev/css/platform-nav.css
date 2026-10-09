@@ -13,7 +13,7 @@
     border: 1px solid var(--color-border-light);
     border-radius: 12px;
 }
-.dev-app-nav a {
+.dev-app-nav :is(a, button) {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -47,4 +47,14 @@
     align-self: center;
     flex-shrink: 0;
     margin: 16px auto 0;
+}
+
+.dev-app-nav .feature-nav-disabled {
+    min-height: 52px;
+    gap: 5px;
+    border-style: dashed;
+    border-color: var(--color-border);
+    color: var(--color-text-muted);
+    background: var(--color-surface-alt);
+    opacity: 1;
 }

@@ -8,8 +8,29 @@
     <link rel="stylesheet" href="../css/variables.css">
     <link rel="stylesheet" href="../css/platform.css">
     <link rel="stylesheet" href="../css/brackets.css">
+    <link rel="stylesheet" href="../css/feature-availability.css">
 </head>
-<body class="dev-build platform-page brackets-page">
+<body class="dev-build platform-page brackets-page" data-app-feature="brackets">
+    <div id="featureUnavailableShell">
+        <header class="platform-header">
+            <a href="../">🎯 BlakeOut <span class="dev-badge">DEV</span></a>
+            <nav aria-label="Main navigation">
+                <a href="../">Scoring</a>
+                <button type="button" class="feature-nav-disabled" disabled>Brackets<span class="feature-coming-soon-badge">Coming soon</span></button>
+                <button type="button" class="feature-nav-disabled" disabled>Players &amp; Records<span class="feature-coming-soon-badge">Coming soon</span></button>
+            </nav>
+        </header>
+        <main class="platform-main">
+            <section class="feature-unavailable" aria-labelledby="featureUnavailableTitle">
+                <span class="feature-coming-soon-badge">Coming soon</span>
+                <h1 id="featureUnavailableTitle">Brackets</h1>
+                <p>This section is temporarily unavailable. Existing records are kept.</p>
+                <p>You can still score games and manage local players.</p>
+                <a class="back-to-scoring" href="../">Back to scoring</a>
+            </section>
+        </main>
+    </div>
+    <template id="featurePageTemplate">
     <header class="platform-header">
         <a href="../">🎯 BlakeOut <span class="dev-badge">DEV</span></a>
         <nav aria-label="Main navigation">
@@ -135,6 +156,7 @@
             </section>
         </article>
     </main>
-    <script type="module" src="../js/brackets/page.js"></script>
+    </template>
+    <script type="module" src="../js/feature-page.js"></script>
 </body>
 </html>

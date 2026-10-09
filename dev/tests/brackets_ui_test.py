@@ -16,6 +16,7 @@ import traceback
 
 from playwright.async_api import async_playwright
 from bracket_engine_test import Handler, DEV_ROOT
+from feature_test_helpers import enable_future_features
 from platform_test import APP
 
 
@@ -204,6 +205,7 @@ export async function saveMatchResult(){api.statsWrites++;throw Error('Manual UI
 
 async def fresh(browser, base, *, owner=True, status="registration", count=4):
     context = await browser.new_context(viewport={"width": 1024, "height": 900})
+    await enable_future_features(context)
     await context.route("**/js/platform.js", lambda route: route.fulfill(
         status=200, content_type="application/javascript", body=MOCK_PLATFORM))
     page = await context.new_page()
@@ -842,6 +844,7 @@ async def test_immediate_guest_join(browser, base):
 
 async def test_real_platform_adapter(browser, base):
     context = await browser.new_context(viewport={"width": 1024, "height": 900})
+    await enable_future_features(context)
     profile_name = 'Zoë "Ace" \\ 🎯'
     store = UI_STORE + "\ndocs.set('blakeoutDevProfiles/verified_owner'," + json.dumps({"name": profile_name}) + ");"
     modules = {"firebase-app.js": APP, "firebase-auth.js": UI_AUTH, "firebase-firestore.js": store}
@@ -902,6 +905,7 @@ async def test_real_platform_adapter(browser, base):
 
 async def actual_join_page(browser, base):
     context = await browser.new_context(viewport={"width": 1024, "height": 900})
+    await enable_future_features(context)
     store = UI_STORE + """
 docs.set('blakeoutDevProfiles/verified_owner',{name:'Verified Organizer'});
 docs.set('blakeoutDevProfiles/verified_joiner',{name:'Verified Arrival'});

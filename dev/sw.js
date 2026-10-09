@@ -1,4 +1,17 @@
-const CACHE_NAME = 'blakeout-dev-v54-winner';
+const CACHE_NAME = 'blakeout-dev-v55-coming-soon';
+const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
+const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
+const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
+
+function isOwnCache(name) {
+    return IS_DEV_SCOPE ? name.startsWith('blakeout-dev-') : /^blakeout-v\d/.test(name);
+}
+
+function isOwnPath(url) {
+    if (url.origin !== self.location.origin || !url.pathname.startsWith(APP_SCOPE_PATH)) return false;
+    return IS_DEV_SCOPE || (url.pathname !== NESTED_DEV_PATH.slice(0, -1) && !url.pathname.startsWith(NESTED_DEV_PATH));
+}
+
 const ASSETS = [
     './',
     './index.html',
@@ -10,6 +23,7 @@ const ASSETS = [
     './css/setup.css',
     './css/dev.css',
     './css/platform-nav.css',
+    './css/feature-availability.css',
     './css/tournament-scoring.css',
     './css/casual-recording.css',
     './css/winner.css',
@@ -22,6 +36,9 @@ const ASSETS = [
     './brackets/',
     './brackets/index.html',
     './js/platform-nav.js',
+    './js/feature-availability.js',
+    './js/feature-page.js',
+    './js/build-context.js',
     './js/platform.js',
     './js/account-email-config.js',
     './js/account-email.js',
@@ -78,7 +95,7 @@ const REVALIDATE = /\.(?:js|css|json)$/i;
 function shouldRevalidate(request) {
     if (request.mode === 'navigate') return false;  // browser already does
     const url = new URL(request.url);
-    return url.origin === self.location.origin && REVALIDATE.test(url.pathname);
+    return isOwnPath(url) && REVALIDATE.test(url.pathname);
 }
 
 self.addEventListener('install', (event) => {
@@ -97,7 +114,7 @@ self.addEventListener('activate', (event) => {
     // The dev app must never remove the production app's offline cache.
     event.waitUntil(
         caches.keys().then((keys) =>
-            Promise.all(keys.filter((k) => k.startsWith('blakeout-dev-') && k !== CACHE_NAME).map((k) => caches.delete(k)))
+            Promise.all(keys.filter((k) => isOwnCache(k) && k !== CACHE_NAME).map((k) => caches.delete(k)))
         ).then(() => self.clients.claim())
     );
 });
@@ -110,7 +127,7 @@ const SDK_ORIGIN = 'https://www.gstatic.com';
 function isCacheable(request) {
     const url = new URL(request.url);
     if (url.searchParams.has('oobCode') || url.searchParams.has('apiKey')) return false;
-    if (url.origin === self.location.origin) return true;
+    if (url.origin === self.location.origin) return isOwnPath(url);
     return url.origin === SDK_ORIGIN && url.pathname.startsWith('/firebasejs/');
 }
 
@@ -128,7 +145,7 @@ self.addEventListener('fetch', (event) => {
             }
             return response;
         }).catch(() => {
-            return caches.match(request);
+            return caches.open(CACHE_NAME).then(cache => cache.match(request));
         })
     );
 });

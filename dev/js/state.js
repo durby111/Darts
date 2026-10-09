@@ -3,6 +3,8 @@
    Game state, undo/redo, localStorage configs
    ============================================ */
 
+import { BUILD_STORAGE } from './build-context.js';
+
 // Singleton game state
 export let game = {
     type: '501',
@@ -241,10 +243,10 @@ export function initCricket(type, includeBulls = false) {
 
 // --- Live Game Save/Restore (survives page reload, exit to setup, updates) ---
 
-const ACTIVE_GAME_KEY = 'blakeout_dev_active_game';
-const ACTIVE_GAME_IMPORT_KEY = 'blakeout_dev_active_game_imported';
-const MATCH_RECOVERY_PREFIX = 'blakeout_dev_match_';
-const CASUAL_RECOVERY_PREFIX = 'blakeout_dev_casual_';
+const ACTIVE_GAME_KEY = BUILD_STORAGE.activeGame;
+const ACTIVE_GAME_IMPORT_KEY = BUILD_STORAGE.legacyImport;
+const MATCH_RECOVERY_PREFIX = BUILD_STORAGE.matchRecoveryPrefix;
+const CASUAL_RECOVERY_PREFIX = BUILD_STORAGE.casualRecoveryPrefix;
 
 function recoveryKey(session) {
     return (session.source === 'casual' ? CASUAL_RECOVERY_PREFIX : MATCH_RECOVERY_PREFIX) + session.resultId;
@@ -433,7 +435,7 @@ export function saveActiveGame() {
         const session = recordingSession();
         archivePreviousTournament(session?.resultId);
         const stored = JSON.stringify(compactTournamentSnapshot(snapshot));
-        localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
+        if (ACTIVE_GAME_IMPORT_KEY) localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
         localStorage.setItem(ACTIVE_GAME_KEY, stored);
         if (session?.status === 'saved') {
             pruneSavedRecoveries(session);
@@ -453,7 +455,7 @@ export function saveActiveGame() {
 export function loadActiveGame() {
     try {
         let stored = localStorage.getItem(ACTIVE_GAME_KEY);
-        if (!localStorage.getItem(ACTIVE_GAME_IMPORT_KEY)) {
+        if (ACTIVE_GAME_IMPORT_KEY && !localStorage.getItem(ACTIVE_GAME_IMPORT_KEY)) {
             if (stored === null) {
                 const legacy = localStorage.getItem('blakeout_active_game');
                 let parsed;
@@ -476,10 +478,10 @@ export function loadActiveGame() {
 export function clearActiveGame() {
     try {
         archivePreviousTournament();
-        localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
+        if (ACTIVE_GAME_IMPORT_KEY) localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
         localStorage.removeItem(ACTIVE_GAME_KEY);
     } catch (error) {
-        console.warn('[BlakeOut] Failed to clear DEV game:', error);
+        console.warn('[BlakeOut] Failed to clear game:', error);
     }
 }
 
@@ -532,6 +534,8 @@ export function restoreActiveGame(snapshot) {
         tournament: snapshot.tournament || null,
         recording: snapshot.recording || null,
         scoringRecords: snapshot.scoringRecords || null,
+        // Older production currentInput may be an already committed quick
+        // score. Only explicit x01Input carries resumable expression/mode data.
         x01Input: snapshot.x01Input || null,
         minnesotaInput: snapshot.minnesotaInput || null
     });

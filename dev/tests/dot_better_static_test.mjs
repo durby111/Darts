@@ -99,7 +99,7 @@ pass('eligible result dialogs share palette only, with light status ink and acce
 
 const html = read('index.html');
 assert.equal((html.match(/href="css\/dot-better.css"/g) || []).length, 1);
-const swContext = vm.createContext({ self: { addEventListener() {} } });
+const swContext = vm.createContext({ URL, self: { location: { href: 'https://example.test/dev/sw.js', origin: 'https://example.test' }, addEventListener() {} } });
 vm.runInContext(read('sw.js') + '\nthis.result = {CACHE_NAME, ASSETS};', swContext);
 assert.ok(swContext.result.CACHE_NAME.startsWith('blakeout-dev-'));
 assert.ok(swContext.result.ASSETS.includes('./css/dot-better.css'));

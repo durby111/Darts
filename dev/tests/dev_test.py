@@ -3012,7 +3012,7 @@ async def main_async(only, keep_screens):
 
     srv = subprocess.Popen(
         ["python3", "-m", "http.server", str(PORT), "--bind", "127.0.0.1"],
-        cwd=str(DEV_ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        cwd=str(DEV_ROOT.parent), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     time.sleep(1.2)
     try:
@@ -3025,7 +3025,7 @@ async def main_async(only, keep_screens):
             # one-time controllerchange → location.reload(). Let that happen
             # on a throwaway page so it can't destroy a test mid-flight.
             warm = await ctx.new_page()
-            await warm.goto(f"http://127.0.0.1:{PORT}/index.html",
+            await warm.goto(f"http://127.0.0.1:{PORT}/dev/index.html",
                             wait_until="domcontentloaded", timeout=10000)
             await warm.wait_for_timeout(1800)
             await warm.close()
@@ -3038,7 +3038,7 @@ async def main_async(only, keep_screens):
                     print(f"!! unknown test: {name}", file=sys.stderr)
                     continue
                 page = await ctx.new_page()
-                await page.goto(f"http://127.0.0.1:{PORT}/index.html",
+                await page.goto(f"http://127.0.0.1:{PORT}/dev/index.html",
                                 wait_until="domcontentloaded", timeout=10000)
                 await page.wait_for_timeout(300)
                 r = await run_one(page, name, tests[name], screens, keep_screens)

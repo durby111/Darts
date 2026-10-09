@@ -5,13 +5,18 @@ import { updateCricketDisplay } from './cricket.js';
 import { newRecordId, finishScoringLeg, scoringResult, tournamentScoringLocked, RECORDING_GAMES, recordingComplete, recordingWinnerIds, pendingDartCount } from './scoring-records.js';
 import { saveCasualResult } from './casual-recording.js';
 import { registrationLabels } from './brackets/labels.js';
+import { isFeatureAvailable } from './feature-availability.js';
+import { BUILD_STORAGE } from './build-context.js';
 
-const LAUNCH_KEY = 'blakeout_dev_match_launch';
+const LAUNCH_KEY = BUILD_STORAGE.matchRecoveryPrefix + 'launch';
 const SUPPORTED = RECORDING_GAMES;
+const BRACKETS_NOTICE = 'Brackets are coming soon. Your recorded game stays on this device; use Resume to continue local scoring.';
+const SAVE_NOTICE = 'Brackets and Players & Records are coming soon. Cloud saving is unavailable; your recorded game and results stay on this device.';
 let saving = false;
 let initialized = false;
 
 async function platform() {
+    if (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts')) throw new Error(SAVE_NOTICE);
     const api = await import('./platform.js');
     await api.initPlatform();
     await api.requireVerifiedAccount();
@@ -64,7 +69,7 @@ function recoverMatch(tournamentId, matchId) {
     let latest = null;
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (!key.startsWith('blakeout_dev_match_') || key === LAUNCH_KEY) continue;
+        if (!key.startsWith(BUILD_STORAGE.matchRecoveryPrefix) || key === LAUNCH_KEY) continue;
         try {
             const saved = JSON.parse(localStorage.getItem(key));
             if (saved?.tournament?.tournamentId === tournamentId && saved.tournament.matchId === matchId &&
@@ -75,6 +80,10 @@ function recoverMatch(tournamentId, matchId) {
 }
 
 export async function launchRequestedMatch() {
+    if (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts')) {
+        note(SAVE_NOTICE + ' Use Resume to continue a saved game.');
+        return;
+    }
     try {
         const request = JSON.parse(localStorage.getItem(LAUNCH_KEY));
         if (!request?.tournamentId || !request.matchId) throw new Error('Missing tournament launch request. Return to brackets.');
@@ -135,6 +144,10 @@ function button(label, id, handler) {
 }
 
 function returnToBrackets() {
+    if (!isFeatureAvailable('brackets')) {
+        renderTournamentControls(BRACKETS_NOTICE);
+        return;
+    }
     if (!saveActiveGame() || !confirm('Return to brackets? Unsaved scoring stays on this device; no result will be sent.')) return;
     const url = new URL('../brackets/', import.meta.url);
     url.searchParams.set('id', game.tournament.tournamentId);
@@ -158,6 +171,10 @@ function nextLeg() {
 }
 
 export async function saveTournamentResult() {
+    if (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts')) {
+        renderTournamentControls(SAVE_NOTICE);
+        return;
+    }
     if (!seriesComplete() || saving || game.tournament.status === 'saved') return;
     if (!confirm('Save this tournament result and the registered players’ actual dart statistics?')) return;
     const session = game.tournament;
@@ -198,7 +215,7 @@ export async function saveTournamentResult() {
     } finally {
         saving = false;
         const save = document.getElementById('tournamentSaveResult');
-        if (save) save.disabled = session.status === 'saved';
+        if (save) save.disabled = !isFeatureAvailable('brackets') || !isFeatureAvailable('accounts') || session.status === 'saved';
     }
 }
 
@@ -234,6 +251,9 @@ export function renderTournamentControls(message = '') {
         document.querySelector('#gameMenuModal h2').after(returnButton);
     }
     returnButton.hidden = !game.tournament;
+    returnButton.disabled = !isFeatureAvailable('brackets');
+    returnButton.textContent = returnButton.disabled ? 'Return to tournament brackets · Coming soon' : 'Return to tournament brackets';
+    returnButton.title = returnButton.disabled ? BRACKETS_NOTICE : '';
     if (!session) return;
     if (session.legComplete) {
         const winners = recordingWinnerIds();
@@ -285,17 +305,39 @@ export function renderTournamentControls(message = '') {
     const text = document.createElement('p');
     text.setAttribute('role', 'status');
     text.textContent = message || `${casual ? 'Scorekeeper-declared casual record.' : 'Series: ' + session.legWins.join(' – ') + '.'} ${session.status === 'saved' ? 'Saved.' : 'Not yet sent.'}`;
+    const cloudSaveAvailable = isFeatureAvailable('accounts') && (casual || isFeatureAvailable('brackets'));
+    if (!cloudSaveAvailable && !message) text.textContent += ' ' + (casual
+        ? 'Players & Records is coming soon. Cloud saving is unavailable; your recorded game and results stay on this device.'
+        : SAVE_NOTICE);
     panel.append(text);
+    if (!cloudSaveAvailable) {
+        // A completed pending/saved match hides the normal winner actions.
+        // Always leave a local exit while the cloud areas are unavailable;
+        // hiding the dialog does not discard or alter the retained result.
+        panel.append(button('Back to scoring', 'recordingGateClose', () => hideModal('winnerModal')));
+    }
     if (!casual && session.legComplete && !seriesComplete() && !game.chicago) {
         panel.append(button('Next leg', 'tournamentNextLeg', nextLeg));
     }
     if (seriesComplete()) {
         const save = casual ? button('Save casual result', 'casualSaveResult', saveCasualResult) :
             button('Save tournament result', 'tournamentSaveResult', saveTournamentResult);
-        save.disabled = saving || ['saving', 'saved'].includes(session.status);
+        save.disabled = !cloudSaveAvailable || saving || ['saving', 'saved'].includes(session.status);
+        if (!cloudSaveAvailable) {
+            save.textContent += ' · Coming soon';
+            save.title = text.textContent;
+        }
         panel.append(save);
     }
-    if (!casual) panel.append(button('Return to brackets', 'tournamentResultReturn', returnToBrackets));
+    if (!casual) {
+        const returnResult = button('Return to brackets', 'tournamentResultReturn', returnToBrackets);
+        returnResult.disabled = !isFeatureAvailable('brackets');
+        if (returnResult.disabled) {
+            returnResult.textContent += ' · Coming soon';
+            returnResult.title = BRACKETS_NOTICE;
+        }
+        panel.append(returnResult);
+    }
 }
 
 export function initTournamentBridge() {

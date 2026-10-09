@@ -633,3 +633,33 @@ domains. CSP (#4) remains deferred by the owner.
   static/unit groups pass, plus JavaScript syntax and whitespace checks. Actual
   cloud-browser baseline testing confirmed winner display and undo dismissal;
   post-deployment browser checks are tracked separately from these source tests.
+
+
+## October 8 Coming soon release gate
+
+- Brackets and Players & Records now appear as disabled native buttons with
+  small Coming soon badges in setup and Game Menu. No href or event-only guard
+  remains on the disabled entries. Scoring and ordinary local-player management
+  are unaffected.
+- Direct accounts/brackets URLs (including query/hash variants) show static
+  unavailable shells. Original feature markup remains in inert templates;
+  the shared availability module must enable a feature before its auth/polling
+  entrypoint can import. No URL/localStorage override is shipped.
+- Tournament query launches, profile selection and cloud-result saves respect
+  the same flags. Existing local recorded games can still resume, score, finish
+  legs and retain recoveries. No records or backend permissions are changed.
+- Completed pending/saved recorded games keep an enabled local Back to scoring
+  exit even when their cloud actions are unavailable; closing never alters data.
+- This is a reversible front-end availability setting, not a security rule or
+  retroactive revocation of already-open/old offline code.
+- Build context now selects production versus DEV saved-game/recovery keys from
+  the module URL. Production keeps its original active-game key; DEV retains
+  the existing one-time legacy import. Both Update controls and service workers
+  clear only their own cache family/registration. Other build data is retained.
+- Source checks pass: availability5, recording-gate7, build-isolation9,
+  DotBetter9 and winner5 groups. Existing future-feature browser suites use
+  explicit test-only intercepted availability modules; the shipped defaults
+  remain unavailable. Full Playwright suites are not run in this restricted
+  workspace; actual cloud-browser checks follow the DEV deployment.
+- DEV cache: blakeout-dev-v55-coming-soon. Production promotion is a separate
+  reviewed release step, preserving production identity and existing data.

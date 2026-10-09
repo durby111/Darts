@@ -6,6 +6,7 @@ import http.server
 import json
 import os
 from pathlib import Path
+from feature_test_helpers import enable_future_features
 import shutil
 import sys
 import threading
@@ -747,6 +748,7 @@ async def run():
                     await route.abort()
 
             await context.route("**/*", boundary)
+            await enable_future_features(context)
             page = await context.new_page()
             page.set_default_timeout(6000)
             errors = []

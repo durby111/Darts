@@ -28,6 +28,7 @@ import http.server
 import json
 import os
 from pathlib import Path
+from feature_test_helpers import enable_future_features
 import re
 import shutil
 import sys
@@ -1137,6 +1138,7 @@ async def run():
                 else:
                     await request.abort()
             await context.route("**/*", route)
+            await enable_future_features(context)
             page = await context.new_page()
             await page.goto(base + "/dev/accounts/")
             output = await page.evaluate(API_TESTS)
@@ -1289,6 +1291,7 @@ async def run():
                     await route.abort()
 
             await email_context.route("**/*", email_route)
+            await enable_future_features(email_context)
             email_page = await email_context.new_page()
             await email_page.goto(base + "/dev/accounts/")
             await email_page.wait_for_function("typeof changeTestUser === 'function'")

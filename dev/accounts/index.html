@@ -7,8 +7,29 @@
     <title>Accounts · BlakeOut DEV</title>
     <link rel="stylesheet" href="../css/variables.css">
     <link rel="stylesheet" href="../css/platform.css">
+    <link rel="stylesheet" href="../css/feature-availability.css">
 </head>
-<body class="dev-build platform-page">
+<body class="dev-build platform-page" data-app-feature="accounts">
+    <div id="featureUnavailableShell">
+        <header class="platform-header">
+            <a href="../">🎯 BlakeOut <span class="dev-badge">DEV</span></a>
+            <nav aria-label="Main navigation">
+                <a href="../">Scoring</a>
+                <button type="button" class="feature-nav-disabled" disabled>Brackets<span class="feature-coming-soon-badge">Coming soon</span></button>
+                <button type="button" class="feature-nav-disabled" disabled>Players &amp; Records<span class="feature-coming-soon-badge">Coming soon</span></button>
+            </nav>
+        </header>
+        <main class="platform-main">
+            <section class="feature-unavailable" aria-labelledby="featureUnavailableTitle">
+                <span class="feature-coming-soon-badge">Coming soon</span>
+                <h1 id="featureUnavailableTitle">Players &amp; Records</h1>
+                <p>This section is temporarily unavailable. Existing records are kept.</p>
+                <p>You can still score games and manage local players.</p>
+                <a class="back-to-scoring" href="../">Back to scoring</a>
+            </section>
+        </main>
+    </div>
+    <template id="featurePageTemplate">
     <header class="platform-header">
         <a href="../">🎯 BlakeOut <span class="dev-badge">DEV</span></a>
         <nav aria-label="Main navigation">
@@ -90,6 +111,7 @@
             <p><code>auth/operation-not-allowed</code> means the selected sign-in method is not enabled. <code>auth/unauthorized-domain</code> means the hosting domain must be authorized. <code>auth/too-many-requests</code> or a quota error means to wait before retrying; do not repeatedly request emails. <code>permission-denied</code> usually means verification is incomplete, DEV rules have not been published, or this account lacks permission. The ordinary scorer remains available.</p>
         </details>
     </main>
-    <script type="module" src="../js/accounts-page.js"></script>
+    </template>
+    <script type="module" src="../js/feature-page.js"></script>
 </body>
 </html>
