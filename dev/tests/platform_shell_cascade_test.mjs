@@ -68,6 +68,18 @@ function color(value, computed, visited = new Set()) {
     const hex = value.length === 4 ? value.slice(1).split('').map(c => c + c).join('') : value.slice(1);
     return [0, 2, 4].map(i => parseInt(hex.slice(i, i + 2), 16));
 }
+function overlay(value, computed) {
+    if (value.startsWith('var(')) return overlay(computed.getPropertyValue(value.slice(4, -1)).trim(), computed);
+    if (value.startsWith('rgba(')) {
+        const rgba = value.slice(5, -1).split(',').map(Number);
+        return { rgb: rgba.slice(0, 3), alpha: rgba[3] };
+    }
+    if (value.startsWith('color-mix(')) {
+        const [, ink, percentage] = value.match(/^color-mix\(in srgb, (.*) (\d+)%, transparent\)$/);
+        return { rgb: color(ink, computed), alpha: Number(percentage) / 100 };
+    }
+    return { rgb: color(value, computed), alpha: 1 };
+}
 function luminance(rgb) {
     return rgb.map(v => v / 255).map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4)
         .reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
@@ -125,9 +137,26 @@ for (const feature of ['accounts', 'brackets']) {
         assert.equal(dom.window.getComputedStyle(host).display, 'grid');
         assert.equal(dom.window.getComputedStyle(dialog).overflowY, 'auto');
         assert.equal(dom.window.getComputedStyle(dialog).position, 'relative');
+        const nativeBackdrop = [...platformStyle.sheet.cssRules].find(rule => rule.selectorText === '.platform-page dialog::backdrop');
+        assert.ok(nativeBackdrop, 'A native dialog backdrop rule must exist');
+        const backdropDeclaration = nativeBackdrop.style.getPropertyValue('background');
+        assert.equal(backdropDeclaration, 'var(--platform-backdrop, rgba(0, 0, 0, .84))',
+            'Native top-layer backdrop has a safe fallback for engines without custom-property inheritance');
+
         for (const theme of themes) for (const mode of modes) {
             document.documentElement.dataset.theme = theme;
             document.documentElement.dataset.scoreboardMode = mode;
+            assert.equal(winner(host, ['background', 'background-color']).value, backdropDeclaration,
+                'The native backdrop and generated fallback host must use the same declaration');
+            const hostComputed = dom.window.getComputedStyle(host);
+            const hostOverlay = overlay('var(--platform-backdrop)', hostComputed);
+            if (['dc', 'dot-better'].includes(mode)) {
+                assert.deepEqual(hostOverlay.rgb, color('var(--color-bg)', hostComputed), `${feature}/${theme}/${mode} active-palette backdrop`);
+                assert.ok(luminance(hostOverlay.rgb) < .02, `${feature}/${theme}/${mode} cannot inherit a pale Arctic veil`);
+                assert.ok(hostOverlay.alpha >= .84);
+            } else {
+                assert.deepEqual(hostOverlay, overlay('var(--bg-image-overlay)', hostComputed), `${feature}/${theme}/${mode} theme overlay preserved`);
+            }
             for (const element of [dialog, ...dialog.querySelectorAll('button')]) {
                 const foreground = winner(element, ['color']);
                 const background = winner(element, ['background', 'background-color']);
@@ -165,4 +194,5 @@ console.log(`PASS ${cases} shipped shell/theme/style combinations preserve share
 console.log('PASS both shipped shells retain the shared focus token after later availability CSS');
 console.log('PASS negative cascade fixture reproduces the old Neon/Royal action contrast failures');
 console.log(`PASS ${dialogCases} app-owned dialog/theme/style combinations preserve readable panel/actions (minimum declared contrast ${minimumDialog.toFixed(2)}:1), 44px targets and fallback scroll/position declarations`);
+console.log('PASS native/fallback backdrop declarations match across 96 palettes; Arctic DC/Dot Better use dark active-palette backdrops');
 console.log('CSS coverage applies to page elements and the shared app-owned <dialog>; any remaining native window.confirm/alert are browser-owned. No rendered/browser QA is implied.');

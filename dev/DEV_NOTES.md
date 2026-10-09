@@ -22,7 +22,7 @@ and DEV-specific configuration must not be blindly copied into production.
   the paid-player test fixture. It has no app/service-worker/storage integration.
 - Added explicitly labeled, memory-only account/bracket previews with fail-closed
   provider isolation and disabled credentials, email, exports and scorer launch.
-- Prepared DEV cache v56 includes the new appearance modules, dialog and palette
+- Prepared DEV cache v57 includes the new appearance modules, dialog and palette
   sheet. Sample routes are not precached; DEV-only preview publication is authorized.
   Source/VM/DOM tests do not substitute for rendered-browser, physical-tablet,
   live email verification or Firebase/emulator validation.

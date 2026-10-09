@@ -133,7 +133,13 @@ function rules(source) {
             .map(item => [item[1], item[2].trim()])),
     }));
 }
-const sheets = ['css/variables.css', 'css/scoreboard-palettes.css', 'css/platform.css'].flatMap(file => rules(read(file)));
+function withoutSupports(source) {
+    // Keep the ordinary cascade intact while simulating unsupported color-mix.
+    return source.replace(/@supports[^{}]*\{(?:[^{}]|\{[^{}]*\})*\}/g, '');
+}
+const files = ['css/variables.css', 'css/scoreboard-palettes.css', 'css/platform.css'];
+const sheets = files.flatMap(file => rules(read(file)));
+const fallbackSheets = files.flatMap(file => rules(withoutSupports(read(file))));
 function matches(selector, theme, mode, target) {
     if (target === 'root') return selector === ':root' || selector === `:root[data-theme="${theme}"]`;
     if (selector === '.platform-page' || selector === 'body.platform-page') return true;
@@ -142,9 +148,9 @@ function matches(selector, theme, mode, target) {
     const requestedModes = [...selector.matchAll(/data-scoreboard-mode="([\w-]+)"/g)].map(match => match[1]);
     return (!requestedThemes.length || requestedThemes.includes(theme)) && (!requestedModes.length || requestedModes.includes(mode));
 }
-function tokens(theme, mode) {
+function tokens(theme, mode, supportsColorMix = true) {
     const result = {};
-    for (const target of ['root', 'body']) for (const rule of sheets) {
+    for (const target of ['root', 'body']) for (const rule of supportsColorMix ? sheets : fallbackSheets) {
         if (rule.selectors.some(selector => matches(selector, theme, mode, target))) Object.assign(result, rule.declarations);
     }
     return result;
@@ -198,8 +204,42 @@ for (const theme of themes) for (const mode of modes) {
 }
 pass(`48 declared palettes meet text/action/status contrast (minimum ${minimumText.toFixed(2)}:1) and focus/outcome contrast (minimum ${minimumOutcome.toFixed(2)}:1)`);
 
+// Backdrop hue and opacity are separate from text-contrast calculations.
+function backdrop(value, values) {
+    if (value.startsWith('var(')) return backdrop(values[value.slice(4, -1)], values);
+    if (value.startsWith('rgba(')) {
+        const rgba = value.slice(5, -1).split(',').map(Number);
+        return { rgb: rgba.slice(0, 3), alpha: rgba[3] };
+    }
+    if (value.startsWith('color-mix(')) {
+        const pieces = selectors(value.slice('color-mix('.length, -1));
+        assert.equal(pieces[0], 'in srgb');
+        assert.equal(pieces[2], 'transparent');
+        const [, ink, opacity] = pieces[1].match(/^(.*) (\d+)%$/);
+        return { rgb: color(ink, values), alpha: Number(opacity) / 100 };
+    }
+    return { rgb: color(value, values), alpha: 1 };
+}
+for (const theme of themes) for (const mode of modes) for (const supported of [true, false]) {
+    const values = tokens(theme, mode, supported);
+    const actual = backdrop(values['--platform-backdrop'], values);
+    if (['dc', 'dot-better'].includes(mode)) {
+        assert.deepEqual(actual.rgb, color('var(--color-bg)', values), `${theme}/${mode} follows active palette`);
+        assert.equal(actual.alpha, supported ? .84 : 1);
+        assert.ok(luminance(actual.rgb) < .02, `${theme}/${mode} must retain a dark veil`);
+    } else {
+        assert.deepEqual(actual, backdrop(values['--bg-image-overlay'], values), `${theme}/${mode} keeps its selected theme overlay`);
+        if (theme === 'arctic') assert.ok(luminance(actual.rgb) > .8);
+    }
+}
+pass('all 48 backdrop palettes follow active styles in supported/fallback CSS; Arctic remains light only in Modern/Classic');
+
 const platform = read('css/platform.css');
 assert.equal((platform.match(/#[\da-f]{3,8}\b/gi) || []).length, 2, 'Only fixed semantic outcome outlines may define literals');
+assert.equal((platform.match(/background: var\(--platform-backdrop, rgba\(0, 0, 0, \.84\)\);/g) || []).length, 2,
+    'Native and fallback dialogs share a token and safe older-engine fallback');
+assert.doesNotMatch(platform, /background: var\(--bg-image-overlay\)/);
+
 for (const feature of ['accounts', 'brackets']) {
     const html = read(`${feature}/index.html`);
     assert.equal((html.match(/href="\.\.\/css\/scoreboard-palettes\.css"/g) || []).length, 1);

@@ -12,6 +12,7 @@
     --platform-button-bg: var(--color-primary);
     --platform-button-ink: var(--color-on-primary);
     --platform-button-border: var(--color-primary-light);
+    --platform-backdrop: var(--bg-image-overlay);
     /* Outcome outlines preserve green = won / red = lost in every theme. */
     --platform-success-border: #258942;
     --platform-danger-border: #d04747;
@@ -41,7 +42,16 @@
 :root:is([data-scoreboard-mode="dc"], [data-scoreboard-mode="dot-better"]) .platform-page {
     --platform-button-bg: var(--color-primary-dark);
     --platform-button-ink: var(--color-on-primary);
+    /* An opaque active-palette fallback also works without color-mix. */
+    --platform-backdrop: var(--color-bg);
     color-scheme: dark;
+}
+@supports (color: color-mix(in srgb, black, white)) {
+    :root:is([data-scoreboard-mode="dc"], [data-scoreboard-mode="dot-better"]) .platform-page {
+        /* Optional dark styles must not inherit Arctic's pale wallpaper veil.
+           Keep this shared by the native and fallback confirmation paths. */
+        --platform-backdrop: color-mix(in srgb, var(--color-bg) 84%, transparent);
+    }
 }
 
 .platform-page, .platform-page * { box-sizing: border-box; }
@@ -71,7 +81,7 @@ body.platform-page { margin: 0; background: var(--color-bg); color: var(--color-
 /* App-owned dialogs only; window.confirm/alert belong to the browser and
    cannot inherit these page styles. */
 .platform-page dialog { max-width: min(640px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 1.25rem; border: 1px solid var(--color-border-light); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); font: inherit; box-shadow: var(--shadow-lg); }
-.platform-page dialog::backdrop { background: var(--bg-image-overlay); }
+.platform-page dialog::backdrop { background: var(--platform-backdrop, rgba(0, 0, 0, .84)); }
 
 /* Shared app-owned confirmation. The native top-layer path and the fallback
    host use the same panel/actions. No animated movement is introduced. */
@@ -115,7 +125,7 @@ body.platform-page { margin: 0; background: var(--color-bg); color: var(--color-
     padding: 1rem;
     overflow-y: auto;
     overscroll-behavior: contain;
-    background: var(--bg-image-overlay);
+    background: var(--platform-backdrop, rgba(0, 0, 0, .84));
 }
 .platform-confirm-fallback .platform-confirm[open] { position: relative; inset: auto; width: min(600px, 100%); margin: 0; }
 @media (max-width: 520px) {

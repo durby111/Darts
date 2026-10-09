@@ -43,7 +43,10 @@ flags are UI release controls, not a security boundary.
   see [RESULT_CORRECTIONS.md](RESULT_CORRECTIONS.md). It is not imported by any
   app entrypoint, storage adapter or service worker and does not enable editing
   or invalidating real records.
-- **Cache:** prepared DEV v56 includes the shared appearance modules and palette
+- **Backdrop follow-up:** actual cloud-browser QA found Arctic's pale overlay
+  behind the optional dark styles. The platform-only backdrop now follows the
+  active DC/Dot Better background; Modern/Classic retain their theme overlays.
+- **Cache:** prepared DEV v57 includes the shared appearance modules and palette
   sheet plus the shared dialog. Preview routes are not precached. Production
   cache and build-isolated saved-game behavior are unchanged.
 
@@ -78,8 +81,8 @@ node --experimental-vm-modules dev/tests/start_lock_feedback_test.mjs
 ```
 
 All fourteen suites pass for the integrated local candidate: account ownership 14 groups,
-Start & Lock 12 DOM groups, correction core 219 tests, appearance 5 groups,
-shell/dialog cascade 4 groups, availability 5, recording gates 7, build isolation
+Start & Lock 12 DOM groups, correction core 219 tests, appearance 6 groups,
+shell/dialog cascade 5 groups, availability 5, recording gates 7, build isolation
 9, Dot Better 9, winner structure 5, production artifact audit 5, shared dialog
 6, asynchronous bracket confirmation 72 and mock preview isolation/interaction
 11. All 41 actual DEV static modules link successfully. JS/Python syntax
