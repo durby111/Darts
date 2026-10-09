@@ -1,5 +1,10 @@
 # BlakeOut evening audit — October 6, 2026
 
+Historical audit. The October 8 follow-up recovered both original artifacts and
+reproduced their tests in the current workspace. Current status and limits are
+in [FEATURE_READINESS.md](FEATURE_READINESS.md); the transfer and environment
+statements below describe October 6 only.
+
 Reconciled against the original **HANDOFF_DOT.md**, prepared October 3, read
 in full through Library (503 lines), the saved-patch descriptions, current source,
 and this day's test/deployment evidence. The original handoff and ZIP artifacts

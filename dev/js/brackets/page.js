@@ -2,18 +2,20 @@ import * as platform from '../platform.js';
 import * as engine from './engine.js';
 import { renderDiagram, teamLabel } from './diagram.js';
 import { registrationLabels } from './labels.js';
+import { confirmDialog } from '../confirm-dialog.js';
 
 const $ = id => document.getElementById(id);
 const GAMES = { chicago: 'Chicago', '301': '301', '501': '501', cricket: 'Cricket', spanish: 'Spanish Cricket', minnesota: 'Minnesota Cricket' };
 let current = null, draft = [], profiles = [], rosterDirty = false, resultDirty = false;
 let selectedMatch = null, busy = false, refreshing = false, previewTimer;
 let list = [], diagramState = null;
-let renderedAccount = null;
+let renderedAccount = null, renderedUser = null;
 let needsAccountReload = false;
 let ownProfile = null, ownProfileState = 'loading', ownProfileError = '';
 let latestCloud = null;
 let profileRequest = 0;
 const guestReceipts = new Map();
+let contextVersion = 0, pendingConfirmation = null;
 
 const verified = () => {
     const user = platform.getAccount();
@@ -22,6 +24,47 @@ const verified = () => {
 const owner = () => verified() && current?.ownerId === platform.getAccount().uid;
 const dirty = () => rosterDirty || resultDirty;
 const id = prefix => `${prefix}-${crypto.randomUUID()}`;
+
+// Approval applies only to the account, event, match and exact draft shown
+// when requested. Cloud polling continues while a confirmation is open.
+function contextSnapshot() {
+    const user = platform.getAccount();
+    const fields = ['title', 'date', 'gameType', 'bestOf', 'winner', 'scoreA', 'scoreB'];
+    return JSON.stringify([
+        contextVersion, user?.uid, !!user?.emailVerified, !!user?.isAnonymous,
+        current?.id, current?.ownerId, current?.revision, current?.status,
+        latestCloud?.id, latestCloud?.revision, selectedMatch, rosterDirty, resultDirty,
+        needsAccountReload, draft, fields.map(field => $(field).value), $('forfeit').checked,
+        [...document.querySelectorAll('#rosterRows [data-field]')].map(input => [input.dataset.field, input.value, input.checked]),
+    ]);
+}
+
+function captureContext({ requireOwner = false } = {}) {
+    const snapshot = contextSnapshot();
+    const user = platform.getAccount();
+    return () => platform.getAccount() === user && !needsAccountReload && (!requireOwner || owner()) && contextSnapshot() === snapshot;
+}
+
+function invalidateConfirmation() {
+    contextVersion++;
+    pendingConfirmation?.controller.abort();
+}
+
+async function confirmCurrent(message, { requireOwner = false, confirmLabel = 'Continue' } = {}) {
+    if (busy || pendingConfirmation || needsAccountReload || (requireOwner && !owner())) return null;
+    contextVersion++;
+    const isCurrent = captureContext({ requireOwner });
+    const request = { controller: new AbortController() };
+    pendingConfirmation = request;
+    try {
+        const answer = await confirmDialog(message, { confirmLabel, signal: request.controller.signal });
+        // Even direct/programmatic form changes without an input event invalidate
+        // approval. Never read a newer draft and save it under an older approval.
+        return isCurrent() && !busy ? { answer, isCurrent } : null;
+    } finally {
+        if (pendingConfirmation === request) pendingConfirmation = null;
+    }
+}
 
 function textElement(tag, text, className) {
     const node = document.createElement(tag);
@@ -33,6 +76,32 @@ function textElement(tag, text, className) {
 function notice(text, error = false) {
     $('message').textContent = text;
     $('message').classList.toggle('platform-error', error);
+}
+
+function clearStartFeedback() {
+    $('startFeedback').hidden = true;
+    $('startFeedbackTitle').textContent = '';
+    $('startFeedbackReasons').replaceChildren();
+}
+
+function startFeedback(title, messages, error = false) {
+    const panel = $('startFeedback');
+    $('startFeedbackTitle').textContent = title;
+    $('startFeedbackReasons').replaceChildren(...messages.map(message => textElement('li', message)));
+    panel.classList.toggle('platform-error', error);
+    panel.hidden = false;
+    panel.focus({ preventScroll: true });
+    panel.scrollIntoView({ block: 'nearest' });
+}
+
+function startBlockers() {
+    const blockers = [];
+    if (dirty()) blockers.push('Save all roster changes before starting.');
+    try {
+        const candidate = rosterDirty ? engine.saveRoster(current, validRoster()) : current;
+        blockers.push(...engine.readiness(candidate));
+    } catch (error) { blockers.push(error.message); }
+    return [...new Set(blockers)];
 }
 
 function publicLabel(value, label, limit = 40, allowEmpty = false) {
@@ -64,8 +133,9 @@ function controls() {
     $('launchScorer').disabled = busy || needsAccountReload;
     $('discard').hidden = !dirty();
     $('refresh').disabled = busy;
-    const eligible = current && owner() && current.status === 'registration' && !engine.readiness(current).length;
-    $('startTournament').disabled = busy || needsAccountReload || dirty() || !eligible;
+    // Let organizers ask to start so incomplete drafts can explain every blocker.
+    const canAttemptStart = current && owner() && current.status === 'registration';
+    $('startTournament').disabled = busy || needsAccountReload || !canAttemptStart;
     $('saveRoster').disabled = busy || needsAccountReload || !rosterDirty;
     for (const input of document.querySelectorAll('[data-bulk-field]')) {
         const rows = owner() && current.status === 'registration' ? draft : [];
@@ -151,17 +221,22 @@ function updateEventLabels() {
 }
 
 function observeCloud(tournament) {
+    if (latestCloud?.id !== tournament.id || latestCloud?.revision !== tournament.revision) invalidateConfirmation();
     latestCloud = tournament;
     publicRoster(tournament);
     joinUI();
 }
 
-async function action(operation) {
-    if (busy) return;
+async function action(operation, onError, isCurrent = () => true) {
+    if (busy || pendingConfirmation || !isCurrent()) return;
     busy = true;
     controls();
     try { await operation(); }
-    catch (error) { notice(`${error.message} No successful cloud save was confirmed; your edits have been kept.`, true); }
+    catch (error) {
+        if (!isCurrent()) return;
+        if (onError) onError(error);
+        else notice(`${error.message} No successful cloud save was confirmed; your edits have been kept.`, true);
+    }
     finally { busy = false; controls(); }
 }
 
@@ -216,7 +291,9 @@ function updatePreview() {
 }
 
 function markRosterDirty() {
+    invalidateConfirmation();
     rosterDirty = true;
+    clearStartFeedback();
     controls();
     clearTimeout(previewTimer);
     previewTimer = setTimeout(updatePreview, 120);
@@ -315,16 +392,21 @@ function renderList() {
             link.className = 'tournament-link';
             link.href = `?id=${encodeURIComponent(tournament.id)}`;
             link.append(textElement('strong', tournament.title), textElement('span', `${tournament.date} · ${GAMES[tournament.gameType]} · ${tournament.status}`));
-            link.addEventListener('click', event => {
+            link.addEventListener('click', async event => {
                 event.preventDefault();
-                if (busy || (dirty() && !confirm('Discard unsaved edits and open another tournament?'))) return;
+                if (busy || pendingConfirmation) return;
+                const confirmation = dirty() ? await confirmCurrent('Discard unsaved edits and open another tournament?')
+                    : { answer: true, isCurrent: captureContext() };
+                if (!confirmation?.answer || !confirmation.isCurrent()) return;
+                const isCurrent = confirmation.isCurrent;
                 action(async () => {
                     const next = await platform.getTournament(tournament.id);
+                    if (!isCurrent()) return;
                     if (!next) throw new Error('Tournament not found.');
                     accept(next);
                     history.replaceState(null, '', `?id=${encodeURIComponent(next.id)}`);
                     notice('Tournament loaded from cloud.');
-                });
+                }, null, isCurrent);
             });
             host.append(link);
         }
@@ -332,6 +414,8 @@ function renderList() {
 }
 
 function accept(tournament) {
+    invalidateConfirmation();
+    clearStartFeedback();
     needsAccountReload = false;
     current = tournament;
     latestCloud = tournament;
@@ -386,9 +470,9 @@ export async function refreshSelected({ discard = false } = {}) {
     try {
         if (current) {
             const selectedId = current.id;
-            const reader = verified() ? platform.getAccount().uid : null;
+            const reader = platform.getAccount();
             const next = await platform.getTournament(selectedId);
-            const activeReader = verified() ? platform.getAccount().uid : null;
+            const activeReader = platform.getAccount();
             if (busy || current?.id !== selectedId || reader !== activeReader) return;
             if (!next) throw new Error('This tournament is no longer available.');
             // A read started before a successful write can finish after that write.
@@ -410,11 +494,14 @@ export async function refreshSelected({ discard = false } = {}) {
     finally { refreshing = false; controls(); }
 }
 
-function openResult(matchId) {
-    if (!owner() || busy || needsAccountReload) return;
-    if (resultDirty && !confirm('Discard the unsaved result entry?')) return;
+async function openResult(matchId) {
+    if (!owner() || busy || pendingConfirmation || needsAccountReload) return;
+    const confirmation = resultDirty ? await confirmCurrent('Discard the unsaved result entry?', { requireOwner: true })
+        : { answer: true, isCurrent: captureContext({ requireOwner: true }) };
+    if (!confirmation?.answer || !confirmation.isCurrent()) return;
     const match = current.matches.find(item => item.id === matchId);
     if (!match || match.status !== 'ready') return;
+    invalidateConfirmation();
     selectedMatch = match.id;
     resultDirty = false;
     $('resultPanel').hidden = false;
@@ -440,16 +527,21 @@ function scoreControls() {
     }
 }
 
-$('createForm').addEventListener('submit', event => {
+$('createForm').addEventListener('submit', async event => {
     event.preventDefault();
+    if (busy || pendingConfirmation || !verified() || needsAccountReload) return;
+    const confirmation = dirty() ? await confirmCurrent('Discard unsaved edits and create a new tournament?')
+        : { answer: true, isCurrent: captureContext() };
+    if (!confirmation?.answer || !confirmation.isCurrent()) return;
+    const isCurrent = confirmation.isCurrent;
     action(async () => {
-        if (dirty() && !confirm('Discard unsaved edits and create a new tournament?')) return;
         const user = platform.requireVerifiedAccount();
         const next = engine.createTournament({
             id: id('t'), ownerId: user.uid, title: publicLabel($('title').value, 'Title', 100),
             date: $('date').value, gameType: $('gameType').value, bestOf: Number($('bestOf').value),
         });
         const saved = await platform.createTournamentDocument(next);
+        if (!isCurrent()) return;
         accept(saved);
         history.replaceState(null, '', `?id=${encodeURIComponent(saved.id)}`);
         $('createForm').reset();
@@ -457,8 +549,10 @@ $('createForm').addEventListener('submit', event => {
         $('date').value = new Date().toLocaleDateString('en-CA');
         $('createPanel').open = false;
         notice('Tournament created in cloud. Add players and pair team numbers.');
-    });
+    }, null, isCurrent);
 });
+$('createForm').addEventListener('input', invalidateConfirmation);
+$('createForm').addEventListener('change', invalidateConfirmation);
 $('gameType').addEventListener('change', () => {
     $('bestOf').disabled = $('gameType').value === 'chicago';
     if ($('bestOf').disabled) $('bestOf').value = '3';
@@ -505,51 +599,93 @@ for (const input of document.querySelectorAll('[data-bulk-field]')) {
         updatePreview();
     });
 }
-$('startTournament').addEventListener('click', () => action(async () => {
-    if (dirty()) throw new Error('Save all roster edits before starting.');
-    if (!confirm('Start this tournament? This shuffles the draw once and permanently locks the roster.')) return;
-    // Transaction callbacks may retry: the randomized draw must be computed once.
-    const started = engine.startTournament(current);
-    const saved = await platform.updateTournament(current.id, current.revision, () => structuredClone(started));
-    accept(saved);
-    notice('Tournament started and roster locked. Select a ready match to launch the scorer.');
-}));
-$('resultForm').addEventListener('input', () => { resultDirty = true; controls(); });
-$('forfeit').addEventListener('change', scoreControls);
-$('resultForm').addEventListener('submit', event => {
-    event.preventDefault();
+$('startTournament').addEventListener('click', async () => {
+    if (busy || pendingConfirmation || needsAccountReload || !owner() || current.status !== 'registration') return;
+    const blockers = startBlockers();
+    if (blockers.length) {
+        startFeedback('Tournament not started', blockers, true);
+        return;
+    }
+    const confirmation = await confirmCurrent('Start this tournament? This shuffles the draw once and permanently locks the roster.',
+        { requireOwner: true, confirmLabel: 'Start tournament' });
+    if (!confirmation || !confirmation.isCurrent()) return;
+    if (!confirmation.answer) {
+        startFeedback('Start canceled', ['The roster is still unlocked. You can keep editing or start when ready.']);
+        return;
+    }
+    const sameStartContext = confirmation.isCurrent;
     action(async () => {
-        const matchId = selectedMatch;
-        const forfeit = $('forfeit').checked;
-        const result = { winnerId: $('winner').value, forfeit,
-            scoreA: forfeit ? null : Number($('scoreA').value),
-            scoreB: forfeit ? null : Number($('scoreB').value) };
-        engine.recordResult(current, matchId, result);
-        if (!confirm('Save this manual match result? No per-dart or lifetime statistics will be created or adjusted.')) return;
-        const saved = await platform.updateTournament(current.id, current.revision, stored => engine.recordResult(stored, matchId, result));
+        startFeedback('Starting tournament…', ['Waiting for cloud confirmation. Please wait before trying again.']);
+        // Transaction callbacks may retry: the randomized draw must be computed once.
+        const started = engine.startTournament(current);
+        const saved = await platform.updateTournament(current.id, current.revision, () => structuredClone(started));
+        if (!sameStartContext()) return;
         accept(saved);
-        notice('Manual result saved; bracket updated. No per-dart or lifetime statistics were written.');
+        notice('Tournament started and roster locked. Select a ready match to launch the scorer.');
+        $('bracketHeading').focus({ preventScroll: true });
+        $('bracketHeading').scrollIntoView({ block: 'nearest' });
+    }, error => {
+        if (!sameStartContext()) return;
+        startFeedback('Start was not confirmed', [
+            error.message,
+            'No successful cloud save was confirmed. Check your connection and organizer sign-in, then refresh from cloud before retrying.',
+        ], true);
     });
 });
-$('closeResult').addEventListener('click', () => {
-    if (resultDirty && !confirm('Discard the unsaved result entry?')) return;
+const markResultDirty = () => { invalidateConfirmation(); resultDirty = true; controls(); };
+$('resultForm').addEventListener('input', markResultDirty);
+$('resultForm').addEventListener('change', markResultDirty);
+$('forfeit').addEventListener('change', scoreControls);
+$('resultForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    if (busy || pendingConfirmation || needsAccountReload || !owner()) return;
+    const matchId = selectedMatch;
+    const forfeit = $('forfeit').checked;
+    const result = { winnerId: $('winner').value, forfeit,
+        scoreA: forfeit ? null : Number($('scoreA').value),
+        scoreB: forfeit ? null : Number($('scoreB').value) };
+    try { engine.recordResult(current, matchId, result); }
+    catch (error) { notice(error.message, true); return; }
+    const confirmation = await confirmCurrent('Save this manual match result? No per-dart or lifetime statistics will be created or adjusted.',
+        { requireOwner: true, confirmLabel: 'Save result' });
+    if (!confirmation?.answer || !confirmation.isCurrent()) return;
+    action(async () => {
+        const saved = await platform.updateTournament(current.id, current.revision, stored => engine.recordResult(stored, matchId, result));
+        if (!confirmation.isCurrent()) return;
+        accept(saved);
+        notice('Manual result saved; bracket updated. No per-dart or lifetime statistics were written.');
+    }, null, confirmation.isCurrent);
+});
+$('closeResult').addEventListener('click', async () => {
+    if (busy || pendingConfirmation || needsAccountReload || !owner()) return;
+    const confirmation = resultDirty ? await confirmCurrent('Discard the unsaved result entry?', { requireOwner: true })
+        : { answer: true, isCurrent: captureContext({ requireOwner: true }) };
+    if (!confirmation?.answer || !confirmation.isCurrent()) return;
+    invalidateConfirmation();
     resultDirty = false;
     selectedMatch = null;
     $('resultPanel').hidden = true;
     controls();
 });
-$('launchScorer').addEventListener('click', () => action(async () => {
-    if (resultDirty && !confirm('Discard unsaved manual scores and launch the scorer?')) return;
-    const fresh = await platform.getTournament(current.id);
-    if (!fresh || fresh.revision !== current.revision) throw new Error('The tournament changed. Reload before launching.');
-    const match = fresh.matches.find(item => item.id === selectedMatch);
-    if (fresh.status !== 'live' || match?.status !== 'ready') throw new Error('This match is no longer ready.');
-    localStorage.setItem('blakeout_dev_match_launch', JSON.stringify({
-        tournamentId: fresh.id, matchId: match.id, revision: fresh.revision,
-    }));
-    resultDirty = false;
-    location.assign(new URL('../?tournamentMatch=1', location.href).href);
-}));
+$('launchScorer').addEventListener('click', async () => {
+    if (busy || pendingConfirmation || needsAccountReload || !owner()) return;
+    const confirmation = resultDirty ? await confirmCurrent('Discard unsaved manual scores and launch the scorer?', { requireOwner: true })
+        : { answer: true, isCurrent: captureContext({ requireOwner: true }) };
+    if (!confirmation?.answer || !confirmation.isCurrent()) return;
+    const isCurrent = confirmation.isCurrent;
+    action(async () => {
+        const fresh = await platform.getTournament(current.id);
+        if (!isCurrent()) return;
+        if (!fresh || fresh.revision !== current.revision) throw new Error('The tournament changed. Reload before launching.');
+        const match = fresh.matches.find(item => item.id === selectedMatch);
+        if (fresh.status !== 'live' || match?.status !== 'ready') throw new Error('This match is no longer ready.');
+        localStorage.setItem('blakeout_dev_match_launch', JSON.stringify({
+            tournamentId: fresh.id, matchId: match.id, revision: fresh.revision,
+        }));
+        resultDirty = false;
+        location.assign(new URL('../?tournamentMatch=1', location.href).href);
+    }, null, isCurrent);
+});
 $('joinTournament').addEventListener('click', () => action(async () => {
     const user = platform.requireVerifiedAccount();
     const selectedId = current.id;
@@ -593,12 +729,24 @@ $('guestJoinForm').addEventListener('submit', event => {
 });
 $('refreshJoinProfile').addEventListener('click', loadOwnProfile);
 $('refresh').addEventListener('click', () => { refreshSelected(); loadOwnProfile(); });
-$('discard').addEventListener('click', () => {
-    if (confirm('Discard your unsaved edits and reload from cloud?')) refreshSelected({ discard: true });
+$('discard').addEventListener('click', async () => {
+    if (busy || pendingConfirmation || needsAccountReload || !owner()) return;
+    const confirmation = await confirmCurrent('Discard your unsaved edits and reload from cloud?', { requireOwner: true });
+    if (!confirmation?.answer || !confirmation.isCurrent()) return;
+    action(async () => {
+        const next = await platform.getTournament(current.id);
+        if (!confirmation.isCurrent()) return;
+        if (!next) throw new Error('This tournament is no longer available.');
+        if (next.revision < current.revision) throw new Error('A newer tournament revision is already displayed. Refresh again.');
+        accept(next);
+        notice('Cloud is up to date. Live view refreshes every 8 seconds.');
+    }, null, confirmation.isCurrent);
 });
 $('diagramScale').addEventListener('change', draw);
 new ResizeObserver(() => { if ($('diagramScale').value === 'fit') draw(); }).observe($('diagram'));
+for (const event of ['pagehide', 'popstate', 'hashchange']) window.addEventListener(event, invalidateConfirmation);
 window.addEventListener('beforeunload', event => {
+    invalidateConfirmation();
     if (dirty()) { event.preventDefault(); event.returnValue = ''; }
 });
 window.addEventListener('online', () => refreshSelected());
@@ -612,8 +760,11 @@ async function boot() {
     platform.subscribeAccount(() => {
         accountUI();
         const accountId = verified() ? platform.getAccount().uid : null;
-        const accountChanged = accountId !== renderedAccount;
+        const user = platform.getAccount();
+        const accountChanged = accountId !== renderedAccount || user !== renderedUser;
+        if (accountChanged) invalidateConfirmation();
         if (current && accountChanged) {
+            clearStartFeedback();
             needsAccountReload = true;
             rosterDirty = false;
             resultDirty = false;
@@ -622,6 +773,7 @@ async function boot() {
             refreshSelected({ discard: true });
         }
         renderedAccount = accountId;
+        renderedUser = user;
         if (accountChanged && !busy) { loadProfiles(); loadOwnProfile(); }
         if (!accountId) { profiles = []; renderProfiles(); }
         controls();

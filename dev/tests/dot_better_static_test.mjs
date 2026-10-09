@@ -28,7 +28,13 @@ const settings = new vm.SourceTextModule(read('js/settings.js'), { context });
 const modal = new vm.SyntheticModule(['showModal', 'hideModal'], function () {
     this.setExport('showModal', () => {}); this.setExport('hideModal', () => {});
 }, { context });
-await settings.link(specifier => { assert.equal(specifier, './ui.js'); return modal; });
+const appearance = new vm.SourceTextModule(read('js/score-appearance.js'), { context });
+await appearance.link(() => { throw new Error('Preference helper must be dependency-free'); });
+await settings.link(specifier => {
+    if (specifier === './ui.js') return modal;
+    assert.equal(specifier, './score-appearance.js');
+    return appearance;
+});
 await settings.evaluate();
 assert.deepEqual(Array.from(settings.namespace.SCORE_SKINS, s => s.id),
     ['modern', 'classic', 'dc', 'dot-better']);
@@ -86,7 +92,8 @@ assert.ok(!/https?:|@import/.test(css));
 pass(`${selectors} additive CSS rules scoped to Dot Better/game family; balanced braces; local-only assets`);
 
 const resultGate = ':root[data-scoreboard-mode="dot-better"]:has(#gameScreen[data-scoreboard-family])';
-const paletteRule = css.slice(0, css.indexOf('}') + 1);
+const paletteCSS = read('css/scoreboard-palettes.css').replace(/\/\*[\s\S]*?\*\//g, '');
+const paletteRule = paletteCSS.slice(0, paletteCSS.indexOf('}') + 1);
 assert.ok(paletteRule.includes(`${resultGate} :is(#winnerModal, #chicagoLegModal, #game121SummaryModal)`));
 assert.ok(paletteRule.includes('--color-surface: #1d242d;'));
 assert.ok(paletteRule.includes('--color-text: #f5f7fc;'));
@@ -99,10 +106,14 @@ pass('eligible result dialogs share palette only, with light status ink and acce
 
 const html = read('index.html');
 assert.equal((html.match(/href="css\/dot-better.css"/g) || []).length, 1);
+assert.equal((html.match(/href="css\/scoreboard-palettes.css"/g) || []).length, 1);
 const swContext = vm.createContext({ URL, self: { location: { href: 'https://example.test/dev/sw.js', origin: 'https://example.test' }, addEventListener() {} } });
 vm.runInContext(read('sw.js') + '\nthis.result = {CACHE_NAME, ASSETS};', swContext);
 assert.ok(swContext.result.CACHE_NAME.startsWith('blakeout-dev-'));
 assert.ok(swContext.result.ASSETS.includes('./css/dot-better.css'));
+for (const asset of ['./css/scoreboard-palettes.css', './js/score-appearance.js', './js/feature-appearance.js']) {
+    assert.ok(swContext.result.ASSETS.includes(asset));
+}
 for (const asset of swContext.result.ASSETS) {
     assert.ok(fs.existsSync(path.resolve(dev, asset)), `Missing precache asset: ${asset}`);
 }

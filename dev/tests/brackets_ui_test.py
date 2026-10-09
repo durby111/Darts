@@ -175,7 +175,7 @@ export async function getTournament(id){
     if(snapshot&&api.account?.uid!==snapshot.ownerId){
         snapshot.registrations=snapshot.registrations.map(r=>({...r,paid:false,checkedIn:false,standby:false}));
     }
-    if(api.holdRead)await new Promise(resolve=>{api.releaseRead=resolve;});
+    if(api.holdRead)await new Promise((resolve,reject)=>{api.releaseRead=resolve;api.rejectRead=reject;});
     return snapshot;
 }
 export async function createTournamentDocument(t){
@@ -188,6 +188,7 @@ export async function createTournamentDocument(t){
 export async function updateTournament(id,expectedRevision,updater){
     requireVerifiedAccount();
     api.calls.push({id,expectedRevision});
+    if(api.holdWrite)await new Promise(resolve=>{api.releaseWrite=resolve;});
     if(api.failWrite)throw Error('permission-denied');
     if(api.conflict||api.docs[id].revision!==expectedRevision)throw Error('This tournament changed on another device. Reload before trying again.');
     if(api.docs[id].ownerId!==api.account.uid)throw Error('Only the organizer can change it');
@@ -197,19 +198,31 @@ export async function updateTournament(id,expectedRevision,updater){
     if(JSON.stringify(next)!==JSON.stringify(retried))throw Error('Transaction updater changed across retry');
     api.docs[id]={...copy(next),revision:current.revision+1,updatedAt:current.updatedAt+1};
     api.writes++;
-    return copy(api.docs[id]);
+    const saved=copy(api.docs[id]);
+    if(api.holdResponse)await new Promise(resolve=>{api.releaseResponse=resolve;});
+    return saved;
 }
 export async function saveMatchResult(){api.statsWrites++;throw Error('Manual UI must not fabricate player statistics');}
 """
 
 
-async def fresh(browser, base, *, owner=True, status="registration", count=4):
-    context = await browser.new_context(viewport={"width": 1024, "height": 900})
+
+async def click_with_confirmation(page, selector, *, accept=True):
+    """Drive the real asynchronous app dialog after the triggering action."""
+    await page.locator(selector).click()
+    dialog = page.locator('dialog.platform-confirm[open]')
+    if await dialog.count():
+        assert await dialog.locator('.platform-confirm-cancel').evaluate('el => document.activeElement === el')
+        await dialog.locator('.platform-confirm-accept' if accept else '.platform-confirm-cancel').click()
+        await dialog.wait_for(state='detached')
+
+
+async def fresh(browser, base, *, owner=True, status="registration", count=4, touch=False):
+    context = await browser.new_context(viewport={"width": 1024, "height": 900}, has_touch=touch)
     await enable_future_features(context)
     await context.route("**/js/platform.js", lambda route: route.fulfill(
         status=200, content_type="application/javascript", body=MOCK_PLATFORM))
     page = await context.new_page()
-    page.on("dialog", lambda dialog: dialog.accept())
     await page.goto(base + "/brackets/")
     await page.wait_for_function("window.__api && document.querySelector('#message').textContent.includes('Cloud connected')")
     await page.evaluate("""({owner,status,count}) => {
@@ -239,26 +252,33 @@ async def test_owner_roster(browser, base):
         await page.locator("#addForm button").click()
         await page.locator("#rosterRows tr").last.locator('[data-field="tag"]').fill("5")
         await page.wait_for_timeout(180)
-        assert await page.locator("#startTournament").is_disabled()
+        await click_with_confirmation(page, "#startTournament")
+        assert "Save all roster changes" in await page.locator("#startFeedback").inner_text()
+        assert await page.evaluate("__api.calls.length") == 0
         assert "Guest partner" in await page.locator("#diagram").inner_text()
         await page.locator("#saveRoster").click()
         await page.wait_for_function("__api.writes === 1")
         records = await page.evaluate("__api.docs.demo.registrations.slice(-2)")
         assert [r["playerId"] for r in records] == ["profile-b", None]
         assert len(await page.evaluate("__api.docs.demo.teams")) == 5
-        assert await page.locator("#startTournament").is_disabled(), "Check-in must block start"
+        await click_with_confirmation(page, "#startTournament")
+        assert "checked in" in await page.locator("#startFeedback").inner_text()
+        assert await page.evaluate("__api.writes") == 1
         for row in await page.locator("#rosterRows tr").all():
             await row.locator('[data-field="checkedIn"]').check()
         await page.locator("#saveRoster").click()
         await page.wait_for_function("__api.writes === 2")
-        assert await page.locator("#startTournament").is_disabled(), "Unpaid playing members must block start"
+        await click_with_confirmation(page, "#startTournament")
+        assert "marked paid" in await page.locator("#startFeedback").inner_text()
+        assert await page.evaluate("__api.writes") == 2
+        assert await page.evaluate("__api.docs.demo.status") == "registration"
         assert "marked paid" in await page.locator("#blockers").inner_text()
         for row in await page.locator("#rosterRows tr").all():
             await row.locator('[data-field="paid"]').check()
         await page.locator("#saveRoster").click()
         await page.wait_for_function("__api.writes === 3")
         assert await page.locator("#startTournament").is_enabled()
-        await page.locator("#startTournament").click()
+        await click_with_confirmation(page, "#startTournament")
         await page.wait_for_function("__api.docs.demo.status === 'live'")
         assert await page.locator("#rosterPanel").is_hidden()
         assert await page.locator("#rosterRows tr").count() == 0
@@ -321,7 +341,9 @@ async def test_bulk_flags_and_odd_warning(browser, base):
         assert await page.locator('#rosterRows [data-field="standby"]:checked').count() == 8
         assert await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)') == ids
         assert await page.evaluate('__api.writes') == 0
-        assert await page.locator('#startTournament').is_disabled()
+        await click_with_confirmation(page, '#startTournament')
+        assert 'Save all roster changes' in await page.locator('#startFeedback').inner_text()
+        assert await page.evaluate('__api.writes') == 0
         await page.evaluate('__api.failWrite=true')
         await page.locator('#saveRoster').click()
         await page.wait_for_function("document.querySelector('#message').textContent.includes('permission-denied')")
@@ -332,7 +354,7 @@ async def test_bulk_flags_and_odd_warning(browser, base):
         assert await standby.is_checked() and not await paid.is_checked()
         assert await page.evaluate('__api.writes') == 0
         await page.evaluate('__api.conflict=false')
-        await page.locator('#discard').click()
+        await click_with_confirmation(page, '#discard')
         await page.wait_for_function("!document.querySelector('[data-bulk-field=standby]').checked")
         assert await paid.is_checked() and await checkin.is_checked()
         await page.fill('#guestName', 'Unpaired arrival')
@@ -383,7 +405,9 @@ async def test_roster_order(browser, base):
         assert await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)') == expected
         assert await page.locator('#rosterRows th[scope="row"]').all_text_contents() == [str(i) for i in range(1,9)]
         assert await page.evaluate('__api.writes') == 0
-        assert await page.locator('#startTournament').is_disabled()
+        await click_with_confirmation(page, '#startTournament')
+        assert 'Save all roster changes' in await page.locator('#startFeedback').inner_text()
+        assert await page.evaluate('__api.writes') == 0
         await page.evaluate('__api.conflict=true')
         await page.locator('#saveRoster').click()
         await page.wait_for_function("document.querySelector('#message').textContent.includes('another device')")
@@ -398,7 +422,7 @@ async def test_roster_order(browser, base):
         for width in (744, 1133, 390):
             await page.set_viewport_size({"width":width,"height":900})
             assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-        await page.locator('#startTournament').click()
+        await click_with_confirmation(page, '#startTournament')
         await page.wait_for_function("__api.docs.demo.status==='live'")
         assert await page.locator('#rosterRows [data-move]').count() == 0
         assert await page.locator('.match-card.pending').first.evaluate("e=>getComputedStyle(e).borderStyle") == 'dashed'
@@ -443,6 +467,138 @@ async def test_event_name_labels(browser, base):
         await context.close()
 
 
+async def test_start_feedback(browser, base):
+    context, page = await fresh(browser, base, count=32, touch=True)
+    try:
+        await page.evaluate("window.testConfirmCalls=0;new MutationObserver(rs=>rs.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType===1&&n.matches('.platform-confirm-host'))testConfirmCalls++;}))).observe(document.body,{childList:true});window.confirm=()=>{throw Error('Native confirm must not run');}")
+        await page.locator('#rosterRows [data-field="name"]').first.fill("<img src=x onerror=alert(1)>")
+        await page.locator('#rosterRows [data-field="tag"]').first.fill("")
+        await page.locator("#startTournament").tap()
+        panel = page.locator("#startFeedback")
+        assert "Save all roster changes" in await panel.inner_text()
+        assert "needs a team tag and partner" in await panel.inner_text()
+        assert await panel.locator("img").count() == 0, "Player labels must remain text"
+        assert await page.evaluate("document.activeElement.id") == "startFeedback"
+        assert await page.evaluate("testConfirmCalls") == 0
+        assert await page.evaluate("__api.calls.length") == 0
+        assert await page.evaluate("__api.writes") == 0
+        assert await page.locator('#rosterRows [data-field="name"]').first.input_value() == "<img src=x onerror=alert(1)>"
+        for width in (1024, 768, 390):
+            await page.set_viewport_size({"width": width, "height": 900})
+            await page.locator("#startTournament").press("Enter")
+            assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth+1"), f"Body overflow at {width}"
+            assert await panel.evaluate("el=>{const r=el.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight;}"), f"Start feedback off-screen at {width}"
+        await page.locator('#rosterRows [data-field="tag"]').first.fill("1")
+        assert await panel.is_hidden(), "Editing must clear obsolete attempted-start feedback"
+        await page.locator("#saveRoster").click()
+        await page.wait_for_function("__api.writes===1")
+        await page.locator('#rosterRows [data-field="checkedIn"]').first.uncheck()
+        await page.locator("#saveRoster").click()
+        await page.wait_for_function("__api.writes===2")
+        await click_with_confirmation(page, "#startTournament")
+        assert "must be checked in" in await panel.inner_text()
+        assert await page.evaluate("testConfirmCalls") == 0
+        assert await page.evaluate("__api.docs.demo.status") == "registration"
+        return "touch/keyboard Start explains unsaved, missing-pair and check-in blockers; no confirmation/write, safe text and nearby tablet/mobile feedback"
+    finally:
+        await context.close()
+
+
+async def test_start_pending_and_failure(browser, base):
+    context, page = await fresh(browser, base)
+    try:
+        await click_with_confirmation(page, "#startTournament", accept=False)
+        assert "Start canceled" in await page.locator("#startFeedback").inner_text()
+        assert await page.evaluate("__api.calls.length") == 0
+        assert await page.evaluate("__api.docs.demo.matches.length") == 0
+    finally:
+        await context.close()
+    context, page = await fresh(browser, base)
+    try:
+        await page.evaluate("__api.failWrite=true")
+        await click_with_confirmation(page, "#startTournament")
+        await page.wait_for_function("document.querySelector('#startFeedback').textContent.includes('permission-denied')")
+        assert "Start was not confirmed" in await page.locator("#startFeedback").inner_text()
+        assert await page.evaluate("__api.writes") == 0
+        assert await page.locator("#startTournament").is_enabled()
+        await page.evaluate("import('/js/brackets/page.js').then(m=>m.refreshSelected())")
+        assert "up to date" in await page.locator("#message").inner_text()
+        assert "permission-denied" in await page.locator("#startFeedback").inner_text()
+        await page.evaluate("__api.failWrite=false;__api.conflict=true")
+        await click_with_confirmation(page, "#startTournament")
+        await page.wait_for_function("document.querySelector('#startFeedback').textContent.includes('another device')")
+        assert await page.evaluate("__api.docs.demo.status") == "registration"
+        await page.evaluate("__api.conflict=false;__api.holdWrite=true")
+        await click_with_confirmation(page, "#startTournament")
+        await page.wait_for_function("typeof __api.releaseWrite==='function'")
+        assert "Waiting for cloud confirmation" in await page.locator("#startFeedback").inner_text()
+        assert await page.locator("#startTournament").is_disabled()
+        calls = await page.evaluate("__api.calls.length")
+        await page.locator("#startTournament").dispatch_event("click")
+        assert await page.evaluate("__api.calls.length") == calls
+        await page.evaluate("__api.holdWrite=false;__api.releaseWrite()")
+        await page.wait_for_function("__api.docs.demo.status==='live'")
+        assert await page.evaluate("__api.writes") == 1
+        assert await page.locator("#startFeedback").is_hidden()
+        assert await page.locator("#rosterPanel").is_hidden()
+        assert await page.evaluate("document.activeElement.id") == "bracketHeading"
+        return "canceled/failed/conflicting/pending Start is explicit, polling preserves errors, repeats do not duplicate the cloud operation, retry locks once"
+    finally:
+        await context.close()
+
+
+async def test_start_account_switch(browser, base):
+    context, page = await fresh(browser, base)
+    try:
+        await page.locator('#rosterRows [data-field="checkedIn"]').first.uncheck()
+        await click_with_confirmation(page, "#startTournament")
+        assert "Player 1 must be checked in" in await page.locator("#startFeedback").inner_text()
+        await page.evaluate("__api.account=null;__api.accountChanged(null)")
+        assert await page.locator("#startFeedback").is_hidden()
+        assert await page.locator("#startFeedbackTitle").text_content() == ""
+        assert await page.locator("#startFeedbackReasons li").count() == 0
+        assert await page.locator("#rosterRows input").count() == 0
+    finally:
+        await context.close()
+    context, page = await fresh(browser, base)
+    try:
+        await page.evaluate("__api.holdWrite=true")
+        await click_with_confirmation(page, "#startTournament")
+        await page.wait_for_function("typeof __api.releaseWrite==='function'")
+        await page.evaluate("__api.account=null;__api.accountChanged(null);__api.failWrite=true;__api.releaseWrite()")
+        await page.wait_for_function("!document.querySelector('#refresh').disabled")
+        assert await page.locator("#startFeedback").is_hidden()
+        assert await page.locator("#startFeedbackTitle").text_content() == ""
+        assert await page.locator("#startFeedbackReasons li").count() == 0
+        assert await page.locator("#rosterRows input").count() == 0
+        assert await page.locator("#startTournament").is_disabled()
+        assert await page.evaluate("__api.writes") == 0
+    finally:
+        await context.close()
+    context, page = await fresh(browser, base)
+    try:
+        await page.evaluate("__api.holdResponse=true")
+        await click_with_confirmation(page, "#startTournament")
+        await page.wait_for_function("typeof __api.releaseResponse==='function'")
+        assert await page.evaluate("__api.writes") == 1
+        await page.evaluate("""() => {
+            __api.account={uid:'different-owner',emailVerified:true,isAnonymous:false};
+            __api.accountChanged(__api.account);
+            __api.releaseResponse();
+        }""")
+        await page.wait_for_function("!document.querySelector('#refresh').disabled")
+        assert await page.locator("#startFeedback").is_hidden()
+        assert await page.locator("#startFeedbackTitle").text_content() == ""
+        assert await page.locator("#startFeedbackReasons li").count() == 0
+        assert await page.locator("#rosterRows input").count() == 0
+        assert await page.locator("#startTournament").is_disabled()
+        assert await page.evaluate("document.activeElement.id") != "bracketHeading"
+        assert await page.evaluate("__api.writes") == 1
+        return "account changes clear private blockers; late failed/successful starts cannot repopulate feedback, enable organizer controls or focus the bracket"
+    finally:
+        await context.close()
+
+
 async def test_failures_and_polling(browser, base):
     context, page = await fresh(browser, base)
     try:
@@ -464,7 +620,7 @@ async def test_failures_and_polling(browser, base):
         await page.locator("#refresh").click()
         await page.wait_for_function("document.querySelector('#message').textContent.includes('Newer cloud changes')")
         assert await name.input_value() == "Unsaved name"
-        await page.locator("#discard").click()
+        await click_with_confirmation(page, "#discard")
         await page.wait_for_function("document.querySelector('#rosterRows input').value==='Remote name'")
         await page.evaluate("__api.docs.demo.title='Remote title';__api.docs.demo.revision++")
         await page.evaluate("import('/js/brackets/page.js').then(m=>m.refreshSelected())")
@@ -553,7 +709,7 @@ async def test_manual_results_and_history(browser, base):
         await page.evaluate("__api.accountChanged(__api.account)")
         assert await page.locator("#resultPanel").is_visible()
         assert await page.locator("#scoreA").input_value() == "2"
-        await page.locator("#resultForm button[type=submit]").click()
+        await click_with_confirmation(page, "#resultForm button[type=submit]")
         await page.wait_for_function("__api.writes===1")
         assert "No per-dart" in await page.locator("#message").inner_text()
         await assert_outcome_styles(page,"W1.1")
@@ -562,7 +718,7 @@ async def test_manual_results_and_history(browser, base):
         await page.locator('[data-code="GF1"] .match-action').click()
         await page.fill("#scoreA", "2")
         await page.fill("#scoreB", "0")
-        await page.locator("#resultForm button[type=submit]").click()
+        await click_with_confirmation(page, "#resultForm button[type=submit]")
         await page.wait_for_function("__api.docs.demo.status==='complete'")
         assert "Champion:" in await page.locator("#champion").inner_text()
         assert "Not required" in await page.locator('[data-code="GF2"]').inner_text()
@@ -585,7 +741,7 @@ async def test_creation_and_launch(browser, base):
         assert await page.locator("#bestOf").is_disabled()
         await page.select_option("#gameType", "501")
         await page.fill("#bestOf", "5")
-        await page.locator("#createForm button").click()
+        await click_with_confirmation(page, "#createForm button")
         await page.wait_for_function("document.querySelector('#tournamentTitle').textContent==='My event'")
         created = await page.evaluate("Object.values(__api.docs).find(t=>t.title==='My event')")
         assert created["gameType"] == "501" and created["bestOf"] == 5
@@ -615,14 +771,14 @@ async def test_manual_reset(browser, base):
             await page.select_option("#winner", index=1 if lower_wins else 0)
             await page.fill("#scoreA", "0" if lower_wins else "2")
             await page.fill("#scoreB", "2" if lower_wins else "0")
-            await page.locator("#resultForm button[type=submit]").click()
+            await click_with_confirmation(page, "#resultForm button[type=submit]")
             await page.wait_for_function(f"__api.docs.demo.matches.find(m=>m.code==='{code}').status==='complete'")
         assert await page.locator("#champion").is_hidden()
         assert await page.locator('[data-code="GF1"] .match-action').count() == 0
         await page.locator('[data-code="GF2"] .match-action').click()
         await page.locator("#forfeit").check()
         assert await page.locator("#scoreA").is_disabled()
-        await page.locator("#resultForm button[type=submit]").click()
+        await click_with_confirmation(page, "#resultForm button[type=submit]")
         await page.wait_for_function("__api.docs.demo.status==='complete'")
         assert "Forfeit" in await page.locator('[data-code="GF2"]').inner_text()
         assert await page.evaluate("__api.statsWrites") == 0
@@ -710,7 +866,7 @@ async def test_owner_join_and_concurrent_arrivals(browser, base):
         await page.locator("#saveRoster").click()
         await page.wait_for_function("document.querySelector('#message').textContent.includes('another device')")
         assert await page.locator('#rosterRows [data-field="name"]').first.input_value() == "Preserved organizer edit"
-        await page.locator("#discard").click()
+        await click_with_confirmation(page, "#discard")
         await page.wait_for_function("document.querySelectorAll('#rosterRows tr').length===9")
         joined = page.locator('#rosterRows tr[data-registration="signup_owner"]')
         assert not await joined.locator('[data-field="checkedIn"]').is_checked()
@@ -778,7 +934,7 @@ async def test_six_games_create_and_launch(browser, base):
             await page.select_option("#gameType", game)
             if game != "chicago":
                 await page.fill("#bestOf", "5")
-            await page.locator("#createForm button").click()
+            await click_with_confirmation(page, "#createForm button")
             await page.wait_for_function("name=>document.querySelector('#tournamentTitle').textContent===name", arg=f"{game} bracket")
             t = await page.evaluate("name=>Object.values(__api.docs).find(t=>t.title===name)", f"{game} bracket")
             assert t["gameType"] == game
@@ -858,14 +1014,13 @@ async def test_real_platform_adapter(browser, base):
         status=200, content_type="application/javascript",
         body="export const firebaseConfig={apiKey:'test-only',projectId:'demo-blakeout'};"))
     page = await context.new_page()
-    page.on("dialog", lambda dialog: dialog.accept())
     try:
         await page.goto(base + "/brackets/")
         await page.wait_for_function("document.querySelector('#message').textContent.includes('Cloud connected')")
         await page.locator("#createPanel summary").click()
         await page.fill("#title", "Real adapter event")
         await page.fill("#date", "2026-09-07")
-        await page.locator("#createForm button").click()
+        await click_with_confirmation(page, "#createForm button")
         await page.wait_for_function("!document.querySelector('#tournament').hidden")
         await page.select_option("#profile", "verified_owner")
         await page.locator("#addForm button").click()
@@ -889,12 +1044,12 @@ async def test_real_platform_adapter(browser, base):
         await page.wait_for_function("!document.querySelector('#rosterControls').disabled")
         assert await page.locator('#rosterRows [data-field="checkedIn"]').first.is_checked()
         await page.evaluate("window.retryTransaction=true")
-        await page.locator("#startTournament").click()
+        await click_with_confirmation(page, "#startTournament")
         await page.wait_for_function("document.querySelector('#message').textContent.includes('Tournament started')")
         await page.locator('[data-code="W1.1"] .match-action').click()
         await page.fill("#scoreA", "2")
         await page.fill("#scoreB", "0")
-        await page.locator("#resultForm button[type=submit]").click()
+        await click_with_confirmation(page, "#resultForm button[type=submit]")
         await page.wait_for_function("document.querySelector('#message').textContent.includes('Manual result saved')")
         assert await page.evaluate("[...testDocs.keys()].filter(k=>k.startsWith('blakeoutDevResults/')).length") == 0
         assert await page.evaluate("[...testDocs.keys()].filter(k=>k.startsWith('blakeoutDevRosterPrivate/')).length") == 1
@@ -921,7 +1076,6 @@ docs.set('blakeoutDevProfiles/verified_joiner',{name:'Verified Arrival'});
         status=200, content_type="application/javascript",
         body="export const firebaseConfig={apiKey:'test-only',projectId:'demo-blakeout'};"))
     page = await context.new_page()
-    page.on("dialog", lambda dialog: dialog.accept())
     await page.goto(base + "/brackets/")
     await page.wait_for_function("document.querySelector('#message').textContent.includes('Cloud connected')")
     await page.evaluate("""async () => {
@@ -949,7 +1103,7 @@ async def test_real_verified_selfjoin(browser, base):
         await page.locator("#saveRoster").click()
         await page.wait_for_function("document.querySelector('#message').textContent.includes('changed')")
         assert await page.locator('#rosterRows [data-field="name"]').first.input_value() == "Dirty organizer edit"
-        await page.locator("#discard").click()
+        await click_with_confirmation(page, "#discard")
         await page.wait_for_function("document.querySelectorAll('#rosterRows tr').length===9")
         row = page.locator('#rosterRows tr[data-registration="self-verified_owner"]')
         assert not await row.locator('[data-field="checkedIn"]').is_checked()
@@ -957,7 +1111,9 @@ async def test_real_verified_selfjoin(browser, base):
         await row.locator('[data-field="checkedIn"]').check()
         await page.locator("#saveRoster").click()
         await page.wait_for_function("document.querySelector('#message').textContent.includes('All roster changes saved')")
-        assert await page.locator("#startTournament").is_disabled(), "A checked-in player without a pair must block start"
+        await click_with_confirmation(page, "#startTournament")
+        assert "needs a team tag and partner" in await page.locator("#startFeedback").inner_text()
+        assert await page.evaluate("JSON.parse(testDocs.get('blakeoutDevTournaments/selfjoin-integration').matches).length") == 0
         await row.locator('[data-field="name"]').fill("Organizer tournament name")
         await page.locator("#saveRoster").click()
         await page.wait_for_function("document.querySelector('#publicRoster').textContent.includes('Organizer tournament name')")
@@ -1047,9 +1203,9 @@ async def test_real_guest_selfjoin_and_race(browser, base):
         await page.wait_for_function("document.querySelector('#publicRoster').textContent.includes('Concurrent Device Guest')")
         assert await page.locator('#rosterRows [data-field="name"]').first.input_value() == "Race draft retained"
         assert await page.evaluate("import('/js/platform.js').then(p=>p.getAccount().uid)") == "verified_owner"
-        await page.locator("#discard").click()
+        await click_with_confirmation(page, "#discard")
         await page.wait_for_function("document.querySelector('#discard').hidden")
-        await page.locator("#startTournament").click()
+        await click_with_confirmation(page, "#startTournament")
         await page.wait_for_function("document.querySelector('#message').textContent.includes('Tournament started')")
         assert await page.locator("#guestJoinName").is_disabled()
         closed = await page.evaluate("""async () => {
@@ -1075,6 +1231,9 @@ async def test_real_guest_selfjoin_and_race(browser, base):
 
 TESTS = {
     "owner_roster": test_owner_roster,
+    "start_feedback": test_start_feedback,
+    "start_pending_and_failure": test_start_pending_and_failure,
+    "start_account_switch": test_start_account_switch,
     "roster_counts": test_roster_counts,
     "event_name_labels": test_event_name_labels,
     "roster_order": test_roster_order,

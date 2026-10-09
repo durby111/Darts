@@ -6,6 +6,7 @@
     <meta name="robots" content="noindex">
     <title>Brackets · BlakeOut DEV</title>
     <link rel="stylesheet" href="../css/variables.css">
+    <link rel="stylesheet" href="../css/scoreboard-palettes.css">
     <link rel="stylesheet" href="../css/platform.css">
     <link rel="stylesheet" href="../css/brackets.css">
     <link rel="stylesheet" href="../css/feature-availability.css">
@@ -122,16 +123,20 @@
                         </div>
                         <div class="platform-actions">
                             <button id="saveRoster" type="submit">Save all roster changes</button>
-                            <button id="startTournament" type="button">Start &amp; lock tournament</button>
+                            <button id="startTournament" type="button" aria-describedby="draftStatus blockers">Start &amp; lock tournament</button>
                         </div>
                     </form>
                 </fieldset>
+                <section id="startFeedback" class="platform-notice" role="status" aria-live="polite" aria-labelledby="startFeedbackTitle" tabindex="-1" hidden>
+                    <h3 id="startFeedbackTitle"></h3>
+                    <ul id="startFeedbackReasons"></ul>
+                </section>
                 <p id="draftStatus" aria-live="polite"></p>
                 <ul id="blockers"></ul>
             </section>
             <section class="platform-card bracket-section">
                 <div class="bracket-toolbar">
-                    <div><h2 id="bracketHeading">Bracket</h2><p id="bracketHelp"></p></div>
+                    <div><h2 id="bracketHeading" tabindex="-1">Bracket</h2><p id="bracketHelp"></p></div>
                     <label>Diagram size<select id="diagramScale"><option value="1">100% · readable</option><option value=".75">75%</option><option value=".5">50%</option><option value="fit">Fit width · overview</option></select></label>
                 </div>
                 <div id="diagram" class="diagram-viewport" tabindex="0" aria-label="Connected tournament bracket. Scroll to see all rounds."></div>

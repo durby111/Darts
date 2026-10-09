@@ -975,14 +975,8 @@
    ============================================ */
 
 :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] {
-    --dc-red: #ba0014;
-    --dc-red-dark: #76000f;
-    --dc-yellow: #fff000;
-    --dc-silver: #eeeeee;
-    --dc-gray: #858585;
-    --dc-border: #8b8b8b;
-    background: #000;
-    color: #fff;
+    background: var(--dc-bg);
+    color: var(--dc-text);
     font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
 }
 

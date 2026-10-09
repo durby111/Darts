@@ -1,0 +1,68 @@
+/* Canonical optional scoreboard palettes. Load after variables.css.
+   Shared by the scorer and standalone feature pages; layout stays in each
+   component's own stylesheet. Modern and Classic keep the selected theme.
+   Existing scorer colors and mode/family gates are intentionally unchanged. */
+
+:root[data-scoreboard-mode="dot-better"] .platform-page,
+:root[data-scoreboard-mode="dot-better"] #gameScreen[data-scoreboard-family],
+:root[data-scoreboard-mode="dot-better"]:has(#gameScreen[data-scoreboard-family]) :is(#winnerModal, #chicagoLegModal, #game121SummaryModal) {
+    --color-bg: #14191f;
+    --color-surface: #1d242d;
+    --color-surface-alt: #252e39;
+    --color-surface-elevated: #303b49;
+    --color-border: #3e4d60;
+    --color-border-light: #64758c;
+    --color-text: #f5f7fc;
+    --color-text-muted: #bfccdc;
+    --color-text-dim: #aab9cd;
+    --color-primary: #327dcc;
+    --color-primary-light: #8cc8ff;
+    --color-primary-dark: #24476b;
+    --color-on-primary: #fff;
+    --color-success: #286eb7;
+    --color-on-success: #fff;
+    --color-pending: #ffc286;
+    --color-warning: #ffc286;
+    --color-danger: #ff9a91;
+    --color-undo: #d9823c;
+    --color-prev-turn: #bfccdc;
+    --color-miss: #354357;
+    --color-bust: #94552e;
+}
+
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family],
+:root[data-scoreboard-mode="dc"] .platform-page {
+    --dc-red: #ba0014;
+    --dc-red-dark: #76000f;
+    --dc-yellow: #fff000;
+    --dc-silver: #eeeeee;
+    --dc-gray: #858585;
+    --dc-border: #8b8b8b;
+    --dc-bg: #000;
+    --dc-text: #fff;
+}
+
+/* DC's scorer uses its own named palette. Map those same colors onto the
+   shared component vocabulary only for standalone feature pages. */
+:root[data-scoreboard-mode="dc"] .platform-page {
+    --color-bg: var(--dc-bg);
+    --color-surface: var(--dc-bg);
+    --color-surface-alt: var(--dc-bg);
+    --color-surface-elevated: var(--dc-bg);
+    --color-border: var(--dc-border);
+    --color-border-light: var(--dc-silver);
+    --color-text: var(--dc-text);
+    --color-text-muted: var(--dc-silver);
+    --color-text-dim: var(--dc-gray);
+    --color-primary: var(--dc-red);
+    --color-primary-dark: var(--dc-red-dark);
+    --color-primary-light: var(--dc-silver);
+    --color-on-primary: var(--dc-text);
+    --color-accent: var(--dc-silver);
+    --color-warning: var(--dc-yellow);
+    --color-danger: var(--dc-red);
+}
+
+:root[data-scoreboard-mode="dot-better"] .platform-page {
+    --color-accent: var(--color-primary-light);
+}

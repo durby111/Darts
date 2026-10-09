@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'sha256-P/H+d3n+iQYXi4aG4RfIPjgxdUN4eLAUdP0buDqdJS4='; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'none'; frame-src 'none'; manifest-src 'none'">
+    <meta name="referrer" content="no-referrer">
+    <title>Brackets · Sample preview · BlakeOut DEV</title>
+    <link rel="stylesheet" href="../../css/variables.css">
+    <link rel="stylesheet" href="../../css/scoreboard-palettes.css">
+    <link rel="stylesheet" href="../../css/platform.css">
+    <link rel="stylesheet" href="../../css/brackets.css">
+    <link rel="stylesheet" href="../preview.css">
+    <script id="previewImportMap" type="importmap">{"imports":{"../../js/platform.js":"../fixture-platform.js"}}</script>
+    <script defer src="../boot.js"></script>
+</head>
+<body class="dev-build platform-page brackets-page" data-preview-page="brackets">
+    <aside id="previewTools" class="preview-tools" aria-label="Sample preview controls">
+        <div class="preview-title">Preview · sample data · nothing is saved or sent</div>
+        <p>Current UI with invented data. Live features remain Coming soon.</p>
+        <nav class="preview-links" aria-label="Preview navigation">
+            <a href="../accounts/" >Sample players &amp; records</a>
+            <a href="../brackets/" aria-current="page">Sample brackets</a>
+            <a href="../../" data-leave-preview="true">Back to scoring (leave preview)</a>
+        </nav>
+        <details class="preview-settings"><summary>Sample state &amp; appearance</summary>
+        <p id="previewRestrictions">DEV layout and interaction testing only. No real accounts, credentials, emails, downloads or scorer launches. Sample edits disappear on navigation or reload.</p>
+        <div class="preview-options">
+            <label>Sample state<select id="previewScenario" aria-describedby="previewRestrictions"></select></label>
+            <label>Theme<select id="previewTheme"></select></label>
+            <label>Style<select id="previewStyle"></select></label>
+            <button id="previewReset" type="button">Reset sample data</button>
+        </div>
+        <p class="preview-hint">Theme and style start from your saved appearance; changes here are temporary. Use invented display names only.</p>
+        </details>
+        <p id="previewActionStatus" role="status" aria-live="polite"></p>
+    </aside>
+    <p id="previewBootStatus" class="platform-notice" role="status">Loading sample preview…</p>
+    <div id="previewContent"></div>
+    <noscript><p>JavaScript and import-map support are required for this isolated sample preview. The real features remain locked.</p></noscript>
+</body>
+</html>

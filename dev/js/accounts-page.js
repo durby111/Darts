@@ -8,8 +8,12 @@ import { GAME_REGISTRY } from './registry.js';
 const $ = id => document.getElementById(id);
 let records = [];
 let accountGeneration = 0;
-let credentialsBusy = false;
+let renderedAccount;
+let accountSession = 0;
+let recordRequest = 0;
 let verificationRefresh = null;
+const operations = new Set();
+const buttonOwners = new Map();
 
 function status(message, error = false) {
     $('accountStatus').textContent = message;
@@ -22,10 +26,44 @@ function showError(error) {
     status(`${code}${error.message || error} Check Firebase setup below if configuration or permissions are unavailable.`, true);
 }
 
-async function action(button, callback) {
-    button.disabled = true;
-    try { await callback(); } catch (error) { showError(error); }
-    finally { button.disabled = false; }
+function finishOperation(operation) {
+    operations.delete(operation);
+    for (const button of operation.buttons) {
+        if (buttonOwners.get(button) !== operation) continue;
+        buttonOwners.delete(button);
+        button.disabled = false;
+    }
+}
+
+function beginOperation(buttons, nextAccount) {
+    buttons = buttons.filter(Boolean);
+    if (buttons.some(button => buttonOwners.has(button))) return null;
+    const operation = { buttons, user: getAccount(), session: accountSession, nextAccount };
+    operations.add(operation);
+    for (const button of buttons) {
+        buttonOwners.set(button, operation);
+        button.disabled = true;
+    }
+    return operation;
+}
+
+function isCurrentOperation(operation) {
+    return operations.has(operation) && operation.session === accountSession
+        && operation.user === getAccount();
+}
+
+function accountForEmail(email) {
+    const expected = email.trim().toLowerCase();
+    return user => !!user && !user.isAnonymous && user.email?.toLowerCase() === expected;
+}
+
+async function action(button, callback, nextAccount) {
+    const operation = beginOperation([button], nextAccount);
+    if (!operation) return;
+    const isCurrent = () => isCurrentOperation(operation);
+    try { await callback(isCurrent); }
+    catch (error) { if (isCurrent()) showError(error); }
+    finally { finishOperation(operation); }
 }
 
 function renderRecords(uid) {
@@ -64,15 +102,36 @@ function renderRecords(uid) {
 }
 
 async function refreshRecords() {
-    const uid = getAccount()?.uid;
+    const user = getAccount();
+    const uid = user?.uid;
     const generation = accountGeneration;
-    const loaded = await listMyResults();
-    if (generation !== accountGeneration || getAccount()?.uid !== uid) return;
+    const request = ++recordRequest;
+    const isCurrent = () => generation === accountGeneration && getAccount() === user
+        && request === recordRequest;
+    let loaded;
+    try { loaded = await listMyResults(); }
+    catch (error) { if (isCurrent()) throw error; return; }
+    if (!isCurrent()) return;
     records = loaded.sort((a, b) => b.createdAt - a.createdAt);
     renderRecords(uid);
 }
 
 async function renderAccount(user) {
+    if (renderedAccount !== user) {
+        renderedAccount = user;
+        accountSession += 1;
+        $('accountPassword').value = '';
+        for (const operation of operations) {
+            // Login and logout may own one expected identity transition. An
+            // unrelated account change releases the old UI without cancelling
+            // or retrying the provider request itself.
+            if (operation.nextAccount?.(user)) {
+                operation.user = user;
+                operation.session = accountSession;
+                operation.nextAccount = null;
+            } else finishOperation(operation);
+        }
+    }
     const generation = ++accountGeneration;
     const signedIn = !!user && !user.isAnonymous;
     const verified = signedIn && user.emailVerified;
@@ -98,30 +157,32 @@ async function renderAccount(user) {
     status('Signed in with a verified email address.');
     try {
         const profile = await getProfile();
-        if (generation !== accountGeneration) return;
+        if (generation !== accountGeneration || getAccount() !== user) return;
         $('displayName').value = profile?.name || '';
         await refreshRecords();
     } catch (error) {
-        if (generation === accountGeneration) showError(error);
+        if (generation === accountGeneration && getAccount() === user) showError(error);
     }
 }
 
 async function passwordAuth(create) {
-    if (credentialsBusy || !$('passwordForm').reportValidity()) return;
-    credentialsBusy = true;
-    for (const id of ['passwordSignIn', 'passwordRegister', 'passwordReset']) $(id).disabled = true;
+    if (!$('passwordForm').reportValidity()) return;
+    const email = $('accountEmail').value;
+    const buttons = ['passwordSignIn', 'passwordRegister', 'passwordReset'];
+    if (create) buttons.push('sendVerification');
+    const operation = beginOperation(buttons.map($), accountForEmail(email));
+    if (!operation) return;
     try {
         if (create) {
-            await registerAccount($('accountEmail').value, $('accountPassword').value);
-            status('Account created. Check your verification email, then return here. Private features remain locked until verification.');
+            await registerAccount(email, $('accountPassword').value);
+            if (isCurrentOperation(operation)) status('Account created. Check your verification email, then return here. Private features remain locked until verification.');
         } else {
-            await signInAccount($('accountEmail').value, $('accountPassword').value);
+            await signInAccount(email, $('accountPassword').value);
         }
-    } catch (error) { showError(error); }
+    } catch (error) { if (isCurrentOperation(operation)) showError(error); }
     finally {
-        $('accountPassword').value = '';
-        credentialsBusy = false;
-        for (const id of ['passwordSignIn', 'passwordRegister', 'passwordReset']) $(id).disabled = false;
+        if (isCurrentOperation(operation)) $('accountPassword').value = '';
+        finishOperation(operation);
     }
 }
 
@@ -142,14 +203,14 @@ $('passwordForm').addEventListener('submit', event => {
 $('passwordRegister').addEventListener('click', () => passwordAuth(true));
 $('passwordReset').addEventListener('click', () => {
     if (!$('accountEmail').reportValidity()) return;
-    action($('passwordReset'), async () => {
+    action($('passwordReset'), async isCurrent => {
         await resetAccountPassword($('accountEmail').value);
-        status('If this email has a password account, check its inbox for password-reset instructions.');
+        if (isCurrent()) status('If this email has a password account, check its inbox for password-reset instructions.');
     });
 });
-$('sendVerification').addEventListener('click', () => action($('sendVerification'), async () => {
+$('sendVerification').addEventListener('click', () => action($('sendVerification'), async isCurrent => {
     await sendAccountVerification();
-    status('Verification email sent. Open it and return here to unlock your account.');
+    if (isCurrent()) status('Verification email sent. Open it and return here to unlock your account.');
 }));
 $('refreshVerification').addEventListener('click', () => action($('refreshVerification'), refreshAccount));
 window.addEventListener('focus', refreshVerificationOnReturn);
@@ -159,29 +220,30 @@ document.addEventListener('visibilitychange', () => {
 
 $('emailForm').addEventListener('submit', event => {
     event.preventDefault();
-    action($('sendLink'), async () => {
+    action($('sendLink'), async isCurrent => {
         await sendAccountLink($('linkEmail').value);
-        status('Sign-in link sent. Check your inbox and open the link to verify your address.');
+        if (isCurrent()) status('Sign-in link sent. Check your inbox and open the link to verify your address.');
     });
 });
-$('completeLink').addEventListener('click', () => action($('completeLink'), async () => {
+$('completeLink').addEventListener('click', () => action($('completeLink'), async isCurrent => {
     await completeAccountLink($('linkEmail').value);
+    if (!isCurrent()) return;
     $('completeLink').hidden = true;
     $('linkHelp').hidden = true;
     await renderAccount(getAccount());
-}));
+}, accountForEmail($('linkEmail').value)));
 $('profileForm').addEventListener('submit', event => {
     event.preventDefault();
-    action(event.submitter, async () => {
+    action(event.submitter || $('profileForm').querySelector('button[type="submit"]'), async isCurrent => {
         await saveProfile($('displayName').value);
-        status('Public display name saved to your verified player ID.');
+        if (isCurrent()) status('Public display name saved to your verified player ID.');
     });
 });
-$('signOut').addEventListener('click', () => action($('signOut'), signOutAccount));
+$('signOut').addEventListener('click', () => action($('signOut'), signOutAccount, user => !user));
 $('refreshRecords').addEventListener('click', () => action($('refreshRecords'), refreshRecords));
 $('exportRecords').addEventListener('click', () => {
     const user = getAccount();
-    if (!user?.emailVerified) return;
+    if (!user?.emailVerified || user.isAnonymous || renderedAccount !== user || $('exportRecords').disabled) return;
     const content = JSON.stringify({ format: 'blakeout-dev-results-v1', playerId: user.uid, exportedAt: new Date().toISOString(), results: records }, null, 2);
     const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
     const link = document.createElement('a');

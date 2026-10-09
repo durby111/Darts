@@ -1,27 +1,139 @@
-* { box-sizing: border-box; }
-body.platform-page { margin: 0; background: var(--color-bg, #080b11); color: var(--color-text, #fff); font: 16px/1.6 system-ui, sans-serif; }
-.platform-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem max(1rem, calc((100vw - 1100px) / 2)); background: var(--color-surface, #171c27); border-bottom: 1px solid var(--color-border, #444); }
+/* Shared feature-page components. Theme hues come from variables.css; optional
+   DC / Dot Better palettes come from scoreboard-palettes.css. Domain modules
+   only select semantic component classes, never their own color palettes. */
+.platform-page {
+    --platform-link: var(--color-text);
+    --platform-focus: var(--color-text);
+    --platform-warning-text: var(--color-text);
+    --platform-success-text: var(--color-text);
+    --platform-danger-text: var(--color-text);
+    --platform-notice-bg: var(--color-surface-elevated);
+    --platform-error-bg: var(--color-surface-elevated);
+    --platform-button-bg: var(--color-primary);
+    --platform-button-ink: var(--color-on-primary);
+    --platform-button-border: var(--color-primary-light);
+    /* Outcome outlines preserve green = won / red = lost in every theme. */
+    --platform-success-border: #258942;
+    --platform-danger-border: #d04747;
+    color-scheme: dark;
+}
+
+/* Mix toward the theme's own text color, so both dark and Arctic surfaces
+   have readable status ink. Earlier declarations remain usable fallbacks
+   on older browsers without color-mix support. */
+@supports (color: color-mix(in srgb, black, white)) {
+    .platform-page {
+        --platform-link: color-mix(in srgb, var(--color-accent) 70%, var(--color-text));
+        --platform-focus: var(--platform-link);
+        --platform-warning-text: color-mix(in srgb, var(--color-warning) 60%, var(--color-text));
+        --platform-success-text: color-mix(in srgb, var(--color-success) 60%, var(--color-text));
+        --platform-danger-text: color-mix(in srgb, var(--color-danger) 60%, var(--color-text));
+        --platform-notice-bg: color-mix(in srgb, var(--color-primary) 10%, var(--color-surface));
+        --platform-error-bg: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface));
+    }
+}
+
+:root[data-theme="arctic"] .platform-page { color-scheme: light; }
+/* These two canonical themes need a different button pairing at body-text
+   sizes. Use existing tokens rather than copying or changing their palette. */
+:root[data-theme="neon"] .platform-page { --platform-button-ink: var(--color-text-dark); }
+:root[data-theme="royal"] .platform-page { --platform-button-bg: var(--color-primary-dark); }
+:root:is([data-scoreboard-mode="dc"], [data-scoreboard-mode="dot-better"]) .platform-page {
+    --platform-button-bg: var(--color-primary-dark);
+    --platform-button-ink: var(--color-on-primary);
+    color-scheme: dark;
+}
+
+.platform-page, .platform-page * { box-sizing: border-box; }
+body.platform-page { margin: 0; background: var(--color-bg); color: var(--color-text); font: 16px/1.6 var(--font-family); }
+.platform-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem max(1rem, calc((100vw - 1100px) / 2)); background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
 .platform-header > a { font-size: 1.2rem; font-weight: 800; text-decoration: none; }
-.platform-header nav { display: flex; flex-wrap: wrap; gap: 1rem; }
-.platform-page a { color: var(--color-accent, #65baff); }
-.platform-header a[aria-current="page"] { color: #fff; text-decoration-thickness: 3px; text-underline-offset: .4em; }
-.dev-badge { display: inline-block; color: #111; background: #ffc857; padding: .05rem .4rem; border-radius: .3rem; font-size: .72em; vertical-align: middle; }
+.platform-header nav { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; }
+.platform-page a { color: var(--platform-link); }
+.platform-header a[aria-current="page"] { color: var(--color-text); text-decoration-thickness: 3px; text-underline-offset: .4em; }
+.platform-page .dev-badge { display: inline-block; color: var(--platform-button-ink); background: var(--platform-button-bg); border: 1px solid var(--platform-button-border); padding: .05rem .4rem; border-radius: .3rem; font-size: .72em; vertical-align: middle; }
 .platform-main { max-width: 1100px; margin: auto; padding: 1rem; }
 .platform-main h1 { line-height: 1.2; }
-.platform-card { margin: 1rem 0; padding: 1.25rem; background: var(--color-surface, #171c27); border: 1px solid var(--color-border, #444); border-radius: .8rem; min-width: 0; }
+.platform-card { margin: 1rem 0; padding: 1.25rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); min-width: 0; }
 .platform-card h2 { margin-top: 0; }
 .platform-page label { display: block; margin: .75rem 0 .3rem; font-weight: 600; }
-.platform-page input, .platform-page select, .platform-page textarea { display: block; max-width: 100%; width: 100%; background: var(--color-surface-alt, #10151e); color: inherit; font: inherit; border: 1px solid #888; border-radius: .4rem; padding: .6rem; min-height: 48px; }
-.platform-page input[type="checkbox"] { display: inline-block; width: 1.25rem; min-height: 1.25rem; margin-right: .5rem; vertical-align: middle; }
-.platform-page button, .platform-button { display: inline-block; font: inherit; font-weight: 650; background: var(--color-primary-dark, #0052a3); color: #fff; border: 1px solid var(--color-primary-light, #65baff); border-radius: .4rem; min-height: 48px; padding: .6rem 1rem; margin-top: .75rem; cursor: pointer; }
+.platform-page input, .platform-page select, .platform-page textarea { display: block; max-width: 100%; width: 100%; background: var(--color-surface-alt); color: var(--color-text); font: inherit; border: 1px solid var(--color-border-light); border-radius: var(--radius-sm); padding: .6rem; min-height: 48px; }
+.platform-page input::placeholder, .platform-page textarea::placeholder { color: var(--color-text-muted); opacity: 1; }
+.platform-page input[type="checkbox"] { display: inline-block; width: 1.25rem; min-height: 1.25rem; margin-right: .5rem; vertical-align: middle; accent-color: var(--platform-button-bg); }
+.platform-page button, .platform-page .platform-button { display: inline-block; font: inherit; font-weight: 650; background: var(--platform-button-bg); color: var(--platform-button-ink); border: 1px solid var(--platform-button-border); border-radius: var(--radius-sm); min-height: 48px; padding: .6rem 1rem; margin-top: .75rem; cursor: pointer; text-decoration: none; }
+.platform-page button:hover:not(:disabled), .platform-page .platform-button:hover { box-shadow: inset 0 0 0 1px currentColor; }
 .platform-page button:disabled { opacity: .55; cursor: not-allowed; }
-.platform-page :focus-visible { outline: 3px solid #ffc857; outline-offset: 3px; }
-.platform-notice { padding: 1rem; border-left: 4px solid #65baff; background: #10223a; overflow-wrap: anywhere; }
-.platform-error { border-left-color: #ff8b86; background: #3a181b; color: #ffe2df; }
+.platform-page :is(input, select, textarea):disabled { opacity: .7; cursor: not-allowed; }
+.platform-page :focus-visible { outline: 3px solid var(--platform-focus); outline-offset: 3px; }
+.platform-notice { padding: 1rem; border-left: 4px solid var(--platform-link); background: var(--platform-notice-bg); color: var(--color-text); overflow-wrap: anywhere; }
+.platform-error { border-left-color: var(--platform-danger-text); background: var(--platform-error-bg); color: var(--platform-danger-text); }
+.platform-empty { padding: 1rem; border: 1px dashed var(--color-border-light); border-radius: var(--radius-sm); background: var(--color-surface-alt); color: var(--color-text-muted); }
+/* App-owned dialogs only; window.confirm/alert belong to the browser and
+   cannot inherit these page styles. */
+.platform-page dialog { max-width: min(640px, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 1.25rem; border: 1px solid var(--color-border-light); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); font: inherit; box-shadow: var(--shadow-lg); }
+.platform-page dialog::backdrop { background: var(--bg-image-overlay); }
+
+/* Shared app-owned confirmation. The native top-layer path and the fallback
+   host use the same panel/actions. No animated movement is introduced. */
+.platform-page .platform-confirm {
+    width: min(600px, calc(100vw - 2rem));
+    max-height: calc(100vh - 2rem);
+    max-height: calc(100dvh - 2rem);
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+.platform-confirm-panel { position: relative; padding: clamp(1rem, 3vw, 1.5rem); }
+.platform-confirm-title { margin: 0; padding-right: 4rem; line-height: 1.3; overflow-wrap: anywhere; }
+.platform-confirm-message { margin: 1rem 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.platform-confirm-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; }
+.platform-page .platform-confirm-actions button { flex: 0 1 auto; min-height: 48px; margin-top: 0; overflow-wrap: anywhere; }
+.platform-page .platform-confirm-close {
+    position: absolute;
+    top: .5rem;
+    right: .5rem;
+    min-width: 44px;
+    min-height: 44px;
+    margin-top: 0;
+    padding: .35rem;
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+    border-color: var(--color-border-light);
+    line-height: 1;
+}
+.platform-page .platform-confirm-cancel { background: var(--color-surface-alt); color: var(--color-text); border-color: var(--color-border-light); }
+.platform-page .platform-confirm-accept { background: var(--platform-button-bg); color: var(--platform-button-ink); border-color: var(--platform-button-border); }
+.platform-confirm[data-opening] .platform-confirm-panel { pointer-events: none; }
+.platform-confirm-fallback {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg-image-overlay);
+}
+.platform-confirm-fallback .platform-confirm[open] { position: relative; inset: auto; width: min(600px, 100%); margin: 0; }
+@media (max-width: 520px) {
+    .platform-page .platform-confirm-actions button { flex: 1 1 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .platform-confirm, .platform-confirm * { scroll-behavior: auto; animation: none; transition: none; }
+}
+
 .platform-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
 .platform-page code, #identity { overflow-wrap: anywhere; }
 .platform-page summary { cursor: pointer; font-weight: 650; }
 .platform-page [hidden] { display: none !important; }
+/* Availability is a feature state, not a disabled primary action. Keep the
+   closed shell readable and make its only live action share button contrast. */
+.platform-page .feature-nav-disabled { display: inline-flex; margin-top: 0; background: var(--color-surface-alt); color: var(--color-text-muted); border: 1px dashed var(--color-border-light); opacity: 1; }
+.platform-page .feature-unavailable .back-to-scoring { background: var(--platform-button-bg); color: var(--platform-button-ink); border: 1px solid var(--platform-button-border); }
+.platform-page .feature-unavailable .back-to-scoring:focus-visible { outline-color: var(--platform-focus); }
 @media (max-width: 520px) {
     .platform-header { padding: 1rem; }
     .platform-card { padding: 1rem; }

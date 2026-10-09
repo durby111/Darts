@@ -22,7 +22,11 @@
 .roster-table small { display: block; color: var(--color-text-muted); }
 .roster-table button { margin: 0; }
 .roster-table input[type=checkbox] { width: 30px; height: 30px; margin: 8px; }
-#blockers { color: #ffda8a; }
+#blockers { color: var(--platform-warning-text, var(--color-text)); }
+#startFeedback { scroll-margin-block: 1rem; max-height: 60vh; overflow-y: auto; }
+#startFeedback h3 { margin: 0 0 .5rem; }
+#startFeedback ul { margin: 0; padding-left: 1.25rem; }
+#startFeedback:focus { outline: 3px solid var(--platform-focus, var(--color-text)); outline-offset: 3px; }
 .bracket-toolbar { display: flex; align-items: start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 .bracket-toolbar p { margin-top: 0; max-width: 65ch; }
 .bracket-toolbar label { margin-top: 0; }
@@ -38,17 +42,17 @@ h3.diagram-heading { color: var(--color-accent); font-size: 19px; }
 .match-card { position: absolute; width: 280px; height: 220px; padding: 8px 10px; background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: 7px; }
 .match-card.ready { border-color: var(--color-accent); }
 .match-card.pending, .match-card.void { background: var(--color-surface-alt); border-style: dashed; }
-.match-card:focus { outline: 3px solid #ffda8a; outline-offset: 3px; }
+.match-card:focus { outline: 3px solid var(--platform-focus, var(--color-text)); outline-offset: 3px; }
 .match-header { margin: 0 0 4px; font-size: 14px; height: 24px; line-height: 24px; }
 .match-slot { height: 67px; position: relative; padding: 3px 0; border-top: 1px solid var(--color-border); }
 .slot-label { display: block; font-size: 14px; line-height: 18px; max-height: 36px; overflow: hidden; overflow-wrap: anywhere; padding-right: 50px; }
 .slot-score { position: absolute; right: 0; top: 4px; font-size: 12px; }
-.match-slot.won { outline: 2px solid #258942; outline-offset: -2px; }
-.match-slot.lost { outline: 2px solid #d04747; outline-offset: -2px; }
+.match-slot.won { outline: 2px solid var(--platform-success-border); outline-offset: -2px; }
+.match-slot.lost { outline: 2px solid var(--platform-danger-border); outline-offset: -2px; }
 .won .slot-score, .lost .slot-score { color: var(--color-text); font-weight: bold; }
 .brackets-page .source-jump { display: block; margin: 0; min-height: 24px; padding: 0 2px; border: 0; background: transparent; color: var(--color-accent); font-size: 12px; line-height: 24px; text-align: left; }
 .brackets-page .match-action { width: 100%; min-height: 40px; height: 40px; margin: 2px 0 0; padding: 3px 8px; font-size: 14px; }
-#champion { font-weight: 750; color: #a6edac; }
+#champion { font-weight: 750; color: var(--platform-success-text, var(--color-text)); }
 #resultPanel { scroll-margin-top: 1rem; }
 @media (max-width: 600px) {
     .brackets-page .platform-main { padding: .65rem; }

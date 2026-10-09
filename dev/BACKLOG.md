@@ -1,11 +1,15 @@
-# BlakeOut development status — October 6, 2026
+# BlakeOut development status — October 8, 2026 (Central)
 
-This checklist reconciles HANDOFF_DOT.md with the reviewed checkout. Production
-source remains unchanged. October 6 daytime authorization covers tested DEV-only batches; the shared-site
-rebuild is understood. Production source, behavior, configuration and data remain
-out of scope. No network or security permission changes are authorized.
+Current production is release `19d030f95b86fc3ae902c499f2278b421a75b20d`,
+with Brackets and Players & Records behind Coming soon gates. The next feature
+batch is **local DEV work only**, not published and not ready to reopen these
+areas. Both DEV gates remain closed; production bytes, provider configuration,
+security rules and real user data are unchanged.
 
-Full original-handoff reconciliation and tonight’s actions: [EVENING_AUDIT.md](EVENING_AUDIT.md).
+Current implementation, evidence and remaining release gates:
+[FEATURE_READINESS.md](FEATURE_READINESS.md). The October 6 entries below are
+historical evidence, not claims about the current execution environment or a new
+production authorization. [EVENING_AUDIT.md](EVENING_AUDIT.md) retains that audit.
 
 ## Delivered and locally reviewed
 
@@ -17,24 +21,22 @@ Full original-handoff reconciliation and tonight’s actions: [EVENING_AUDIT.md]
 | DEV service worker | v49 published; v50 accompanies completed-match outlines | Production cache/source unchanged. |
 | Organizer row numbering and counts | Published `3e5fbc6` | Draft/standby/pair counts; identity preservation, tablet/mobile containment and signout privacy checks pass. |
 
-## Saved work blocked on transfer
+## Original saved work recovered locally
 
-- Start & Lock feedback archive: `libfile_f6200a861c308191b435f5db25a3f9c4`
-  (`blakeout-first-pass-review.zip`, reported seven DOM and six engine groups).
-- Isolated correction planner/projector: `libfile_d8f216cc6a9c8191a9ad388239af886d`
-  (`blakeout-result-correction-core.zip`, reported 219 tests).
-- Library authorization succeeds, but prepared downloads fail at proxy CONNECT
-  with HTTP 403. No readable archive bytes reached this executor. Reported
-  archive test counts are not locally verified test results.
-- Environment owner can allow the exact materialization hosts below, or attach
-  the original ZIPs directly to the consuming task. No permission change or
-  alternate denied-route workaround was performed:
-  `oaisdmntprwestus.blob.core.windows.net`,
-  `oaisdmntprnorthcentralus.blob.core.windows.net`,
-  `oaisdmntpreastus2.blob.core.windows.net`.
-- `blakeoutdarts.com` is separately needed for served DEV verification;
-  `api.github.com` is needed only for shell API access. Git transport and the
-  connected GitHub app already work; reconnecting GitHub is not the fix.
+The original HANDOFF_DOT.md was read in full. The original feedback ZIP is
+readable and intact in the current workspace; its six changed source files match
+the saved checkout. This supersedes October 6's executor-specific transfer block.
+The preserved originals were not edited.
+
+- Start & Lock feedback was narrowly rebased onto the current payment, roster,
+  revision and availability behavior. Current mocked DOM tests pass; rendered
+  browser/physical-device validation remains pending.
+- The storage-free correction core and its tests were recovered. Original tests
+  pass 219/219 against the original engine. The current engine also passes 219/219
+  after changing only the shared fixture to mark playing registrations paid.
+  The module is unchanged and is not imported by the app or service worker.
+- Account action ownership and shared feature-page appearance are implemented
+  locally with deterministic tests. See FEATURE_READINESS.md for exact scope.
 
 ## Result correction integration prerequisites
 
@@ -42,8 +44,8 @@ The saved pure core is not wired to the app. Existing engine correction tests
 cover the older leaf-result behavior only. Publishing current local fixes does
 not deliver functional result correction.
 
-1. Recover the original archive, inspect its API/contracts and reproduce all
-   reported tests before integrating or choosing a persistence schema.
+1. Recovery and pure-function compatibility are complete. Retain the reviewed
+   contracts in RESULT_CORRECTIONS.md before choosing a persistence schema.
 2. Preserve immutable original result records. Design additive owner-authorized
    correction events with stable idempotency keys, expected revisions, and an
    atomic bracket/event write. Preserve safe downstream and active-match guards.
@@ -60,8 +62,8 @@ not deliver functional result correction.
 
 ## Remaining handoff priorities
 
-- [ ] Finish visible Start & Lock feedback after recovering the saved patch;
-  reproduce before/after behavior rather than assigning an unproven cause.
+- [ ] Release visible Start & Lock feedback after browser validation. The patch
+  is recovered, rebased and locally tested; the original cause remains unproven.
 - [ ] Verify actual account email delivery and verification-link completion,
   including returning on the same and a different device. No recipient is
   authorized for a real email test yet.
@@ -118,7 +120,10 @@ not deliver functional result correction.
   original-handoff reconciliation, and cache v50.
   No stored tournament schema, result schema, security rules or provider settings change.
 
-## Evening DEV test checklist
+## Historical October 6 DEV test checklist
+
+The feature routes below are now gated. Use isolated mocks for development;
+do not reopen production or exercise real accounts/events without approval.
 
 1. On a tablet, expand setup options, start a game, leave it, and Resume. The
    action buttons should stay reachable in portrait and landscape.
@@ -145,7 +150,7 @@ not deliver functional result correction.
    interrupted/retry tests pass; real provider behavior still needs observation.
    Check the green Won/red Lost outlines. Do not clear site storage.
 
-Deferred: dedicated Start & Lock feedback, safe correction integration, active-match
+Remaining: browser validation/release of the recovered Start & Lock feedback,
+safe correction integration, browser verification of shared confirmations, active-match
 indication, real-tablet distance review and advanced/post-lock ordering. The
-original feedback/correction archives remain transfer-blocked. Do not expect
-result correction functionality from these releases.
+archives are recovered; functional cloud correction remains unimplemented.

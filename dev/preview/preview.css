@@ -1,0 +1,30 @@
+/* Preview-only framing; feature presentation comes from the shared DEV CSS. */
+.preview-tools {
+    width: min(100% - 24px, 1280px);
+    margin: 16px auto;
+    padding: clamp(14px, 3vw, 22px);
+    border: 2px solid var(--color-accent);
+    border-radius: 16px;
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+.preview-title { font-size: clamp(1rem, 2.6vw, 1.3rem); font-weight: 800; line-height: 1.4; }
+.preview-tools p { margin: 10px 0; max-width: 100ch; line-height: 1.5; }
+.preview-tools .preview-hint { font-size: .88rem; }
+.preview-options { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-top: 16px; }
+.preview-options label { display: grid; gap: 6px; flex: 1 1 170px; font-weight: 600; }
+.preview-options select, .preview-options button { min-height: 44px; width: 100%; }
+.preview-options button { flex: 1 1 170px; width: auto; }
+.preview-links { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.preview-links a { min-height: 44px; display: inline-flex; align-items: center; font-weight: 700; color: var(--platform-link); }
+.preview-links [aria-current="page"] { text-decoration-thickness: 3px; text-underline-offset: 5px; }
+#previewActionStatus:empty { display: none; }
+#previewBootStatus { width: min(100% - 24px, 1280px); margin: 16px auto; }
+#previewContent input[readonly] { cursor: not-allowed; }
+@media (max-width: 480px) {
+    .preview-tools { width: calc(100% - 16px); margin-top: 8px; padding: 12px; }
+    .preview-options { gap: 10px; }
+    .preview-options label { flex-basis: 125px; }
+}
+@media (forced-colors: active) { .preview-tools { border-color: CanvasText; } }
+.preview-settings > summary { cursor: pointer; min-height: 44px; padding: 10px 0 0; font-weight: 700; }

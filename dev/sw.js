@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v55-coming-soon';
+const CACHE_NAME = 'blakeout-dev-v56-feature-readiness';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -17,6 +17,7 @@ const ASSETS = [
     './index.html',
     './manifest.json',
     './css/variables.css',
+    './css/scoreboard-palettes.css',
     './css/layout.css',
     './css/components.css',
     './css/games.css',
@@ -37,6 +38,9 @@ const ASSETS = [
     './brackets/index.html',
     './js/platform-nav.js',
     './js/feature-availability.js',
+    './js/score-appearance.js',
+    './js/feature-appearance.js',
+    './js/confirm-dialog.js',
     './js/feature-page.js',
     './js/build-context.js',
     './js/platform.js',

@@ -1,5 +1,5 @@
 import { isFeatureAvailable } from './feature-availability.js';
-import './theme.js';
+import './feature-appearance.js';
 
 // Feature markup lives in an inert template. A locked or failed-to-load
 // entrypoint never starts auth, consumes an email link, or starts polling.
@@ -14,7 +14,7 @@ if (modulePath && isFeatureAvailable(feature)) {
         template.remove();
         import(modulePath).catch(() => {
             const notice = document.createElement('p');
-            notice.className = 'platform-notice';
+            notice.className = 'platform-notice platform-error';
             notice.setAttribute('role', 'alert');
             notice.textContent = 'This section could not load. Return to scoring or try again later.';
             document.querySelector('main')?.prepend(notice);

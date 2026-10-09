@@ -1,7 +1,32 @@
-# BlakeOut v2.4.2-dev — Overhaul Notes
+# BlakeOut development notes
 
-Dev-only release. Production (repo root) untouched — promote by copying
-`/dev/` → root as usual, and fold these notes into `CLAUDE.md` at that time.
+Dated entries preserve their original release scope and test limits. Current
+feature work is DEV-only; see FEATURE_READINESS.md. Account/bracket transports
+and DEV-specific configuration must not be blindly copied into production.
+
+## October 8 Feature Readiness (Local, Unpublished)
+
+- Production release `19d030f` and both Coming soon gates stay unchanged.
+- Accounts now ignore stale session/action/record responses and coordinate
+  signup/resend busy state. Tests cover replacement users, logout, newer reads,
+  real current-session failures and pending profile edits; providers are mocked.
+- The recovered Start & Lock feedback explains unsaved/invalid/unpaid blockers,
+  canceled confirmation, pending save, failure and success. Existing payment,
+  check-in, roster identity and revision rules remain the domain boundary.
+- Shared preference modules restore all 12 themes and all four scoreboard styles
+  on standalone features. Shared palette/component sheets replace unrelated
+  feature colors; main DC and Dot Better palette values are preserved. App-owned
+  dialogs use the same shared semantic tokens. All eight bracket confirmations
+  now use the shared guarded asynchronous dialog rather than browser prompts.
+- The unchanged pure result-correction prototype passes 219 tests after adapting
+  the paid-player test fixture. It has no app/service-worker/storage integration.
+- Added explicitly labeled, memory-only account/bracket previews with fail-closed
+  provider isolation and disabled credentials, email, exports and scorer launch.
+- Prepared DEV cache v56 includes the new appearance modules, dialog and palette
+  sheet. Sample routes are not precached; DEV-only preview publication is authorized.
+  Source/VM/DOM tests do not substitute for rendered-browser, physical-tablet,
+  live email verification or Firebase/emulator validation.
+- See FEATURE_READINESS.md for the test commands and remaining gates.
 
 ## October 6 Setup Action Visibility (Published)
 
