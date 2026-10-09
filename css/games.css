@@ -315,6 +315,21 @@
     background: rgba(0,0,0,0.45);
 }
 
+/* Tablet one/two-player boards have room beside the chalk marks. Keep turn badges
+   on the same row center as the target; compact boards retain corner badges. */
+@media (min-width: 721px) {
+    .cricket-row.one-player .last-turn-indicator,
+    .cricket-row.two-player .last-turn-indicator {
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: min(calc(clamp(0.95rem, 2.4dvh, 1.4rem) * var(--ui-scale)), 1.4rem);
+    }
+    .cricket-row.one-player .prev-turn-indicator,
+    .cricket-row.two-player .prev-turn-indicator {
+        font-size: min(calc(clamp(0.8rem, 2dvh, 1.15rem) * var(--ui-scale)), 1.15rem);
+    }
+}
+
 /* === Cricket Bottom Controls === */
 .cricket-controls-left,
 .cricket-controls-right {
@@ -1349,9 +1364,11 @@
     min-width: 0;
     display: grid;
     grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) minmax(0, 0.7fr);
+    grid-template-rows: minmax(0, 1fr);
     gap: 2px;
     padding-inline: 2px;
-    container-type: inline-size;
+    min-height: 0;
+    container-type: size;
 }
 
 :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-num-btn,
@@ -1365,19 +1382,23 @@
     text-shadow: none;
     font-family: inherit;
     padding-inline: 1px;
+    padding-block: 0;
+    min-height: 0;
+    height: 100%;
+    line-height: 1;
     overflow: hidden;
 }
 
 :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-num-btn {
-    font-size: min(calc(clamp(1.15rem, 4dvh, 2.6rem) * var(--ui-scale)), 30cqi);
+    font-size: min(calc(clamp(1.15rem, 4dvh, 2.6rem) * var(--ui-scale)), 30cqi, 80cqh);
 }
 
 :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-dt-btn {
-    font-size: min(calc(clamp(0.75rem, 2.3dvh, 1.4rem) * var(--ui-scale)), 20cqi);
+    font-size: min(calc(clamp(0.75rem, 2.3dvh, 1.4rem) * var(--ui-scale)), 20cqi, 70cqh);
 }
 
 :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-num-btn.minnesota {
-    font-size: min(calc(clamp(1rem, 3dvh, 2rem) * var(--ui-scale)), 18cqi);
+    font-size: min(calc(clamp(1rem, 3dvh, 2rem) * var(--ui-scale)), 18cqi, 70cqh);
 }
 
 :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family="cricket"] .cricket-num-btn.dimmed,

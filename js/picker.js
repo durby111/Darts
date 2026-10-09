@@ -113,6 +113,8 @@ function renderGrid() {
     const favs = getFavorites();
     const current = selectedGameId();
     const games = searchGames(currentQuery, currentCategory, favs);
+    const selectedTitle = el('selectedGameTitle');
+    if (selectedTitle) selectedTitle.textContent = getGame(current)?.label || current;
 
     if (games.length === 0) {
         grid.innerHTML = `<div class="picker-empty">No games match “${escapeHtml(currentQuery)}”.</div>`;
@@ -124,7 +126,7 @@ function renderGrid() {
         const isFav = favs.includes(g.id);
         return `
             <div class="game-card-wrap">
-                <button type="button" class="game-card${isActive ? ' active' : ''}" data-game-value="${g.id}" title="${escapeHtml(g.desc || '')}">
+                <button type="button" class="game-card${isActive ? ' active' : ''}" data-game-value="${g.id}" data-game-engine="${g.engine}" aria-pressed="${isActive}" title="${escapeHtml(g.desc || '')}">
                     <span class="game-card-icon" aria-hidden="true">${g.icon}</span>
                     <span class="game-card-label">${g.label}</span>
                     ${g.sub ? `<span class="game-card-sub">${g.sub}</span>` : ''}
@@ -236,12 +238,14 @@ export function initGamePicker(quickStartFn) {
     // Grid: card select + favorite star + rules ⓘ
     const grid = el('gameTypeGrid');
     if (grid) {
+        let rulesScrollTop = 0;
         grid.addEventListener('click', e => {
             const info = e.target.closest('[data-rules-toggle]');
             if (info) {
                 const already = document.getElementById('gameRulesPop');
                 const sameCard = already && already.dataset.gameId === info.dataset.rulesToggle;
                 if (sameCard) { hideRulesPop(); return; }
+                rulesScrollTop = grid.scrollTop;
                 showRulesPop(info.dataset.rulesToggle, info);
                 return;
             }
@@ -262,7 +266,9 @@ export function initGamePicker(quickStartFn) {
         });
         // Scrolling the grid would leave the popover floating over the
         // wrong card, so drop it.
-        grid.addEventListener('scroll', hideRulesPop, { passive: true });
+        grid.addEventListener('scroll', () => {
+            if (grid.scrollTop !== rulesScrollTop) hideRulesPop();
+        }, { passive: true });
     }
 
     // Keep the active card in sync if something else changes the select

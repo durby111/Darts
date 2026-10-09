@@ -663,3 +663,16 @@ domains. CSP (#4) remains deferred by the owner.
   workspace; actual cloud-browser checks follow the DEV deployment.
 - DEV cache: blakeout-dev-v55-coming-soon. Production promotion is a separate
   reviewed release step, preserving production identity and existing data.
+
+### Production promotion validation
+
+- DEV gate commit `06ac47c` deployed successfully. Actual cloud-browser checks
+  confirmed Coming soon direct routes and their query/hash variants, reload and
+  back/forward; a stale scoring shell resolved with a native hard refresh and
+  then stayed gated across normal Scoring navigation/reload. Existing local
+  301 remained available. Final production runtime checks follow deployment.
+- Production candidate preserves manifest/Firebase/assets, copies tested scorer
+  modules exactly, uses static unavailable feature pages, and has a complete
+  isolated 61-asset cache. Five production artifact groups and independent root
+  executions of nine build/storage plus seven recording-gate groups pass.
+- Full Playwright and physical-device/offline browser suites are not claimed.

@@ -8,37 +8,45 @@
     <meta name="theme-color" content="#cc6600">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/icon-192.png">
-    <title>BlakeOut</title>
+    <title>BlakeOut Darts</title>
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/games.css">
+    <link rel="stylesheet" href="css/setup.css">
+    <link rel="stylesheet" href="css/platform-nav.css">
+    <link rel="stylesheet" href="css/feature-availability.css">
+    <link rel="stylesheet" href="css/tournament-scoring.css">
+    <link rel="stylesheet" href="css/winner.css">
+    <link rel="stylesheet" href="css/winner-celebration.css">
+    <link rel="stylesheet" href="css/dot-better.css">
+    <script type="module" src="js/platform-nav.js"></script>
 </head>
 <body>
-    <!-- Shared SVG filter — subtle texture only; shapes carry the hand-drawn
-         feel via their paths, not via noise. Keeps marks crisp. -->
     <svg style="position:absolute;width:0;height:0" aria-hidden="true">
         <defs>
-            <filter id="chalk" x="-4%" y="-4%" width="108%" height="108%">
-                <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="2" seed="2" result="noise"/>
-                <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.9" xChannelSelector="R" yChannelSelector="G"/>
+            <filter id="chalk" x="-8%" y="-8%" width="116%" height="116%" color-interpolation-filters="sRGB">
+                <feTurbulence type="fractalNoise" baseFrequency="0.09 0.6" numOctaves="2" seed="8" result="noise"/>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="0.65" xChannelSelector="R" yChannelSelector="G" result="ink"/>
+                <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0.32 0 0 0 0.68" result="coverage"/>
+                <feComposite in="ink" in2="coverage" operator="in"/>
             </filter>
         </defs>
     </svg>
 
     <!-- Setup Screen -->
     <div class="setup-screen" id="setupScreen">
-        <div class="setup-card card">
+        <div class="setup-card">
             <header class="setup-header">
                 <div class="setup-logo">
                     <img src="assets/logo.png" alt="BlakeOut" onerror="this.style.display='none'">
                 </div>
                 <div class="setup-header-text">
-                    <h1>BLAKE OUT</h1>
-                    <div class="setup-subtitle">Tablet scorer</div>
+                    <h1>BlakeOut</h1>
+                    <div class="setup-subtitle">DARTS SCORER</div>
                 </div>
                 <div class="setup-header-side">
-                    <button type="button" class="btn btn--md btn--neutral settings-gear" id="settingsBtnSetup" aria-label="Settings">⚙ Settings</button>
+                    <button type="button" class="btn btn--md btn--neutral settings-gear" id="settingsBtnSetup" aria-label="Settings" title="Themes, wallpaper and scoreboard style">⚙ Customize</button>
                 </div>
             </header>
 
@@ -214,7 +222,7 @@
             <section class="setup-section setup-panel" id="playersSection">
                 <div class="setup-section-label">Players</div>
                 <div class="form-group" id="numPlayersGroup">
-                    <label>Number of Players</label>
+                    <label for="numPlayers">Players at the board</label>
                     <select id="numPlayers">
                         <option value="1">1 Player</option>
                         <option value="2" selected>2 Players</option>
@@ -226,12 +234,12 @@
                 <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="teamMode">
-                        <span>Team Mode (Home vs Away, 1+ players per team)</span>
+                        <span>Team mode</span>
                     </label>
                 </div>
 
                 <div class="player-order-toolbar" id="playerOrderControls">
-                    <div class="player-order-hint">Drag ☰ or use the arrows to set who throws first.</div>
+                    <div class="player-order-hint">Throw order</div>
                     <button type="button" class="btn btn--sm btn--neutral" id="randomizePlayersBtn">🎲 Randomize</button>
                 </div>
 
@@ -288,6 +296,7 @@
 
             <section class="setup-section setup-panel setup-play-panel" id="playSection">
                 <div class="setup-section-label">Play</div>
+                <div class="setup-match-title" id="selectedGameTitle" aria-live="polite">501</div>
                 <div class="setup-action-row">
                     <button class="btn btn--lg btn--primary btn--block btn--hero" id="startGameBtn">Start Game</button>
                     <button class="btn btn--lg btn--success btn--block hidden" id="resumeGameBtn">Resume Game</button>
@@ -406,7 +415,7 @@
             <div class="center-logo">
                 <button class="end-game-btn" id="menuBtn">Menu</button>
                 <div class="round-badge" id="roundBadge">1</div>
-                <div class="version-text">v2.4.2</div>
+                <div class="version-text">v2.5.0</div>
             </div>
 
             <div class="player-header away" id="awayHeader">
@@ -604,19 +613,27 @@
     </div>
 
     <!-- Winner Modal -->
-    <div class="modal" id="winnerModal">
+    <div class="modal" id="winnerModal" role="dialog" aria-modal="true" aria-labelledby="winnerHeading winnerName">
         <div class="modal-content winner-modal-content">
-            <div class="winner-trophy">&#127942;</div>
-            <h2>WINNER!</h2>
+            <div class="winner-brand"><span>BlakeOut</span><span>DARTS / RESULTS</span></div>
+            <div class="winner-emblem" aria-hidden="true">
+                <svg viewBox="0 0 80 80" fill="none">
+                    <circle cx="36" cy="44" r="25"/><circle cx="36" cy="44" r="15"/>
+                    <circle cx="36" cy="44" r="4" class="winner-bull"/>
+                    <path d="M36 44 62 18m-8 1 1-10 10-5-1 12 12-1-5 10-10 1"/>
+                </svg>
+            </div>
+            <h2 id="winnerHeading">Game shot.</h2>
+            <p class="winner-eyebrow">The winner</p>
             <div class="winner-name" id="winnerName"></div>
             <div class="blakeout-message" id="blakeoutMessage" style="display:none;">
-                BLAKEOUT!<br>
+                <strong>BlakeOut finish</strong>
                 <span>Closed with a Double Bull!</span>
             </div>
             <div class="modal-buttons">
-                <button class="btn btn--lg btn--neutral" id="winnerCancelBtn">Cancel</button>
-                <button class="btn btn--lg btn--success" id="playAgainBtn">Play Again</button>
-                <button class="btn btn--lg btn--primary" id="newGameBtn">New Game</button>
+                <button class="btn btn--lg btn--success" id="playAgainBtn">Play again</button>
+                <button class="btn btn--lg btn--primary" id="newGameBtn">New game</button>
+                <button class="btn btn--lg btn--neutral" id="winnerCancelBtn">Undo winning turn</button>
             </div>
         </div>
     </div>
@@ -700,11 +717,12 @@
     </div>
 
     <!-- Chicago Leg Winner Modal -->
-    <div class="modal" id="chicagoLegModal" style="display:none;">
-        <div class="modal-content">
+    <div class="modal" id="chicagoLegModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="chicagoLegTitle chicagoLegWinner">
+        <div class="modal-content winner-modal-content winner-leg-content">
+            <div class="winner-brand"><span>BlakeOut</span><span>CHICAGO / RESULTS</span></div>
             <h2 id="chicagoLegTitle">Leg Complete!</h2>
             <div class="winner-name" id="chicagoLegWinner"></div>
-            <div id="chicagoMatchScore" style="font-size:var(--font-xl);color:var(--color-primary);margin-bottom:var(--space-xl);"></div>
+            <div id="chicagoMatchScore" class="winner-scoreline"></div>
             <button class="btn btn--lg btn--success" id="chicagoContinueBtn">Continue</button>
         </div>
     </div>

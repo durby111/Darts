@@ -1,0 +1,375 @@
+/* BlakeOut DEV: one-shot, CSS-only victory sequence.
+   Load after winner.css. All colors inherit the active modal's theme tokens.
+   Hiding a modal with display:none cancels the sequence; reopening starts it
+   again without timers, extra DOM, scoring hooks, or a delayed action gate. */
+
+:is(#winnerModal, #chicagoLegModal) .winner-modal-content {
+    --win-ink: var(--color-primary-light);
+    --win-soft: color-mix(in srgb, var(--color-primary-light) 22%, transparent);
+    --win-faint: color-mix(in srgb, var(--color-primary-light) 10%, transparent);
+    --win-strike-delay: .74s;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    animation: win-card-arrive .58s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+/* These card layers live behind the content in winner.css's isolated stacking
+   context. The larger match-only arena below also stays behind the card. */
+:is(#winnerModal, #chicagoLegModal) .winner-modal-content::before,
+:is(#winnerModal, #chicagoLegModal) .winner-modal-content::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* A stadium-size target watermark resolves into a quiet, static detail. */
+:is(#winnerModal, #chicagoLegModal) .winner-modal-content::before {
+    width: clamp(240px, 65vw, 380px);
+    aspect-ratio: 1;
+    top: 46px;
+    right: -94px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle,
+            transparent 0 19%, var(--win-soft) 19.2% 19.8%,
+            transparent 20% 35%, var(--win-soft) 35.2% 35.8%,
+            transparent 36% 50%, var(--win-soft) 50.2% 50.8%,
+            transparent 51% 64%, var(--win-soft) 64.2% 64.8%,
+            transparent 65%),
+        repeating-conic-gradient(from -9deg,
+            transparent 0deg 17.5deg, var(--win-faint) 17.5deg 18deg);
+    opacity: .48;
+    animation: win-target-bloom 2.1s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+/* A single fan of sixteen theme-colored sparks. Only transform/opacity
+   animate; gradients are painted once and settle completely after 3.8s. */
+:is(#winnerModal, #chicagoLegModal) .winner-modal-content::after {
+    inset: 62px 14px auto;
+    height: clamp(170px, 52vw, 270px);
+    background:
+        linear-gradient(var(--win-ink), var(--win-ink)) 7% 18% / 3px 14px,
+        linear-gradient(var(--win-ink), var(--win-ink)) 19% 3% / 9px 3px,
+        linear-gradient(var(--color-text), var(--color-text)) 31% 12% / 3px 8px,
+        linear-gradient(var(--win-ink), var(--win-ink)) 47% 2% / 4px 13px,
+        linear-gradient(var(--win-ink), var(--win-ink)) 61% 11% / 10px 3px,
+        linear-gradient(var(--color-text), var(--color-text)) 77% 4% / 3px 8px,
+        linear-gradient(var(--win-ink), var(--win-ink)) 93% 24% / 4px 12px,
+        linear-gradient(var(--win-ink), var(--win-ink)) 98% 46% / 11px 3px,
+        linear-gradient(var(--color-text), var(--color-text)) 88% 63% / 3px 8px,
+        linear-gradient(var(--win-ink), var(--win-ink)) 96% 82% / 4px 13px,
+        linear-gradient(var(--win-ink), var(--win-ink)) 73% 92% / 10px 3px,
+        linear-gradient(var(--color-text), var(--color-text)) 54% 81% / 3px 8px,
+        linear-gradient(var(--win-ink), var(--win-ink)) 37% 96% / 3px 12px,
+        linear-gradient(var(--win-ink), var(--win-ink)) 18% 82% / 9px 3px,
+        linear-gradient(var(--color-text), var(--color-text)) 4% 65% / 3px 8px,
+        linear-gradient(var(--win-ink), var(--win-ink)) 1% 40% / 10px 3px;
+    background-repeat: no-repeat;
+    transform-origin: 15% 44%;
+    opacity: 0;
+    animation: win-spark-fan 3s cubic-bezier(.12, .68, .22, 1)
+        var(--win-strike-delay) both;
+}
+
+#winnerModal .winner-emblem {
+    position: relative;
+    width: clamp(144px, 32vw, 208px);
+    height: clamp(144px, 32vw, 208px);
+    margin: 22px auto 18px;
+    color: var(--win-ink);
+    pointer-events: none;
+    animation: win-emblem-ready .65s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+/* A larger match-winning stage, keeping the familiar board/strike concept.
+   The card remains the only foreground layer; sparks never cover its text or
+   controls. Fixed decorative layers are viewport-bounded and non-interactive. */
+#winnerModal {
+    --win-arena-ink: var(--color-primary-light);
+    isolation: isolate;
+}
+
+#winnerModal .winner-modal-content {
+    max-width: 680px;
+    z-index: 1;
+}
+
+#winnerModal .winner-eyebrow {
+    text-align: center;
+    letter-spacing: .24em;
+}
+
+#winnerModal .winner-name {
+    text-align: center;
+    font-size: clamp(32px, 8vw, 52px);
+}
+
+#winnerModal::before,
+#winnerModal::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+}
+
+/* Huge expanding target rings and radial rays fill the surrounding screen
+   with one smooth light-up/fade, rather than a flashing full-screen wash. */
+#winnerModal::before {
+    background:
+        radial-gradient(circle at 50% 46%,
+            transparent 0 20%, color-mix(in srgb, var(--win-arena-ink) 42%, transparent) 20.2% 20.6%,
+            transparent 20.8% 32%, color-mix(in srgb, var(--win-arena-ink) 32%, transparent) 32.2% 32.6%,
+            transparent 32.8% 44%, color-mix(in srgb, var(--win-arena-ink) 24%, transparent) 44.2% 44.6%,
+            transparent 44.8%),
+        repeating-conic-gradient(from -9deg at 50% 46%,
+            transparent 0deg 16deg, color-mix(in srgb, var(--win-arena-ink) 18%, transparent) 16deg 18deg);
+    transform-origin: 50% 46%;
+    animation: win-arena-halo 3.8s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+/* Two dozen large spark ribbons travel outward behind the result card.
+   No extra DOM, timers or sounds, and no persistent animation loop. */
+#winnerModal::after {
+    background:
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 4% 9% / 5px 28px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 14% 3% / 22px 5px,
+        linear-gradient(var(--color-text), var(--color-text)) 29% 6% / 4px 17px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 42% 2% / 6px 30px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 60% 7% / 24px 5px,
+        linear-gradient(var(--color-text), var(--color-text)) 78% 3% / 5px 18px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 95% 12% / 6px 29px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 98% 29% / 26px 5px,
+        linear-gradient(var(--color-text), var(--color-text)) 88% 37% / 5px 16px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 97% 51% / 6px 31px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 91% 69% / 24px 5px,
+        linear-gradient(var(--color-text), var(--color-text)) 98% 87% / 5px 18px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 84% 96% / 6px 29px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 65% 91% / 25px 5px,
+        linear-gradient(var(--color-text), var(--color-text)) 53% 98% / 5px 19px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 36% 93% / 6px 28px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 18% 97% / 24px 5px,
+        linear-gradient(var(--color-text), var(--color-text)) 3% 88% / 4px 17px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 8% 73% / 6px 31px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 1% 57% / 25px 5px,
+        linear-gradient(var(--color-text), var(--color-text)) 12% 43% / 5px 18px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 2% 31% / 6px 28px,
+        linear-gradient(var(--win-arena-ink), var(--win-arena-ink)) 18% 23% / 23px 5px,
+        linear-gradient(var(--color-text), var(--color-text)) 83% 23% / 5px 17px;
+    background-repeat: no-repeat;
+    transform-origin: 50% 46%;
+    animation: win-arena-burst 4.2s cubic-bezier(.12, .68, .22, 1) both;
+}
+
+/* The emblem's bull is at 36,44 in an 80x80 viewBox (45%,55%). Both
+   shockwaves originate at that exact point, not the square's center. */
+#winnerModal .winner-emblem::before,
+#winnerModal .winner-emblem::after {
+    content: "";
+    position: absolute;
+    left: 45%;
+    top: 55%;
+    width: 80%;
+    aspect-ratio: 1;
+    border: 2px solid var(--win-ink);
+    border-radius: 50%;
+    box-sizing: border-box;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    animation: win-impact-ring 1.1s cubic-bezier(.12, .68, .22, 1)
+        var(--win-strike-delay) both;
+}
+
+#winnerModal .winner-emblem::after {
+    border-width: 1px;
+    animation-delay: .9s;
+    animation-duration: 1.25s;
+}
+
+#winnerModal .winner-emblem svg {
+    position: relative;
+    overflow: visible;
+}
+
+#winnerModal .winner-emblem svg > circle {
+    transform-box: view-box;
+    transform-origin: 36px 44px;
+}
+
+#winnerModal .winner-emblem svg > circle:first-child {
+    stroke-dasharray: 157.08;
+    animation: win-board-outer .72s cubic-bezier(.2, .7, .2, 1) .08s both;
+}
+
+#winnerModal .winner-emblem svg > circle:nth-child(2) {
+    stroke-dasharray: 94.25;
+    animation: win-board-inner .56s cubic-bezier(.2, .7, .2, 1) .18s both;
+}
+
+#winnerModal .winner-emblem .winner-bull {
+    animation: win-bull-impact .58s ease-out var(--win-strike-delay) both;
+}
+
+#winnerModal .winner-emblem svg > path {
+    transform-box: view-box;
+    transform-origin: 36px 44px;
+    animation: win-dart-strike .62s cubic-bezier(.18, .8, .24, 1) .32s both;
+}
+
+#winnerModal .winner-modal-content h2 {
+    font-size: clamp(44px, 10vw, 72px);
+    text-align: center;
+    transform-origin: center;
+    animation: win-title-land .7s cubic-bezier(.16, 1, .3, 1) .14s both;
+}
+
+/* The player's name stays readable from the first frame. Actions and
+   result-saving panels intentionally have no reveal or animation delay. */
+:is(#winnerModal, #chicagoLegModal) .winner-name {
+    animation: win-name-settle .65s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+/* Chicago leg wins get the same visual language with a shorter entrance,
+   smaller target, and earlier spark fan; the full match has the dart strike. */
+#chicagoLegModal .winner-modal-content {
+    --win-strike-delay: .16s;
+    animation-duration: .44s;
+}
+
+#chicagoLegModal .winner-modal-content::before {
+    top: -48px;
+    width: 270px;
+    animation-duration: 1.4s;
+}
+
+#chicagoLegModal .winner-modal-content::after {
+    height: 180px;
+    animation-duration: 1.1s;
+}
+
+@keyframes win-arena-halo {
+    0% { opacity: 0; transform: scale(.7); }
+    24% { opacity: .65; }
+    68% { opacity: .3; }
+    100% { opacity: 0; transform: scale(1); }
+}
+
+@keyframes win-arena-burst {
+    0% { opacity: 0; transform: scale(.56); }
+    23% { opacity: .82; }
+    72% { opacity: .38; }
+    100% { opacity: 0; transform: scale(1); }
+}
+
+@keyframes win-card-arrive {
+    from { opacity: .3; transform: translateY(24px) scale(.94); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes win-target-bloom {
+    from { opacity: 0; transform: scale(.55) rotate(-24deg); }
+    42% { opacity: .8; }
+    to { opacity: .48; transform: none; }
+}
+
+@keyframes win-spark-fan {
+    0% { opacity: 0; transform: scale(.3) rotate(-8deg); }
+    14% { opacity: .68; }
+    62% { opacity: .36; }
+    100% { opacity: 0; transform: translateY(22px) scale(1.06) rotate(4deg); }
+}
+
+@keyframes win-impact-ring {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(.42); }
+    12% { opacity: .65; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2.7); }
+}
+
+@keyframes win-emblem-ready {
+    from { transform: translateY(10px) scale(.9); }
+    to { transform: none; }
+}
+
+@keyframes win-board-outer {
+    from { opacity: 0; stroke-dashoffset: 157.08; transform: rotate(-95deg) scale(.8); }
+    to { opacity: 1; stroke-dashoffset: 0; transform: none; }
+}
+
+@keyframes win-board-inner {
+    from { opacity: 0; stroke-dashoffset: 94.25; transform: rotate(110deg) scale(.75); }
+    to { opacity: 1; stroke-dashoffset: 0; transform: none; }
+}
+
+@keyframes win-dart-strike {
+    0% { opacity: 0; transform: translate(46px, -46px) scale(.8); }
+    16% { opacity: 1; }
+    70% { transform: translate(-2px, 2px) scale(1.03); }
+    86% { transform: translate(1px, -1px); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes win-bull-impact {
+    0% { transform: scale(1); }
+    28% { transform: scale(1.65); }
+    100% { transform: none; }
+}
+
+@keyframes win-title-land {
+    from { opacity: .5; transform: translateY(16px) scale(.92); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes win-name-settle {
+    from { transform: translateY(8px); }
+    to { transform: none; }
+}
+
+/* Keep the score/result actions close on short phones and landscape
+   tablets. The existing vertical modal scroller is preserved. */
+@media (max-height: 650px) {
+    #winnerModal .winner-emblem {
+        width: 100px;
+        height: 100px;
+        margin: 12px auto;
+    }
+    #winnerModal .winner-modal-content h2 { font-size: 38px; }
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content::after { height: 170px; }
+}
+
+@media (max-width: 360px) and (min-height: 651px) {
+    #winnerModal .winner-emblem { width: 124px; height: 124px; }
+    #winnerModal .winner-modal-content h2 { font-size: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #winnerModal::before,
+    #winnerModal::after,
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content,
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content *,
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content::before,
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content::after,
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content *::before,
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content::before,
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content::after,
+    #winnerModal .winner-emblem::before,
+    #winnerModal .winner-emblem::after,
+    #winnerModal::before,
+    #winnerModal::after { display: none; }
+}
+
+@media (forced-colors: active) {
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content::before,
+    :is(#winnerModal, #chicagoLegModal) .winner-modal-content::after,
+    #winnerModal .winner-emblem::before,
+    #winnerModal .winner-emblem::after,
+    #winnerModal::before,
+    #winnerModal::after { display: none; }
+}

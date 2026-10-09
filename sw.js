@@ -1,41 +1,79 @@
-const CACHE_NAME = 'blakeout-v38';
+const CACHE_NAME = 'blakeout-v55-coming-soon';
+const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
+const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
+const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
+
+function isOwnCache(name) {
+    return IS_DEV_SCOPE ? name.startsWith('blakeout-dev-') : /^blakeout-v\d/.test(name);
+}
+
+function isOwnPath(url) {
+    if (url.origin !== self.location.origin || !url.pathname.startsWith(APP_SCOPE_PATH)) return false;
+    return IS_DEV_SCOPE || (url.pathname !== NESTED_DEV_PATH.slice(0, -1) && !url.pathname.startsWith(NESTED_DEV_PATH));
+}
+
 const ASSETS = [
-    './',
-    './index.html',
-    './manifest.json',
-    './css/variables.css',
-    './css/layout.css',
-    './css/components.css',
-    './css/games.css',
-    './js/app.js',
-    './js/state.js',
-    './js/ui.js',
-    './js/setup.js',
-    './js/registry.js',
-    './js/picker.js',
-    './js/cricket.js',
-    './js/x01.js',
-    './js/chicago.js',
-    './js/game121.js',
-    './js/baseball.js',
-    './js/bermuda.js',
-    './js/golf.js',
-    './js/shanghai.js',
-    './js/hammer.js',
-    './js/tictactoe.js',
-    './js/robinhood.js',
-    './js/doubledown.js',
-    './js/teamcricket.js',
-    './js/target_game.js',
-    './js/theme.js',
-    './js/settings.js',
-    './assets/background.jpg',
-    './assets/wallpapers/slate.svg',
-    './assets/wallpapers/felt.svg',
-    './assets/wallpapers/wood.svg',
-    './assets/wallpapers/carbon.svg',
-    './assets/logo.png',
-    './assets/qr-prod.svg'
+    "./",
+    "./index.html",
+    "./manifest.json",
+    "./accounts/",
+    "./accounts/index.html",
+    "./brackets/",
+    "./brackets/index.html",
+    "./css/casual-recording.css",
+    "./css/components.css",
+    "./css/dot-better.css",
+    "./css/feature-availability.css",
+    "./css/games.css",
+    "./css/layout.css",
+    "./css/platform-nav.css",
+    "./css/platform.css",
+    "./css/setup.css",
+    "./css/tournament-scoring.css",
+    "./css/variables.css",
+    "./css/winner-celebration.css",
+    "./css/winner.css",
+    "./js/app.js",
+    "./js/baseball.js",
+    "./js/bermuda.js",
+    "./js/brackets/labels.js",
+    "./js/build-context.js",
+    "./js/casual-recording.js",
+    "./js/chicago.js",
+    "./js/cricket.js",
+    "./js/doubledown.js",
+    "./js/feature-availability.js",
+    "./js/firebase-config.js",
+    "./js/firebase.js",
+    "./js/game121.js",
+    "./js/golf.js",
+    "./js/hammer.js",
+    "./js/picker.js",
+    "./js/platform-nav.js",
+    "./js/registry.js",
+    "./js/robinhood.js",
+    "./js/scoring-records.js",
+    "./js/settings.js",
+    "./js/setup.js",
+    "./js/shanghai.js",
+    "./js/state.js",
+    "./js/target_game.js",
+    "./js/teamcricket.js",
+    "./js/teams.js",
+    "./js/theme.js",
+    "./js/tictactoe.js",
+    "./js/tournament-bridge.js",
+    "./js/ui.js",
+    "./js/x01.js",
+    "./assets/background.jpg",
+    "./assets/icon-192.png",
+    "./assets/icon-512.png",
+    "./assets/logo.png",
+    "./assets/qr-prod.svg",
+    "./assets/wallpapers/carbon.svg",
+    "./assets/wallpapers/felt.svg",
+    "./assets/wallpapers/slate.svg",
+    "./assets/wallpapers/wood.svg"
 ];
 
 // Same-origin app code has no version query string, and ES module imports
@@ -49,7 +87,7 @@ const REVALIDATE = /\.(?:js|css|json)$/i;
 function shouldRevalidate(request) {
     if (request.mode === 'navigate') return false;  // browser already does
     const url = new URL(request.url);
-    return url.origin === self.location.origin && REVALIDATE.test(url.pathname);
+    return isOwnPath(url) && REVALIDATE.test(url.pathname);
 }
 
 self.addEventListener('install', (event) => {
@@ -65,10 +103,10 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-    // Delete ALL old caches
+    // Keep production and DEV offline cache families isolated.
     event.waitUntil(
         caches.keys().then((keys) =>
-            Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+            Promise.all(keys.filter((k) => isOwnCache(k) && k !== CACHE_NAME).map((k) => caches.delete(k)))
         ).then(() => self.clients.claim())
     );
 });
@@ -80,7 +118,8 @@ const SDK_ORIGIN = 'https://www.gstatic.com';
 
 function isCacheable(request) {
     const url = new URL(request.url);
-    if (url.origin === self.location.origin) return true;
+    if (url.searchParams.has('oobCode') || url.searchParams.has('apiKey')) return false;
+    if (url.origin === self.location.origin) return isOwnPath(url);
     return url.origin === SDK_ORIGIN && url.pathname.startsWith('/firebasejs/');
 }
 
@@ -98,7 +137,7 @@ self.addEventListener('fetch', (event) => {
             }
             return response;
         }).catch(() => {
-            return caches.match(request);
+            return caches.open(CACHE_NAME).then(cache => cache.match(request));
         })
     );
 });

@@ -459,7 +459,7 @@ function confirmTeams() {
 }
 
 function stripId(p) {
-    return { name: p.name, rosterEmail: p.rosterEmail || null };
+    return { id: p.id || null, playerId: p.playerId || null, name: p.name, rosterEmail: p.rosterEmail || null };
 }
 
 export function initTeamBuilder() {

@@ -6,7 +6,7 @@
      - Theme picker (moved off the setup screen)
      - Wallpaper: bundled presets, Default photo, None, or user upload
      - UI Scale
-    - X01 / Cricket game style (Modern / Classic / DC Mode)
+    - X01 / Cricket game style (Modern / Classic / DC Mode / Dot Better)
 
    Wallpaper persistence: localStorage 'blakeout_wallpaper'
      { type: 'default' } | { type: 'none' } |
@@ -18,7 +18,7 @@
     Game-style persistence retains the legacy localStorage key
     'blakeout_x01_skin'. It is applied as both data-x01-skin (compatibility)
     and data-scoreboard-mode on <html>. Classic and Modern style X01; DC Mode
-    also styles Cricket-family boards.
+    and Dot Better also style Cricket-family boards.
    ============================================ */
 
 import { showModal, hideModal } from './ui.js';
@@ -29,7 +29,8 @@ const SKIN_KEY = 'blakeout_x01_skin';
 export const SCORE_SKINS = [
     { id: 'modern', label: 'Modern', desc: 'Themed keys, roomier pad' },
     { id: 'classic', label: 'Classic', desc: 'Original grey keypad' },
-    { id: 'dc', label: 'DC Mode', desc: 'Black/red X01 + Cricket board' }
+    { id: 'dc', label: 'DC Mode', desc: 'Black/red X01 + Cricket board' },
+    { id: 'dot-better', label: 'Dot Better', desc: 'Charcoal panels, clear scores, full-width pad' }
 ];
 const DEFAULT_SKIN = 'modern';
 

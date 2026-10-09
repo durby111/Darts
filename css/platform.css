@@ -1,0 +1,29 @@
+* { box-sizing: border-box; }
+body.platform-page { margin: 0; background: var(--color-bg, #080b11); color: var(--color-text, #fff); font: 16px/1.6 system-ui, sans-serif; }
+.platform-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem max(1rem, calc((100vw - 1100px) / 2)); background: var(--color-surface, #171c27); border-bottom: 1px solid var(--color-border, #444); }
+.platform-header > a { font-size: 1.2rem; font-weight: 800; text-decoration: none; }
+.platform-header nav { display: flex; flex-wrap: wrap; gap: 1rem; }
+.platform-page a { color: var(--color-accent, #65baff); }
+.platform-header a[aria-current="page"] { color: #fff; text-decoration-thickness: 3px; text-underline-offset: .4em; }
+.dev-badge { display: inline-block; color: #111; background: #ffc857; padding: .05rem .4rem; border-radius: .3rem; font-size: .72em; vertical-align: middle; }
+.platform-main { max-width: 1100px; margin: auto; padding: 1rem; }
+.platform-main h1 { line-height: 1.2; }
+.platform-card { margin: 1rem 0; padding: 1.25rem; background: var(--color-surface, #171c27); border: 1px solid var(--color-border, #444); border-radius: .8rem; min-width: 0; }
+.platform-card h2 { margin-top: 0; }
+.platform-page label { display: block; margin: .75rem 0 .3rem; font-weight: 600; }
+.platform-page input, .platform-page select, .platform-page textarea { display: block; max-width: 100%; width: 100%; background: var(--color-surface-alt, #10151e); color: inherit; font: inherit; border: 1px solid #888; border-radius: .4rem; padding: .6rem; min-height: 48px; }
+.platform-page input[type="checkbox"] { display: inline-block; width: 1.25rem; min-height: 1.25rem; margin-right: .5rem; vertical-align: middle; }
+.platform-page button, .platform-button { display: inline-block; font: inherit; font-weight: 650; background: var(--color-primary-dark, #0052a3); color: #fff; border: 1px solid var(--color-primary-light, #65baff); border-radius: .4rem; min-height: 48px; padding: .6rem 1rem; margin-top: .75rem; cursor: pointer; }
+.platform-page button:disabled { opacity: .55; cursor: not-allowed; }
+.platform-page :focus-visible { outline: 3px solid #ffc857; outline-offset: 3px; }
+.platform-notice { padding: 1rem; border-left: 4px solid #65baff; background: #10223a; overflow-wrap: anywhere; }
+.platform-error { border-left-color: #ff8b86; background: #3a181b; color: #ffe2df; }
+.platform-actions { display: flex; gap: .75rem; flex-wrap: wrap; }
+.platform-page code, #identity { overflow-wrap: anywhere; }
+.platform-page summary { cursor: pointer; font-weight: 650; }
+.platform-page [hidden] { display: none !important; }
+@media (max-width: 520px) {
+    .platform-header { padding: 1rem; }
+    .platform-card { padding: 1rem; }
+    .platform-actions > * { width: 100%; }
+}

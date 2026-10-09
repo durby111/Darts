@@ -484,3 +484,28 @@ October 8's larger winner presentation keeps the same dartboard/strike concept:
 centered oversized emblem and result hierarchy, viewport-wide decorative rings
 and sparks behind the card, a finite 4.2-second maximum, and reduced-motion and
 forced-colors fallbacks. Production/scoring/storage stay unchanged; see DEV notes.
+
+## Production v2.5.0 promotion (October 8)
+
+The current scorer UI/gameplay improvements, optional Dot Better style and larger
+winner celebration are promoted to the production root after the DEV gate review.
+Brackets and Players & Records show Coming soon disabled controls; root direct
+feature URLs are static unavailable shells, with no account application bootstrap.
+DEV keeps its original feature implementations in inert templates for future work.
+Availability flags also prevent account-backed recording setup, tournament query
+launch and cloud-result saves; local scoring/recovery and retained results remain.
+This is a front-end release-availability setting, not a backend authorization change.
+
+`js/build-context.js` derives the build from its module URL: production continues
+using `blakeout_active_game`, DEV retains its separate active/recovery namespace and
+legacy import. Update actions and SW cleanup operate only on their own cache family.
+Root manifest identity, roster/Firebase config and security rules are unchanged.
+Root cache: `blakeout-v55-coming-soon`; DEV: `blakeout-dev-v55-coming-soon`.
+
+Source/unit checks include native-disabled navigation, fail-closed page boot,
+recorded-game local exits/data retention, build isolation, startup import closure,
+precache assets and existing Dot Better/winner checks. Targeted live browser QA is
+separate; full automated/physical-device/offline-browser coverage remains limited.
+Production promotion excludes account/bracket applications, email transport/workers,
+Firebase rules and DEV administrative files. Rollback is a forward code-only revert
+using the recorded pre-promotion root blobs; never erase user data to roll back.

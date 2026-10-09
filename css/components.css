@@ -248,32 +248,6 @@
     margin-top: var(--space-xl);
 }
 
-.winner-name {
-    font-size: clamp(2.5rem, 8vw, 4rem);
-    font-weight: bold;
-    margin: var(--space-2xl) 0;
-    text-shadow: 0 0 30px color-mix(in srgb, var(--color-pending) 50%, transparent);
-}
-
-/* === Winner Modal === */
-.winner-modal-content {
-    background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-surface-alt) 100%);
-    border: 2px solid var(--color-pending);
-    box-shadow: 0 0 60px color-mix(in srgb, var(--color-pending) 30%, transparent);
-}
-
-.winner-trophy {
-    font-size: clamp(4rem, 12vw, 8rem);
-    line-height: 1;
-    margin-bottom: var(--space-md);
-    animation: trophy-bounce 0.6s ease-in-out infinite alternate;
-}
-
-@keyframes trophy-bounce {
-    from { transform: scale(1); }
-    to { transform: scale(1.1); }
-}
-
 /* === Saved Configs List === */
 .config-item {
     display: flex;
