@@ -142,6 +142,12 @@ The DEV integration adds separate collections without changing those rules:
 - One matching team number per partner builds pairs. The live preview does
   not start the tournament. Explicit start shuffles once and locks the roster.
   Completed events appear in History. Byes are not played wins.
+- The connected DEV bracket uses a view-only `brackets/viewport.js` controller.
+  New events open with the entire width and height fitted. Zoom buttons/presets,
+  pointer drag, touch pinch, Ctrl/Command-wheel, arrow keys, and Fit/100% controls
+  move only the diagram. Same-event redraws preserve zoom, pan, and keyboard
+  focus; source links reveal readable matches. See `dev/BRACKET_VIEWPORT.md` for
+  verification coverage and the remaining rendered-browser/physical-touch gate.
 - The pure `dev/js/brackets/engine.js` has no Firebase dependency. All storage
   goes through `dev/js/platform.js`. Public arrays and result `perPlayer`
   counters use canonical JSON strings on the wire for strict rules grammar
