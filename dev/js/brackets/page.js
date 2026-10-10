@@ -2,6 +2,7 @@ import * as platform from '../platform.js';
 import * as engine from './engine.js';
 import { renderDiagram, teamLabel } from './diagram.js';
 import { registrationLabels } from './labels.js';
+import { diagramViewport } from './viewport.js';
 import { confirmDialog } from '../confirm-dialog.js';
 
 const $ = id => document.getElementById(id);
@@ -243,12 +244,13 @@ async function action(operation, onError, isCurrent = () => true) {
 function draw() {
     if (!diagramState) return;
     if (!owner() && current.status === 'registration' && !current.matches.length) {
+        diagramViewport($('diagram')).clear();
         $('diagram').replaceChildren(textElement('p', 'The organizer is preparing the draw. The connected bracket will appear when play starts.', 'diagram-empty'));
         return;
     }
     renderDiagram($('diagram'), diagramState, {
         preview: current.status === 'registration',
-        canScore: !!owner(), onSelect: openResult, scale: $('diagramScale').value,
+        canScore: !!owner(), onSelect: openResult,
     });
 }
 
@@ -450,7 +452,7 @@ function renderTournament() {
     $('bracketHelp').textContent = current.status === 'registration'
         ? (owner() ? 'Complete pairs only; check-in is not required for preview. The draw will be shuffled once when the organizer starts.'
             : 'These are the saved teams. The organizer’s working preview is private until the tournament starts.')
-        : '100% is the readable tablet view; scroll across rounds. Numbered loser references link upper-bracket drop-ins. GF2 is played only if the lower-bracket team wins GF1.';
+        : 'Fit shows the whole bracket; zoom in and drag to explore either side. Numbered loser references link upper-bracket drop-ins. GF2 is played only if the lower-bracket team wins GF1.';
     if (owner() && current.status === 'registration') {
         renderRoster();
         renderProfiles();
@@ -742,8 +744,11 @@ $('discard').addEventListener('click', async () => {
         notice('Cloud is up to date. Live view refreshes every 8 seconds.');
     }, null, confirmation.isCurrent);
 });
-$('diagramScale').addEventListener('change', draw);
-new ResizeObserver(() => { if ($('diagramScale').value === 'fit') draw(); }).observe($('diagram'));
+diagramViewport($('diagram')).configure({
+    select: $('diagramScale'), zoomOut: $('diagramZoomOut'), zoomIn: $('diagramZoomIn'),
+    fit: $('diagramFit'), reset: $('diagramReset'), label: $('diagramZoomLabel'),
+    left: $('diagramPanLeft'), right: $('diagramPanRight'),
+});
 for (const event of ['pagehide', 'popstate', 'hashchange']) window.addEventListener(event, invalidateConfirmation);
 window.addEventListener('beforeunload', event => {
     invalidateConfirmation();

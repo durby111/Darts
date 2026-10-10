@@ -137,9 +137,19 @@
             <section class="platform-card bracket-section">
                 <div class="bracket-toolbar">
                     <div><h2 id="bracketHeading" tabindex="-1">Bracket</h2><p id="bracketHelp"></p></div>
-                    <label>Diagram size<select id="diagramScale"><option value="1">100% · readable</option><option value=".75">75%</option><option value=".5">50%</option><option value="fit">Fit width · overview</option></select></label>
+                    <div class="diagram-controls" role="group" aria-label="Bracket view controls">
+                        <button id="diagramZoomOut" type="button" aria-label="Zoom out">−</button>
+                        <label class="diagram-scale-label">Zoom<select id="diagramScale" aria-label="Bracket zoom"><option value="fit">Fit entire bracket</option><option value="0.25">25%</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100% · readable</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+                        <button id="diagramZoomIn" type="button" aria-label="Zoom in">+</button>
+                        <button id="diagramFit" type="button">Fit bracket</button>
+                        <button id="diagramReset" type="button">100%</button>
+                        <button id="diagramPanLeft" type="button" aria-label="Pan bracket left">←</button>
+                        <button id="diagramPanRight" type="button" aria-label="Pan bracket right">→</button>
+                        <output id="diagramZoomLabel" aria-live="off"></output>
+                    </div>
                 </div>
-                <div id="diagram" class="diagram-viewport" tabindex="0" aria-label="Connected tournament bracket. Scroll to see all rounds."></div>
+                <p id="diagramInstructions" class="diagram-instructions">Drag to move · Pinch or Ctrl/⌘ + wheel to zoom · Keyboard: arrows to move, +/− to zoom, 0 to fit, 1 for 100%</p>
+                <div id="diagram" class="diagram-viewport" tabindex="0" role="region" aria-label="Connected tournament bracket" aria-describedby="diagramInstructions"></div>
             </section>
             <section id="resultPanel" class="platform-card" hidden>
                 <h2 id="resultHeading"></h2>

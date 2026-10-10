@@ -4,6 +4,23 @@ Dated entries preserve their original release scope and test limits. Current
 feature work is DEV-only; see FEATURE_READINESS.md. Account/bracket transports
 and DEV-specific configuration must not be blindly copied into production.
 
+## October 10 Dynamic Bracket View (Draft, Unpublished)
+
+- The shared DEV bracket diagram now fits its full width and height, with
+  responsive zoom presets, +/−, 100%, horizontal navigation, pointer dragging,
+  anchored Ctrl/Command-wheel zoom, pinch zoom, and keyboard alternatives.
+- The scroll plane stays bounded and preserves position/zoom through polling.
+  Source links reveal readable matches, and keyboard focus survives redraws.
+  Drag/cancel/implicit touch-capture transfer cannot activate a score action.
+- Thirteen new viewport VM/DOM groups and the existing fourteen regression
+  suites pass, including 219 correction-core tests and preview isolation.
+  Geometry is explicitly mocked. Browser regressions are prepared, but local
+  Chromium fails during launch because the runtime denies its required socket,
+  including after the supported escalation retry. No rendered or device pass
+  is claimed; see BRACKET_VIEWPORT.md before publication.
+- Prepared DEV cache v58 adds the viewport module. Production assets, feature
+  gates, Firebase, storage schemas, scoring, and preview transport are unchanged.
+
 ## October 8 Feature Readiness (Local, Unpublished)
 
 - Production release `19d030f` and both Coming soon gates stay unchanged.

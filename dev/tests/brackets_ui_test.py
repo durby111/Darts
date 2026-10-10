@@ -655,7 +655,7 @@ async def test_spectator_and_layout(browser, base):
         assert "Player" in await page.locator("#diagram").inner_text()
         assert "Not decided" in await page.locator("#diagram").inner_text()
         assert await page.locator(".connector").count() > 60
-        assert await page.locator("#diagramScale").input_value() == "1"
+        assert await page.locator("#diagramScale").input_value() == "fit"
         for width in (1024, 768, 390):
             await page.set_viewport_size({"width": width, "height": 900})
             assert await page.evaluate("document.documentElement.scrollWidth <= innerWidth+1"), f"Body overflow at {width}"
@@ -663,13 +663,75 @@ async def test_spectator_and_layout(browser, base):
         await page.wait_for_timeout(150)
         assert await page.evaluate("""() => {
             const d=document.querySelector('#diagram');
-            return d.scrollWidth <= d.clientWidth+2;
+            return d.scrollWidth <= d.clientWidth+2 && d.scrollHeight <= d.clientHeight+2;
         }""")
         await page.select_option("#diagramScale", "1")
         await page.locator(".source-jump").first.click()
         await page.wait_for_function("document.activeElement.classList.contains('match-card')")
         assert "join immediately" in (await page.locator("#spectatorNote").inner_text()).lower()
         return "public names-only controls, 63 connected nodes, tablet/mobile containment, fit and source jumps"
+    finally:
+        await context.close()
+
+
+async def test_viewport_pan_zoom(browser, base):
+    """Rendered interaction regression; entirely local mocked tournament data."""
+    context, page = await fresh(browser, base, status="live", count=32, touch=True)
+    try:
+        await page.locator("#diagram").scroll_into_view_if_needed()
+        await page.wait_for_timeout(100)
+        assert await page.locator("#diagramScale").input_value() == "fit"
+        assert await page.evaluate("""() => {
+            const d=document.querySelector('#diagram'), c=d.querySelector('.diagram-canvas');
+            const a=d.getBoundingClientRect(), b=c.getBoundingClientRect();
+            return b.left>=a.left && b.right<=a.right && b.top>=a.top && b.bottom<=a.bottom;
+        }""")
+        await page.locator('#diagramReset').click()
+        await page.evaluate("""() => {
+            const d=document.querySelector('#diagram'); d.scrollLeft=500; d.scrollTop=1000;
+        }""")
+        await page.locator('#diagram').scroll_into_view_if_needed()
+        box = await page.locator('#diagram').bounding_box()
+        x, y = box['x'] + 220, box['y'] + 180
+        before = await page.evaluate("[diagram.scrollLeft,diagram.scrollTop]")
+        await page.mouse.move(x, y)
+        await page.mouse.down()
+        await page.mouse.move(x - 100, y - 80, steps=8)
+        await page.mouse.up()
+        after = await page.evaluate("[diagram.scrollLeft,diagram.scrollTop]")
+        assert abs(after[0] - before[0] - 100) < 2
+        assert abs(after[1] - before[1] - 80) < 2
+        assert await page.locator('#resultPanel').is_hidden()
+        await page.locator('#diagramZoomIn').click()
+        assert abs(float(await page.locator('#diagram').get_attribute('data-zoom')) - 1.25) < .001
+        saved = await page.evaluate("[diagram.scrollLeft,diagram.scrollTop,diagram.dataset.zoom]")
+        await page.evaluate("async () => (await import('/js/brackets/page.js')).refreshSelected()")
+        assert await page.evaluate("[diagram.scrollLeft,diagram.scrollTop,diagram.dataset.zoom]") == saved
+        # Real browser touch dispatch exercises implicit pointer-capture transfer.
+        await page.locator('#diagram').scroll_into_view_if_needed()
+        box = await page.locator('#diagram').bounding_box()
+        x, y = box['x'] + 180, box['y'] + 160
+        cdp = await context.new_cdp_session(page)
+        await cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [
+            {'x': x, 'y': y, 'id': 1}, {'x': x + 120, 'y': y, 'id': 2}]})
+        await cdp.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [
+            {'x': x - 30, 'y': y, 'id': 1}, {'x': x + 150, 'y': y, 'id': 2}]})
+        await cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
+        assert float(await page.locator('#diagram').get_attribute('data-zoom')) > 1.25
+        assert not await page.locator('#diagram').evaluate("e=>e.classList.contains('is-panning')")
+        assert await page.locator('#resultPanel').is_hidden()
+        for width, height in ((390, 844), (844, 390), (768, 1024), (1280, 800)):
+            await page.set_viewport_size({'width': width, 'height': height})
+            await page.locator('#diagramFit').click()
+            await page.wait_for_timeout(100)
+            assert await page.evaluate("document.documentElement.scrollWidth<=innerWidth+1")
+            assert await page.evaluate("diagram.scrollWidth<=diagram.clientWidth+2 && diagram.scrollHeight<=diagram.clientHeight+2")
+        for theme in ('blue', 'arctic'):
+            for style in ('modern', 'classic', 'dc', 'dot-better'):
+                await page.evaluate("([theme,style])=>{document.documentElement.dataset.theme=theme;document.documentElement.dataset.scoreboardMode=style}", [theme, style])
+                assert await page.locator('#diagramFit').is_visible()
+                assert await page.locator('#diagramFit').evaluate("e=>e.getBoundingClientRect().height>=44")
+        return "whole-bracket bounds, mouse drag, pinch capture, refresh persistence, 4 viewport sizes and 8 appearance combinations"
     finally:
         await context.close()
 
@@ -1240,6 +1302,7 @@ TESTS = {
     "bulk_flags_and_odd_warning": test_bulk_flags_and_odd_warning,
     "failures_and_polling": test_failures_and_polling,
     "spectator_and_layout": test_spectator_and_layout,
+    "viewport_pan_zoom": test_viewport_pan_zoom,
     "manual_results_and_history": test_manual_results_and_history,
     "creation_and_launch": test_creation_and_launch,
     "manual_reset": test_manual_reset,

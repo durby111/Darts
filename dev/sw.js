@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v57-feature-preview';
+const CACHE_NAME = 'blakeout-dev-v58-bracket-pan-zoom';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -49,6 +49,7 @@ const ASSETS = [
     './js/accounts-page.js',
     './js/brackets/engine.js',
     './js/brackets/diagram.js',
+    './js/brackets/viewport.js',
     './js/brackets/labels.js',
     './js/brackets/page.js',
     './js/tournament-bridge.js',

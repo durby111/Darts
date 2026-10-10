@@ -65,7 +65,8 @@ Brackets:
   draft edits, ordering, bulk flags, team pairing, blockers and preview diagram
 - Save sample roster in memory, cancel/confirm start and lock, manual scores or
   forfeit, cancel/confirm result save, bracket progression and source jumps
-- Current shared app-owned confirmations and 100%/75%/50%/fit diagram controls
+- Current shared app-owned confirmations and the full-bracket Fit, zoom, drag,
+  pinch, keyboard, and readable source-jump controls (see ../BRACKET_VIEWPORT.md)
 
 The sample owner is already registered in the default event. Create a new sample
 event to exercise the owner's Join tournament action. Guest joins are idempotent
