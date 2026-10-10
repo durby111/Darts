@@ -1,14 +1,15 @@
 # DEV sample-data preview
 
-Entry points (after an authorized DEV publication):
+Entry points (available from DEV setup and Game Menu):
 
 - `/dev/preview/` — preview links
 - `/dev/preview/accounts/` — Players & Records
 - `/dev/preview/brackets/` — Brackets
 
 Every page is labeled **Preview · sample data · nothing is saved or sent**.
-The real `/dev/accounts/`, `/dev/brackets/`, production pages, and feature flags
-are unchanged. The preview is a UI testing surface, not authentication,
+DEV `/dev/accounts/` and `/dev/brackets/` now redirect here without forwarding
+real event IDs or account-action tokens. Production pages remain Coming soon;
+real-provider availability flags stay off. The preview is a UI testing surface, not authentication,
 persistence, deliverability, backend-permission, or production-readiness proof.
 
 ## Implementation and isolation

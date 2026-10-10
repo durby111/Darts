@@ -132,7 +132,7 @@ bridge.initTournamentBridge();
 await bridge.launchRequestedMatch();
 assert.equal(counts.reads, 0); assert.equal(counts.imports, 0); assert.equal(counts.confirms, 0);
 assert.equal(bytes(), beforeLaunch);
-assert.match(nodes.get('tournamentBridgeNotice').textContent, /coming soon/i);
+assert.match(nodes.get('tournamentBridgeNotice').textContent, /sample|Cloud off/i);
 assert.ok(documentEvents.has('scorerLegWon'));
 pass('URL/direct launch stops before launch-record reads, auth, confirmation or storage changes; scorer listeners still attach');
 
@@ -172,7 +172,7 @@ document.dispatchEvent(new context.CustomEvent('scorerLegWon', { detail: { winne
 bridge.renderTournamentControls();
 for (const id of ['tournamentReturn', 'tournamentResultReturn', 'tournamentSaveResult']) {
     assert.equal(nodes.get(id).disabled, true, id);
-    assert.match(nodes.get(id).textContent, /Coming soon/);
+    assert.match(nodes.get(id).textContent, /Cloud off/);
 }
 const resultState = JSON.stringify(state.game), resultStorage = bytes();
 const confirmsBefore = counts.confirms, writesBefore = counts.writes;
@@ -217,8 +217,8 @@ assert.match(nodes.get('tournamentResultPanel').children[0].textContent, /stay o
 casual.initCasualRecording();
 assert.equal(nodes.get('recordCasualStats').disabled, true);
 assert.equal(nodes.get('recordCasualStats').checked, false);
-assert.ok(nodes.get('recordCasualStats').parentElement.children.some(child => child.textContent === 'Coming soon'));
-assert.match(nodes.get('casualRecordingHint').textContent, /coming soon/i);
+assert.ok(nodes.get('recordCasualStats').parentElement.children.some(child => child.textContent === 'Cloud off'));
+assert.match(nodes.get('casualRecordingHint').textContent, /sample|Cloud off/i);
 assert.ok(nodes.get('casualRecoveryList').children.length > 0);
 const historyText = nodes.get('casualRecoveryList').children.map(child => child.textContent).join(' ');
 assert.match(historyText, /THIS_BUILD/); assert.doesNotMatch(historyText, /OTHER_BUILD/);
@@ -231,7 +231,7 @@ assert.equal(state.game.recording.pendingResult.retained, true);
 assert.equal(recoveryData(localStorage[prefix + 'casual_casual-r1']), recoveryBefore);
 assert.equal(localStorage[otherPrefix + 'active_game'], '{"untouched":"other-build"}');
 assert.equal(counts.removals, 0);
-pass('casual cloud save cannot mutate pending results; optional stats shows Coming soon while local recovery remains resumable');
+pass('casual cloud save cannot mutate pending results; optional stats explains cloud saving is off while local recovery remains resumable');
 
 flags.accounts = true; flags.brackets = false;
 bridge.renderTournamentControls();

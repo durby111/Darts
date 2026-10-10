@@ -277,8 +277,8 @@ await test('all bracket scenarios render and internal navigation never targets r
         } finally { h.close(); }
     }
 });
-await test('preview files are independent of real entrypoints, availability, provider modules and SW precaches', async () => {
-    for (const p of ['sw.js', 'index.html', 'js/feature-page.js', 'js/platform.js', 'js/feature-availability.js']) assert.ok(!read(p).includes('/preview/'), `${p} must not depend on preview`);
+await test('DEV entries expose samples while provider modules and SW precaches remain isolated', async () => {
+    for (const p of ['sw.js', 'index.html', 'js/platform.js']) assert.ok(!read(p).includes('/preview/'), `${p} must not depend on preview`);
     const root = path.resolve(dev, '..');
     assert.equal(fs.existsSync(path.join(root, 'preview')), false);
     for (const p of ['js/feature-availability.js', '../js/feature-availability.js']) {

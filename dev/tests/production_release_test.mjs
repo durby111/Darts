@@ -21,7 +21,8 @@ pass(`${modules.size} actual production startup modules parse/link with all stat
 const html=read('index.html');assert.ok(!html.includes('class="dev-build"'));assert.ok(!html.includes('css/dev.css'));assert.ok(html.includes('<title>BlakeOut Darts</title>'));
 for(const m of html.matchAll(/(?:src|href)="((?:js|css)\/[^"?]+)"/g))assert.ok(fs.existsSync(path.join(root,m[1])),m[1]);
 const manifest=JSON.parse(read('manifest.json'));assert.equal(manifest.name,'BlakeOut Darts');assert.equal(manifest.short_name,'BlakeOut');
-assert.equal(read('js/feature-availability.js'),read('dev/js/feature-availability.js'));
+assert.ok(!read('js/feature-availability.js').includes('FEATURE_TEST_ROUTES'));
+assert.ok(read('dev/js/feature-availability.js').includes('FEATURE_TEST_ROUTES'));
 assert.ok(read('js/feature-availability.js').includes('brackets: false'));assert.ok(read('js/feature-availability.js').includes('accounts: false'));
 for(const feature of ['accounts','brackets']){
  const page=read(feature+'/index.html');assert.ok(page.includes('Coming soon'));
@@ -30,7 +31,11 @@ for(const feature of ['accounts','brackets']){
  assert.ok(!/href="(?!\.\.\/|\.\.\/css\/)[^\"]+"/.test(page));
 }
 pass('production identity retained; both direct feature routes are static disabled shells without account apps');
-for(const rel of ['js/state.js','js/app.js','js/build-context.js','js/casual-recording.js','js/tournament-bridge.js','js/scoring-records.js'])assert.equal(read(rel),read('dev/'+rel),rel);
+for(const rel of ['js/state.js','js/app.js','js/build-context.js','js/scoring-records.js'])assert.equal(read(rel),read('dev/'+rel),rel);
+for (const file of ['js/casual-recording.js','js/tournament-bridge.js']) {
+ const devCode=read('dev/'+file).replaceAll('DEV uses sample Brackets and Players & Records.', 'Brackets and Players & Records are coming soon.').replaceAll('DEV uses sample Players & Records.', 'Players & Records is coming soon.').replaceAll('DEV uses sample Players & Records;', 'Players & Records is coming soon;').replaceAll('DEV brackets use sample data.', 'Brackets are coming soon.').replaceAll('Cloud off','Coming soon');
+ assert.equal(devCode,read(file),'Only DEV explanatory copy differs: '+file);
+}
 assert.ok(!fs.existsSync(path.join(root,'js/platform.js')));assert.ok(!fs.existsSync(path.join(root,'js/account-email.js')));
 pass('tested scorer/build-isolation modules copied exactly; account transport not promoted');
 for(const build of ['','dev/']){

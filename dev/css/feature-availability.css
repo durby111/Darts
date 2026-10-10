@@ -58,3 +58,5 @@
     outline: 3px solid var(--color-primary-light);
     outline-offset: 3px;
 }
+
+.feature-test-badge { display: inline-block; padding: .25rem .5rem; border: 1px solid var(--color-border-light); border-radius: var(--platform-control-radius, var(--radius-sm)); background: var(--color-surface-alt); color: var(--color-text); font-size: .8rem; font-weight: 650; }

@@ -39,7 +39,7 @@ async function boot({ theme, mode, feature = 'accounts', unavailableStorage = fa
         createElement: () => ({ setAttribute() {} }),
         querySelector: selector => selector === 'main' ? { prepend: notice => notices.push(notice) } : null,
     };
-    const context = vm.createContext({ document,
+    const context = vm.createContext({ document, URL, location: { replace() {} },
         CustomEvent: class { constructor(type, init) { this.type = type; this.detail = init.detail; } },
         localStorage: {
             getItem(key) { if (unavailableStorage) throw new Error('Storage disabled'); return storage.get(key) ?? null; },
@@ -54,7 +54,7 @@ async function boot({ theme, mode, feature = 'accounts', unavailableStorage = fa
             const source = file === 'feature-availability.js' && unlocked
                 ? 'export const isFeatureAvailable = () => true;'
                 : read(`js/${file}`);
-            cache.set(file, new vm.SourceTextModule(source, { context, identifier: file,
+            cache.set(file, new vm.SourceTextModule(source, { context, identifier: file, initializeImportMeta: meta => { meta.url = `https://example.test/dev/js/${file}`; },
                 importModuleDynamically: async specifier => {
                     imports.push(specifier);
                     if (failImport) throw new Error('Fixture import failure');

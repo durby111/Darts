@@ -58,3 +58,7 @@
     background: var(--color-surface-alt);
     opacity: 1;
 }
+
+/* DEV-only entry to the isolated sample tests, not real provider access. */
+.dev-app-nav a[data-app-feature] { gap: .4rem; flex-wrap: wrap; }
+.feature-test-badge { display: inline-block; padding: 3px 6px; border: 1px solid var(--color-border-light); border-radius: var(--radius-sm); color: var(--color-text); background: var(--color-surface-alt); font-size: .7rem; font-weight: 650; line-height: 1.2; }

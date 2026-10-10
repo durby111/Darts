@@ -497,7 +497,11 @@ The current scorer UI/gameplay improvements, optional Dot Better style and large
 winner celebration are promoted to the production root after the DEV gate review.
 Brackets and Players & Records show Coming soon disabled controls; root direct
 feature URLs are static unavailable shells, with no account application bootstrap.
-DEV keeps its original feature implementations in inert templates for future work.
+DEV keeps real-provider availability off, but its setup/Game Menu links and direct
+Brackets / Players & Records routes now open the interactive sample tests under
+`/dev/preview/`. These are labeled sample data, with memory-only edits and no
+credentials/email, cloud writes, exports or sample-to-scorer launch. Incoming
+real event IDs and account-action tokens are not forwarded. Production stays gated.
 Availability flags also prevent account-backed recording setup, tournament query
 launch and cloud-result saves; local scoring/recovery and retained results remain.
 This is a front-end release-availability setting, not a backend authorization change.
@@ -506,7 +510,7 @@ This is a front-end release-availability setting, not a backend authorization ch
 using `blakeout_active_game`, DEV retains its separate active/recovery namespace and
 legacy import. Update actions and SW cleanup operate only on their own cache family.
 Root manifest identity, roster/Firebase config and security rules are unchanged.
-Root cache: `blakeout-v55-coming-soon`; DEV: `blakeout-dev-v55-coming-soon`.
+Root cache: `blakeout-v55-coming-soon`; DEV: `blakeout-dev-v61-test-navigation`.
 
 Source/unit checks include native-disabled navigation, fail-closed page boot,
 recorded-game local exits/data retention, build isolation, startup import closure,

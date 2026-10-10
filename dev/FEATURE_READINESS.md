@@ -1,5 +1,13 @@
 # Feature readiness — October 8, 2026 (Central)
 
+## Current DEV entry status (October 10)
+
+DEV menus and direct Brackets / Players & Records routes are open to interactive
+sample tests. They are labeled sample data; changes are in memory only. This
+supersedes the older UI gate description below, not backend-readiness limits.
+Real sign-in, email, cloud writes, exports and scorer launch from sample events
+remain off. Production Coming soon gates are unchanged.
+
 ## Release boundary
 
 This is local DEV work based on production commit

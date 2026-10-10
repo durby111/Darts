@@ -19,29 +19,34 @@ const context=vm.createContext({URL,document:{createElement:t=>new Node(t),query
 const flags=new vm.SourceTextModule(read('js/feature-availability.js'),{context});await flags.link(()=>{});await flags.evaluate();
 for(const f of ['accounts','brackets','unknown'])assert.equal(flags.namespace.isFeatureAvailable(f),false);
 assert.equal(Object.isFrozen(flags.namespace.FEATURE_AVAILABILITY),true);
-pass('default flags are explicit, frozen and unavailable without URL/storage overrides');
+assert.equal(flags.namespace.featureTestPath('brackets'),'preview/brackets/');
+assert.equal(flags.namespace.featureTestPath('accounts'),'preview/accounts/');
+assert.equal(flags.namespace.featureTestPath('unknown'),null);
+pass('real providers remain off; explicit sample test routes are available without bypasses');
 const nav=new vm.SourceTextModule(read('js/platform-nav.js'),{context,initializeImportMeta:m=>{m.url='https://example.test/dev/js/platform-nav.js';}});
 await nav.link(s=>{assert.equal(s,'./feature-availability.js');return flags;});await nav.evaluate();
 for(const row of [attached[0],menu.children[0]]){
     assert.equal(row.children.length,3);
     assert.equal(row.children[0].tag,'a');assert.equal(row.children[0].href,'https://example.test/dev/');
     for(const [i,f] of [[1,'brackets'],[2,'accounts']]){
-        const b=row.children[i];assert.equal(b.tag,'button');assert.equal(b.type,'button');assert.equal(b.disabled,true);
-        assert.equal(b.dataset.appFeature,f);assert.ok(!('href' in b));
-        assert.equal(b.children[0].textContent,'Coming soon');
+        const b=row.children[i];assert.equal(b.tag,'a');assert.equal(b.disabled,false);
+        assert.equal(b.dataset.appFeature,f);assert.equal(b.href,`https://example.test/dev/preview/${f}/`);
+        assert.equal(b.children[0].textContent,'Sample');
+
     }
 }
-pass('setup and cloned Game Menu use genuinely disabled, badged, target-free buttons');
+pass('setup and cloned Game Menu expose active, clearly labeled sample links');
 for(const feature of ['accounts','brackets','unknown']){
-    let dynamic=0,domAccess=0;
-    const ctx=vm.createContext({document:{body:{dataset:{appFeature:feature}},getElementById(){domAccess++;throw Error('Locked page touched live feature DOM');}}});
+    let dynamic=0,domAccess=0; const destinations=[];
+    const ctx=vm.createContext({URL,location:{replace:url=>destinations.push(url)},document:{body:{dataset:{appFeature:feature}},getElementById(){domAccess++;throw Error('Locked page touched live feature DOM');}}});
     const flag=new vm.SourceTextModule(read('js/feature-availability.js'),{context:ctx});await flag.link(()=>{});await flag.evaluate();
     const theme=new vm.SyntheticModule([],()=>{},{context:ctx});await theme.link(()=>{});await theme.evaluate();
-    const boot=new vm.SourceTextModule(read('js/feature-page.js'),{context:ctx,importModuleDynamically:()=>{dynamic++;throw Error('Feature initialized');}});
+    const boot=new vm.SourceTextModule(read('js/feature-page.js'),{context:ctx,initializeImportMeta:m=>{m.url='https://example.test/dev/js/feature-page.js';},importModuleDynamically:()=>{dynamic++;throw Error('Feature initialized');}});
     await boot.link(s=>s==='./feature-availability.js'?flag:theme);await boot.evaluate();
     assert.equal(dynamic,0);assert.equal(domAccess,0);
+    assert.deepEqual(destinations,feature==='unknown'?[]:[`https://example.test/dev/preview/${feature}/`]);
 }
-pass('locked entrypoint never imports account/bracket code or touches feature UI');
+pass('direct routes enter samples without importing providers or consuming real action tokens');
 const htmlResult=execFileSync('python3',['-c',String.raw`
 from html.parser import HTMLParser
 from pathlib import Path
@@ -64,12 +69,14 @@ for feature in ['accounts','brackets']:
  assert p.template and p.depth==0
  assert p.forms==0,(feature,'live form')
  assert p.scripts==['../js/feature-page.js'],p.scripts
- assert p.links and all(h=='../' for h in p.links),p.links
- assert p.buttons==[True,True],p.buttons
+ assert p.links and all(h in ['../','../preview/accounts/','../preview/brackets/'] for h in p.links),p.links
+ assert '../preview/'+feature+'/' in p.links
+ assert 'Coming soon' not in s
+ assert p.buttons==[],p.buttons
  assert 'data-app-feature="'+feature+'"' in s
-print(json.dumps({'routes':['accounts/','accounts/index.html','brackets/','brackets/index.html'],'forms':0,'active_feature_links':0}))
+print(json.dumps({'routes':['accounts/','accounts/index.html','brackets/','brackets/index.html'],'forms':0,'sample_feature_links':3}))
 `,dev],{encoding:'utf8'});
-console.log(htmlResult.trim());pass('slash/index/query/hash arrivals share fail-closed static shells; original markup is inert');
+console.log(htmlResult.trim());pass('static fallback offers working sample links; real-provider markup stays inert');
 const sw=read('sw.js');for(const asset of ['./js/feature-availability.js','./js/feature-page.js','./css/feature-availability.css','./js/build-context.js'])assert.ok(sw.includes("'"+asset+"'"));
 assert.ok(read('js/firebase.js').includes('getRosterId'));
 pass('gate/build assets precached; ordinary roster module retained');

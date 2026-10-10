@@ -10,8 +10,8 @@ import { BUILD_STORAGE } from './build-context.js';
 
 const LAUNCH_KEY = BUILD_STORAGE.matchRecoveryPrefix + 'launch';
 const SUPPORTED = RECORDING_GAMES;
-const BRACKETS_NOTICE = 'Brackets are coming soon. Your recorded game stays on this device; use Resume to continue local scoring.';
-const SAVE_NOTICE = 'Brackets and Players & Records are coming soon. Cloud saving is unavailable; your recorded game and results stay on this device.';
+const BRACKETS_NOTICE = 'DEV brackets use sample data. Your recorded game stays on this device; use Resume to continue local scoring.';
+const SAVE_NOTICE = 'DEV uses sample Brackets and Players & Records. Cloud saving is unavailable; your recorded game and results stay on this device.';
 let saving = false;
 let initialized = false;
 
@@ -252,7 +252,7 @@ export function renderTournamentControls(message = '') {
     }
     returnButton.hidden = !game.tournament;
     returnButton.disabled = !isFeatureAvailable('brackets');
-    returnButton.textContent = returnButton.disabled ? 'Return to tournament brackets · Coming soon' : 'Return to tournament brackets';
+    returnButton.textContent = returnButton.disabled ? 'Return to tournament brackets · Cloud off' : 'Return to tournament brackets';
     returnButton.title = returnButton.disabled ? BRACKETS_NOTICE : '';
     if (!session) return;
     if (session.legComplete) {
@@ -307,7 +307,7 @@ export function renderTournamentControls(message = '') {
     text.textContent = message || `${casual ? 'Scorekeeper-declared casual record.' : 'Series: ' + session.legWins.join(' – ') + '.'} ${session.status === 'saved' ? 'Saved.' : 'Not yet sent.'}`;
     const cloudSaveAvailable = isFeatureAvailable('accounts') && (casual || isFeatureAvailable('brackets'));
     if (!cloudSaveAvailable && !message) text.textContent += ' ' + (casual
-        ? 'Players & Records is coming soon. Cloud saving is unavailable; your recorded game and results stay on this device.'
+        ? 'DEV uses sample Players & Records. Cloud saving is unavailable; your recorded game and results stay on this device.'
         : SAVE_NOTICE);
     panel.append(text);
     if (!cloudSaveAvailable) {
@@ -324,7 +324,7 @@ export function renderTournamentControls(message = '') {
             button('Save tournament result', 'tournamentSaveResult', saveTournamentResult);
         save.disabled = !cloudSaveAvailable || saving || ['saving', 'saved'].includes(session.status);
         if (!cloudSaveAvailable) {
-            save.textContent += ' · Coming soon';
+            save.textContent += ' · Cloud off';
             save.title = text.textContent;
         }
         panel.append(save);
@@ -333,7 +333,7 @@ export function renderTournamentControls(message = '') {
         const returnResult = button('Return to brackets', 'tournamentResultReturn', returnToBrackets);
         returnResult.disabled = !isFeatureAvailable('brackets');
         if (returnResult.disabled) {
-            returnResult.textContent += ' · Coming soon';
+            returnResult.textContent += ' · Cloud off';
             returnResult.title = BRACKETS_NOTICE;
         }
         panel.append(returnResult);

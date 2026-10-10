@@ -1,4 +1,4 @@
-import { isFeatureAvailable } from './feature-availability.js';
+import * as availability from './feature-availability.js';
 
 const base = new URL('../', import.meta.url);
 const nav = document.createElement('nav');
@@ -9,7 +9,8 @@ for (const [label, path, feature] of [
     ['Brackets', 'brackets/', 'brackets'],
     ['Players & Records', 'accounts/', 'accounts']
 ]) {
-    const locked = feature && !isFeatureAvailable(feature);
+    const testPath = feature && !availability.isFeatureAvailable(feature) ? availability.featureTestPath?.(feature) : null;
+    const locked = feature && !availability.isFeatureAvailable(feature) && !testPath;
     // Native disabled buttons have no link target and remain disabled after
     // cloneNode into Game Menu (event-only anchor guards would not survive).
     const item = document.createElement(locked ? 'button' : 'a');
@@ -21,10 +22,18 @@ for (const [label, path, feature] of [
         item.className = 'feature-nav-disabled';
         const badge = document.createElement('span');
         badge.className = 'feature-coming-soon-badge';
-        badge.textContent = 'Coming soon';
+        badge.textContent = 'Unavailable';
         item.append(badge);
     } else {
-        item.href = new URL(path, base).href;
+        item.href = new URL(testPath || path, base).href;
+        if (testPath) {
+            item.dataset.appFeature = feature;
+            item.title = 'Interactive DEV test with sample data; nothing is saved or sent.';
+            const badge = document.createElement('span');
+            badge.className = 'feature-test-badge';
+            badge.textContent = 'Sample';
+            item.append(badge);
+        }
         if (path === './') item.setAttribute('aria-current', 'page');
     }
     nav.append(item);

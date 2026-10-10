@@ -1,4 +1,4 @@
-import { isFeatureAvailable } from './feature-availability.js';
+import * as availability from './feature-availability.js';
 import './feature-appearance.js';
 
 // Feature markup lives in an inert template. A locked or failed-to-load
@@ -6,7 +6,7 @@ import './feature-appearance.js';
 const feature = document.body.dataset.appFeature;
 const modulePath = feature === 'accounts' ? './accounts-page.js'
     : feature === 'brackets' ? './brackets/page.js' : null;
-if (modulePath && isFeatureAvailable(feature)) {
+if (modulePath && availability.isFeatureAvailable(feature)) {
     const template = document.getElementById('featurePageTemplate');
     const shell = document.getElementById('featureUnavailableShell');
     if (template && shell) {
@@ -20,4 +20,8 @@ if (modulePath && isFeatureAvailable(feature)) {
             document.querySelector('main')?.prepend(notice);
         });
     }
+}
+else {
+    const testPath = modulePath && availability.featureTestPath?.(feature);
+    if (testPath) location.replace(new URL(`../${testPath}`, import.meta.url).href);
 }

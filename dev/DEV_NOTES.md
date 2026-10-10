@@ -4,6 +4,25 @@ Dated entries preserve their original release scope and test limits. Current
 feature work is DEV-only; see FEATURE_READINESS.md. Account/bracket transports
 and DEV-specific configuration must not be blindly copied into production.
 
+## October 10 Open DEV Test Navigation
+
+- Replace DEV Coming soon navigation with working Brackets and Players & Records
+  links, labeled Sample, in both setup and Game Menu. Direct DEV slash/index
+  routes open the corresponding interactive sample page; fallback HTML also
+  exposes working links. Incoming real IDs, query tokens and fragments are not
+  forwarded to sample fixtures.
+- Keep real provider availability off. Account credentials/email, cloud result
+  writes, export and scorer launch from sample tournaments remain unavailable.
+  Test edits live in memory and reset on reload; ordinary DEV scoring and saved
+  local games are retained. Remaining cloud-disabled actions say Cloud off.
+- Production routes, Coming soon controls, Firebase, schemas and security stay
+  unchanged. DEV cache v61 refreshes the entry modules and labels.
+- Validation: all 16 source/DOM suites; actual setup keyboard links, Game Menu
+  pointer links, canonical direct routes, saved theme/style propagation and
+  production gates. Full bracket browser suite remains 23/24, solely the known
+  pre-existing Start feedback setup failure. Direct live retrieval remains
+  subject to this workspace's proxy restriction.
+
 ## October 10 Bracket Structure and Shared Theme (DEV publication)
 
 - Replace isolated-looking match cards with compact two-team matchups, named

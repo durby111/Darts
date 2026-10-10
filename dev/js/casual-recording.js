@@ -5,7 +5,7 @@ import { isFeatureAvailable } from './feature-availability.js';
 import { BUILD_STORAGE } from './build-context.js';
 
 const HISTORY_KEY = BUILD_STORAGE.casualRecoveryPrefix + 'history';
-const ACCOUNTS_NOTICE = 'Players & Records is coming soon. Cloud saving is unavailable; your recorded games and results stay on this device. Use Resume to continue local scoring.';
+const ACCOUNTS_NOTICE = 'DEV uses sample Players & Records. Cloud saving is unavailable; your recorded games and results stay on this device. Use Resume to continue local scoring.';
 let preparing = false;
 let saving = false;
 
@@ -48,7 +48,7 @@ export function initCasualRecording() {
         toggle.setAttribute('aria-describedby', 'casualRecordingHint');
         const badge = document.createElement('span');
         badge.className = 'feature-coming-soon-badge';
-        badge.textContent = 'Coming soon';
+        badge.textContent = 'Cloud off';
         toggle.parentElement.append(badge);
     }
     const updateHint = () => {
@@ -274,7 +274,7 @@ export function renderCasualHistory() {
             const note = document.createElement('p');
             note.textContent = `${history.length} recent confirmed casual records on this device. ` + (isFeatureAvailable('accounts')
                 ? 'Linked players can view their full statistics in Accounts.'
-                : 'Players & Records is coming soon; local recorded games remain available above.');
+                : 'DEV uses sample Players & Records; local recorded games remain available above.');
             list.append(note);
         }
     } catch (error) {
@@ -283,7 +283,7 @@ export function renderCasualHistory() {
         warning.setAttribute('role', 'alert');
         warning.textContent = 'Saved-game history could not be read on this device. Pending games above are separate and have not been removed. ' + (isFeatureAvailable('accounts')
             ? 'Cloud records remain available in Accounts.'
-            : 'Players & Records is coming soon.');
+            : 'DEV uses sample Players & Records.');
         list.append(warning);
     }
     if (!list.children.length) list.textContent = 'No local recorded games yet.';
