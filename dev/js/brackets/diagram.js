@@ -1,5 +1,6 @@
 // Geometry ported from tournament-manager's bracket_layout.py; sources alone route edges.
 import { registrationLabels } from './labels.js';
+import { diagramViewport } from './viewport.js';
 const WIDTH = 280, HEIGHT = 220, COLUMN = 340, ROW = 246;
 const LABELS = { winners: 'Winners bracket', losers: 'Losers bracket', final: 'Grand final', reset: 'Reset · if needed' };
 
@@ -70,10 +71,18 @@ export function teamLabel(tournament, teamId, labels = registrationLabels(tourna
     return `${team.name} — ${names.join(' & ')}`;
 }
 
-export function renderDiagram(host, tournament, { preview = false, canScore = false, onSelect, scale = '1' } = {}) {
-    const scroll = { left: host.scrollLeft, top: host.scrollTop };
+export function renderDiagram(host, tournament, { preview = false, canScore = false, onSelect, scale } = {}) {
+    const view = diagramViewport(host);
+    const active = document.activeElement;
+    const activeCard = host.contains(active) ? active.closest('.match-card') : null;
+    const focus = activeCard && host.dataset.eventId === tournament.id ? {
+        code: activeCard.dataset.code, button: [...activeCard.querySelectorAll('button')].indexOf(active),
+    } : null;
+    host.dataset.eventId = tournament.id;
+    view.beforeRender();
     host.replaceChildren();
     if (!tournament.matches.length) {
+        view.clear();
         host.append(element('p', 'diagram-empty', 'Pair at least two complete teams to see a connected preview.'));
         return;
     }
@@ -131,8 +140,7 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
                 jump.type = 'button';
                 jump.addEventListener('click', () => {
                     const target = [...canvas.querySelectorAll('.match-card')].find(card => card.dataset.code === source.matchCode);
-                    target?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                    target?.focus({ preventScroll: true });
+                    view.reveal(target);
                 });
                 slot.append(jump);
             }
@@ -146,12 +154,12 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
         }
         canvas.append(card);
     }
-    const factor = scale === 'fit' ? Math.min(1, (host.clientWidth - 12) / layout.width) : Number(scale);
-    canvas.style.transform = `scale(${factor})`;
-    spacer.style.width = `${layout.width * factor}px`;
-    spacer.style.height = `${layout.height * factor}px`;
     spacer.append(canvas);
     host.append(spacer);
-    host.scrollLeft = scroll.left;
-    host.scrollTop = scroll.top;
+    view.setContent(canvas, spacer, layout, tournament.id, scale);
+    if (focus) {
+        const card = [...canvas.querySelectorAll('.match-card')].find(item => item.dataset.code === focus.code);
+        const target = focus.button < 0 ? card : card?.querySelectorAll('button')[focus.button];
+        target?.focus({ preventScroll: true });
+    }
 }
