@@ -57,6 +57,7 @@ export function diagramViewport(host) {
         canvas.style.left = `${offsetX}px`;
         canvas.style.top = `${offsetY}px`;
         canvas.style.transform = `scale(${scale})`;
+        canvas.style.setProperty('--diagram-scale', String(scale));
         host.dataset.zoom = String(scale);
         updateControls();
     };

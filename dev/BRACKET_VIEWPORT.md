@@ -33,7 +33,7 @@ records, roster rules, scoring rules, or preview network boundary changed.
 - All controls inherit existing theme/style tokens and focus styles, with
   44-pixel minimum toolbar targets. No animated movement is introduced.
 - The state is transient: no new storage, provider calls, dependencies, or
-  feature-unlock mechanism. DEV SW v59 refreshes the viewport module after the fractional-pan correction.
+  feature-unlock mechanism. DEV SW v60 refreshes the bracket and shared feature-page presentation.
 
 ## Verified locally
 
@@ -93,3 +93,38 @@ verified. Direct live-site retrieval is blocked in the publication workspace by
 proxy HTTP 403 / `ERR_TUNNEL_CONNECTION_FAILED`; GitHub Pages deployment status
 is checked separately. Mike will perform physical touch testing on the DEV
 sample bracket. No production-readiness claim is made.
+
+## Tournament structure and shared theme (October 10)
+
+The diagram uses compact two-team matchups in named round columns. Winners
+and losers have separate section bands; solid lines show advancement and
+dashed lines show loser transfers or the conditional reset. Each connection
+starts at its source match and ends at its target slot, including lower-bracket
+transfers. Cross-section routes use the gap between sections. Lower-bracket
+columns follow the actual feeder graph rather than blindly sorting positions.
+The championship path ends at GF1, then GF2 only under the existing engine rule.
+No additional tournament format or data behavior is implied.
+
+Controls, cards, typography, spacing and corners use shared platform components
+and the scorer's existing theme and style tokens. Modern/Classic retain the
+selected color theme; DC and Dot Better retain their canonical optional palettes.
+Players & Records uses the same component styles for its profile and summary
+rows. Fixed semantic green/red outcomes are preserved. Read-only preview
+appearance and provider isolation are unchanged.
+
+`node dev/tests/bracket_layout_test.mjs` checks 42 layouts (2, 3, 4, 5, 8, 16,
+32 teams across all six games), complete source routes, card/connector collision
+avoidance and non-mutation of tournament state. Original browser assertions are
+retained. The full suite reports 23/24; the pre-existing `start_feedback` setup
+failure described above remains.
+
+`python dev/tests/bracket_visual_test.py` captures actual Chromium screenshots
+and checks 192 rendered combinations: 12 themes, four styles, desktop/mobile,
+and both Brackets and Players & Records. It checks shared surfaces/fonts,
+text contrast, no horizontal body overflow, fully fitted diagrams, unclipped
+match controls and zero external requests from the sample previews. The 63-match
+overview retains visible connectors at Fit; names still require zooming on
+large brackets and phones. Screenshot inspection includes Arctic, dark themes,
+DC, Dot Better, phone layout, recorded-match summaries and the 32-team overview.
+All 16 source/VM/DOM suites pass. This is local rendered-browser evidence, not
+physical-touch or direct live-site evidence.

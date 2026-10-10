@@ -71,6 +71,7 @@ function renderRecords(uid) {
     $('records').replaceChildren();
     for (const record of records) {
         const item = document.createElement('p');
+        item.className = 'platform-data-row';
         item.style.overflowWrap = 'anywhere';
         const date = typeof record.createdAt === 'number'
             ? new Date(record.createdAt).toLocaleDateString() : '';
@@ -92,6 +93,7 @@ function renderRecords(uid) {
     $('lifetimeSummary').replaceChildren();
     for (const [type, counters] of Object.entries(summary)) {
         const item = document.createElement('p');
+        item.className = 'platform-data-row';
         const cricket = ['cricket', 'teamcricket'].includes(GAME_REGISTRY.find(game => game.id === type)?.engine);
         const rate = counters.darts ? ((cricket ? counters.marks * 3 : counters.points) / counters.darts).toFixed(2) : '—';
         item.textContent = `${type}: ${counters.matches} matches · ${counters.darts} actual darts · ${cricket ? counters.marks + ' marks' : counters.points + ' points'} · ${rate} ${cricket ? 'MPR' : 'PPD'}`;

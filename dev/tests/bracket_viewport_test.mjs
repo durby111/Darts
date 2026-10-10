@@ -49,8 +49,8 @@ async function fresh(count = 32, roundedScroll = false) {
         }
         const left = box.left + (parseFloat(canvas?.style.left) || 0) + x * scale - host.scrollLeft;
         const top = box.top + (parseFloat(canvas?.style.top) || 0) + y * scale - host.scrollTop;
-        const width = (this.classList.contains('match-card') ? 280 : 100) * scale;
-        const height = (this.classList.contains('match-card') ? 220 : 24) * scale;
+        const width = (this.classList.contains('match-card') ? parseFloat(this.style.width) : 100) * scale;
+        const height = (this.classList.contains('match-card') ? parseFloat(this.style.height) : 24) * scale;
         return { left, top, width, height, right: left + width, bottom: top + height };
     };
     const modules = new Map(), context = dom.getInternalVMContext();

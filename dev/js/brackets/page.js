@@ -452,7 +452,7 @@ function renderTournament() {
     $('bracketHelp').textContent = current.status === 'registration'
         ? (owner() ? 'Complete pairs only; check-in is not required for preview. The draw will be shuffled once when the organizer starts.'
             : 'These are the saved teams. The organizer’s working preview is private until the tournament starts.')
-        : 'Fit shows the whole bracket; zoom in and drag to explore either side. Numbered loser references link upper-bracket drop-ins. GF2 is played only if the lower-bracket team wins GF1.';
+        : 'Fit shows the whole bracket; zoom in and drag to explore either side. Dashed lines trace losers into the lower bracket. GF2 is played only if the lower-bracket team wins GF1.';
     if (owner() && current.status === 'registration') {
         renderRoster();
         renderProfiles();

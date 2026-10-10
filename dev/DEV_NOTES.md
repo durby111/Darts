@@ -4,6 +4,29 @@ Dated entries preserve their original release scope and test limits. Current
 feature work is DEV-only; see FEATURE_READINESS.md. Account/bracket transports
 and DEV-specific configuration must not be blindly copied into production.
 
+## October 10 Bracket Structure and Shared Theme (DEV publication)
+
+- Replace isolated-looking match cards with compact two-team matchups, named
+  round columns, section bands and explicit winners/losers progression into
+  the grand final and conditional reset. All source routes now connect end to
+  end; drop-in routes use a separate gap rather than crossing match cards.
+- Order lower-bracket feeder columns from their actual source graph, avoiding
+  the crossed progression produced by the engine's reversed drop-in pairings.
+  Connector strokes stay visible at whole-bracket Fit. Layout supports the
+  existing double-elimination graph, byes, 2–32 teams and all six game types;
+  no tournament-format, scoring or persistence behavior was added.
+- Shared feature-page typography, spacing, corner styles, cards, navigation
+  and controls reuse the scorer's canonical theme/optional-style tokens.
+  Players & Records receives the same surfaces and grouped summary rows.
+- Preserve pan/zoom, fractional drag correction, focus and match actions.
+  DEV cache v60 refreshes the visual assets. Production, gates, Firebase and
+  security remain unchanged.
+- Verification: 16 source/VM/DOM suites, including 42 source-routing layouts;
+  192 actual browser variants (12 themes × 4 styles × desktop/mobile × both
+  previews), contrast/containment and screenshots. Original bracket browser
+  suite retains its known pre-existing Start feedback setup failure; final
+  result 23/24. Physical touch and live-site proxy limits remain separate.
+
 ## October 10 Fractional Pan Correction (DEV publication)
 
 - Preserve fractional pan targets rather than accumulating browser-rounded

@@ -1,10 +1,11 @@
 /* Preview-only framing; feature presentation comes from the shared DEV CSS. */
 .preview-tools {
-    width: min(100% - 24px, 1280px);
+    width: min(100% - 24px, var(--platform-content-width));
     margin: 16px auto;
     padding: clamp(14px, 3vw, 22px);
-    border: 2px solid var(--color-accent);
-    border-radius: 16px;
+    border: 1px solid var(--color-border-light);
+    border-left: 4px solid var(--platform-link);
+    border-radius: var(--platform-panel-radius);
     background: var(--color-surface);
     color: var(--color-text);
 }
@@ -19,7 +20,7 @@
 .preview-links a { min-height: 44px; display: inline-flex; align-items: center; font-weight: 700; color: var(--platform-link); }
 .preview-links [aria-current="page"] { text-decoration-thickness: 3px; text-underline-offset: 5px; }
 #previewActionStatus:empty { display: none; }
-#previewBootStatus { width: min(100% - 24px, 1280px); margin: 16px auto; }
+#previewBootStatus { width: min(100% - 24px, var(--platform-content-width)); margin: 16px auto; }
 #previewContent input[readonly] { cursor: not-allowed; }
 @media (max-width: 480px) {
     .preview-tools { width: calc(100% - 16px); margin-top: 8px; padding: 12px; }

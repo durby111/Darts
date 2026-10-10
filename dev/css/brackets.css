@@ -1,10 +1,10 @@
-.brackets-page .platform-main { max-width: 1600px; }
+.brackets-page { --platform-content-width: 1600px; }
 .brackets-page fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .bracket-fields { display: flex; align-items: end; flex-wrap: wrap; gap: 1rem; }
 .bracket-fields > label { flex: 1 1 190px; }
 .bracket-fields > button { flex: 0 1 auto; margin-bottom: .3rem; }
 .tournament-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: .75rem; margin: 1rem 0; }
-.tournament-link { display: block; background: var(--color-surface-alt); padding: 1rem; border: 1px solid var(--color-border-light); border-radius: .5rem; text-decoration: none; overflow-wrap: anywhere; }
+.tournament-link { display: block; background: var(--color-surface-alt); padding: 1rem; border: 1px solid var(--color-border-light); border-radius: var(--platform-control-radius); text-decoration: none; overflow-wrap: anywhere; }
 .tournament-link strong, .tournament-link span { display: block; }
 .tournament-link span { color: var(--color-text); font-size: .85rem; }
 .public-teams { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
@@ -36,31 +36,49 @@
 .diagram-controls select { min-height: 44px; margin: 0; }
 #diagramZoomLabel { align-self: center; min-width: 5.5rem; font-variant-numeric: tabular-nums; }
 .diagram-instructions { font-size: .85rem; margin: .75rem 0; }
-.diagram-viewport { width: 100%; height: clamp(260px, 70vh, 800px); height: clamp(260px, 70dvh, 800px); overflow: auto; overscroll-behavior: contain; touch-action: none; cursor: grab; background: var(--color-surface-alt); border: 1px solid var(--color-border-light); border-radius: .5rem; padding: 0; }
+.diagram-viewport { width: 100%; height: clamp(260px, 70vh, 800px); height: clamp(260px, 70dvh, 800px); overflow: auto; overscroll-behavior: contain; touch-action: none; cursor: grab; background: var(--color-bg); border: 1px solid var(--color-border-light); border-radius: var(--platform-panel-radius); padding: 0; }
 .diagram-viewport:focus-visible { outline: 3px solid var(--platform-focus, var(--color-text)); outline-offset: 3px; }
 .diagram-viewport.is-panning, .diagram-viewport.is-panning * { cursor: grabbing; }
 .diagram-viewport .diagram-spacer { user-select: none; -webkit-user-select: none; }
-.diagram-empty { margin: 1.5rem; }
+.diagram-empty { margin: var(--space-2xl); }
 .diagram-spacer { position: relative; overflow: hidden; }
 .diagram-canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.diagram-section { position: absolute; background: var(--color-surface-alt); border: 1px solid var(--color-border); border-radius: var(--platform-panel-radius); }
 .diagram-connectors { position: absolute; left: 0; top: 0; pointer-events: none; }
-.connector { fill: none; stroke: var(--color-accent); stroke-width: 2; opacity: .75; }
-.connector.drop, .connector.conditional { stroke-dasharray: 5 4; }
-.diagram-heading { position: absolute; margin: 0; line-height: 1.3; font-size: 15px; }
-h3.diagram-heading { color: var(--color-accent); font-size: 19px; }
-.match-card { position: absolute; width: 280px; height: 220px; padding: 8px 10px; background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: 7px; }
-.match-card.ready { border-color: var(--color-accent); }
-.match-card.pending, .match-card.void { background: var(--color-surface-alt); border-style: dashed; }
+.connector { fill: none; stroke: var(--platform-link); stroke-width: calc(1.5px / var(--diagram-scale, 1)); stroke-linejoin: round; }
+.connector.drop { stroke: var(--color-text-muted); stroke-width: calc(1px / var(--diagram-scale, 1)); stroke-dasharray: calc(5px / var(--diagram-scale, 1)) calc(5px / var(--diagram-scale, 1)); opacity: .65; }
+.connector.conditional { stroke-dasharray: calc(6px / var(--diagram-scale, 1)) calc(4px / var(--diagram-scale, 1)); }
+.diagram-heading { position: absolute; width: 280px; margin: 0; line-height: 1.3; font-size: 14px; font-family: var(--font-display); display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-sm); }
+.diagram-heading .round-title { font-weight: 750; }
+.diagram-heading .round-detail { color: var(--color-text-muted); font-size: 11px; font-weight: 500; }
+.section-heading { display: block; font-size: 19px; color: var(--platform-link); }
+.section-heading .round-title, .section-heading .round-detail { display: block; }
+.section-heading .round-detail { margin-top: 3px; font-size: 12px; }
+.match-card { position: absolute; width: 280px; height: 190px; padding: 0; overflow: hidden; background: var(--color-surface); border: 1px solid var(--color-border-light); border-radius: var(--platform-control-radius); box-shadow: var(--platform-card-shadow); }
+.match-card.ready { border-color: var(--platform-link); }
+.match-card.pending, .match-card.void { border-style: dashed; }
+.match-card.void { opacity: .65; }
 .match-card:focus { outline: 3px solid var(--platform-focus, var(--color-text)); outline-offset: 3px; }
-.match-header { margin: 0 0 4px; font-size: 14px; height: 24px; line-height: 24px; }
-.match-slot { height: 67px; position: relative; padding: 3px 0; border-top: 1px solid var(--color-border); }
-.slot-label { display: block; font-size: 14px; line-height: 18px; max-height: 36px; overflow: hidden; overflow-wrap: anywhere; padding-right: 50px; }
-.slot-score { position: absolute; right: 0; top: 4px; font-size: 12px; }
-.match-slot.won { outline: 2px solid var(--platform-success-border); outline-offset: -2px; }
+.match-header { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); margin: 0; padding: 0 10px; height: 28px; font-size: 12px; line-height: 28px; background: var(--color-surface-elevated); border-bottom: 1px solid var(--color-border); }
+.match-code { font-family: var(--font-mono); letter-spacing: .04em; }
+.match-state { color: var(--color-text-muted); font-size: 11px; font-weight: 500; }
+.ready .match-state { color: var(--color-text); font-weight: 750; }
+.match-slot { height: 64px; position: relative; padding: 4px 10px; border-bottom: 1px solid var(--color-border); }
+.slot-label { display: block; font-size: 14px; line-height: 16px; max-height: 32px; overflow: hidden; padding-right: 50px; }
+.slot-team { display: block; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slot-members { display: block; color: var(--color-text-muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slot-score { position: absolute; right: 9px; top: 7px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.match-slot.won { outline: 2px solid var(--platform-success-border); outline-offset: -2px; background: var(--platform-notice-bg); }
 .match-slot.lost { outline: 2px solid var(--platform-danger-border); outline-offset: -2px; }
 .won .slot-score, .lost .slot-score { color: var(--color-text); font-weight: bold; }
-.brackets-page .source-jump { display: block; margin: 0; min-height: 24px; padding: 0 2px; border: 0; background: transparent; color: var(--color-accent); font-size: 12px; line-height: 24px; text-align: left; }
-.brackets-page .match-action { width: 100%; min-height: 40px; height: 40px; margin: 2px 0 0; padding: 3px 8px; font-size: 14px; }
+.brackets-page .source-jump { display: block; margin: 0; min-height: 24px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--platform-link); font-size: 11px; line-height: 24px; text-align: left; }
+.brackets-page .match-action { display: block; width: 100%; min-height: 32px; height: 32px; margin: 0; padding: 2px 10px; border: 0; border-radius: 0; font-size: 12px; text-align: left; }
+.diagram-legend { display: flex; flex-wrap: wrap; gap: var(--space-md) var(--space-2xl); margin: var(--space-md) 0; font-size: .8rem; color: var(--color-text-muted); }
+.diagram-legend span { display: inline-flex; align-items: center; gap: var(--space-sm); }
+.diagram-legend span::before { content: ''; width: 24px; border-top: 2px solid var(--platform-link); }
+.diagram-legend .legend-drop::before { border-color: var(--color-text-muted); border-top-style: dashed; }
+.brackets-page .diagram-controls button { background: var(--color-surface-alt); color: var(--color-text); border-color: var(--color-border-light); }
+.brackets-page .diagram-controls #diagramFit { background: var(--platform-button-bg); color: var(--platform-button-ink); border-color: var(--platform-button-border); }
 #champion { font-weight: 750; color: var(--platform-success-text, var(--color-text)); }
 #resultPanel { scroll-margin-top: 1rem; }
 @media (max-width: 600px) {
