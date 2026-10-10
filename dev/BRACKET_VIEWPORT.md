@@ -1,4 +1,4 @@
-# Dynamic bracket view (DEV draft)
+# Dynamic bracket view (DEV)
 
 ## Scope
 
@@ -33,7 +33,7 @@ records, roster rules, scoring rules, or preview network boundary changed.
 - All controls inherit existing theme/style tokens and focus styles, with
   44-pixel minimum toolbar targets. No animated movement is introduced.
 - The state is transient: no new storage, provider calls, dependencies, or
-  feature-unlock mechanism. Prepared DEV SW v58 precaches the new view module.
+  feature-unlock mechanism. DEV SW v59 refreshes the viewport module after the fractional-pan correction.
 
 ## Verified locally
 
@@ -44,7 +44,7 @@ BLAKEOUT_JSDOM_MODULE=/path/to/jsdom \
 node --experimental-vm-modules dev/tests/bracket_viewport_test.mjs
 ```
 
-Thirteen interaction groups pass: full graph bounds; phone/landscape resize;
+Fifteen interaction groups pass, including rounded-scroll fractional drag, reverse/repeated gestures, edge recovery and native-scroll resynchronization, plus: full graph bounds; phone/landscape resize;
 zoom limits and center anchors; two-axis drag and click suppression; click
 threshold/cancel/blur; pinch and single-finger continuation; child implicit
 capture transfer; cursor-anchored wheel; keyboard/buttons; redraw/event switch;
@@ -59,25 +59,37 @@ isolation, Dot Better, winner structure, production audit, shared dialog,
 bracket confirmations, preview isolation, Start & Lock, and the correction
 core (219 tests). JS syntax, Python test syntax and whitespace checks pass.
 
-## Rendered-browser gate (not passed yet)
+## Browser verification and remaining limits (October 10)
 
-The existing browser suite now checks full-height Fit as well as width. A new
-`viewport_pan_zoom` case covers actual mouse drag, touch pinch via Chromium input,
-refresh persistence, four viewport sizes and eight light/dark/style combinations:
+The authorized DEV publication uses the existing sample preview; real feature
+and production gates remain unchanged. Chromium 151 now runs in the publication
+workspace. The earlier draft workspace's socket restriction no longer applies.
 
-```sh
-python dev/tests/brackets_ui_test.py --only spectator_and_layout
-python dev/tests/brackets_ui_test.py --only viewport_pan_zoom
-```
+The original `viewport_pan_zoom` test initially failed: eight 12.5px horizontal
+pointer increments scrolled 104px rather than 100px because incremental writes
+read back browser-rounded scroll positions. The controller now retains the
+fractional target internally, clamps it to actual scroll bounds, and resets its
+baseline after native scrolling, new gestures and layout changes. DEV SW v59
+refreshes the corrected module. The original test and its tolerances are unchanged.
 
-This runtime can serve the local fixtures, but Chromium cannot launch: its
-process singleton socket is denied with `Operation not permitted`. The supported
-escalation retry produced the same failure. Browser assertions never ran.
+Verification of the correction:
 
-Before release, use a supported browser environment to run those tests and
-inspect the sample preview. Check the 32-team overview and both sides at phone
-portrait/landscape, tablet and desktop sizes; all four styles with Arctic and a
-dark theme; drag starting over score/source controls; pinch then one-finger pan;
-source jumps and keyboard Tab; resize and live refresh; empty/recovery; and
-browser Back/Forward or scenario reload. Confirm a real mobile/tablet pinch
-separately from emulated input. Keep this draft unpublished until review.
+- All 15 source/VM/DOM suites pass, including 15 viewport interaction groups.
+- Full `python dev/tests/brackets_ui_test.py`: **23/24 passed**.
+- Original `viewport_pan_zoom` passes: mouse drag, emulated touch pinch,
+  refresh persistence, four viewport sizes and eight appearance combinations.
+- New `viewport_fractional_drag` passes: fractional movement on both axes,
+  within-gesture reversal, three repeated gestures, opposite-direction drag,
+  edge overshoot/reversal, and no accidental result action.
+- `spectator_and_layout` passes, including full-height and full-width Fit.
+- The sole failure, `start_feedback`, is reproduced on the previously deployed
+  `ce61dfb` commit. Its setup `page.evaluate` returns the assigned throwing
+  `window.confirm` function, which Playwright invokes; the UI assertions do not
+  run. This pre-existing test setup issue is outside the pan correction.
+
+These browser checks use local mocked tournament/provider data. Physical phone
+or tablet touch, assistive-device behavior, and live-provider behavior are not
+verified. Direct live-site retrieval is blocked in the publication workspace by
+proxy HTTP 403 / `ERR_TUNNEL_CONNECTION_FAILED`; GitHub Pages deployment status
+is checked separately. Mike will perform physical touch testing on the DEV
+sample bracket. No production-readiness claim is made.

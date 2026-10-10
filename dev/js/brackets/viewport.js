@@ -7,6 +7,7 @@ export function diagramViewport(host) {
     let canvas, spacer, width = 0, height = 0, key;
     let scale = 1, fitMode = true, offsetX = PADDING, offsetY = PADDING;
     let controls = {}, dragging = false, suppressClickUntil = 0, savedWorld;
+    let panPosition;
     const pointers = new Map();
     const size = () => ({ width: host.clientWidth, height: host.clientHeight });
     const fitScale = () => {
@@ -46,6 +47,7 @@ export function diagramViewport(host) {
         }
     };
     const layout = () => {
+        panPosition = null;
         if (!canvas) { updateControls(); return; }
         const box = size();
         offsetX = Math.max(PADDING, (box.width - width * scale) / 2);
@@ -72,8 +74,16 @@ export function diagramViewport(host) {
     };
     const zoomBy = (factor, anchor) => zoomTo(scale * factor, anchor);
     const pan = (x, y) => {
-        host.scrollLeft += x;
-        host.scrollTop += y;
+        // Retain fractional movement instead of adding to the browser's rounded
+        // scroll offsets on every event. Native scrolling resets the baseline;
+        // clamp the precise target so reversing at an edge responds immediately.
+        const left = panPosition?.actualX === host.scrollLeft ? panPosition.x : host.scrollLeft;
+        const top = panPosition?.actualY === host.scrollTop ? panPosition.y : host.scrollTop;
+        const nextX = Math.max(0, Math.min(left + x, host.scrollWidth - host.clientWidth));
+        const nextY = Math.max(0, Math.min(top + y, host.scrollHeight - host.clientHeight));
+        host.scrollLeft = nextX;
+        host.scrollTop = nextY;
+        panPosition = { x: nextX, y: nextY, actualX: host.scrollLeft, actualY: host.scrollTop };
     };
     const reveal = target => {
         if (!canvas || !target) return;
@@ -90,6 +100,7 @@ export function diagramViewport(host) {
         if (host.hasPointerCapture?.(event.pointerId)) host.releasePointerCapture(event.pointerId);
         if (dragging) suppressClickUntil = Date.now() + 500;
         if (!pointers.size) {
+            panPosition = null;
             dragging = false;
             host.classList.remove('is-panning');
         }
@@ -99,6 +110,7 @@ export function diagramViewport(host) {
     };
     host.addEventListener('pointerdown', event => {
         if (!canvas || (event.pointerType !== 'touch' && event.button !== 0)) return;
+        if (!pointers.size) panPosition = null;
         const position = point(event);
         pointers.set(event.pointerId, { ...position, startX: position.x, startY: position.y });
         if (pointers.size > 1) {

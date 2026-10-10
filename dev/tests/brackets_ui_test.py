@@ -736,6 +736,45 @@ async def test_viewport_pan_zoom(browser, base):
         await context.close()
 
 
+async def test_viewport_fractional_drag(browser, base):
+    """Fractional input must not accumulate browser scroll rounding on either axis."""
+    context, page = await fresh(browser, base, status="live", count=32, touch=True)
+    try:
+        await page.locator('#diagramReset').click()
+        await page.locator('#diagram').scroll_into_view_if_needed()
+        await page.evaluate("() => { diagram.scrollLeft=500; diagram.scrollTop=1000; }")
+        box = await page.locator('#diagram').bounding_box()
+        x, y = box['x'] + 220, box['y'] + 180
+        for repetition in range(3):
+            await page.mouse.move(x, y)
+            await page.mouse.down()
+            await page.mouse.move(x - 100, y - 100, steps=8)
+            assert await page.evaluate("[diagram.scrollLeft,diagram.scrollTop]") == [600, 1100], repetition
+            # Reverse within the same gesture, then repeat with a new gesture.
+            await page.mouse.move(x, y, steps=8)
+            assert await page.evaluate("[diagram.scrollLeft,diagram.scrollTop]") == [500, 1000], repetition
+            await page.mouse.up()
+        # A separate right/down drag catches the opposite rounding bias.
+        await page.mouse.down()
+        await page.mouse.move(x + 100, y + 100, steps=8)
+        await page.mouse.up()
+        assert await page.evaluate("[diagram.scrollLeft,diagram.scrollTop]") == [400, 900]
+        # Overshooting an edge must not create a dead zone on reversal.
+        await page.evaluate("() => { diagram.scrollLeft=10; diagram.scrollTop=10; }")
+        await page.mouse.move(x, y)
+        await page.mouse.down()
+        await page.mouse.move(x + 100, y + 100, steps=8)
+        assert await page.evaluate("[diagram.scrollLeft,diagram.scrollTop]") == [0, 0]
+        await page.mouse.move(x + 75, y + 75, steps=2)
+        await page.mouse.up()
+        assert await page.evaluate("[diagram.scrollLeft,diagram.scrollTop]") == [25, 25]
+        assert await page.locator('#resultPanel').is_hidden()
+        assert not await page.locator('#diagram').evaluate("e=>e.classList.contains('is-panning')")
+        return "fractional two-axis drag, reverse direction, repeated gestures and edge recovery"
+    finally:
+        await context.close()
+
+
 async def assert_outcome_styles(page, code):
     card=page.locator(f'[data-code="{code}"]')
     assert await card.locator('.match-slot.won').count()==1
@@ -1303,6 +1342,7 @@ TESTS = {
     "failures_and_polling": test_failures_and_polling,
     "spectator_and_layout": test_spectator_and_layout,
     "viewport_pan_zoom": test_viewport_pan_zoom,
+    "viewport_fractional_drag": test_viewport_fractional_drag,
     "manual_results_and_history": test_manual_results_and_history,
     "creation_and_launch": test_creation_and_launch,
     "manual_reset": test_manual_reset,

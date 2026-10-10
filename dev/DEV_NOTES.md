@@ -4,6 +4,21 @@ Dated entries preserve their original release scope and test limits. Current
 feature work is DEV-only; see FEATURE_READINESS.md. Account/bracket transports
 and DEV-specific configuration must not be blindly copied into production.
 
+## October 10 Fractional Pan Correction (DEV publication)
+
+- Preserve fractional pan targets rather than accumulating browser-rounded
+  scroll offsets. A 100px drag over eight 12.5px increments now scrolls 100px,
+  with symmetric reversal and immediate recovery from viewport edges.
+- Keep the original failing browser test unchanged; add fractional two-axis,
+  reverse/repeated gesture, edge and native-scroll regression coverage.
+- All 15 source/VM/DOM suites pass. Full bracket browser suite: 23/24 passed,
+  including original pan/zoom, new fractional drag and spectator/layout checks.
+  The remaining Start feedback test fails during setup on both this code and
+  the prior deployed commit; see BRACKET_VIEWPORT.md for exact coverage limits.
+- DEV SW v59 delivers the correction. Production, real feature gates, Firebase,
+  security, persisted data and scoring are unchanged. Physical touch is pending;
+  direct live-content retrieval remains blocked by this workspace's proxy.
+
 ## October 10 Dynamic Bracket View (Draft, Unpublished)
 
 - The shared DEV bracket diagram now fits its full width and height, with

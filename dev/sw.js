@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v58-bracket-pan-zoom';
+const CACHE_NAME = 'blakeout-dev-v59-bracket-fractional-pan';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;

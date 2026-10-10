@@ -13,7 +13,7 @@ const { JSDOM } = require(process.env.BLAKEOUT_JSDOM_MODULE || 'jsdom');
 const root = fileURLToPath(new URL('../', import.meta.url));
 let passed = 0;
 const near = (a, b, label) => assert.ok(Math.abs(a - b) < .001, `${label}: ${a} ~= ${b}`);
-async function fresh(count = 32) {
+async function fresh(count = 32, roundedScroll = false) {
     const dom = new JSDOM('<body></body>', { pretendToBeVisual: true, runScripts: 'outside-only' });
     const w = dom.window, d = w.document, observers = [];
     Object.assign(w, { structuredClone, ResizeObserver: class { constructor(callback) { observers.push(callback); } observe() {} } });
@@ -25,8 +25,12 @@ async function fresh(count = 32) {
     const box = { width: 900, height: 600, left: 25, top: 50 }, scroll = { left: 0, top: 0 };
     for (const axis of ['width', 'height']) Object.defineProperty(host, `client${axis[0].toUpperCase() + axis.slice(1)}`, { get: () => box[axis] });
     const extent = axis => parseFloat(host.querySelector('.diagram-spacer')?.style[axis]) || 0;
+    Object.defineProperties(host, {
+        scrollWidth: { get: () => Math.max(box.width, extent('width')) },
+        scrollHeight: { get: () => Math.max(box.height, extent('height')) },
+    });
     for (const [property, axis, dimension] of [['scrollLeft', 'left', 'width'], ['scrollTop', 'top', 'height']]) {
-        Object.defineProperty(host, property, { get: () => scroll[axis], set: value => { scroll[axis] = Math.max(0, Math.min(value, extent(dimension) - box[dimension])); } });
+        Object.defineProperty(host, property, { get: () => scroll[axis], set: value => { scroll[axis] = Math.max(0, Math.min(roundedScroll ? Math.round(value) : value, extent(dimension) - box[dimension])); } });
     }
     const originalReplace = host.replaceChildren.bind(host);
     host.replaceChildren = (...children) => { originalReplace(...children); scroll.left = scroll.top = 0; };
@@ -80,7 +84,33 @@ async function fresh(count = 32) {
     const world = (x, y) => ({ x: (host.scrollLeft + x - parseFloat(host.querySelector('.diagram-canvas').style.left)) / zoom(), y: (host.scrollTop + y - parseFloat(host.querySelector('.diagram-canvas').style.top)) / zoom() });
     return { dom, w, d, host, box, controls, controller, tournament, render, pointer, resize, zoom, world, selected: () => selected, captures };
 }
-async function test(name, fn) { const state = await fresh(); try { await fn(state); console.log(`PASS ${name}`); passed++; } finally { state.dom.window.close(); } }
+async function test(name, fn, roundedScroll = false) { const state = await fresh(32, roundedScroll); try { await fn(state); console.log(`PASS ${name}`); passed++; } finally { state.dom.window.close(); } }
+await test('Rounded scroll offsets retain fractional drag, reversal and repeated gesture precision', ({ host, controller, pointer }) => {
+    controller.zoomTo(1); host.scrollLeft = 500; host.scrollTop = 1000;
+    for (let gesture = 1; gesture <= 3; gesture++) {
+        pointer('pointerdown', gesture, 250, 250);
+        for (let step = 1; step <= 8; step++) pointer('pointermove', gesture, 250 - step * 12.5, 250 - step * 12.5);
+        assert.equal(host.scrollLeft, 600); assert.equal(host.scrollTop, 1100);
+        for (let step = 1; step <= 8; step++) pointer('pointermove', gesture, 150 + step * 12.5, 150 + step * 12.5);
+        assert.equal(host.scrollLeft, 500); assert.equal(host.scrollTop, 1000);
+        pointer('pointerup', gesture, 250, 250);
+    }
+}, true);
+await test('Fractional pan clamps at edges and resynchronizes after native scrolling', ({ host, controller, pointer }) => {
+    controller.zoomTo(1); host.scrollLeft = 10; host.scrollTop = 10;
+    pointer('pointerdown', 1, 100, 100);
+    pointer('pointermove', 1, 200, 200);
+    assert.equal(host.scrollLeft, 0); assert.equal(host.scrollTop, 0);
+    pointer('pointermove', 1, 187.5, 187.5);
+    assert.equal(host.scrollLeft, 13); assert.equal(host.scrollTop, 13);
+    pointer('pointermove', 1, 175, 175);
+    assert.equal(host.scrollLeft, 25); assert.equal(host.scrollTop, 25);
+    host.scrollLeft = 500; host.scrollTop = 1000;
+    pointer('pointermove', 1, 162.5, 162.5);
+    pointer('pointermove', 1, 150, 150);
+    assert.equal(host.scrollLeft, 525); assert.equal(host.scrollTop, 1025);
+    pointer('pointerup', 1, 150, 150);
+}, true);
 await test('32-team Fit contains both dimensions and centers all 63 matches', ({ host, controls, zoom, box }) => {
     assert.equal(host.querySelectorAll('.match-card').length, 63);
     assert.equal(controls.select.value, 'fit'); assert.ok(zoom() < .1);
