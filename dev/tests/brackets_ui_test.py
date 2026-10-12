@@ -470,7 +470,7 @@ async def test_event_name_labels(browser, base):
 async def test_start_feedback(browser, base):
     context, page = await fresh(browser, base, count=32, touch=True)
     try:
-        await page.evaluate("window.testConfirmCalls=0;new MutationObserver(rs=>rs.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType===1&&n.matches('.platform-confirm-host'))testConfirmCalls++;}))).observe(document.body,{childList:true});window.confirm=()=>{throw Error('Native confirm must not run');}")
+        await page.evaluate("() => {window.testConfirmCalls=0;new MutationObserver(rs=>rs.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType===1&&n.matches('.platform-confirm-host'))testConfirmCalls++;}))).observe(document.body,{childList:true});window.confirm=()=>{throw Error('Native confirm must not run');};}")
         await page.locator('#rosterRows [data-field="name"]').first.fill("<img src=x onerror=alert(1)>")
         await page.locator('#rosterRows [data-field="tag"]').first.fill("")
         await page.locator("#startTournament").tap()

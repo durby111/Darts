@@ -1,4 +1,45 @@
-# Feature readiness — October 8, 2026 (Central)
+# Feature readiness — October 12, 2026
+
+## Account and saved-record milestone (October 12)
+
+The DEV adapter now binds profile writes, casual-result transactions, receipt
+delivery and private reads to the initiating authentication session. A sign-out
+or replacement session (including the same UID signing in again) stops subsequent
+work and prevents returning old private data. Superseded signup/sign-in responses
+cannot republish old credentials or send verification to a replacement account.
+Already committed results remain immutable; the original owner can retry the
+same result ID to complete missing receipts. These client checks supplement the
+existing server rules; they do not cancel requests already sent to Firebase.
+
+Browser contracts cover the new session races (19 assertions), signup/sign-in,
+verification/reset transport, scoring-to-record saves, reload, offline retry,
+and record retrieval in a fresh browser context with no copied game/auth state.
+That fresh-context test shares a **mock server document snapshot**, not a live
+Firebase connection. Real Chromium runs the UI and adapter. The bracket suite's
+Start & Lock setup now installs its throwing native-confirm stub without
+accidentally invoking it through Playwright; all its original assertions remain.
+The platform/scoring runners also accept installed Chromium alongside Chrome.
+DEV cache is v62; sample previews and their theme behavior remain available.
+
+Validation uses Node 24 with jsdom 30.1.2 for the 16 source/DOM suites, and
+Playwright with system Chromium for the platform, scoring, 24-case bracket and
+16-group navigation suites. The new session regression also fails against the
+previous `0c431fe` adapter as expected. Browser fixtures intercept provider
+traffic; physical touch hardware is not covered.
+
+**Remaining release checks:** real accounts/cloud recording are still gated.
+No Firebase rules, provider configuration, keys, collection access, production
+assets or production Coming soon gates changed. The existing emulator checks
+are retained, but this environment could not download Google's Firestore emulator
+(HTTP 403); no emulator result is claimed for this milestone. Live site retrieval
+is also proxy-blocked. Mock transport tests send no real verification/reset mail.
+
+Before a real-account rollout, validate the unchanged rules with an accessible
+local Firestore emulator, then obtain action-time approval for enabling DEV real
+account/record access and an explicit test recipient for verification/reset mail.
+Use that controlled test to verify email action completion, server-authorized
+save/read ownership and a second real device. No migration, rule relaxation or
+new provider grants are required or proposed by this code change.
 
 ## Current DEV entry status (October 10)
 

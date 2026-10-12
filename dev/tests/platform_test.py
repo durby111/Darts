@@ -92,12 +92,14 @@ const fail=()=>{if(globalThis.authFailure)throw Object.assign(Error('Authenticat
 export const createUserWithEmailAndPassword=async(auth,email,password)=>{
  fail();if(password.length<6)throw Error('Weak password');
  globalThis.changeTestUser({uid:'registered_user',email,emailVerified:false,isAnonymous:false});
- return {user:auth.currentUser};
+ const user=auth.currentUser;if(globalThis.afterPasswordAuth)await globalThis.afterPasswordAuth();
+ return {user};
 };
 export const signInWithEmailAndPassword=async(auth,email,password)=>{
  fail();if(password==='wrong-password')throw Object.assign(Error('Invalid credentials'),{code:'auth/invalid-credential'});
  globalThis.changeTestUser(email==='owner@example.com'?initial:{uid:'registered_user',email,emailVerified:false,isAnonymous:false});
- return {user:auth.currentUser};
+ const user=auth.currentUser;if(globalThis.afterPasswordAuth)await globalThis.afterPasswordAuth();
+ return {user};
 };
 export const sendEmailVerification=async(user,settings)=>{
  fail();globalThis.sentVerification={email:user.email,settings,count:(globalThis.sentVerification?.count||0)+1};
@@ -196,11 +198,12 @@ const online=()=>{if(globalThis.testOffline)throw Error('Offline');};
 const readable=()=>{online();if(globalThis.denyReads)throw Object.assign(Error('Missing permissions'),{code:'permission-denied'});};
 export const collection=(db,...parts)=>({path:parts.join('/'),db});
 export const doc=(db,...parts)=>parts.length?{path:parts.join('/'),id:parts.at(-1),db}:{path:db.path+'/generated-id',id:'generated-id',db:db.db};
-export const getDocFromServer=async ref=>{readable();testReadPaths.push(ref.path);testReadsByApp.push({app:ref.db.appName,path:ref.path});return snap(ref);};
+export const getDocFromServer=async ref=>{readable();testReadPaths.push(ref.path);testReadsByApp.push({app:ref.db.appName,path:ref.path});const result=snap(ref);if(globalThis.afterServerRead)await globalThis.afterServerRead();return result;};
 export const getDocsFromServer=async ref=>{
- readable();return {docs:[...docs].filter(([path,data])=>path.startsWith(ref.path+'/')
+ readable();const result={docs:[...docs].filter(([path,data])=>path.startsWith(ref.path+'/')
  &&(!ref.filter||(ref.filter.op==='array-contains'?data[ref.filter.field].includes(ref.filter.value):data[ref.filter.field]===ref.filter.value)))
  .map(([path])=>snap({path,id:path.split('/').at(-1)}))};
+ if(globalThis.afterServerRead)await globalThis.afterServerRead();return result;
 };
 export const query=(col,filter)=>({...col,filter});
 export const where=(field,op,value)=>({field,op,value});
@@ -211,7 +214,7 @@ export const runTransaction=async(db,callback)=>{
    const writes=[];
    const result=await callback({get:async ref=>{
      if(ref.db!==db)throw Error('Cross-Firestore transaction reference');
-     if(writes.length)throw Error('Transaction reads after writes');testReadPaths.push(ref.path);testReadsByApp.push({app:db.appName,path:ref.path});return snap(ref);
+     if(writes.length)throw Error('Transaction reads after writes');testReadPaths.push(ref.path);testReadsByApp.push({app:db.appName,path:ref.path});const result=snap(ref);if(globalThis.afterTransactionRead)await globalThis.afterTransactionRead(ref);return result;
    },set:(ref,value)=>{if(ref.db!==db)throw Error('Cross-Firestore write');writes.push([ref.path,structuredClone(value)]);},
    delete:ref=>writes.push([ref.path,null])});
    return {writes,result};
@@ -517,6 +520,60 @@ NEW_FEATURE_TESTS = r"""async () => {
  await reject(()=>p.saveCasualResult('too-large',{...large,participantIds:[...largeIds,'one_more']}),'129th casual participant gives explicit error, never truncates');
  return {checks,signupFixture,casualFive:testDocs.get('blakeoutDevCasualResults/casual-five'),
  casualWorst:testDocs.get('blakeoutDevCasualResults/large-casual')};
+}"""
+
+ACCOUNT_RECORD_SESSION_TESTS = r"""async () => {
+ const p=await import('/dev/js/platform.js');await p.initPlatform();
+ const checks=[],assert=(v,m)=>{if(!v)throw Error(m);checks.push(m);};
+ const original=[...testDocs].map(([k,v])=>[k,structuredClone(v)]);
+ testDocs.set('blakeoutDevProfiles/verified_owner',{name:'Session test owner'});
+ const owner={uid:'verified_owner',email:'owner@example.com',emailVerified:true,isAnonymous:false};
+ const login=()=>changeTestUser(owner);
+ const replace=()=>changeTestUser({...owner}); // Same UID, a different authentication session.
+ const rejected=async(fn,label)=>{let error;try{await fn();}catch(e){error=e;}
+   assert(error?.message.includes('account changed'),label);};
+ const result={matchId:'session-result',gameType:'501',participantIds:['verified_owner'],
+   perPlayer:[{playerId:'verified_owner',gameType:'501',points:301,darts:9,marks:0}],
+   winnerId:'side-1',legScores:[]};
+ try {
+   login();const profile=JSON.stringify(testDocs.get('blakeoutDevProfiles/verified_owner'));
+   globalThis.beforeTransaction=()=>{delete globalThis.beforeTransaction;replace();};
+   await rejected(()=>p.saveProfile('Stale profile'),'profile transaction stops after same-UID session replacement');
+   assert(JSON.stringify(testDocs.get('blakeoutDevProfiles/verified_owner'))===profile,'stale profile is not written');
+   login();globalThis.beforeTransaction=()=>{delete globalThis.beforeTransaction;replace();};
+   await rejected(()=>p.saveCasualResult('session-result',result),'casual transaction stops before first read after account replacement');
+   assert(!testDocs.has('blakeoutDevCasualResults/session-result'),'no score written by stale transaction');
+   login();globalThis.afterTransactionRead=ref=>{if(ref.path.startsWith('blakeoutDevProfiles/')){
+     delete globalThis.afterTransactionRead;replace();}};
+   await rejected(()=>p.saveCasualResult('session-result',result),'account replaced during profile validation cannot write');
+   assert(!testDocs.has('blakeoutDevCasualResults/session-result'),'profile lookup race leaves no score');
+   login();let transactions=0;
+   globalThis.beforeTransaction=()=>{if(++transactions===2){delete globalThis.beforeTransaction;replace();}};
+   await rejected(()=>p.saveCasualResult('session-result',result),'receipt delivery stops after account replacement');
+   const immutable=JSON.stringify(testDocs.get('blakeoutDevCasualResults/session-result'));
+   assert(!!immutable&&!testDocs.has('blakeoutDevCasualReceipts/session-result$verified_owner'),'committed score retained without false receipt success');
+   login();await p.saveCasualResult('session-result',result);
+   assert(JSON.stringify(testDocs.get('blakeoutDevCasualResults/session-result'))===immutable,'original owner retry keeps immutable score');
+   assert(testDocs.has('blakeoutDevCasualReceipts/session-result$verified_owner'),'original owner retry completes missing receipt');
+   for(const method of ['getProfile','listProfiles','listMyResults']){
+     login();globalThis.afterServerRead=()=>{delete globalThis.afterServerRead;replace();};
+     await rejected(()=>p[method](),method+' rejects private data from superseded account session');
+   }
+   for(const method of ['registerAccount','signInAccount']){
+     changeTestUser(null);const observed=[];
+     const unsubscribe=p.subscribeAccount(user=>observed.push(user));
+     const sent=globalThis.sentVerification?.count||0;
+     globalThis.afterPasswordAuth=()=>{delete globalThis.afterPasswordAuth;replace();};
+     await rejected(()=>p[method]('new@example.com','Test-only-password-123'),method+' rejects superseded credentials');
+     assert(observed.at(-1)===p.getAccount(),method+' never republishes stale credentials');
+     assert((globalThis.sentVerification?.count||0)===sent,method+' does not email replacement account');
+     unsubscribe();
+   }
+ } finally {
+   for(const key of ['beforeTransaction','afterTransactionRead','afterServerRead','afterPasswordAuth'])delete globalThis[key];
+   testDocs.clear();for(const [key,value] of original)testDocs.set(key,value);login();
+ }
+ return checks;
 }"""
 
 GUEST_TESTS = r"""async () => {
@@ -1118,7 +1175,7 @@ async def run():
     base = f"http://127.0.0.1:{server.server_port}"
     try:
         async with async_playwright() as pw:
-            browser = await pw.chromium.launch(executable_path=shutil.which("google-chrome"), headless=True,
+            browser = await pw.chromium.launch(executable_path=shutil.which("google-chrome") or shutil.which("chromium"), headless=True,
                                                args=["--no-sandbox", "--disable-dev-shm-usage"])
             context = await browser.new_context(service_workers="block", accept_downloads=True)
             if "--save-rules-fixtures" in sys.argv:
@@ -1147,6 +1204,13 @@ async def run():
             print(f"PASS account verification refresh concurrency ({len(refresh_checks)} assertions)")
             features = await page.evaluate(NEW_FEATURE_TESTS)
             print(f"PASS self-registration/casual/Minnesota APIs ({len(features['checks'])} assertions)")
+            # No account UI observers: these races exercise the adapter itself.
+            (RUNTIME / "session.html").write_text("<!doctype html><title>Local session contract</title>")
+            session_page = await context.new_page()
+            await session_page.goto(base + f"/{RUNTIME.name}/session.html")
+            session_checks = await session_page.evaluate(ACCOUNT_RECORD_SESSION_TESTS)
+            await session_page.close()
+            print(f"PASS account/record session ownership ({len(session_checks)} assertions)")
             guests = await page.evaluate(GUEST_TESTS)
             print(f"PASS anonymous guest self-registration ({len(guests['checks'])} assertions)")
             if "--save-rules-fixtures" in sys.argv:
@@ -1179,6 +1243,42 @@ async def run():
                 record["id"] for record in data["results"] if record["source"] == "casual"
             }
             assert {record["source"] for record in data["results"]} == {"tournament", "casual"}
+            # A separate browser context has no copied auth or saved-game storage.
+            # Only the mocked server's document snapshot is shared; this is not a
+            # live Firebase or emulator claim.
+            server_documents = await page.evaluate("[...testDocs]")
+            device_store = STORE.replace("const docs=new Map();", "const docs=new Map(" + json.dumps(server_documents) + ");")
+            device = await browser.new_context(service_workers="block")
+            await device.add_init_script("if(localStorage.getItem('platform-test-auth')===null)localStorage.setItem('platform-test-auth','null')")
+            async def device_route(request):
+                if request.request.url.endswith("/firebase-firestore.js"):
+                    await request.fulfill(content_type="text/javascript", body=device_store)
+                else:
+                    await route(request)
+            await device.route("**/*", device_route)
+            await enable_future_features(device)
+            device_page = await device.new_page()
+            await device_page.goto(base + "/dev/accounts/")
+            assert await device_page.locator("#recordsPanel").is_hidden()
+            assert await device_page.evaluate("localStorage.getItem('blakeout_dev_active_game')") is None
+            await device_page.locator("#accountEmail").fill("owner@example.com")
+            await device_page.locator("#accountPassword").fill("Test-only-password-123")
+            await device_page.locator("#passwordSignIn").click()
+            await device_page.wait_for_function("document.querySelector('#records').textContent.includes('casual-keeper')")
+            recovered = await device_page.evaluate("async()=>await(await import('/dev/js/platform.js')).listMyResults()")
+            assert {record["id"] for record in recovered} == {record["id"] for record in data["results"]}
+            await device_page.evaluate("globalThis.testOffline=true")
+            await device_page.locator("#refreshRecords").click()
+            await device_page.wait_for_function("document.querySelector('#accountStatus').textContent.includes('Offline')")
+            await device_page.evaluate("globalThis.testOffline=false")
+            await device_page.locator("#refreshRecords").click()
+            await device_page.wait_for_function("document.querySelector('#records').textContent.includes('casual-keeper')")
+            # Auth persists independently on this device after a page reload.
+            await device_page.reload()
+            await device_page.wait_for_function("document.querySelector('#records').textContent.includes('casual-keeper')")
+            assert await device_page.locator("#signInPanel").is_hidden()
+            await device.close()
+            print("PASS fresh-device sign-in, saved records, offline/reconnect and reload (shared mock server snapshot only)")
             await page.set_viewport_size({"width": 390, "height": 844})
             assert await page.evaluate("document.documentElement.scrollWidth <= 390")
             assert await page.locator('nav a[href="../brackets/"]').count() == 1

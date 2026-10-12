@@ -68,6 +68,12 @@ export function subscribeAccount(callback) {
 
 export function getAccount() { return auth ? auth.currentUser : account; }
 
+function requireAccountSession(user) {
+    if (!user || getAccount() !== user) {
+        throw new Error('The signed-in account changed. Try again with the original account.');
+    }
+}
+
 export function requireVerifiedAccount() {
     const user = getAccount();
     if (!user || user.isAnonymous || !user.emailVerified) {
@@ -98,8 +104,9 @@ export async function registerAccount(email, password) {
     await initPlatform();
     if (typeof password !== 'string' || password.length < 6) throw new Error('Use a password with at least 6 characters.');
     const credential = await authSDK.createUserWithEmailAndPassword(auth, accountEmail(email), password);
+    requireAccountSession(credential.user);
     publishAccount(credential.user);
-    await sendAccountVerification();
+    await verifyAccountEmail(credential.user);
     return credential.user;
 }
 
@@ -107,18 +114,23 @@ export async function signInAccount(email, password) {
     await initPlatform();
     if (typeof password !== 'string' || !password) throw new Error('Enter your password.');
     const credential = await authSDK.signInWithEmailAndPassword(auth, accountEmail(email), password);
+    requireAccountSession(credential.user);
     publishAccount(credential.user);
     return credential.user;
 }
 
 export async function sendAccountVerification() {
     await initPlatform();
-    const user = getAccount();
+    return verifyAccountEmail(getAccount());
+}
+
+async function verifyAccountEmail(user) {
     if (!user || user.isAnonymous) throw new Error('Sign in before requesting a verification email.');
+    requireAccountSession(user);
     if (user.emailVerified) throw new Error('This email address is already verified.');
     if (ACCOUNT_EMAIL_SERVICE_URL) {
         const token = await user.getIdToken(true);
-        if (getAccount()?.uid !== user.uid) throw new Error('The signed-in account changed. Try again.');
+        requireAccountSession(user);
         await sendAccountEmail(ACCOUNT_EMAIL_SERVICE_URL, 'verify-email', { token });
     } else {
         await authSDK.sendEmailVerification(user, accountReturnSettings());
@@ -594,8 +606,10 @@ export async function saveProfile(name) {
     const user = requireVerifiedAccount();
     const profile = { name: publicName(name) };
     await storeSDK.runTransaction(db, async transaction => {
+        requireAccountSession(user);
         transaction.set(ref('profiles', user.uid), profile);
     });
+    requireAccountSession(user);
     return { id: user.uid, ...profile };
 }
 
@@ -603,13 +617,15 @@ export async function getProfile() {
     await initPlatform();
     const user = requireVerifiedAccount();
     const snapshot = await storeSDK.getDocFromServer(ref('profiles', user.uid));
+    requireAccountSession(user);
     return snapshot.exists() ? { id: snapshot.id, name: snapshot.data().name } : null;
 }
 
 export async function listProfiles() {
     await initPlatform();
-    requireVerifiedAccount();
+    const user = requireVerifiedAccount();
     const snapshot = await storeSDK.getDocsFromServer(storeSDK.collection(db, COLLECTIONS.profiles));
+    requireAccountSession(user);
     return snapshot.docs.map(item => ({ id: item.id, name: item.data().name }));
 }
 
@@ -737,7 +753,9 @@ export async function saveCasualResult(resultId, result) {
         throw new Error('Tied winners must be a list of stable side IDs, not names.');
     }
     const persisted = await storeSDK.runTransaction(db, async transaction => {
+        requireAccountSession(user);
         const existing = await transaction.get(reference);
+        requireAccountSession(user);
         if (existing.exists()) {
             if (existing.data().ownerId !== user.uid) throw new Error('This result ID belongs to another scorekeeper.');
             if (existing.data().matchId !== result.matchId || existing.data().gameType !== result.gameType) {
@@ -752,6 +770,7 @@ export async function saveCasualResult(resultId, result) {
         }
         const perPlayer = encodeResultCounters(result.perPlayer, result.participantIds, true);
         const profiles = await Promise.all(result.participantIds.map(uid => transaction.get(ref('profiles', uid))));
+        requireAccountSession(user);
         if (profiles.some(profile => !profile.exists())) throw new Error('Casual statistics can only reference existing verified player profiles. Guests must be excluded.');
         const document = { ...result, ownerId: user.uid, perPlayer, createdAt: Date.now() };
         withoutPrivateData(document);
@@ -763,10 +782,13 @@ export async function saveCasualResult(resultId, result) {
     // budgets). Eight run concurrently; retry resumes missing receipts without
     // rewriting the immutable score document.
     for (let offset = 0; offset < persisted.participantIds.length; offset += 8) {
+        requireAccountSession(user);
         const ids = persisted.participantIds.slice(offset, offset + 8);
         const outcomes = await Promise.allSettled(ids.map(uid =>
             storeSDK.runTransaction(db, async transaction => {
+                requireAccountSession(user);
                 const receipt = await transaction.get(casualReceiptRef(resultId, uid));
+                requireAccountSession(user);
                 if (!receipt.exists()) transaction.set(casualReceiptRef(resultId, uid), {
                     resultId, playerId: uid, ownerId: user.uid
                 });
@@ -774,6 +796,7 @@ export async function saveCasualResult(resultId, result) {
         const failed = outcomes.find(outcome => outcome.status === 'rejected');
         if (failed) throw failed.reason;
     }
+    requireAccountSession(user);
     return decodeResult({ ...persisted, id: resultId }, 'casual');
 }
 
@@ -788,6 +811,7 @@ export async function listMyResults() {
         storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db, COLLECTIONS.casualResults),
             storeSDK.where('ownerId', '==', user.uid)))
     ]);
+    requireAccountSession(user);
     const casual = new Map(owned.docs.map(item =>
         [item.id, decodeResult({ ...item.data(), id: item.id }, 'casual')]));
     const received = await Promise.all(receipts.docs.filter(receipt => !casual.has(receipt.data().resultId)).map(async receipt => {
@@ -795,6 +819,7 @@ export async function listMyResults() {
         if (!record.exists()) throw new Error('A casual result receipt references a missing record.');
         return decodeResult({ ...record.data(), id: record.id }, 'casual');
     }));
+    requireAccountSession(user);
     for (const record of received) casual.set(record.id, record);
     return [...snapshot.docs.map(item => decodeResult({ ...item.data(), id: item.id })), ...casual.values()];
 }

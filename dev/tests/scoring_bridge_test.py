@@ -726,7 +726,7 @@ async def run():
     try:
         async with async_playwright() as p:
             browser = await p.chromium.launch(
-                executable_path="/usr/bin/google-chrome", headless=True,
+                executable_path=shutil.which("google-chrome") or shutil.which("chromium"), headless=True,
                 args=["--no-sandbox"], env={**os.environ, "TMPDIR": str(RUNTIME)})
             context = await browser.new_context(service_workers="block", viewport={"width": 1000, "height": 1400})
 
