@@ -52,6 +52,24 @@ See [REAL_ACCOUNT_ROLLOUT.md](REAL_ACCOUNT_ROLLOUT.md) for exact artifact/checks
 reproduction commands, shared-production-project implications and the concrete
 approval bundle. That document does not authorize or enable a rollout.
 
+## Tournament/link session milestone (October 12)
+
+All verified tournament mutations now guard the initiating account at transaction
+entry, each asynchronous read, every retry/write and completion. Guest joins use
+their own named guest session guard, independent of the signed-in account.
+Owner-only roster reads become public/redacted after a session replacement even
+when the UID is unchanged. A commit already accepted by the server is not undone.
+Email-link completion checks the credential session before/after token refresh
+and preserves newer URL/email continuation state. Concurrent link sends cannot
+replace a newer remembered address.
+
+47 new deterministic browser assertions cover these races, retries and committed
+write boundaries; the actual Firebase Auth SDK/emulator also completes an email
+link in a second browser context. Existing account, bracket and scoring tests are
+retained. DEV cache is v63. Real feature gates, backend settings and production
+remain unchanged. See [SEPARATE_BACKEND_SETUP.md](SEPARATE_BACKEND_SETUP.md) for
+an exact unexecuted isolated-project setup proposal and access blocker.
+
 ## Current DEV entry status (October 10)
 
 DEV menus and direct Brackets / Players & Records routes are open to interactive

@@ -82,10 +82,10 @@ export const signInAnonymously=async auth=>{
  return {user:auth.currentUser};
 };
 export const isSignInWithEmailLink=(auth,url)=>new URL(url).searchParams.has('oobCode');
-export const sendSignInLinkToEmail=async(auth,email,settings)=>{globalThis.sentLink={email,settings};};
+export const sendSignInLinkToEmail=async(auth,email,settings)=>{globalThis.sentLink={email,settings};if(globalThis.sendLinkHook)await globalThis.sendLinkHook(email);};
 export const signInWithEmailLink=async(auth,email)=>{
  if(email!=='owner@example.com')throw Object.assign(Error('Invalid email for this link'),{code:'auth/invalid-email'});
- globalThis.changeTestUser(initial);return {user:hydrate(initial)};
+ globalThis.changeTestUser(initial);const user=auth.currentUser;if(globalThis.afterEmailLinkAuth)await globalThis.afterEmailLinkAuth();return {user};
 };
 export const signOut=async()=>globalThis.changeTestUser(null);
 const fail=()=>{if(globalThis.authFailure)throw Object.assign(Error('Authentication request failed'),{code:globalThis.authFailure});};
@@ -220,7 +220,7 @@ export const runTransaction=async(db,callback)=>{
    return {writes,result};
  };
  let outcome=await attempt();
- if(globalThis.retryTransaction&&outcome.writes.length){globalThis.retryTransaction=false;outcome=await attempt();}
+ if(globalThis.retryTransaction&&outcome.writes.length){globalThis.retryTransaction=false;if(globalThis.beforeTransactionRetry)await globalThis.beforeTransactionRetry();outcome=await attempt();}
  const {writes,result}=outcome;
  if(writes.some(([path])=>path.startsWith('blakeoutDevCasualReceipts/'))){
    globalThis.receiptBatches=(globalThis.receiptBatches||0)+1;
@@ -235,6 +235,7 @@ export const runTransaction=async(db,callback)=>{
    ruleTransactions.push({before,after:new Map(docs),writes,appName:db.appName,
      auth:actor?{uid:actor.uid,token}:null,clientAccountUid:globalThis.ruleAccountUser?.uid||null});
  }
+ if(globalThis.afterTransactionCommit)await globalThis.afterTransactionCommit();
  return result;
 };
 """
@@ -572,6 +573,89 @@ ACCOUNT_RECORD_SESSION_TESTS = r"""async () => {
  } finally {
    for(const key of ['beforeTransaction','afterTransactionRead','afterServerRead','afterPasswordAuth'])delete globalThis[key];
    testDocs.clear();for(const [key,value] of original)testDocs.set(key,value);login();
+ }
+ return checks;
+}"""
+
+TOURNAMENT_SESSION_TESTS = r"""async () => {
+ const p=await import('/dev/js/platform.js'),e=await import('/dev/js/brackets/engine.js');await p.initPlatform();
+ const checks=[],assert=(v,m)=>{if(!v)throw Error(m);checks.push(m);};
+ const owner={uid:'verified_owner',email:'owner@example.com',emailVerified:true,isAnonymous:false};
+ const login=()=>changeTestUser(owner),replace=()=>changeTestUser({...owner});
+ const hooks=['beforeTransaction','afterTransactionRead','beforeTransactionRetry','afterTransactionCommit','afterEmailLinkAuth','tokenRefreshHook','sendLinkHook'];
+ const clear=()=>{for(const key of hooks)delete globalThis[key];globalThis.retryTransaction=false;};
+ const original=[...testDocs],originalGuest=globalThis.ruleGuestUser,url=location.href,email=localStorage.getItem('blakeout_dev_email_link');
+ const reject=async(fn,label)=>{let error;try{await fn();}catch(e){error=e;}
+   assert(/(?:account|guest session) changed/.test(error?.message||''),label);};
+ try {
+   login();testDocs.set('blakeoutDevProfiles/verified_owner',{name:'Owner'});
+   const rows=Array.from({length:4},(_,i)=>{testDocs.set('blakeoutDevProfiles/u'+i,{name:'P'+i});
+     return{id:'r'+i,playerId:'u'+i,name:'P'+i,tag:i<2?'A':'B',paid:true,checkedIn:true,standby:false};});
+   const fresh=id=>e.saveRoster(e.createTournament({id,ownerId:owner.uid,title:'Session test',date:'2026-10-12',gameType:'501',bestOf:3}),rows);
+   const registration=await p.createTournamentDocument(fresh('session-registration'));
+   let live=await p.createTournamentDocument(fresh('session-live'));
+   live=await p.updateTournament(live.id,live.revision,x=>e.startTournament(x));
+   const match=live.matches.find(m=>m.status==='ready');
+   const result={matchId:match.id,gameType:'501',participantIds:rows.map(r=>r.playerId),
+     perPlayer:rows.map(r=>({playerId:r.playerId,gameType:'501',points:20,darts:3,marks:0})),
+     legScores:[],winnerId:match.teamA,scoreA:2,scoreB:0};
+   const operations={
+     create:()=>p.createTournamentDocument(fresh('session-new')),
+     update:()=>p.updateTournament(registration.id,registration.revision,x=>({...x,title:'Changed'})),
+     join:()=>p.joinTournament(registration.id),
+     result:()=>p.saveMatchResult(live.id,live.revision,'session-match',result,x=>e.recordResult(x,match.id,result))
+   };
+   const baseline=[...testDocs].map(([k,v])=>[k,structuredClone(v)]);
+   const reset=()=>{clear();testDocs.clear();for(const [k,v]of baseline)testDocs.set(k,structuredClone(v));login();};
+   for(const [name,operation]of Object.entries(operations)){
+     for(const phase of ['entry','read','retry','committed']){
+       reset();const before=JSON.stringify([...testDocs]);
+       if(phase==='entry')globalThis.beforeTransaction=()=>{delete globalThis.beforeTransaction;replace();};
+       if(phase==='read')globalThis.afterTransactionRead=()=>{delete globalThis.afterTransactionRead;replace();};
+       if(phase==='retry'){globalThis.retryTransaction=true;globalThis.beforeTransactionRetry=replace;}
+       if(phase==='committed')globalThis.afterTransactionCommit=()=>{delete globalThis.afterTransactionCommit;replace();};
+       await reject(operation,name+' rejects same-UID session replacement at '+phase);
+       assert((JSON.stringify([...testDocs])===before)===(phase!=='committed'),name+' '+phase+' has expected commit boundary; never rolls back or retries a committed write');
+     }
+   }
+   reset();await reject(()=>p.updateTournament(registration.id,registration.revision,x=>{replace();return x;}),'updater cannot switch account and continue writing');
+   assert(JSON.stringify([...testDocs])===JSON.stringify(baseline),'account-changing updater leaves storage unchanged');
+   for(const phase of ['public','private']){
+     reset();globalThis.testReadPaths=[];
+     globalThis.afterTransactionRead=ref=>{if(ref.path.startsWith(phase==='public'?'blakeoutDevTournaments/':'blakeoutDevRosterPrivate/')){
+       delete globalThis.afterTransactionRead;replace();}};
+     const view=await p.getTournament(registration.id);
+     assert(view.registrations.every(r=>!r.paid&&!r.checkedIn),'same-UID replacement never receives private '+phase+' read');
+     if(phase==='public')assert(!testReadPaths.some(path=>path.startsWith('blakeoutDevRosterPrivate/')),'obsolete public read does not start private lookup');
+   }
+   reset();changeGuestTestUser({uid:'guest_session',isAnonymous:true,emailVerified:false});
+   globalThis.beforeTransaction=()=>{delete globalThis.beforeTransaction;changeGuestTestUser({uid:'guest_session',isAnonymous:true,emailVerified:false});};
+   await reject(()=>p.joinTournamentAsGuest(registration.id,'Guest'),'guest replacement blocks stale guest writes');
+   assert(!testDocs.has('blakeoutDevSignups/session-registration/players/guest_session'),'stale guest entry absent');
+   reset();globalThis.beforeTransaction=()=>{delete globalThis.beforeTransaction;replace();};
+   const guest=await p.joinTournamentAsGuest(registration.id,'Guest');
+   assert(guest.registrationId==='guest-guest_session','verified account change does not invalidate independent guest session');
+   clear();
+   for(const phase of ['credential','token']){
+     login();history.replaceState(null,'','?oobCode=session-link');localStorage.setItem('blakeout_dev_email_link','owner@example.com');
+     if(phase==='credential')globalThis.afterEmailLinkAuth=replace;
+     else globalThis.tokenRefreshHook=async()=>{replace();return 'test-token';};
+     await reject(()=>p.completeAccountLink('owner@example.com'),'email-link '+phase+' race rejects old session');
+     assert(location.search.includes('session-link')&&p.pendingAccountEmail()==='owner@example.com','stale completion preserves continuation state');clear();
+   }
+   login();history.replaceState(null,'','?oobCode=original-link');
+   globalThis.tokenRefreshHook=async()=>{history.replaceState(null,'','?oobCode=new-link');await p.sendAccountLink('new@example.com');return 'test-token';};
+   const linked=await p.completeAccountLink('owner@example.com');
+   assert(linked===p.getAccount()&&location.search.includes('new-link')&&p.pendingAccountEmail()==='new@example.com','successful old completion preserves newer link/email');clear();
+   history.replaceState(null,'','?oobCode=current-link');await p.sendAccountLink('owner@example.com');
+   assert((await p.completeAccountLink('owner@example.com'))===p.getAccount()&&!location.search&&!p.pendingAccountEmail(),'current verified link clears only its own continuation');
+   let release;globalThis.sendLinkHook=email=>email==='old@example.com'?new Promise(r=>release=r):Promise.resolve();
+   const old=p.sendAccountLink('old@example.com');while(!release)await new Promise(r=>setTimeout(r,0));
+   await p.sendAccountLink('new@example.com');release();await old;
+   assert(p.pendingAccountEmail()==='new@example.com','late link send cannot overwrite newer pending email');
+ } finally {
+   clear();testDocs.clear();for(const [k,v]of original)testDocs.set(k,v);changeGuestTestUser(originalGuest);login();history.replaceState(null,'',url);
+   if(email===null)localStorage.removeItem('blakeout_dev_email_link');else localStorage.setItem('blakeout_dev_email_link',email);
  }
  return checks;
 }"""
@@ -1209,6 +1293,8 @@ async def run():
             session_page = await context.new_page()
             await session_page.goto(base + f"/{RUNTIME.name}/session.html")
             session_checks = await session_page.evaluate(ACCOUNT_RECORD_SESSION_TESTS)
+            tournament_checks = await session_page.evaluate(TOURNAMENT_SESSION_TESTS)
+            print(f"PASS tournament/email-link session ownership ({len(tournament_checks)} assertions)")
             await session_page.close()
             print(f"PASS account/record session ownership ({len(session_checks)} assertions)")
             guests = await page.evaluate(GUEST_TESTS)

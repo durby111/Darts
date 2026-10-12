@@ -63,7 +63,7 @@ export function getAuth(app){const auth=actualGetAuth(app);
                     if url.startswith('https://www.gstatic.com/firebasejs/10.13.2/'):
                         source = source.replace("'/sdk.js'", json.dumps(base + '/sdk.js'))
                     await r.fulfill(content_type='text/javascript', body=source)
-                elif url == base + '/sdk-session.html':
+                elif url.startswith(base + '/sdk-session.html'):
                     await r.fulfill(content_type='text/html', body='<!doctype html><title>Local Auth SDK contract</title>')
                 elif url.startswith(base + '/') or (urlparse(url).scheme == 'http' and urlparse(url).netloc == '127.0.0.1:9099'):
                     await r.continue_()
@@ -109,6 +109,17 @@ export function getAuth(app){const auth=actualGetAuth(app);
             assert await b.evaluate('async args=>(await api.signInAccount(...args)).uid',[email,replacement]) == uid
             token = await b.evaluate('api.getAccount().getIdToken()')
             print('PASS actual platform + Auth SDK reset request, old-password rejection and new-password sign-in')
+            # Complete the optional link on another browser context with the
+            # real SDK; the emulator generates codes without delivering mail.
+            await b.evaluate('email=>api.sendAccountLink(email)', email)
+            code = action_code(email, 'EMAIL_SIGNIN')
+            await a.goto(base + '/sdk-session.html?mode=signIn&oobCode=' + code + '&apiKey=' + project)
+            await initialize(a)
+            assert await a.evaluate('email=>api.completeAccountLink(email).then(user=>user.uid)', email) == uid
+            assert await a.evaluate('api.requireVerifiedAccount().uid') == uid
+            assert await a.evaluate('location.search') == ''
+            token = await a.evaluate('api.getAccount().getIdToken()')
+            print('PASS actual platform + Auth SDK email-link completion on another browser context')
             assert not unexpected, unexpected
             await first.close()
             await second.close()

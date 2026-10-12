@@ -1,6 +1,7 @@
 # DEV real-account rollout review — October 12, 2026
 
-This is a review bundle, not approval or an enabled rollout. Current `main`
+This is a review bundle, not approval or an enabled rollout. For the preferred
+separate-project setup, see [SEPARATE_BACKEND_SETUP.md](SEPARATE_BACKEND_SETUP.md). Current `main`
 `78d3043` still exposes sample account/bracket pages. No live accounts, mail,
 Firestore writes, provider grants or security configuration were changed during
 this validation.
@@ -126,10 +127,10 @@ are reusable test sources; no successful Firestore emulator run is claimed here.
 - These checks do not prove Firestore rule acceptance/query permissions, actual
   cross-device cloud persistence, real inbox delivery or the deployed Firebase
   action handler. Auth emulator evidence is separate from mail/Firestore proof.
-- Tournament storage methods and optional email-link completion do not yet have
-  the same explicit adapter session checks as the hardened profile/casual flow.
-  They retain existing ownership/revision checks and UI protections. Keep real
-  Brackets disabled pending a targeted adapter race audit and emulator tests.
+- Tournament mutations, independent guest joins and optional email-link
+  completion now have explicit adapter session checks, covered by 47 additional
+  race assertions and real Auth SDK/emulator link completion. Keep real Brackets
+  disabled pending Firestore emulator validation and a separately approved rollout.
 - Reuse the existing branded-worker transport suite; do not reinterpret its
   mocked provider results as successful delivery.
 - **Safe next action:** provide the official Firestore JAR through an approved

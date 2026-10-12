@@ -18,6 +18,7 @@ const listeners = new Set();
 let initialization, auth, db, authSDK, storeSDK, account = null;
 let guestInitialization;
 let accountRefresh;
+let emailLinkRequest = 0;
 
 function publishAccount(user) {
     account = user;
@@ -176,23 +177,34 @@ export async function refreshAccount() {
 export async function sendAccountLink(email) {
     await initPlatform();
     email = accountEmail(email);
+    const user = getAccount();
+    const request = ++emailLinkRequest;
     await authSDK.sendSignInLinkToEmail(auth, email, {
         url: new URL('../accounts/', import.meta.url).href,
         handleCodeInApp: true
     });
+    if (getAccount() !== user || request !== emailLinkRequest) return;
     try { localStorage.setItem(EMAIL_KEY, email); } catch { /* Cross-device completion asks for email. */ }
 }
 
 export async function completeAccountLink(email) {
     await initPlatform();
     if (!isAccountLink()) throw new Error('Open the sign-in link from your email first.');
-    const credential = await authSDK.signInWithEmailLink(auth, accountEmail(email), location.href);
-    await credential.user.getIdToken(true);
-    account = credential.user;
-    if (!account.emailVerified) throw new Error('Firebase has not verified this email address.');
-    try { localStorage.removeItem(EMAIL_KEY); } catch { /* Storage may be disabled. */ }
-    history.replaceState(null, '', location.pathname);
-    return account;
+    email = accountEmail(email);
+    const linkURL = location.href;
+    const request = emailLinkRequest;
+    const credential = await authSDK.signInWithEmailLink(auth, email, linkURL);
+    const user = credential.user;
+    requireAccountSession(user);
+    await user.getIdToken(true);
+    requireAccountSession(user);
+    requireVerifiedAccount();
+    // A later link request/navigation owns its own continuation state.
+    if (request === emailLinkRequest && pendingAccountEmail() === email) {
+        try { localStorage.removeItem(EMAIL_KEY); } catch { /* Storage may be disabled. */ }
+    }
+    if (location.href === linkURL) history.replaceState(null, '', location.pathname);
+    return user;
 }
 
 export async function signOutAccount() {
@@ -472,6 +484,36 @@ function mergeSignups(tournament, bundle) {
     return { ...tournament, registrations, revision: bundle.version ?? tournament.revision };
 }
 
+// Check every transaction retry and asynchronous read, not just API entry.
+// These checks cannot undo a commit already accepted by the server.
+async function sessionTransaction(connection, check, callback) {
+    const result = await storeSDK.runTransaction(connection, async transaction => {
+        check();
+        const guarded = {
+            get: async (...args) => {
+                check();
+                const snapshot = await transaction.get(...args);
+                check();
+                return snapshot;
+            },
+            set: (...args) => { check(); return transaction.set(...args); },
+            delete: (...args) => { check(); return transaction.delete(...args); }
+        };
+        const value = await callback(guarded);
+        check();
+        return value;
+    });
+    check();
+    return result;
+}
+
+function accountTransaction(user, callback) {
+    return sessionTransaction(db, () => {
+        requireAccountSession(user);
+        requireVerifiedAccount();
+    }, callback);
+}
+
 async function ownerTournament(id, uid, transaction) {
     const snapshot = await transaction.get(ref('tournaments', id));
     if (!snapshot.exists()) throw new Error('Tournament not found.');
@@ -489,14 +531,14 @@ async function visibleTournament(document) {
         const tournament = decodeTournament(snapshot.data());
         const bundle = await signupBundle(document.id, transaction, tournament);
         const publicView = mergeSignups(tournament, bundle);
-        const ownerView = user?.emailVerified && !user.isAnonymous && tournament.ownerId === user.uid
+        const ownerView = getAccount() === user && user?.emailVerified && !user.isAnonymous && tournament.ownerId === user.uid
             ? mergeSignups(mergePrivateRoster(tournament, await transaction.get(ref('rosterPrivate', document.id))), bundle)
             : null;
         return { publicView, ownerView };
     });
     if (!views) return null;
     // Never reveal an in-flight private response after a signout/account switch.
-    return views.ownerView && getAccount()?.uid === user?.uid && getAccount()?.emailVerified
+    return views.ownerView && getAccount() === user && user?.emailVerified && !user.isAnonymous
         ? views.ownerView : views.publicView;
 }
 
@@ -509,7 +551,7 @@ function removeOmittedSignups(transaction, id, candidate, bundle) {
 export async function joinTournament(id) {
     await initPlatform();
     const user = requireVerifiedAccount();
-    await storeSDK.runTransaction(db, async transaction => {
+    await accountTransaction(user, async transaction => {
         const [snapshot, state, signup, profile] = await Promise.all([
             transaction.get(ref('tournaments', id)), transaction.get(ref('signupState', id)),
             transaction.get(signupRef(id, user.uid)), transaction.get(ref('profiles', user.uid))
@@ -531,7 +573,9 @@ export async function joinTournament(id) {
         });
         transaction.set(ref('signupState', id), { tournamentId: id, revision, lastJoiner: user.uid, members: [...members, user.uid] });
     });
-    return getTournament(id);
+    const tournament = await getTournament(id);
+    requireAccountSession(user);
+    return tournament;
 }
 
 async function guestConnection() {
@@ -572,7 +616,12 @@ export async function joinTournamentAsGuest(id, name) {
     const connection = await guestConnection();
     const guest = connection.auth.currentUser;
     if (!guest?.isAnonymous) throw new Error('An anonymous guest session is required.');
-    await storeSDK.runTransaction(connection.db, async transaction => {
+    const checkGuest = () => {
+        if (connection.auth.currentUser !== guest || !guest.isAnonymous) {
+            throw new Error('The guest session changed. Try again with the original guest session.');
+        }
+    };
+    await sessionTransaction(connection.db, checkGuest, async transaction => {
         const [snapshot, state, signup] = await Promise.all([
             transaction.get(ref('tournaments', id, connection.db)),
             transaction.get(ref('signupState', id, connection.db)),
@@ -598,7 +647,9 @@ export async function joinTournamentAsGuest(id, name) {
             tournamentId: id, revision, lastJoiner: guest.uid, members: [...members, guest.uid]
         });
     });
-    return { tournament: await getTournament(id), registrationId: `guest-${guest.uid}` };
+    const tournament = await getTournament(id);
+    checkGuest();
+    return { tournament, registrationId: `guest-${guest.uid}` };
 }
 
 export async function saveProfile(name) {
@@ -648,7 +699,7 @@ export async function createTournamentDocument(tournament) {
     const document = validateTournament({
         ...tournament, id, ownerId: user.uid, revision: 0, createdAt: now, updatedAt: now
     });
-    await storeSDK.runTransaction(db, async transaction => {
+    await accountTransaction(user, async transaction => {
         const reference = ref('tournaments', id);
         if ((await transaction.get(reference)).exists()) throw new Error('Tournament ID already exists.');
         if ((await transaction.get(ref('rosterPrivate', id))).exists()) throw new Error('Private roster ID already exists.');
@@ -677,7 +728,7 @@ function revised(current, expectedRevision, updater, uid) {
 export async function updateTournament(id, expectedRevision, updater) {
     await initPlatform();
     const user = requireVerifiedAccount();
-    return storeSDK.runTransaction(db, async transaction => {
+    return accountTransaction(user, async transaction => {
         const { current, bundle } = await ownerTournament(id, user.uid, transaction);
         const next = revised(current, expectedRevision, updater, user.uid);
         await validateLinkedProfiles(next, reference => transaction.get(reference));
@@ -692,7 +743,7 @@ export async function updateTournament(id, expectedRevision, updater) {
 export async function saveMatchResult(tournamentId, expectedRevision, resultId, result, updater) {
     await initPlatform();
     const user = requireVerifiedAccount();
-    return storeSDK.runTransaction(db, async transaction => {
+    return accountTransaction(user, async transaction => {
         const resultRef = ref('results', resultId);
         const { current, bundle } = await ownerTournament(tournamentId, user.uid, transaction);
         const resultSnapshot = await transaction.get(resultRef);
