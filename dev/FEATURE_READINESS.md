@@ -41,6 +41,17 @@ Use that controlled test to verify email action completion, server-authorized
 save/read ownership and a second real device. No migration, rule relaxation or
 new provider grants are required or proposed by this code change.
 
+## Additional local validation (October 12)
+
+The official CLI's bundled Auth emulator is available even though its Firestore
+JAR download is blocked. Local Auth REST tests and the actual Firebase Auth SDK
+10.13.2 with the DEV platform adapter passed signup, verification, reset,
+wrong-password rejection, auth persistence/reload and independent-browser sign-in.
+No real email or live writes occurred; Firestore remains unverified by emulator.
+See [REAL_ACCOUNT_ROLLOUT.md](REAL_ACCOUNT_ROLLOUT.md) for exact artifact/checksum,
+reproduction commands, shared-production-project implications and the concrete
+approval bundle. That document does not authorize or enable a rollout.
+
 ## Current DEV entry status (October 10)
 
 DEV menus and direct Brackets / Players & Records routes are open to interactive
