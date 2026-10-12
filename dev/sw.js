@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v63-tournament-sessions';
+const CACHE_NAME = 'blakeout-dev-v64-provider-signin';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -45,6 +45,7 @@ const ASSETS = [
     './js/build-context.js',
     './js/platform.js',
     './js/account-email-config.js',
+    './js/account-provider-config.js',
     './js/account-email.js',
     './js/accounts-page.js',
     './js/brackets/engine.js',

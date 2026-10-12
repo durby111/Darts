@@ -41,7 +41,7 @@
     </header>
     <main class="platform-main">
         <h1>Your verified account</h1>
-        <p>Sign in with email and password, then verify your email to keep the same player ID across devices. Your email is private; only your chosen display name is shared with signed-in players. Passwords are handled by Firebase and never saved by this page.</p>
+        <p>Use an enabled sign-in method and a verified account to keep the same player ID across devices. Your email is private; only your chosen display name is shared with signed-in players. Passwords are handled by Firebase and never saved by this page.</p>
         <p id="accountStatus" class="platform-notice" role="status" aria-live="polite">Connecting to Firebase…</p>
         <section class="platform-card" id="signInPanel">
             <h2>Sign in or create an account</h2>
@@ -57,6 +57,15 @@
                     <button id="passwordReset" type="button" disabled>Reset password</button>
                 </div>
             </form>
+            <div id="providerSignInPanel" aria-describedby="providerSignInHint">
+                <div class="platform-actions">
+                    <button id="googleSignIn" type="button" disabled>Continue with Google</button>
+                    <button id="appleSignIn" type="button" disabled>Continue with Apple</button>
+                    <button id="providerRedirect" type="button" hidden disabled>Continue sign-in in this tab</button>
+                </div>
+                <p id="providerSignInHint">Google and Apple sign-in are not enabled for DEV yet.</p>
+                <p>Provider sign-in uses your Firebase player ID. This app does not merge accounts or records by matching email addresses. Linking accounts requires a separate consent flow.</p>
+            </div>
             <details id="emailLinkPanel">
                 <summary>Optional email-link sign-in</summary>
                 <p>Existing email links still work. These optional sign-in emails still come from Firebase, not the branded sender. Spark email-link delivery has a low daily quota; email/password is the recommended sign-in method.</p>

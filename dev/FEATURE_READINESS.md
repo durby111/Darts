@@ -70,6 +70,17 @@ retained. DEV cache is v63. Real feature gates, backend settings and production
 remain unchanged. See [SEPARATE_BACKEND_SETUP.md](SEPARATE_BACKEND_SETUP.md) for
 an exact unexecuted isolated-project setup proposal and access blocker.
 
+## Provider sign-in preparation (October 12)
+
+DEV Google/Apple UI and adapter paths are implemented with both provider switches
+and redirects disabled. The adapter also refuses provider sign-in against the
+old shared Firebase project. Cancellation, popup blocking, collision, repeated
+clicks, stale account sessions and redirect return validation are covered by
+local mocked browser tests. No linking by email or automatic credential linking
+is implemented. DEV cache is v64; production and real feature gates are unchanged.
+See [ACCOUNT_PROVIDERS.md](ACCOUNT_PROVIDERS.md) for exact switches, setup needs
+and the explicit limit that actual Google/Apple OAuth remains untested.
+
 ## Current DEV entry status (October 10)
 
 DEV menus and direct Brackets / Players & Records routes are open to interactive

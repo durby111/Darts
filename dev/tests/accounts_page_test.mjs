@@ -28,8 +28,8 @@ class Element {
     submit(submitter = null) { return this.listeners.submit?.({ preventDefault() {}, submitter }); }
 }
 
-async function harness(initial = user('a')) {
-    const nodes = new Map(), hooks = {}, calls = {}, windowListeners = {};
+async function harness(initial = user('a'), initialHooks = {}) {
+    const nodes = new Map(), hooks = { ...initialHooks }, calls = {}, windowListeners = {};
     const node = id => {
         if (!nodes.has(id)) nodes.set(id, new Element());
         return nodes.get(id);
@@ -42,7 +42,9 @@ async function harness(initial = user('a')) {
         getProfile: async () => ({ name: 'Player' }), listMyResults: async () => [],
         sendAccountLink: async () => {}, completeAccountLink: async () => {}, signOutAccount: async () => {},
         saveProfile: async () => {}, registerAccount: async () => {}, signInAccount: async () => {},
-        sendAccountVerification: async () => {}, resetAccountPassword: async () => {}, refreshAccount: async () => {}
+        sendAccountVerification: async () => {}, resetAccountPassword: async () => {}, refreshAccount: async () => {},
+        accountProviderAvailability: () => ({ google: { enabled: false }, apple: { enabled: false } }),
+        signInAccountProvider: async () => {}, completeAccountProviderRedirect: async () => null
     };
     const context = vm.createContext({
         document: { getElementById: node, createElement: () => new Element(), addEventListener() {} },
@@ -60,7 +62,7 @@ async function harness(initial = user('a')) {
         this.setExport('GAME_REGISTRY', [{ id: '501', engine: 'x01' }]);
     }, { context });
     // Expose render/read helpers only inside this test VM; shipped exports stay unchanged.
-    const module = new vm.SourceTextModule(source + '\nexport { renderAccount, refreshRecords, passwordAuth };', { context });
+    const module = new vm.SourceTextModule(source + '\nexport { renderAccount, refreshRecords, passwordAuth, providerAuth };', { context });
     await module.link(specifier => specifier === './platform.js' ? platform : registry);
     await module.evaluate(); await flush();
     return {
@@ -225,6 +227,51 @@ await test('return verification refresh still coalesces and ignores obsolete acc
     assert.equal(h.calls.refreshAccount, before + 1);
     await h.change(user('b')); refresh.reject(Error('Old verification')); await first;
     assert.doesNotMatch(h.status(), /Old verification/);
+});
+
+const providerSetup = redirectEnabled => ({ accountProviderAvailability: () => ({ google: { enabled: true, redirectEnabled }, apple: { enabled: false, redirectEnabled: false } }) });
+await test('unconfigured provider buttons are honest and never start authentication', async () => {
+    const h = await harness(null);
+    assert.equal(h.node('googleSignIn').disabled, true); assert.equal(h.node('appleSignIn').disabled, true);
+    await h.node('googleSignIn').click(); await h.node('appleSignIn').click();
+    assert.equal(h.calls.signInAccountProvider || 0, 0);
+});
+await test('provider pending blocks repeated clicks and password sign-in, preserves unavailable Apple', async () => {
+    const h = await harness(null, providerSetup(false)), pending = deferred();
+    h.hooks.signInAccountProvider = () => pending.promise;
+    const first = h.node('googleSignIn').click();
+    await h.node('googleSignIn').click(); await h.ui.passwordAuth(false);
+    assert.equal(h.calls.signInAccountProvider, 1); assert.equal(h.calls.signInAccount || 0, 0);
+    assert.equal(h.node('passwordSignIn').disabled, true);
+    pending.reject(Object.assign(Error('Sign-in canceled.'), { code: 'auth/popup-closed-by-user' })); await first;
+    assert.match(h.status(), /canceled/); assert.equal(h.node('passwordSignIn').disabled, false);
+    assert.equal(h.node('appleSignIn').disabled, true);
+});
+await test('blocked popup never redirects automatically; configured fallback requires another click', async () => {
+    for (const enabled of [false, true]) {
+        const h = await harness(null, providerSetup(enabled)), modes = [];
+        h.hooks.signInAccountProvider = async (name, mode) => {
+            modes.push(mode); if (mode === 'popup') throw Object.assign(Error('Allow pop-ups.'), { code: 'auth/popup-blocked' });
+        };
+        await h.node('googleSignIn').click();
+        assert.deepEqual(modes, ['popup']); assert.equal(h.node('providerRedirect').hidden, !enabled);
+        if (enabled) { await h.node('providerRedirect').click(); assert.deepEqual(modes, ['popup', 'redirect']); }
+        assert.equal(h.node('appleSignIn').disabled, true);
+    }
+});
+await test('late provider failure cannot replace another account status', async () => {
+    const h = await harness(null, providerSetup(false)), pending = deferred();
+    h.hooks.signInAccountProvider = () => pending.promise;
+    const first = h.node('googleSignIn').click(); await h.change({ ...user('replacement'), providerData: [{ providerId: 'google.com' }] });
+    pending.reject(Object.assign(Error('Obsolete provider failure'), { code: 'auth/network-request-failed' })); await first;
+    assert.doesNotMatch(h.status(), /Obsolete/); assert.match(h.node('identity').textContent, /replacement/);
+});
+await test('provider account still needs verified claims before profiles and records', async () => {
+    const h = await harness(null, providerSetup(false));
+    h.hooks.signInAccountProvider = async () => { const next = { ...user('google', false), providerData: [{ providerId: 'google.com' }] }; await h.change(next); return next; };
+    await h.node('googleSignIn').click();
+    assert.equal(h.node('profilePanel').hidden, true); assert.equal(h.node('recordsPanel').hidden, true);
+    assert.equal(h.calls.getProfile || 0, 0); assert.equal(h.calls.listMyResults || 0, 0);
 });
 
 console.log(`\n${passed}/${passed} account UI ownership groups passed. DOM/provider fixtures are not browser or live-email proof.`);

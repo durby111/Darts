@@ -1,7 +1,8 @@
 import {
     initPlatform, subscribeAccount, getAccount, sendAccountLink, completeAccountLink,
     isAccountLink, pendingAccountEmail, signOutAccount, saveProfile, getProfile, listMyResults,
-    registerAccount, signInAccount, sendAccountVerification, resetAccountPassword, refreshAccount
+    registerAccount, signInAccount, sendAccountVerification, resetAccountPassword, refreshAccount, accountProviderAvailability,
+    signInAccountProvider, completeAccountProviderRedirect
 } from './platform.js';
 import { GAME_REGISTRY } from './registry.js';
 
@@ -12,6 +13,9 @@ let renderedAccount;
 let accountSession = 0;
 let recordRequest = 0;
 let verificationRefresh = null;
+let redirectProvider = null;
+let providers = { google: { enabled: false }, apple: { enabled: false } };
+const signInButtons = ['passwordSignIn', 'passwordRegister', 'passwordReset', 'sendLink', 'completeLink', 'googleSignIn', 'appleSignIn', 'providerRedirect'];
 const operations = new Set();
 const buttonOwners = new Map();
 
@@ -31,14 +35,14 @@ function finishOperation(operation) {
     for (const button of operation.buttons) {
         if (buttonOwners.get(button) !== operation) continue;
         buttonOwners.delete(button);
-        button.disabled = false;
+        button.disabled = operation.disabled.get(button);
     }
 }
 
 function beginOperation(buttons, nextAccount) {
     buttons = buttons.filter(Boolean);
     if (buttons.some(button => buttonOwners.has(button))) return null;
-    const operation = { buttons, user: getAccount(), session: accountSession, nextAccount };
+    const operation = { buttons, disabled: new Map(buttons.map(button => [button, button.disabled])), user: getAccount(), session: accountSession, nextAccount };
     operations.add(operation);
     for (const button of buttons) {
         buttonOwners.set(button, operation);
@@ -170,7 +174,7 @@ async function renderAccount(user) {
 async function passwordAuth(create) {
     if (!$('passwordForm').reportValidity()) return;
     const email = $('accountEmail').value;
-    const buttons = ['passwordSignIn', 'passwordRegister', 'passwordReset'];
+    const buttons = [...signInButtons];
     if (create) buttons.push('sendVerification');
     const operation = beginOperation(buttons.map($), accountForEmail(email));
     if (!operation) return;
@@ -187,6 +191,52 @@ async function passwordAuth(create) {
         finishOperation(operation);
     }
 }
+
+function renderProviders() {
+    providers = accountProviderAvailability();
+    for (const [name, label] of [['google', 'Google'], ['apple', 'Apple']]) {
+        const button = $(name + 'SignIn');
+        button.disabled = !providers[name]?.enabled || buttonOwners.has(button);
+        button.textContent = providers[name]?.enabled ? `Continue with ${label}` : `${label} — not enabled yet`;
+    }
+    $('providerSignInHint').textContent = Object.values(providers).some(item => item.enabled)
+        ? 'Choose a sign-in method. A provider window will open; email and password remain available.'
+        : 'Google and Apple sign-in are not enabled for DEV yet.';
+}
+
+async function providerAuth(name, mode = 'popup') {
+    if (!providers[name]?.enabled || (mode === 'redirect' && !providers[name]?.redirectEnabled)) return;
+    // The popup's UID is unknown until Firebase returns. Any account change
+    // ends this operation's UI ownership; the account subscription renders a
+    // successful sign-in without guessing identity from email or provider name.
+    const operation = beginOperation(signInButtons.map($));
+    if (!operation) return;
+    redirectProvider = null;
+    $('providerRedirect').hidden = true;
+    try {
+        status(mode === 'redirect' ? 'Opening provider sign-in in this tab…' : 'Complete sign-in in the provider window.');
+        await signInAccountProvider(name, mode);
+    } catch (error) {
+        if (isCurrentOperation(operation)) {
+            const canceled = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(error.code);
+            status(error.message, !canceled);
+            if (error.code === 'auth/popup-blocked' && providers[name].redirectEnabled) {
+                redirectProvider = name;
+                $('providerRedirect').hidden = false;
+            }
+        }
+    } finally {
+        finishOperation(operation);
+        renderProviders();
+        $('providerRedirect').disabled = !redirectProvider;
+    }
+}
+
+$('googleSignIn').addEventListener('click', () => providerAuth('google'));
+$('appleSignIn').addEventListener('click', () => providerAuth('apple'));
+$('providerRedirect').addEventListener('click', () => {
+    if (redirectProvider) providerAuth(redirectProvider, 'redirect');
+});
 
 async function refreshVerificationOnReturn() {
     const user = getAccount();
@@ -257,8 +307,12 @@ $('exportRecords').addEventListener('click', () => {
 
 try {
     await initPlatform();
-    for (const id of ['sendLink', 'passwordSignIn', 'passwordRegister', 'passwordReset']) $(id).disabled = false;
     subscribeAccount(renderAccount);
+    const returningAccount = getAccount();
+    try { await completeAccountProviderRedirect(); }
+    catch (error) { if (getAccount() === returningAccount) status(error.message, true); }
+    for (const id of ['sendLink', 'passwordSignIn', 'passwordRegister', 'passwordReset']) $(id).disabled = false;
+    renderProviders();
     if (isAccountLink()) {
         $('signInPanel').hidden = false;
         $('completeLink').hidden = false;

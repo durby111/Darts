@@ -1,6 +1,7 @@
 // Dev accounts deliberately use a named app, never the scorer's anonymous auth.
 import { ACCOUNT_EMAIL_SERVICE_URL } from './account-email-config.js';
 import { sendAccountEmail } from './account-email.js';
+import { ACCOUNT_PROVIDERS, ACCOUNT_PROVIDER_PROJECT } from './account-provider-config.js';
 
 const SDK_BASE = 'https://www.gstatic.com/firebasejs/10.13.2';
 const APP_NAME = 'blakeout-dev-accounts';
@@ -118,6 +119,105 @@ export async function signInAccount(email, password) {
     requireAccountSession(credential.user);
     publishAccount(credential.user);
     return credential.user;
+}
+
+const PROVIDER_IDS = Object.freeze({ google: 'google.com', apple: 'apple.com' });
+const PROVIDER_RETURN_KEY = 'blakeout_dev_provider_return';
+let providerBusy = false;
+let providerReturn;
+
+function oauthError(code) {
+    const messages = {
+        'auth/provider-not-configured': 'This sign-in method is not enabled for DEV yet.',
+        'auth/provider-project-mismatch': 'Provider sign-in is unavailable until the isolated DEV backend is connected.',
+        'auth/provider-busy': 'A sign-in request is already in progress. Finish or close it before trying again.',
+        'auth/provider-account-present': 'Sign out before choosing another sign-in method. Accounts are never linked automatically by this app.',
+        'auth/popup-closed-by-user': 'Sign-in canceled. You can try again.',
+        'auth/cancelled-popup-request': 'Sign-in canceled. You can try again.',
+        'auth/popup-blocked': 'Your browser blocked the sign-in window. Allow pop-ups and try again, or use email and password.',
+        'auth/account-exists-with-different-credential': 'This sign-in conflicts with an existing account. Use your previous sign-in method. No account linking was requested.',
+        'auth/credential-already-in-use': 'This credential belongs to another account. Use your previous sign-in method. No account linking was requested.',
+        'auth/operation-not-allowed': 'This provider has not been enabled for this DEV setup. Use email and password.',
+        'auth/unauthorized-domain': 'This site is not configured for provider sign-in yet. Use email and password.',
+        'auth/network-request-failed': 'Sign-in could not connect. Check your connection and try again.',
+        'auth/redirect-unavailable': 'Sign-in in this tab is not enabled for this DEV setup. Allow pop-ups or use email and password.',
+        'auth/redirect-storage-unavailable': 'This browser cannot retain the sign-in return state. Allow pop-ups or use email and password.',
+        'auth/provider-return-invalid': 'Sign-in return could not be confirmed. Start sign-in again; no linking or retry was requested.',
+        'auth/provider-session-changed': 'The signed-in account changed. The earlier sign-in response was ignored.',
+        'auth/provider-failed': 'Provider sign-in did not complete. Try again or use your previous sign-in method.'
+    };
+    if (!Object.hasOwn(messages, code)) code = 'auth/provider-failed';
+    return Object.assign(new Error(messages[code]), { code });
+}
+
+export function accountProviderAvailability() {
+    return Object.fromEntries(Object.keys(PROVIDER_IDS).map(name => [name, {
+        enabled: ACCOUNT_PROVIDERS[name]?.enabled === true && auth?.app?.options?.projectId === ACCOUNT_PROVIDER_PROJECT,
+        redirectEnabled: ACCOUNT_PROVIDERS[name]?.enabled === true && auth?.app?.options?.projectId === ACCOUNT_PROVIDER_PROJECT && ACCOUNT_PROVIDERS[name]?.redirectEnabled === true
+    }]));
+}
+
+function configuredProvider(name, redirect = false) {
+    if (!Object.hasOwn(PROVIDER_IDS, name) || !ACCOUNT_PROVIDERS[name]?.enabled) throw oauthError('auth/provider-not-configured');
+    if (auth?.app?.options?.projectId !== ACCOUNT_PROVIDER_PROJECT) throw oauthError('auth/provider-project-mismatch');
+    if (redirect && !ACCOUNT_PROVIDERS[name].redirectEnabled) throw oauthError('auth/redirect-unavailable');
+    const provider = name === 'google' ? new authSDK.GoogleAuthProvider() : new authSDK.OAuthProvider('apple.com');
+    if (name === 'google') provider.setCustomParameters({ prompt: 'select_account' });
+    else { provider.addScope('email'); provider.addScope('name'); }
+    return provider;
+}
+
+function providerCredential(credential, name) {
+    if (!credential?.user || credential.providerId !== PROVIDER_IDS[name]) throw oauthError('auth/provider-return-invalid');
+    if (getAccount() !== credential.user) throw oauthError('auth/provider-session-changed');
+    // Verification, profile ownership and records still use Firebase UID/claims.
+    // Never merge by email, recover an OAuth credential from an error, or link.
+    return credential.user;
+}
+
+export async function signInAccountProvider(name, mode = 'popup') {
+    if (providerBusy) throw oauthError('auth/provider-busy');
+    providerBusy = true;
+    try {
+        await initPlatform();
+        if (mode !== 'popup' && mode !== 'redirect') throw oauthError('auth/redirect-unavailable');
+        const provider = configuredProvider(name, mode === 'redirect');
+        if (getAccount()) throw oauthError('auth/provider-account-present');
+        if (mode === 'popup') return providerCredential(await authSDK.signInWithPopup(auth, provider), name);
+        try {
+            sessionStorage.setItem(PROVIDER_RETURN_KEY, JSON.stringify({ provider: name, project: ACCOUNT_PROVIDER_PROJECT, startedAt: Date.now() }));
+        } catch { throw oauthError('auth/redirect-storage-unavailable'); }
+        try { await authSDK.signInWithRedirect(auth, provider); }
+        catch (error) { try { sessionStorage.removeItem(PROVIDER_RETURN_KEY); } catch {} throw error; }
+        return null; // SDK normally navigates; no successful account is fabricated.
+    } catch (error) { throw oauthError(error.code); }
+    finally { providerBusy = false; }
+}
+
+export async function completeAccountProviderRedirect() {
+    if (providerReturn) return providerReturn;
+    let raw;
+    try { raw = sessionStorage.getItem(PROVIDER_RETURN_KEY); } catch { return null; }
+    if (!raw) return null;
+    if (providerBusy) throw oauthError('auth/provider-busy');
+    providerBusy = true;
+    providerReturn = (async () => {
+        try {
+            let pending;
+            try { sessionStorage.removeItem(PROVIDER_RETURN_KEY); pending = JSON.parse(raw); }
+            catch { throw oauthError('auth/provider-return-invalid'); }
+            if (!pending || pending.project !== ACCOUNT_PROVIDER_PROJECT || !Number.isFinite(pending.startedAt)
+                || Date.now() - pending.startedAt < 0 || Date.now() - pending.startedAt > 30 * 60 * 1000) throw oauthError('auth/provider-return-invalid');
+            await initPlatform();
+            configuredProvider(pending.provider, true);
+            const result = await authSDK.getRedirectResult(auth);
+            if (!result) throw oauthError('auth/provider-return-invalid');
+            return providerCredential(result, pending.provider);
+        } catch (error) { throw oauthError(error.code); }
+        finally { providerBusy = false; }
+    })();
+    try { return await providerReturn; }
+    finally { providerReturn = null; }
 }
 
 export async function sendAccountVerification() {

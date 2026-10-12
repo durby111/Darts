@@ -43,7 +43,7 @@ sys.dont_write_bytecode = True
 APP = """
 const apps = [{name:'[DEFAULT]'}];
 export const getApps=()=>apps;
-export const initializeApp=(config,name)=>{const app={name};apps.push(app);return app;};
+export const initializeApp=(config,name)=>{const app={name,options:config};apps.push(app);return app;};
 """
 
 AUTH = """

@@ -177,7 +177,10 @@ await test('fixture graph is pure and changes/results are memory-only, clone-saf
     assert.equal(result.matches.find(match => match.id === ready.id).status, 'complete');
     const fresh = await fixture('registration', 'brackets');
     assert.equal((await fresh.api.getTournament('sample-cup')).status, 'registration');
-    for (const name of ['registerAccount', 'signInAccount', 'sendAccountLink', 'completeAccountLink', 'sendAccountVerification', 'resetAccountPassword']) await assert.rejects(api[name](), /disabled/);
+    for (const name of ['signInAccountProvider', 'registerAccount', 'signInAccount', 'sendAccountLink', 'completeAccountLink', 'sendAccountVerification', 'resetAccountPassword']) await assert.rejects(api[name](), /disabled/);
+    assert.equal(api.accountProviderAvailability().google.enabled, false);
+    assert.equal(api.accountProviderAvailability().apple.enabled, false);
+    assert.equal(await api.completeAccountProviderRedirect(), null);
     assert.equal(api.isAccountLink(), false); assert.equal(api.pendingAccountEmail(), '');
 });
 await test('guest membership is idempotent; spectator views redact private flags', async () => {

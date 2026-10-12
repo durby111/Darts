@@ -190,3 +190,8 @@ export async function listMyResults() {
         { id: 'sample-result-minnesota', matchId: 'SAMPLE-CASUAL-03', createdAt: Date.UTC(2026, 9, 6), source: 'casual', gameType: 'minnesota', perPlayer: [{ playerId: SAMPLE_OWNER, gameType: 'minnesota', marks: 28, darts: 33 }] },
     ]);
 }
+
+// Provider authentication is never available in a memory-only sample preview.
+export const accountProviderAvailability = () => ({ google: { enabled: false }, apple: { enabled: false } });
+export const completeAccountProviderRedirect = async () => null;
+export async function signInAccountProvider() { throw new Error('Provider sign-in is disabled in this sample preview.'); }
