@@ -12,8 +12,10 @@ account result; `projects:list --json` failed with **"Failed to authenticate,
 have you run firebase login?"**. No Firebase/GCP connector or gcloud executable
 is available. Project-creation permission, organization policies and project-ID
 availability therefore remain unverified. No login, OAuth grant or credential
-was initiated. The repository identifies `DartsBlakeOut@gmail.com` as the existing
-owner; the human must confirm/use the intended account through Google's UI.
+was initiated. Mike selected `dartsblakeout@gmail.com` as the owner account. This confirms
+account choice, not a persistent CLI credential/OAuth grant. No supported
+user-facing browser login handoff is available here; local Chromium is a
+headless test browser, not the owner's Android browser session.
 
 The smallest handoff is for that owner to sign in to Firebase Console and approve
 stage A below. Alternatively, explicitly authorize an interactive official CLI
@@ -31,7 +33,7 @@ perform setup. Do not request Owner/Editor grants as a workaround if it cannot.
 | Web app | One new web app named `blakeout-darts-dev-web`. Use its generated web config and browser API key; no service-account private key. |
 | Auth | Enable **Email/Password** and **Anonymous** only. Anonymous is required by the existing ordinary DEV scorer; named guest sessions also use it. Keep email-link sign-in, phone, Google/social and SAML/OIDC disabled initially. |
 | Auth domains | Retain this new project's generated Firebase domains; add exactly `blakeoutdarts.com` and `www.blakeoutdarts.com`. Do not add localhost or wildcards. |
-| Browser key | Restrict the **new key only** to `https://blakeoutdarts.com/*`, `https://www.blakeoutdarts.com/*`, and `https://blakeout-darts-dev.firebaseapp.com/*` (or the actual approved project ID's host). Proposed API allowlist: Identity Toolkit API, Token Service API, Cloud Firestore API. Browser referrers can be reduced to the origin, so do not rely on `/dev/` path restrictions as isolation. Validate the new key without widening production's key. |
+| Browser key | Restrict the **new key only** to `https://blakeoutdarts.com/*`, `https://www.blakeoutdarts.com/*`, and `https://blakeout-darts-dev.firebaseapp.com/*` (or the actual approved project ID's host). Corrected proposed API allowlist: Firebase Management API (`firebase.googleapis.com`), Cloud Logging API (`logging.googleapis.com`), Identity Toolkit API (`identitytoolkit.googleapis.com`), Token Service API (`securetoken.googleapis.com`), Cloud Datastore API (`datastore.googleapis.com`), Google Cloud Firestore API (`firestore.googleapis.com`). This supersedes the earlier three-API proposal, following Firebase's required-API table for all products, Auth and Firestore. [Official API-key guidance](https://firebase.google.com/docs/projects/api-keys#required-apis-for-restrictions). Browser referrers can be reduced to the origin, so do not rely on `/dev/` path restrictions as isolation. Validate the new key without widening production's key. |
 | Firestore | One Native/Standard `(default)` database in **`us-central1` (Iowa)**. Region is a proposal requiring approval, not an inferred user preference; changing database location later requires a new database/migration. [Location constraints](https://firebase.google.com/docs/firestore/locations). |
 | Initial rules | Deny every client read/write using [the exact prepared rules](backend-setup/firestore.initial-deny.rules). No test/open-access mode. This file is not referenced by the existing firebase.json. |
 | Permissions | Owner performs project creation, Firebase enablement, web-app registration, new-project Auth configuration, new-key restriction, database creation and initial deny-rule publication. Scope every action to the new project. No new delegated IAM role, OAuth app, service account or secret is proposed. |
@@ -115,7 +117,7 @@ per month/100 per day; existing account usage can consume those shared quotas.
 
 ## Immediate next action
 
-Get the owner's authenticated setup path and exact stage-A approval, including
+Use the selected owner's Firebase Console session and obtain exact stage-A approval, including
 project ID and immutable region. Provision nothing while access/approval is
 missing. In parallel, have an approved environment supply the official Firestore
 emulator artifact and run existing tests. Stage A's deny-all project may be
