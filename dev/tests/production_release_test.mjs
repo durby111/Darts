@@ -31,13 +31,18 @@ for(const feature of ['accounts','brackets']){
  assert.ok(!/href="(?!\.\.\/|\.\.\/css\/)[^\"]+"/.test(page));
 }
 pass('production identity retained; both direct feature routes are static disabled shells without account apps');
-for(const rel of ['js/state.js','js/app.js','js/build-context.js','js/scoring-records.js'])assert.equal(read(rel),read('dev/'+rel),rel);
-for (const file of ['js/casual-recording.js','js/tournament-bridge.js']) {
+for(const rel of ['js/state.js','js/app.js','js/scoring-records.js'])assert.equal(read(rel),read('dev/'+rel),rel);
+for (const file of ['js/casual-recording.js']) {
  const devCode=read('dev/'+file).replaceAll('DEV uses sample Brackets and Players & Records.', 'Brackets and Players & Records are coming soon.').replaceAll('DEV uses sample Players & Records.', 'Players & Records is coming soon.').replaceAll('DEV uses sample Players & Records;', 'Players & Records is coming soon;').replaceAll('DEV brackets use sample data.', 'Brackets are coming soon.').replaceAll('Cloud off','Coming soon');
  assert.equal(devCode,read(file),'Only DEV explanatory copy differs: '+file);
 }
 assert.ok(!fs.existsSync(path.join(root,'js/platform.js')));assert.ok(!fs.existsSync(path.join(root,'js/account-email.js')));
-pass('tested scorer/build-isolation modules copied exactly; account transport not promoted');
+// DEV now has a separately isolated device-local tournament mode. Preserve the
+// released production files byte-for-byte instead of requiring new DEV parity.
+for (const file of ['js/build-context.js','js/tournament-bridge.js','js/firebase.js']) {
+ assert.equal(read(file),execFileSync('git',['show','8a1d7d7:'+file],{cwd:root,encoding:'utf8'}),file);
+}
+pass('shared scorer modules match; intentionally divergent DEV tournament modules leave released production unchanged; account transport not promoted');
 for(const build of ['','dev/']){
  const href='https://example.test/'+build+'sw.js';const ctx=vm.createContext({URL,self:{location:{href,origin:'https://example.test'},addEventListener(){}}});
  vm.runInContext(read(build+'sw.js')+'\nthis.audit={CACHE_NAME,ASSETS,isOwnCache,isOwnPath};',ctx);const a=ctx.audit;
@@ -47,7 +52,8 @@ for(const build of ['','dev/']){
  assert.equal(a.isOwnCache('blakeout-v38'),!build);assert.equal(a.isOwnCache('unrelated'),false);
  assert.equal(a.isOwnPath(new URL('https://example.test/dev/js/app.js')),!!build);
  assert.equal(a.isOwnPath(new URL('https://example.test/js/app.js')),!build);
- assert.ok(read(build+'sw.js').includes('caches.open(CACHE_NAME).then(cache => cache.match(request))'));
+ assert.match(read(build+'sw.js'), /caches\.open\(CACHE_NAME\)\.then\((?:async )?cache =>/);
+ assert.ok(!read(build+'sw.js').includes('caches.match(request)')); // Never fall back across build cache families.
 }
 pass('both precaches complete; cache families, request paths and offline fallbacks isolated');
 const changed=execFileSync('git',['diff','--name-only','HEAD'],{cwd:root,encoding:'utf8'}).trim().split('\n');

@@ -1,4 +1,12 @@
-# Feature readiness — October 12, 2026
+# Feature readiness — October 15, 2026
+
+## Device-local tournaments (October 15)
+
+A separate [device-local tournament flow](LOCAL_TOURNAMENTS.md) now supports
+blind-draw partners, game selection by bracket/round/match, real scorer return,
+reloadable local persistence, guarded corrections and double-elimination finals.
+The existing sample pages and real cloud gates remain unchanged. This does not
+establish real-account, Firebase, cross-device or physical-touch readiness.
 
 ## Account and saved-record milestone (October 12)
 

@@ -74,8 +74,12 @@ function textElement(tag, text, className) {
     return node;
 }
 
+function localText(text) {
+    return platform.LOCAL_ONLY ? text.replace(/cloud/gi, 'browser storage').replace('Verified account', 'Device organizer').replace('organizer sign-in', 'browser storage availability') : text;
+}
+
 function notice(text, error = false) {
-    $('message').textContent = text;
+    $('message').textContent = localText(text);
     $('message').classList.toggle('platform-error', error);
 }
 
@@ -88,7 +92,7 @@ function clearStartFeedback() {
 function startFeedback(title, messages, error = false) {
     const panel = $('startFeedback');
     $('startFeedbackTitle').textContent = title;
-    $('startFeedbackReasons').replaceChildren(...messages.map(message => textElement('li', message)));
+    $('startFeedbackReasons').replaceChildren(...messages.map(message => textElement('li', localText(message))));
     panel.classList.toggle('platform-error', error);
     panel.hidden = false;
     panel.focus({ preventScroll: true });
@@ -122,7 +126,7 @@ function validRoster() {
 
 function accountUI() {
     $('createPanel').hidden = !verified();
-    $('accountNotice').textContent = verified()
+    $('accountNotice').textContent = platform.LOCAL_ONLY ? 'Device organizer · no sign-in or identity verification. All players are local tournament guests.' : verified()
         ? 'Verified account connected. You can organize tournaments and add verified profiles or tournament-only guests.'
         : 'Spectators welcome. Sign in at Players & Records to organize a tournament or create your player profile.';
 }
@@ -137,6 +141,8 @@ function controls() {
     // Let organizers ask to start so incomplete drafts can explain every blocker.
     const canAttemptStart = current && owner() && current.status === 'registration';
     $('startTournament').disabled = busy || needsAccountReload || !canAttemptStart;
+    $('drawPartners').disabled = busy || pendingConfirmation || needsAccountReload || !canAttemptStart;
+    $('saveFormat').disabled = busy || pendingConfirmation || needsAccountReload;
     $('saveRoster').disabled = busy || needsAccountReload || !rosterDirty;
     for (const input of document.querySelectorAll('[data-bulk-field]')) {
         const rows = owner() && current.status === 'registration' ? draft : [];
@@ -250,13 +256,13 @@ function draw() {
     }
     renderDiagram($('diagram'), diagramState, {
         preview: current.status === 'registration',
-        canScore: !!owner(), onSelect: openResult,
+        canScore: !!owner(), canCorrect: platform.LOCAL_ONLY ? match => engine.canCorrect(current, match) : null, onSelect: openResult,
     });
 }
 
 function updatePreview() {
     if (!current) return;
-    $('draftStatus').textContent = rosterDirty ? 'Unsaved changes · preview only. Save all changes before starting.' : 'Roster saved to cloud.';
+    $('draftStatus').textContent = rosterDirty ? 'Unsaved changes · preview only. Save all changes before starting.' : localText('Roster saved to cloud.');
     $('blockers').replaceChildren();
     $('rosterSummary').textContent = '';
     $('rosterWarning').textContent = '';
@@ -435,6 +441,7 @@ function renderTournament() {
     $('tournament').hidden = !current;
     if (!current) return;
     $('tournamentTitle').textContent = current.title;
+    renderFormats();
     $('tournamentMeta').textContent = `${current.date} · ${GAMES[current.gameType]} · best of ${current.bestOf} · ${current.status} · revision ${current.revision}`;
     $('rosterPanel').hidden = !owner() || current.status !== 'registration';
     $('spectatorNote').hidden = !!owner();
@@ -502,12 +509,13 @@ async function openResult(matchId) {
         : { answer: true, isCurrent: captureContext({ requireOwner: true }) };
     if (!confirmation?.answer || !confirmation.isCurrent()) return;
     const match = current.matches.find(item => item.id === matchId);
-    if (!match || match.status !== 'ready') return;
+    if (!match || (match.status !== 'ready' && !(platform.LOCAL_ONLY && engine.canCorrect(current, match)))) return;
     invalidateConfirmation();
     selectedMatch = match.id;
     resultDirty = false;
     $('resultPanel').hidden = false;
-    $('resultHeading').textContent = `${match.code} · Ready to play`;
+    const format = engine.matchFormat(current, match);
+    $('resultHeading').textContent = `${match.code} · ${match.status === 'complete' ? 'Correct result' : 'Ready to play'} · ${GAMES[format.gameType]} · best of ${format.bestOf}`;
     $('resultNames').textContent = `${teamLabel(current, match.teamA)} vs ${teamLabel(current, match.teamB)}`;
     $('winner').replaceChildren(new Option(teamLabel(current, match.teamA), match.teamA), new Option(teamLabel(current, match.teamB), match.teamB));
     $('winner').value = match.winnerId || match.teamA;
@@ -528,6 +536,44 @@ function scoreControls() {
         $(field).required = !$('forfeit').checked;
     }
 }
+
+function renderFormats() {
+    $('formatPanel').hidden = !platform.LOCAL_ONLY || !owner() || current?.status !== 'live';
+    $('formatSummary').textContent = Object.entries(current?.formats || {}).flatMap(([scope, entries]) => Object.entries(entries).map(([key, f]) => `${scope}: ${key} — ${GAMES[f.gameType]}, best of ${f.bestOf}`)).join(' · ') || 'No overrides; all matches use the event default.';
+    const scope = $('formatScope').value;
+    const matches = current?.matches || [];
+    const keys = [...new Set(matches.map(m => scope === 'brackets' ? m.bracket : scope === 'rounds' ? `${m.bracket}:${m.round}` : m.id))];
+    const old = $('formatTarget').value;
+    $('formatTarget').replaceChildren(...keys.map(key => new Option(key, key)));
+    if (keys.includes(old)) $('formatTarget').value = old;
+}
+$('formatScope').addEventListener('change', renderFormats);
+$('formatGame').addEventListener('change', () => {
+    $('formatBestOf').disabled = $('formatGame').value === 'chicago';
+    if ($('formatBestOf').disabled) $('formatBestOf').value = '3';
+});
+$('formatForm').addEventListener('submit', event => {
+    event.preventDefault();
+    if (!platform.LOCAL_ONLY || !owner() || busy || pendingConfirmation) return;
+    const scope = $('formatScope').value, key = $('formatTarget').value;
+    const format = { gameType: $('formatGame').value, bestOf: Number($('formatBestOf').value) };
+    action(async () => {
+        const saved = await platform.updateTournament(current.id, current.revision, stored => engine.setFormat(stored, scope, key, format));
+        accept(saved);
+        notice(`Game selection saved for ${key}: ${GAMES[format.gameType]}, best of ${format.bestOf}. More specific overrides take priority.`);
+    });
+});
+$('drawPartners').addEventListener('click', async () => {
+    if (!owner() || busy || pendingConfirmation || needsAccountReload || current.status !== 'registration') return;
+    const confirmation = await confirmCurrent('Randomly draw two-person teams from every non-standby player in this draft? This replaces existing pairings. Review and save the roster before starting.', { requireOwner: true, confirmLabel: 'Draw partners' });
+    if (!confirmation?.answer || !confirmation.isCurrent()) return;
+    try {
+        const drawn = engine.blindDraw({ ...current, registrations: validRoster() });
+        draft = drawn.registrations;
+        markRosterDirty(); renderRoster(); updatePreview();
+        notice('Partners drawn in the draft. Review the pairs and save all roster changes.');
+    } catch (error) { notice(error.message, true); }
+});
 
 $('createForm').addEventListener('submit', async event => {
     event.preventDefault();
@@ -681,11 +727,11 @@ $('launchScorer').addEventListener('click', async () => {
         if (!fresh || fresh.revision !== current.revision) throw new Error('The tournament changed. Reload before launching.');
         const match = fresh.matches.find(item => item.id === selectedMatch);
         if (fresh.status !== 'live' || match?.status !== 'ready') throw new Error('This match is no longer ready.');
-        localStorage.setItem('blakeout_dev_match_launch', JSON.stringify({
+        localStorage.setItem(platform.LOCAL_ONLY ? 'blakeout_dev_local_match_launch' : 'blakeout_dev_match_launch', JSON.stringify({
             tournamentId: fresh.id, matchId: match.id, revision: fresh.revision,
         }));
         resultDirty = false;
-        location.assign(new URL('../?tournamentMatch=1', location.href).href);
+        location.assign(new URL(platform.LOCAL_ONLY ? '../../?localTournament=1&tournamentMatch=1' : '../?tournamentMatch=1', location.href).href);
     }, null, isCurrent);
 });
 $('joinTournament').addEventListener('click', () => action(async () => {

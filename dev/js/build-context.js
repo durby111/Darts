@@ -3,11 +3,14 @@
 export const APP_BASE_URL = new URL('../', import.meta.url).href;
 export const IS_DEV_BUILD = new URL(APP_BASE_URL).pathname.endsWith('/dev/');
 
+const pageURL = new URL(typeof location === 'undefined' ? APP_BASE_URL : location.href || APP_BASE_URL);
+export const LOCAL_TOURNAMENT = IS_DEV_BUILD && (pageURL.pathname.includes('/dev/local/') || pageURL.searchParams.get('localTournament') === '1');
+
 export const BUILD_STORAGE = Object.freeze({
-    activeGame: IS_DEV_BUILD ? 'blakeout_dev_active_game' : 'blakeout_active_game',
-    legacyImport: IS_DEV_BUILD ? 'blakeout_dev_active_game_imported' : null,
-    matchRecoveryPrefix: IS_DEV_BUILD ? 'blakeout_dev_match_' : 'blakeout_match_',
-    casualRecoveryPrefix: IS_DEV_BUILD ? 'blakeout_dev_casual_' : 'blakeout_casual_'
+    activeGame: LOCAL_TOURNAMENT ? 'blakeout_dev_local_active_game' : IS_DEV_BUILD ? 'blakeout_dev_active_game' : 'blakeout_active_game',
+    legacyImport: LOCAL_TOURNAMENT ? null : IS_DEV_BUILD ? 'blakeout_dev_active_game_imported' : null,
+    matchRecoveryPrefix: LOCAL_TOURNAMENT ? 'blakeout_dev_local_match_' : IS_DEV_BUILD ? 'blakeout_dev_match_' : 'blakeout_match_',
+    casualRecoveryPrefix: LOCAL_TOURNAMENT ? 'blakeout_dev_local_casual_' : IS_DEV_BUILD ? 'blakeout_dev_casual_' : 'blakeout_casual_'
 });
 
 export function isBuildCache(name) {

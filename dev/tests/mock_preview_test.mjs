@@ -273,7 +273,7 @@ await test('all bracket scenarios render and internal navigation never targets r
             if (scenario === 'loading') assert.equal(h.get('refresh').disabled, true);
             for (const link of h.w.document.querySelectorAll('a[href]')) {
                 const target = new URL(link.href);
-                assert.ok(target.pathname.startsWith('/dev/preview/') || (target.pathname === '/dev/' && link.dataset.leavePreview === 'true'));
+                assert.ok(target.pathname.startsWith('/dev/preview/') || (target.pathname === '/dev/' && link.dataset.leavePreview === 'true') || (target.pathname === '/dev/local/brackets/' && link.dataset.localTournaments === 'true'));
                 assert.equal(target.search.includes('tournamentMatch'), false);
             }
             assert.deepEqual(h.effects.storage, []);

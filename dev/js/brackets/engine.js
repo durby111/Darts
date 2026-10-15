@@ -13,7 +13,7 @@ function requireText(value, label) {
 
 function validateFormat(tournament) {
     if (!GAME_TYPES.has(tournament.gameType)) throw new Error('Unsupported tournament game type.');
-    if (!Number.isSafeInteger(tournament.bestOf) || tournament.bestOf < 1 || tournament.bestOf % 2 !== 1) {
+    if (!Number.isSafeInteger(tournament.bestOf) || tournament.bestOf < 1 || tournament.bestOf > 99 || tournament.bestOf % 2 !== 1) {
         throw new Error('Best-of must be a positive odd integer.');
     }
     if (tournament.gameType === 'chicago' && tournament.bestOf !== 3) {
@@ -303,7 +303,7 @@ export function recordResult(tournament, matchId, { winnerId, scoreA = null, sco
     if (forfeit) {
         if (scoreA !== null || scoreB !== null) throw new Error('Forfeits cannot include scores.');
     } else {
-        const threshold = Math.floor(tournament.bestOf / 2) + 1;
+        const threshold = Math.floor(matchFormat(tournament, match).bestOf / 2) + 1;
         const winnerScore = winnerId === match.teamA ? scoreA : scoreB;
         const loserScore = winnerId === match.teamA ? scoreB : scoreA;
         if (!Number.isSafeInteger(scoreA) || !Number.isSafeInteger(scoreB) || scoreA < 0 || scoreB < 0 ||
@@ -318,4 +318,51 @@ export function recordResult(tournament, matchId, { winnerId, scoreA = null, sco
     rebuild(next);
     next.revision += 1;
     return next;
+}
+
+// Device-local format overrides do not change the cloud document schema.
+export function matchFormat(tournament, match) {
+    const format = tournament.formats?.matches?.[match.id]
+        || tournament.formats?.rounds?.[`${match.bracket}:${match.round}`]
+        || tournament.formats?.brackets?.[match.bracket]
+        || { gameType: tournament.gameType, bestOf: tournament.bestOf };
+    validateFormat(format);
+    return { gameType: format.gameType, bestOf: format.bestOf };
+}
+
+export function setFormat(tournament, scope, key, format) {
+    if (!['registration', 'live'].includes(tournament.status)) throw Error('This tournament is complete.');
+    if (!['brackets', 'rounds', 'matches'].includes(scope)) throw Error('Invalid format scope.');
+    validateFormat(format);
+    const applies = m => scope === 'matches' ? m.id === key : scope === 'rounds'
+        ? `${m.bracket}:${m.round}` === key : m.bracket === key;
+    const affected = tournament.matches.filter(applies);
+    if (!affected.length) throw Error('Choose an existing bracket, round or match.');
+    if (affected.some(m => m.status === 'complete')) throw Error('A played match is in this selection. Choose an unplayed match or round.');
+    const next = clone(tournament);
+    next.formats ||= {};
+    next.formats[scope] ||= {};
+    next.formats[scope][key] = { gameType: format.gameType, bestOf: format.bestOf };
+    next.revision++;
+    return next;
+}
+
+export function blindDraw(tournament) {
+    requireRegistration(tournament);
+    const roster = normalizeRoster(tournament.registrations);
+    const eligible = roster.filter(r => !r.standby);
+    if (eligible.length < 4 || eligible.length > 64 || eligible.length % 2)
+        throw Error('Blind draw needs an even number of 4–64 playing people. Move an unmatched player to standby.');
+    if (eligible.some(r => !r.checkedIn)) throw Error('Check in every playing person before drawing partners.');
+    for (let i = eligible.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [eligible[i], eligible[j]] = [eligible[j], eligible[i]];
+    }
+    roster.forEach(r => { r.tag = ''; });
+    eligible.forEach((r, i) => { r.tag = String(Math.floor(i / 2) + 1); });
+    return saveRoster(tournament, roster);
+}
+
+export function canCorrect(tournament, match) {
+    return match?.status === 'complete' && !hasPlayedDescendant(tournament.matches, match.code);
 }

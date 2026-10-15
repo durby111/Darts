@@ -51,7 +51,8 @@ document.addEventListener('click', event => {
     const url = new URL(target.getAttribute('href') || '', location.href);
     const preview = url.origin === previewRoot.origin && url.pathname.startsWith(previewRoot.pathname);
     const back = target.dataset.leavePreview === 'true' && url.href === scorerURL.href;
-    if (!preview && !back) {
+    const localTournaments = target.dataset.localTournaments === 'true' && url.href === new URL('../local/brackets/', previewRoot).href;
+    if (!preview && !back && !localTournaments) {
         event.preventDefault(); event.stopImmediatePropagation();
         sampleNotice('This link is unavailable in the sample preview. Use its preview navigation or Back to scoring.');
     }

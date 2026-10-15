@@ -102,7 +102,7 @@ export function teamLabel(tournament, teamId, labels = registrationLabels(tourna
     return `${team.name} — ${names.join(' & ')}`;
 }
 
-export function renderDiagram(host, tournament, { preview = false, canScore = false, onSelect, scale } = {}) {
+export function renderDiagram(host, tournament, { preview = false, canScore = false, canCorrect = null, onSelect, scale } = {}) {
     const view = diagramViewport(host);
     const active = document.activeElement;
     const activeCard = host.contains(active) ? active.closest('.match-card') : null;
@@ -195,8 +195,8 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
             }
             card.append(slot);
         }
-        if (!preview && canScore && match.status === 'ready') {
-            const select = element('button', 'match-action', 'Score match');
+        if (!preview && canScore && (match.status === 'ready' || canCorrect?.(match))) {
+            const select = element('button', 'match-action', match.status === 'complete' ? 'Correct result' : 'Score match');
             select.type = 'button';
             select.addEventListener('click', () => onSelect?.(match.id));
             card.append(select);

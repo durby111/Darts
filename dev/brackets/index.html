@@ -122,6 +122,7 @@
                             </table>
                         </div>
                         <div class="platform-actions">
+                            <button id="drawPartners" type="button">Blind draw partners</button>
                             <button id="saveRoster" type="submit">Save all roster changes</button>
                             <button id="startTournament" type="button" aria-describedby="draftStatus blockers">Start &amp; lock tournament</button>
                         </div>
@@ -133,6 +134,18 @@
                 </section>
                 <p id="draftStatus" aria-live="polite"></p>
                 <ul id="blockers"></ul>
+            </section>
+            <section id="formatPanel" class="platform-card" hidden>
+                <h2>Games and match lengths</h2>
+                <p>The event game is the default. A match override takes priority over its round, then its bracket. Played matches and matches with scoring in progress cannot change format.</p>
+                <p id="formatSummary"></p>
+                <form id="formatForm" class="bracket-fields">
+                    <label>Apply to<select id="formatScope"><option value="brackets">Bracket</option><option value="rounds">Round</option><option value="matches">Individual match</option></select></label>
+                    <label>Selection<select id="formatTarget"></select></label>
+                    <label>Game<select id="formatGame"><option value="301">301</option><option value="501">501</option><option value="cricket">Cricket</option><option value="spanish">Spanish Cricket</option><option value="minnesota">Minnesota Cricket</option><option value="chicago">Chicago</option></select></label>
+                    <label>Best of<input id="formatBestOf" type="number" min="1" max="99" step="2" value="1" required></label>
+                    <button id="saveFormat" type="submit">Save game selection</button>
+                </form>
             </section>
             <section class="platform-card bracket-section">
                 <div class="bracket-toolbar">

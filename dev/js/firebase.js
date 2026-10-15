@@ -13,6 +13,8 @@
    break the module graph for the rest of the app.
    ============================================ */
 
+import { LOCAL_TOURNAMENT } from './build-context.js';
+
 const SDK_BASE = "https://www.gstatic.com/firebasejs/10.13.2";
 
 let app, db, auth;
@@ -117,6 +119,7 @@ function playerDoc(id) {
 }
 
 export async function initFirebase() {
+    if (LOCAL_TOURNAMENT) { initState = 'error'; initError = new Error('Device-local tournament: cloud roster is off.'); return; }
     try {
         // Dynamic imports — failures here are caught and logged, not thrown
         // up the module graph, so setup.js etc. are unaffected.
