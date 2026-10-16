@@ -16,6 +16,13 @@ export function beginScoringLeg(gameType) {
 }
 
 export function recordTurn({ points = 0, darts, marks = 0, bust = false }) {
+    // Supplemental places are device-local. Never append to the closed primary leg.
+    if (game.minnesotaPlaces?.phase === 'playing') {
+        game.minnesotaPlaces.turns.push({ id: newRecordId(), playerIndex: game.currentPlayer,
+            throwerId: game.teamMode ? currentThrower(game.currentPlayer)?.id : game.players[game.currentPlayer].id,
+            points, darts, marks, bust });
+        return;
+    }
     const session = recordingSession();
     if (!session) return;
     if (!Number.isInteger(darts) || darts < 1 || darts > 3) {
@@ -63,6 +70,7 @@ export function scoringStats(records) {
 }
 
 export function tournamentScoringLocked() {
+    if (game.minnesotaPlaces) return game.minnesotaPlaces.phase !== 'playing';
     const session = recordingSession();
     return !!(session && (session.legComplete || ['pending', 'saving', 'saved'].includes(session.status)));
 }

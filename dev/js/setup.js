@@ -701,6 +701,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
         scoringRecords,
         x01Input: null,
         minnesotaInput: null,
+        minnesotaPlaces: null,
         players: [],
         currentPlayer: 0,
         currentInput: '',

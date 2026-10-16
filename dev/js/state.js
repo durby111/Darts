@@ -13,6 +13,7 @@ export let game = {
     currentInput: '',
     cricketPoints: true,
     minnesotaCutthroat: false,
+    minnesotaPlaces: null,
     cricketTargets: [],
     finishType: 'double-out',
     pendingDarts: [],
@@ -89,10 +90,11 @@ function snapshot() {
         shanghai: game.shanghai ? deepClone(game.shanghai) : null,
         // Snapshot teams so undo rolls back rotationIndex too.
         teams: game.teams ? deepClone(game.teams) : null,
-        tournament: game.tournament ? deepClone(game.tournament) : null,
-        recording: game.recording ? deepClone(game.recording) : null,
-        scoringRecords: game.scoringRecords ? deepClone(game.scoringRecords) : null,
+        tournament: !game.minnesotaPlaces?.locked && game.tournament ? deepClone(game.tournament) : null,
+        recording: !game.minnesotaPlaces?.locked && game.recording ? deepClone(game.recording) : null,
+        scoringRecords: !game.minnesotaPlaces?.locked && game.scoringRecords ? deepClone(game.scoringRecords) : null,
         x01Input: game.x01Input ? deepClone(game.x01Input) : null,
+        minnesotaPlaces: game.minnesotaPlaces ? deepClone(game.minnesotaPlaces) : null,
         minnesotaInput: game.minnesotaInput ? deepClone(game.minnesotaInput) : null,
         timestamp: Date.now()
     };
@@ -117,9 +119,13 @@ function restore(state) {
         if (state[key] !== undefined) game[key] = state[key];
     });
     if (state.teams !== undefined) game.teams = state.teams;
-    game.tournament = state.tournament || null;
-    game.recording = state.recording || null;
-    game.scoringRecords = state.scoringRecords || null;
+    // Placement undo never rewinds the already decided primary result.
+    if (!game.minnesotaPlaces?.locked) {
+        game.tournament = state.tournament || null;
+        game.recording = state.recording || null;
+        game.scoringRecords = state.scoringRecords || null;
+    }
+    game.minnesotaPlaces = state.minnesotaPlaces || null;
     game.x01Input = state.x01Input || null;
     game.minnesotaInput = state.minnesotaInput || null;
 }
@@ -133,7 +139,7 @@ export function saveGameState() {
 }
 
 export function undoLastAction(onAfterRestore) {
-    if (['pending', 'saving', 'saved'].includes(recordingSession()?.status)) return;
+    if (!game.minnesotaPlaces?.locked && ['pending', 'saving', 'saved'].includes(recordingSession()?.status)) return;
     if (game.undoHistory.length === 0) return;
     game.redoHistory.push(snapshot());
     restore(game.undoHistory.pop());
@@ -143,7 +149,7 @@ export function undoLastAction(onAfterRestore) {
 }
 
 export function redoLastAction(onAfterRestore) {
-    if (['pending', 'saving', 'saved'].includes(recordingSession()?.status)) return;
+    if (!game.minnesotaPlaces?.locked && ['pending', 'saving', 'saved'].includes(recordingSession()?.status)) return;
     if (game.redoHistory.length === 0) return;
     game.undoHistory.push(snapshot());
     restore(game.redoHistory.pop());
@@ -267,7 +273,7 @@ function archivePreviousTournament(nextResultId = null) {
 function compactTournamentSnapshot(snapshot) {
     const session = recordingSession(snapshot);
     if (!session) return snapshot;
-    if (session.status === 'saved') {
+    if (!snapshot.minnesotaPlaces?.locked && session.status === 'saved') {
         snapshot.undoHistory = [];
         snapshot.redoHistory = [];
         delete session.pendingResult;
@@ -278,7 +284,7 @@ function compactTournamentSnapshot(snapshot) {
         snapshot.players.forEach(player => { player.history = []; });
         return snapshot;
     }
-    if (['pending', 'saving'].includes(session.status)) {
+    if (!snapshot.minnesotaPlaces?.locked && ['pending', 'saving'].includes(session.status)) {
         // Confirmation already locks undo. The immutable ledger also supplies pendingResult.records.
         snapshot.undoHistory = [];
         snapshot.redoHistory = [];
@@ -428,9 +434,10 @@ export function saveActiveGame() {
         recording: game.recording ? deepClone(game.recording) : null,
         scoringRecords: game.scoringRecords ? deepClone(game.scoringRecords) : null,
         x01Input: game.x01Input ? deepClone(game.x01Input) : null,
+        minnesotaPlaces: game.minnesotaPlaces ? deepClone(game.minnesotaPlaces) : null,
         minnesotaInput: game.minnesotaInput ? deepClone(game.minnesotaInput) : null,
-        undoHistory: recordingSession() ? game.undoHistory : [],
-        redoHistory: recordingSession() ? game.redoHistory : [],
+        undoHistory: (recordingSession() || game.minnesotaPlaces) ? game.undoHistory : [],
+        redoHistory: (recordingSession() || game.minnesotaPlaces) ? game.redoHistory : [],
         timestamp: Date.now()
     };
     try {
@@ -439,6 +446,16 @@ export function saveActiveGame() {
         const stored = JSON.stringify(compactTournamentSnapshot(snapshot));
         if (ACTIVE_GAME_IMPORT_KEY) localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
         localStorage.setItem(ACTIVE_GAME_KEY, stored);
+        if (game.minnesotaPlaces?.locked) {
+            // One stable key per continuation: reload/retry/undo update its local
+            // record without duplicating or editing the primary scoring result.
+            localStorage.setItem(ACTIVE_GAME_KEY + '_places_' + game.minnesotaPlaces.id, JSON.stringify({
+                ...deepClone(game.minnesotaPlaces), minnesotaCutthroat: game.minnesotaCutthroat,
+                primaryResultId: session?.resultId || null,
+                players: game.players.map(p => ({ id: p.id, name: p.name, score: p.score })),
+                teams: game.teams ? deepClone(game.teams) : null
+            }));
+        }
         if (session?.status === 'saved') {
             pruneSavedRecoveries(session);
         } else if (session && ['pending', 'saving'].includes(session.status)) {
@@ -511,6 +528,7 @@ export function restoreActiveGame(snapshot) {
         currentPlayer: snapshot.currentPlayer,
         currentInput: snapshot.currentInput || '',
         cricketPoints: snapshot.type === 'minnesota' && snapshot.minnesotaCutthroat === true ? true : snapshot.cricketPoints,
+        minnesotaPlaces: snapshot.type === 'minnesota' ? deepClone(snapshot.minnesotaPlaces || null) : null,
         minnesotaCutthroat: snapshot.type === 'minnesota' && snapshot.minnesotaCutthroat === true,
         cricketTargets: snapshot.cricketTargets || [],
         finishType: snapshot.finishType,

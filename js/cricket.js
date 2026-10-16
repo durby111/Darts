@@ -4,7 +4,7 @@
    ============================================ */
 
 import { game, recordingSession, createCricketTargetState, saveGameState, saveActiveGame, undoWithCooldown } from './state.js';
-import { getMarkSymbol, updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner } from './ui.js';
+import { getMarkSymbol, updateUndoRedoButtons, updatePlayerHeaders, updateRoundBadge, showWinner, showModal, hideModal } from './ui.js';
 import { currentThrower, advanceRotation } from './teams.js';
 import { recordTurn, tournamentScoringLocked, pendingDartCount } from './scoring-records.js';
 
@@ -14,14 +14,93 @@ function activeThrowerName() {
     return t ? t.name : null;
 }
 
+function finished(index) { return !!game.minnesotaPlaces?.order.includes(index); }
+function nextActivePlayer() {
+    for (let step = 1; step <= game.players.length; step++) {
+        const index = (game.currentPlayer + step) % game.players.length;
+        if (!finished(index)) return index;
+    }
+    return game.currentPlayer;
+}
+
+// A remaining player may already be closed when a higher/lower scoring
+// finisher leaves the contest. Resolve that earned place on their next turn.
+function settlePlaces() {
+    const places = game.minnesotaPlaces;
+    while (places?.phase === 'playing') {
+        const player = game.players[game.currentPlayer];
+        if (!game.cricketTargets.every(t => player.cricketData[t].closed) || !hasWinningScore(player)) break;
+        if (!places.order.includes(game.currentPlayer)) places.order.push(game.currentPlayer);
+        const remaining = game.players.map((_, i) => i).filter(i => !finished(i));
+        if (remaining.length === 1) {
+            places.order.push(remaining[0]); places.phase = 'complete';
+        } else {
+            game.currentPlayer = nextActivePlayer();
+            game.players[game.currentPlayer].lastTurnMarks = null;
+        }
+    }
+}
+
+function placementText() {
+    return game.minnesotaPlaces.order.map((index, i) => `${i + 1}${['st', 'nd', 'rd', 'th'][i]}: ${game.players[index].name}`).join(' · ');
+}
+
+function renderPlaces() {
+    let panel = document.getElementById('minnesotaPlacesPanel');
+    if (!panel && !game.minnesotaPlaces) return;
+    if (!panel) {
+        panel = document.createElement('section'); panel.id = 'minnesotaPlacesPanel'; panel.style.overflowWrap = 'anywhere';
+        document.querySelector('#winnerModal .modal-content').append(panel);
+    }
+    panel.replaceChildren(); panel.hidden = !game.minnesotaPlaces;
+    const primaryUndo = document.getElementById('winnerCancelBtn');
+    if (game.minnesotaPlaces?.locked) {
+        primaryUndo.style.display = 'none'; primaryUndo.dataset.placementHidden = '1';
+    } else if (primaryUndo.dataset.placementHidden) {
+        primaryUndo.style.display = ''; delete primaryUndo.dataset.placementHidden;
+    }
+    if (!game.minnesotaPlaces) return;
+    const places = game.minnesotaPlaces;
+    const summary = document.createElement('p'); summary.textContent = placementText();
+    panel.append(summary);
+    if (places.phase === 'offered') {
+        const button = document.createElement('button'); button.id = 'playForPlacesBtn';
+        button.textContent = 'Play for places'; button.className = 'btn btn--lg btn--primary';
+        button.addEventListener('click', () => {
+            if (game.minnesotaPlaces?.phase !== 'offered') return;
+            places.phase = 'playing'; places.locked = true;
+            // Starting the optional continuation establishes an immutable first-place boundary.
+            game.undoHistory = []; game.redoHistory = [];
+            game.currentPlayer = nextActivePlayer();
+            game.players[game.currentPlayer].lastTurnMarks = null;
+            settlePlaces(); saveActiveGame(); hideModal('winnerModal'); clearCooldown(); updateCricketDisplay();
+        });
+        const note = document.createElement('p');
+        note.textContent = 'Continue for second and third. First place stays fixed. Placement turns are saved on this device separately from the primary result.';
+        panel.append(note, button);
+    }
+    if (places.phase !== 'playing') {
+        document.getElementById('winnerName').textContent = game.players[places.order[0]].name;
+        if (places.locked) {
+            document.getElementById('blakeoutMessage').style.display = 'none';
+            const undo = document.createElement('button'); undo.id = 'undoPlaceBtn';
+            undo.textContent = 'Undo last placement'; undo.className = 'btn btn--lg btn--neutral';
+            undo.disabled = game.undoHistory.length === 0;
+            undo.addEventListener('click', () => undoWithCooldown(() => { hideModal('winnerModal'); updateCricketDisplay(); }));
+            panel.append(undo);
+        }
+        showModal('winnerModal');
+    } else hideModal('winnerModal');
+}
+
 function isCutThroat() { return game.type === 'cutthroat' || (game.type === 'minnesota' && game.minnesotaCutthroat === true); }
 function hasWinningScore(player) {
     if (isCutThroat() && game.players.length < 2) return false;
-    return game.players.every(p => !game.cricketPoints || (isCutThroat() ? player.score <= p.score : player.score >= p.score));
+    return game.players.every((p, i) => finished(i) || !game.cricketPoints || (isCutThroat() ? player.score <= p.score : player.score >= p.score));
 }
 function penalizeOpenOpponents(target, points, apply) {
     game.players.forEach((opponent, index) => {
-        if (index !== game.currentPlayer && !opponent.cricketData[target].closed) apply(index, points);
+        if (index !== game.currentPlayer && !finished(index) && !opponent.cricketData[target].closed) apply(index, points);
     });
 }
 function isQuickie() { return game.type === 'quickie'; }
@@ -86,13 +165,13 @@ function calculatePendingScoreDeltas() {
                 const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
                 if (isCutThroat()) {
                     game.players.forEach((opponent, index) => {
-                        if (index !== game.currentPlayer && !opponent.cricketData[target].closed) {
+                        if (index !== game.currentPlayer && !finished(index) && !opponent.cricketData[target].closed) {
                             deltas[index] += pointMarks * pointValue;
                         }
                     });
                 } else {
                     const anyOpponentOpen = game.players.some((opponent, index) =>
-                        index !== game.currentPlayer && !opponent.cricketData[target].closed);
+                        index !== game.currentPlayer && !finished(index) && !opponent.cricketData[target].closed);
                     if (anyOpponentOpen) {
                         deltas[game.currentPlayer] += pointMarks * pointValue;
                     }
@@ -379,12 +458,14 @@ function finishQuickieAtLimit() {
 export function updateCricketDisplay() {
     let mode = document.getElementById('minnesotaModeNotice');
     if (!mode) {
-        mode = document.createElement('p'); mode.id = 'minnesotaModeNotice';
+        mode = document.createElement('p'); mode.id = 'minnesotaModeNotice'; mode.style.overflowWrap = 'anywhere';
         mode.setAttribute('role', 'status');
         document.getElementById('cricketMain').prepend(mode);
     }
     mode.hidden = game.type !== 'minnesota';
     mode.textContent = game.minnesotaCutthroat ? 'Minnesota Cutthroat · points to open opponents · lowest score wins' : 'Minnesota · normal scoring';
+    if (game.minnesotaPlaces) mode.textContent += ' · ' + placementText() + (game.minnesotaPlaces.phase === 'playing' ? ' · Playing for places' : '');
+    renderPlaces();
     const pendingDeltas = calculatePendingScoreDeltas();
     const numPlayers = game.players.length;
 
@@ -411,6 +492,7 @@ export function updateCricketDisplay() {
     updatePending();
     updateRoundBadge();
     updatePlayerHeaders();
+    updateUndoRedoButtons();
 }
 
 export function hitTarget(target, multiplier) {
@@ -449,7 +531,7 @@ export function hitTarget(target, multiplier) {
 
         const playerClosed = effectiveMarks >= maxMarks;
         const allOpponentsClosed = game.players.every((p, i) => {
-            if (i === game.currentPlayer) return true;
+            if (i === game.currentPlayer || finished(i)) return true;
             return p.cricketData[target].closed;
         });
 
@@ -517,7 +599,7 @@ export function cricketConfirm() {
             // Special score from Minnesota keypad
             if (isCutThroat()) penalizeOpenOpponents(target, dart.specialScore, (i, points) => { game.players[i].score += points; });
             else if (!recordingSession() || (game.cricketPoints && game.players.some((p, i) =>
-                i !== game.currentPlayer && !p.cricketData[target].closed))) player.score += dart.specialScore;
+                i !== game.currentPlayer && !finished(i) && !p.cricketData[target].closed))) player.score += dart.specialScore;
             cricketData.marks = Math.min(cricketData.marks + 1, maxMarks);
         } else {
             const newMarks = marksBefore + multiplier;
@@ -533,13 +615,13 @@ export function cricketConfirm() {
                     const pointValue = target === 'Bull' ? 25 : (isNaN(numVal) ? 0 : numVal);
                     if (isCutThroat()) {
                         game.players.forEach((opponent, index) => {
-                            if (index !== game.currentPlayer && !opponent.cricketData[target].closed) {
+                            if (index !== game.currentPlayer && !finished(index) && !opponent.cricketData[target].closed) {
                                 opponent.score += pointMarks * pointValue;
                             }
                         });
                     } else {
                         const anyOpponentOpen = game.players.some((opponent, index) =>
-                            index !== game.currentPlayer && !opponent.cricketData[target].closed);
+                            index !== game.currentPlayer && !finished(index) && !opponent.cricketData[target].closed);
                         if (anyOpponentOpen) {
                             player.score += pointMarks * pointValue;
                         }
@@ -575,7 +657,7 @@ export function cricketConfirm() {
                 isBlakeout = true;
             }
         }
-        if (recordingSession() && game.cricketTargets.every(t => player.cricketData[t].closed) &&
+        if ((recordingSession() || game.minnesotaPlaces) && game.cricketTargets.every(t => player.cricketData[t].closed) &&
             hasWinningScore(player)) {
             isBlakeout = target === 'Bull' && multiplier === 2;
             break;
@@ -598,7 +680,16 @@ export function cricketConfirm() {
             game.pendingDarts = [];
             saveActiveGame();
             updateCricketDisplay();
-            showWinner(player.name, isBlakeout);
+            if (game.minnesotaPlaces?.phase === 'playing') {
+                settlePlaces();
+                saveActiveGame(); clearCooldown(); updateCricketDisplay();
+            } else {
+                showWinner(player.name, isBlakeout);
+                if (game.type === 'minnesota' && game.players.length >= 3) {
+                    game.minnesotaPlaces = { id: crypto.randomUUID(), phase: 'offered', locked: false, order: [game.currentPlayer], turns: [] };
+                    saveActiveGame(); renderPlaces();
+                }
+            }
             return;
         }
     }
@@ -619,19 +710,20 @@ export function cricketConfirm() {
     if (game.teamMode) advanceRotation(game.currentPlayer);
 
     // Move to next player
-    const nextPlayer = (game.currentPlayer + 1) % game.players.length;
+    const nextPlayer = nextActivePlayer();
 
     // Clear next player's lastTurnMarks
     game.players[nextPlayer].lastTurnMarks = null;
 
     // Increment round when back to player 0
-    if (nextPlayer === 0) {
+    if (nextPlayer <= game.currentPlayer) {
         game.completedRounds++;
     }
 
     game.currentPlayer = nextPlayer;
     game.pendingDarts = [];
 
+    settlePlaces();
     rerollWildcardTargets();
     if (finishQuickieAtLimit()) return;
 
@@ -665,19 +757,20 @@ export function cricketMiss() {
     if (game.teamMode) advanceRotation(game.currentPlayer);
 
     // Move to next player
-    const nextPlayer = (game.currentPlayer + 1) % game.players.length;
+    const nextPlayer = nextActivePlayer();
 
     // Clear next player's lastTurnMarks
     game.players[nextPlayer].lastTurnMarks = null;
 
     // Increment round when back to player 0
-    if (nextPlayer === 0) {
+    if (nextPlayer <= game.currentPlayer) {
         game.completedRounds++;
     }
 
     game.currentPlayer = nextPlayer;
     game.pendingDarts = [];
 
+    settlePlaces();
     rerollWildcardTargets();
     if (finishQuickieAtLimit()) return;
 
@@ -689,6 +782,11 @@ export function cricketMiss() {
 export function initCricketControls() {
     if (controlsInitialized) return;
     controlsInitialized = true;
+    document.addEventListener('scorerWinnerShown', renderPlaces);
+    document.addEventListener('scorerRestored', () => {
+        // Run after bridge listeners so restoring a primary result cannot mask continuation.
+        if (game.type === 'minnesota') queueMicrotask(() => { renderPlaces(); });
+    });
 
     // Miss button — pointerdown fires on finger-press, bypassing the
     // scroll-disambiguation delay that click incurs over a scrollable ancestor.
