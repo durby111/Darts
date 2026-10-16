@@ -1391,8 +1391,8 @@ async def test_private_roster_scoping(page):
             return {
                 first,
                 stable: fb.getRosterId() === first,
-                stored: localStorage.getItem('blakeout_roster_id'),
-                share: fb.getRosterShareUrl(),
+                stored: localStorage.getItem('blakeout_darts_dev_roster_id'),
+                shareDisabled: (() => { try { fb.getRosterShareUrl(); return false; } catch (e) { return e.message.includes('disabled'); } })(),
                 maxName: fb.MAX_NAME_LENGTH,
             };
         }
@@ -1403,11 +1403,11 @@ async def test_private_roster_scoping(page):
         f"roster id must be 128 bits of hex: {result}"
     assert result["stable"], "roster id must be stable within a session"
     assert result["stored"] == result["first"], result
-    assert f"roster={result['first']}" in result["share"], result["share"]
+    assert result["shareDisabled"], result
     assert result["maxName"] == 40, result
 
     # A different device/profile must NOT land on the same roster.
-    await page.evaluate("localStorage.removeItem('blakeout_roster_id')")
+    await page.evaluate("localStorage.removeItem('blakeout_darts_dev_roster_id')")
     second = await page.evaluate("""
         (async () => (await import('./js/firebase.js')).getRosterId())()
     """)
@@ -1432,7 +1432,7 @@ async def test_private_roster_scoping(page):
         f"roster id should not linger in the address bar: {adopted['url']}"
 
     # A malformed/hostile id is rejected rather than used as a path segment.
-    await page.evaluate("localStorage.removeItem('blakeout_roster_id')")
+    await page.evaluate("localStorage.removeItem('blakeout_darts_dev_roster_id')")
     await page.goto(f"{page.url.split('?')[0]}?roster=../../roster",
                     wait_until="domcontentloaded")
     await page.wait_for_timeout(600)

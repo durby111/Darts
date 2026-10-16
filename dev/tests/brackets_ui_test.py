@@ -25,7 +25,7 @@ const states=new Map(), initial={uid:'verified_owner',emailVerified:true,isAnony
 const hydrate=user=>user&&({...user,getIdToken:async()=> 'test-token'});
 export const getAuth=app=>{
     if(!states.has(app.name))states.set(app.name,{
-        app,currentUser:hydrate(app.name==='blakeout-dev-accounts'?initial:null),listeners:[],
+        app,currentUser:hydrate(app.name==='blakeout-darts-dev-accounts'?initial:null),listeners:[],
     });
     return states.get(app.name);
 };
@@ -33,7 +33,7 @@ const notify=(auth,user)=>{
     auth.currentUser=hydrate(user);
     for(const fn of auth.listeners)fn(auth.currentUser);
 };
-globalThis.changeTestUser=user=>notify(states.get('blakeout-dev-accounts'),user);
+globalThis.changeTestUser=user=>notify(states.get('blakeout-darts-dev-accounts'),user);
 export const browserLocalPersistence='LOCAL';
 export const setPersistence=async()=>{};
 export const onAuthStateChanged=(auth,fn)=>{auth.listeners.push(fn);queueMicrotask(()=>fn(auth.currentUser));return()=>{};};
@@ -858,7 +858,8 @@ async def test_creation_and_launch(browser, base):
         payload = await page.evaluate("JSON.parse(localStorage.getItem('blakeout_dev_match_launch'))")
         assert payload["tournamentId"] == "demo" and payload["matchId"] == "W1.1"
         assert isinstance(payload["revision"], int)
-        assert set(payload) == {"tournamentId", "matchId", "revision"}
+        assert set(payload) == {"tournamentId", "matchId", "revision", "backendKey"}
+        assert payload["backendKey"] == "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         return "creation whitelist/format and authoritative revision-tagged scorer handoff"
     finally:
         await context.close()
@@ -1113,7 +1114,7 @@ async def test_real_platform_adapter(browser, base):
     await context.route("https://www.gstatic.com/firebasejs/**", sdk_route)
     await context.route("**/js/firebase-config.js", lambda route: route.fulfill(
         status=200, content_type="application/javascript",
-        body="export const firebaseConfig={apiKey:'test-only',projectId:'demo-blakeout'};"))
+        body="export const firebaseConfig={apiKey:'test-only',projectId:'blakeout-darts-dev',authDomain:'blakeout-darts-dev.firebaseapp.com',appId:'1:901185136996:web:89d4f413520e66ff773271'};"))
     page = await context.new_page()
     try:
         await page.goto(base + "/brackets/")
@@ -1175,7 +1176,7 @@ docs.set('blakeoutDevProfiles/verified_joiner',{name:'Verified Arrival'});
     await context.route("https://www.gstatic.com/firebasejs/**", sdk_route)
     await context.route("**/js/firebase-config.js", lambda route: route.fulfill(
         status=200, content_type="application/javascript",
-        body="export const firebaseConfig={apiKey:'test-only',projectId:'demo-blakeout'};"))
+        body="export const firebaseConfig={apiKey:'test-only',projectId:'blakeout-darts-dev',authDomain:'blakeout-darts-dev.firebaseapp.com',appId:'1:901185136996:web:89d4f413520e66ff773271'};"))
     page = await context.new_page()
     await page.goto(base + "/brackets/")
     await page.wait_for_function("document.querySelector('#message').textContent.includes('Cloud connected')")
@@ -1247,85 +1248,26 @@ async def test_real_verified_selfjoin(browser, base):
         await context.close()
 
 
-async def test_real_guest_selfjoin_and_race(browser, base):
+async def test_real_guest_disabled(browser, base):
     context, page = await actual_join_page(browser, base)
     try:
         await page.evaluate("changeTestUser(null)")
-        await page.wait_for_function("document.querySelector('#rosterPanel').hidden&&!document.querySelector('#guestJoinName').disabled")
-        await page.fill("#guestJoinName", "Device Guest")
-        await page.evaluate("window.testOffline=true")
-        await page.locator("#joinGuest").click()
-        await page.wait_for_function("document.querySelector('#message').textContent.includes('Offline')")
-        assert "Device Guest" not in await page.locator("#publicRoster").inner_text()
-        await page.evaluate("window.testOffline=false")
-        await page.locator("#joinGuest").click()
-        await page.wait_for_function("document.querySelector('#joinGuest').textContent==='Guest already registered'")
-        assert "Device Guest" in await page.locator("#publicRoster").inner_text()
-        assert await page.locator("#rosterRows input").count() == 0
-        guest = await page.evaluate("""async () => {
-            const p=await import('/js/platform.js');
-            const result=await p.joinTournamentAsGuest('selfjoin-integration','Device Guest');
-            const repeated=await p.joinTournamentAsGuest('selfjoin-integration','Device Guest');
-            if(result.registrationId!==repeated.registrationId)throw Error('Guest ID is not stable');
-            let rejected=false;
-            try{await p.joinTournamentAsGuest('selfjoin-integration','Another guest');}
-            catch(error){rejected=true;}
-            if(!rejected)throw Error('Different shared-device guest name must require organizer assistance');
-            return repeated.tournament.registrations.find(r=>r.id===result.registrationId);
-        }""")
-        assert guest["playerId"] is None and guest["checkedIn"] is False and guest["paid"] is False
-        await page.evaluate("changeTestUser({uid:'verified_owner',emailVerified:true,isAnonymous:false})")
-        await page.wait_for_function("!document.querySelector('#rosterControls').disabled")
-        row = page.locator("#rosterRows tr").filter(has=page.locator(f'[data-field="name"][aria-label="Display name for {guest["name"]}"]'))
-        await row.locator("button:not([data-move])").click()
-        await page.locator("#saveRoster").click()
-        await page.wait_for_function("!document.querySelector('#publicRoster').textContent.includes('Device Guest')")
-        await page.fill("#guestJoinName", "Device Guest Rejoined")
-        await page.locator("#joinGuest").click()
-        await page.wait_for_function("document.querySelector('#publicRoster').textContent.includes('Device Guest Rejoined')")
-        # Inject a real device signup between an owner's transaction read and commit.
-        await page.locator('#rosterRows [data-field="name"]').first.fill("Race draft retained")
-        await page.evaluate("""() => {
-            window.testTransactionHook=async ()=>{
-                const p=await import('/js/platform.js');
-                const apps=await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js');
-                const auth=await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js');
-                const guestApp=apps.getApps().find(a=>a.name!=='[DEFAULT]'&&a.name!=='blakeout-dev-accounts');
-                await auth.signOut(auth.getAuth(guestApp));
-                window.testGuestUid='guest_device_concurrent';
-                await auth.signInAnonymously(auth.getAuth(guestApp));
-                await p.joinTournamentAsGuest('selfjoin-integration','Concurrent Device Guest');
-            };
-        }""")
-        await page.locator("#saveRoster").click()
-        await page.wait_for_function("document.querySelector('#message').textContent.includes('changed')")
-        assert await page.locator('#rosterRows [data-field="name"]').first.input_value() == "Race draft retained"
-        await page.locator("#refresh").click()
-        await page.wait_for_function("document.querySelector('#publicRoster').textContent.includes('Concurrent Device Guest')")
-        assert await page.locator('#rosterRows [data-field="name"]').first.input_value() == "Race draft retained"
-        assert await page.evaluate("import('/js/platform.js').then(p=>p.getAccount().uid)") == "verified_owner"
-        await click_with_confirmation(page, "#discard")
-        await page.wait_for_function("document.querySelector('#discard').hidden")
-        await click_with_confirmation(page, "#startTournament")
-        await page.wait_for_function("document.querySelector('#message').textContent.includes('Tournament started')")
+        await page.wait_for_function("document.querySelector('#rosterPanel').hidden")
         assert await page.locator("#guestJoinName").is_disabled()
-        closed = await page.evaluate("""async () => {
+        assert await page.locator("#joinGuest").is_disabled()
+        result = await page.evaluate("""async()=>{
+            const before=JSON.stringify([...testDocs]);
             const p=await import('/js/platform.js');
-            const repeated=await p.joinTournamentAsGuest('selfjoin-integration','Concurrent Device Guest');
+            let message='';
+            try{await p.joinTournamentAsGuest('selfjoin-integration','Device Guest');}
+            catch(e){message=e.message;}
             const apps=await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js');
-            const auth=await import('https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js');
-            const guestApp=apps.getApps().find(a=>a.name==='blakeout-dev-guests');
-            window.testGuestUid='guest_new_after_start';
-            await auth.signInAnonymously(auth.getAuth(guestApp));
-            let newGuestRejected=false,newAccountRejected=false;
-            try{await p.joinTournamentAsGuest('selfjoin-integration','Late Guest');}
-            catch(error){newGuestRejected=error.message.includes('closed');}
-            try{await p.joinTournament('selfjoin-integration');}
-            catch(error){newAccountRejected=error.message.includes('closed');}
-            return {status:repeated.tournament.status,newGuestRejected,newAccountRejected};
+            return {message,unchanged:before===JSON.stringify([...testDocs]),apps:apps.getApps().map(a=>a.name)};
         }""")
-        assert closed == {"status": "live", "newGuestRejected": True, "newAccountRejected": True}
-        return "real anonymous guest API: offline honesty, no stats identity, remove/rejoin, racing owner commit, isolated auth and closed-event retries"
+        assert 'Anonymous Auth is disabled' in result['message']
+        assert result['unchanged']
+        assert result['apps']==['[DEFAULT]', 'blakeout-darts-dev-accounts']
+        return 'isolated DEV guest UI/API disabled; no guest app or document writes'
     finally:
         await context.close()
 
@@ -1354,7 +1296,7 @@ TESTS = {
     "immediate_guest_join": test_immediate_guest_join,
     "real_platform_adapter": test_real_platform_adapter,
     "real_verified_selfjoin": test_real_verified_selfjoin,
-    "real_guest_selfjoin_and_race": test_real_guest_selfjoin_and_race,
+    "real_guest_disabled": test_real_guest_disabled,
 }
 
 

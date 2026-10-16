@@ -91,6 +91,7 @@ async def fixture(page, base, game_type="301", best_of=3, account="owner", stale
       changeTestUser({uid:account,emailVerified:true,isAnonymous:false});
       const match = t.matches.find(m => m.status === 'ready');
       localStorage.blakeout_dev_match_launch = JSON.stringify({
+        backendKey:(await import('./js/backend-context.js')).BACKEND_KEY,
         tournamentId:t.id,matchId:match.id,revision:t.revision + (stale ? 1 : 0),
         gameType:'tampered', bestOf:999, teams:[{name:'Imposter'}]
       });
@@ -437,7 +438,7 @@ async def casual_cases(page, base):
     await page.click("#resumeGameBtn")
     assert await state(page, "game.scoringRecords.legs[0].turns.at(-1).playerId") == "u5"
     await checkout(page)
-    await page.evaluate("changeTestUser({uid:'u4',emailVerified:true,isAnonymous:false})")
+    await page.evaluate("async()=>{await (await import('./js/platform.js')).initPlatform();changeTestUser({uid:'u4',emailVerified:true,isAnonymous:false});}")
     await page.click("#casualSaveResult")
     await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('original verified scorekeeper')")
     pending_id = await state(page, "game.recording.resultId")
@@ -522,7 +523,7 @@ async def casual_cases(page, base):
     await page.wait_for_function("document.getElementById('casualLinkStatus').textContent.includes('only one human slot')")
     assert await state(page, "game.recording") is None
     await page.select_option("#casualLink1", "u2")
-    await page.evaluate("changeTestUser({uid:'u4',emailVerified:true,isAnonymous:false})")
+    await page.evaluate("async()=>{await (await import('./js/platform.js')).initPlatform();changeTestUser({uid:'u4',emailVerified:true,isAnonymous:false});}")
     await page.click("#casualLinkStart")
     await page.wait_for_function("document.getElementById('casualLinkStatus').textContent.includes('current verified scorekeeper')")
     await page.evaluate("""()=>{

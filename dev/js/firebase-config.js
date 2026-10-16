@@ -1,10 +1,10 @@
-// Firebase web config — gitignored. Copy firebase-config.js.example to start.
-// Project: blakeout (durby111)
+// Public web configuration supplied by the owner; local candidate only.
+// No Analytics initialization. Real-account/provider gates remain closed.
 export const firebaseConfig = {
-    apiKey: "AIzaSyAaQ1XJOdk5ut9xD7uozEdgT7yhAAnL4Rs",
-    authDomain: "blakeout.firebaseapp.com",
-    projectId: "blakeout",
-    storageBucket: "blakeout.firebasestorage.app",
-    messagingSenderId: "643401736684",
-    appId: "1:643401736684:web:99493017cdc9d07897a0c9"
+    apiKey: "AIzaSyAPip90ScJRofSNWSiO-pXvqBYy4-bLFe0",
+    authDomain: "blakeout-darts-dev.firebaseapp.com",
+    projectId: "blakeout-darts-dev",
+    storageBucket: "blakeout-darts-dev.firebasestorage.app",
+    messagingSenderId: "901185136996",
+    appId: "1:901185136996:web:89d4f413520e66ff773271"
 };

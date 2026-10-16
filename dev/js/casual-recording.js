@@ -1,3 +1,4 @@
+import { BACKEND_KEY, requireCurrentBackend } from './backend-context.js';
 import { game, recordingSession, saveActiveGame, restoreActiveGame, localRecordingRecoveries } from './state.js';
 import { showModal, hideModal } from './ui.js';
 import { RECORDING_GAMES, newRecordId, recordingComplete, recordingWinnerIds, scoringResult } from './scoring-records.js';
@@ -147,7 +148,7 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
                 if (linked.some(id => !profiles.some(p => p.id === id))) throw new Error('A selected profile is no longer available. Reload profiles.');
                 slots.forEach(({ member }, i) => { member.playerId = selectors[i].value || null; });
                 const recording = {
-                    source: 'casual', resultId: newRecordId(), ownerId: account.uid,
+                    backendKey: BACKEND_KEY, source: 'casual', resultId: newRecordId(), ownerId: account.uid,
                     gameType, bestOf: gameType === 'chicago' ? 3 : 1,
                     teams: sides.map(side => ({ ...side, members: side.members.map(({ id, playerId, name }) => ({ id, playerId, name })) })),
                     legWins: sides.map(() => 0), legComplete: false, winnerIndex: null, status: 'scoring'
@@ -185,7 +186,7 @@ function savedHistory() {
 function rememberSaved(session) {
     try {
         const history = savedHistory();
-        const item = { resultId: session.resultId, ownerId: session.ownerId, gameType: session.gameType, savedAt: Date.now() };
+        const item = { backendKey: session.backendKey, resultId: session.resultId, ownerId: session.ownerId, gameType: session.gameType, savedAt: Date.now() };
         localStorage.setItem(HISTORY_KEY, JSON.stringify([item, ...history.filter(x => x.resultId !== item.resultId)].slice(0, 50)));
         return true;
     } catch (error) {
@@ -201,6 +202,10 @@ export async function saveCasualResult() {
     }
     const session = game.recording;
     if (!session || !recordingComplete() || session.status === 'saved' || saving) return;
+    try { requireCurrentBackend(session); } catch (error) {
+        document.dispatchEvent(new CustomEvent('casualRecordingChanged', { detail: { message: error.message } }));
+        return;
+    }
     if (!confirm('Save these scorekeeper-declared casual results and actual dart statistics? They are not certified competition results.')) return;
     const winnerIds = recordingWinnerIds();
     game.scoringRecords.winnerIds = winnerIds;
@@ -218,7 +223,7 @@ export async function saveCasualResult() {
         const { api, account, profiles } = await verifiedProfiles();
         if (account.uid !== session.ownerId) throw new Error('Sign in as the original verified scorekeeper to save this record.');
         if (session.pendingResult.participantIds.some(id => !profiles.some(p => p.id === id))) throw new Error('A linked player profile is no longer available.');
-        await api.saveCasualResult(session.resultId, session.pendingResult);
+        await api.saveCasualResult(session.resultId, session.pendingResult, session);
         session.status = 'saved';
         game.undoHistory = [];
         game.redoHistory = [];
@@ -248,7 +253,7 @@ export function renderCasualHistory() {
         const row = document.createElement('div');
         row.className = 'casual-history-row';
         const label = document.createElement('span');
-        label.textContent = `${session.gameType.toUpperCase()} · ${session.status === 'saved' ? 'Saved' : 'Local / not sent'} · ${session.teams.map(t => t.name).join(' vs ')}`;
+        label.textContent = `${session.backendKey === BACKEND_KEY ? '' : 'Older backend · local only · '}${session.gameType.toUpperCase()} · ${session.status === 'saved' ? 'Saved' : 'Local / not sent'} · ${session.teams.map(t => t.name).join(' vs ')}`;
         row.append(label, button('Resume', `casualResume-${session.resultId}`, async () => {
             if (recordingSession()?.status === 'saving') {
                 alert('Wait for the current result save to finish before resuming another game.');
@@ -268,7 +273,7 @@ export function renderCasualHistory() {
         if (history.length) {
             for (const saved of history.filter(item => !recoveries.some(r => r.recording.resultId === item.resultId))) {
                 const row = document.createElement('p');
-                row.textContent = `${saved.gameType.toUpperCase()} · Saved ${new Date(saved.savedAt).toLocaleString()} · Scorekeeper ID ${saved.ownerId}`;
+                row.textContent = `${saved.backendKey === BACKEND_KEY ? '' : 'Older backend · '}${saved.gameType.toUpperCase()} · Saved ${new Date(saved.savedAt).toLocaleString()} · Scorekeeper ID ${saved.ownerId}`;
                 list.append(row);
             }
             const note = document.createElement('p');

@@ -311,7 +311,9 @@ try {
     const returningAccount = getAccount();
     try { await completeAccountProviderRedirect(); }
     catch (error) { if (getAccount() === returningAccount) status(error.message, true); }
-    for (const id of ['sendLink', 'passwordSignIn', 'passwordRegister', 'passwordReset']) $(id).disabled = false;
+    $('sendLink').disabled = true;
+    $('sendLink').title = 'Email-link sign-in is unavailable; use email and password.';
+    for (const id of ['passwordSignIn', 'passwordRegister', 'passwordReset']) $(id).disabled = false;
     renderProviders();
     if (isAccountLink()) {
         $('signInPanel').hidden = false;

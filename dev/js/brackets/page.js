@@ -1,3 +1,4 @@
+import { BACKEND_KEY } from '../backend-context.js';
 import * as platform from '../platform.js';
 import * as engine from './engine.js';
 import { renderDiagram, teamLabel } from './diagram.js';
@@ -167,9 +168,11 @@ function joinUI() {
     $('refreshJoinProfile').disabled = busy;
     const guestId = guestReceipts.get(tournament.id);
     const guest = guestId && tournament.registrations.find(entry => entry.id === guestId && entry.playerId === null);
-    $('guestJoinControls').disabled = busy || needsAccountReload || closed || !!guest;
+    $('guestJoinControls').disabled = platform.GUEST_SIGNUP_AVAILABLE === false || busy || needsAccountReload || closed || !!guest;
     $('joinGuest').textContent = guest ? 'Guest already registered' : closed ? 'Registration closed' : 'Join as tournament-only guest';
-    $('guestJoinHelp').textContent = guest
+    $('guestJoinHelp').textContent = platform.GUEST_SIGNUP_AVAILABLE === false
+        ? 'Online guest signup is disabled. Ask the organizer to add you, or use device-local brackets.'
+        : guest
         ? `${guest.name} is confirmed in the cloud as a tournament-only guest. No lifetime statistics will be linked to this entry.`
         : closed ? 'Guest registration is closed.'
             : 'Your guest name appears in the public roster immediately after the server confirms registration. Repeating a request on this device does not create another entry.';
@@ -734,6 +737,7 @@ $('launchScorer').addEventListener('click', async () => {
         const match = fresh.matches.find(item => item.id === selectedMatch);
         if (fresh.status !== 'live' || match?.status !== 'ready') throw new Error('This match is no longer ready.');
         localStorage.setItem(platform.LOCAL_ONLY ? 'blakeout_dev_local_match_launch' : 'blakeout_dev_match_launch', JSON.stringify({
+            ...(!platform.LOCAL_ONLY ? { backendKey: BACKEND_KEY } : {}),
             tournamentId: fresh.id, matchId: match.id, revision: fresh.revision,
         }));
         resultDirty = false;

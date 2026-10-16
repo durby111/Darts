@@ -32,10 +32,10 @@ for(const feature of ['accounts','brackets']){
 }
 pass('production identity retained; both direct feature routes are static disabled shells without account apps');
 for(const rel of ['js/state.js','js/app.js','js/scoring-records.js'])assert.equal(read(rel),read('dev/'+rel),rel);
-for (const file of ['js/casual-recording.js']) {
- const devCode=read('dev/'+file).replaceAll('DEV uses sample Brackets and Players & Records.', 'Brackets and Players & Records are coming soon.').replaceAll('DEV uses sample Players & Records.', 'Players & Records is coming soon.').replaceAll('DEV uses sample Players & Records;', 'Players & Records is coming soon;').replaceAll('DEV brackets use sample data.', 'Brackets are coming soon.').replaceAll('Cloud off','Coming soon');
- assert.equal(devCode,read(file),'Only DEV explanatory copy differs: '+file);
-}
+// The isolated DEV backend now adds origin guards to its casual-recording path.
+// Production must remain exactly the approved baseline, not acquire DEV transport.
+assert.equal(read('js/casual-recording.js'),execFileSync('git',['show','bed1772:js/casual-recording.js'],{cwd:root,encoding:'utf8'}));
+assert.ok(read('dev/js/casual-recording.js').includes('requireCurrentBackend(session)'));
 assert.ok(!fs.existsSync(path.join(root,'js/platform.js')));assert.ok(!fs.existsSync(path.join(root,'js/account-email.js')));
 // DEV now has a separately isolated device-local tournament mode. Preserve the
 // released production files byte-for-byte instead of requiring new DEV parity.

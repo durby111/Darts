@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v67-minnesota-places';
+const CACHE_NAME = 'blakeout-dev-v68-isolated-backend-candidate';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -47,6 +47,7 @@ const ASSETS = [
     './js/confirm-dialog.js',
     './js/feature-page.js',
     './js/build-context.js',
+    './js/backend-context.js',
     './js/platform.js',
     './js/account-email-config.js',
     './js/account-provider-config.js',

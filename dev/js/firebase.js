@@ -1,23 +1,8 @@
-/* ============================================
-   Firebase wrapper — roster sync via Firestore.
-   Offline-first: the SDK queues writes locally and
-   replays them when the device comes back online.
+/* DEV scorer cloud roster/usage synchronization is deliberately disabled.
+   Keep local roster APIs for compatibility without opening legacy Firebase
+   apps, persistence queues, or anonymous sessions. */
 
-   Also keeps an anonymous monthly device counter
-   (see "Monthly usage counter" below) — no analytics
-   vendor, no per-person data.
-
-   All Firebase imports are loaded dynamically inside
-   initFirebase() so a missing firebase-config.js
-   (gitignored, may not exist in every deploy) cannot
-   break the module graph for the rest of the app.
-   ============================================ */
-
-import { LOCAL_TOURNAMENT } from './build-context.js';
-
-const SDK_BASE = "https://www.gstatic.com/firebasejs/10.13.2";
-
-let app, db, auth;
+let db;
 let sdk = null;              // resolved Firestore SDK fns after init
 let rosterCache = [];
 let rosterListeners = [];
@@ -25,7 +10,7 @@ let initState = 'pending';   // pending | ready | error
 let initError = null;
 
 /* ============================================
-   Private roster scoping (SECURITY_AUDIT finding #1)
+   Legacy private-roster helpers (sync disabled in this DEV candidate)
    ============================================
    The roster used to live in ONE global `roster` collection, so any client
    — including an anonymous stranger — could read every player's name and
@@ -51,7 +36,7 @@ let initError = null;
    account isolation; that would require real (non-anonymous) sign-in.
    ============================================ */
 
-const ROSTER_ID_KEY = 'blakeout_roster_id';
+const ROSTER_ID_KEY = 'blakeout_darts_dev_roster_id';
 const ROSTER_ID_RE = /^[0-9a-f]{32}$/;
 
 // Mirrors the cap enforced by the Firestore rules, so an over-long name is
@@ -103,11 +88,7 @@ export function getRosterId() {
 
 /** Shareable link that lets another device join this roster. */
 export function getRosterShareUrl() {
-    const url = new URL(location.href);
-    url.search = '';
-    url.hash = '';
-    url.searchParams.set('roster', getRosterId());
-    return url.toString();
+    throw new Error('DEV cloud roster sharing is disabled; existing roster data is unchanged.');
 }
 
 function playersCollection() {
@@ -119,71 +100,11 @@ function playerDoc(id) {
 }
 
 export async function initFirebase() {
-    if (LOCAL_TOURNAMENT) { initState = 'error'; initError = new Error('Device-local tournament: cloud roster is off.'); return; }
-    try {
-        // Dynamic imports — failures here are caught and logged, not thrown
-        // up the module graph, so setup.js etc. are unaffected.
-        const cfgMod = await import('./firebase-config.js');
-        const appMod = await import(`${SDK_BASE}/firebase-app.js`);
-        const authMod = await import(`${SDK_BASE}/firebase-auth.js`);
-        const fsMod = await import(`${SDK_BASE}/firebase-firestore.js`);
-
-        sdk = {
-            collection: fsMod.collection,
-            doc: fsMod.doc,
-            setDoc: fsMod.setDoc,
-            getDoc: fsMod.getDoc,
-            deleteDoc: fsMod.deleteDoc,
-            onSnapshot: fsMod.onSnapshot,
-            serverTimestamp: fsMod.serverTimestamp,
-            increment: fsMod.increment,
-        };
-
-        app = appMod.initializeApp(cfgMod.firebaseConfig);
-        db = fsMod.getFirestore(app);
-        auth = authMod.getAuth(app);
-
-        // IndexedDB persistence — must be enabled BEFORE any other Firestore call.
-        // Fails silently in browsers that don't support it (Safari private mode,
-        // multiple tabs, etc). The app still works in those cases.
-        try {
-            await fsMod.enableIndexedDbPersistence(db);
-        } catch (err) {
-            console.warn('[Firebase] offline persistence unavailable:', err.code);
-        }
-
-        await authMod.signInAnonymously(auth);
-
-        // Anonymous usage ping. Fire-and-forget so a blocked write or a
-        // missing Firestore rule can never delay the roster listener.
-        recordMonthlyUsage();
-
-        // Live roster snapshot. Re-fires on every remote change AND on local
-        // writes from this device, so the UI always reflects current state.
-        sdk.onSnapshot(
-            playersCollection(),
-            (snap) => {
-                rosterCache = snap.docs
-                    .map(d => d.data())
-                    .filter(d => d && d.email && d.name)
-                    .sort((a, b) => a.name.localeCompare(b.name));
-                if (initState !== 'ready') initState = 'ready';
-                rosterListeners.forEach(fn => { try { fn(rosterCache); } catch (e) { console.error(e); } });
-            },
-            (err) => {
-                console.warn('[Firebase] roster listener error:', err);
-                initState = 'error';
-                initError = err;
-                rosterListeners.forEach(fn => { try { fn(rosterCache); } catch (e) { console.error(e); } });
-            }
-        );
-    } catch (err) {
-        console.warn('[Firebase] init skipped/failed:', err?.message || err);
-        initState = 'error';
-        initError = err;
-        // Notify listeners so the UI can show "(offline)".
-        rosterListeners.forEach(fn => { try { fn(rosterCache); } catch (e) { console.error(e); } });
-    }
+    // Anonymous Auth is off in the isolated project. Do not initialize a default
+    // app, reopen old IndexedDB queues, sync a production roster or send usage writes.
+    initState = 'error';
+    initError = new Error('DEV cloud roster and usage sync are disabled. Local scoring remains available.');
+    rosterListeners.forEach(fn => { try { fn(rosterCache); } catch (e) { console.error(e); } });
 }
 
 export function getRosterCache() {
