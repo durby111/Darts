@@ -1,8 +1,25 @@
 # BlakeOut development notes
 
-Dated entries preserve their original release scope and test limits. Current
-feature work is DEV-only; see FEATURE_READINESS.md. Account/bracket transports
+Dated entries preserve their original release scope and test limits. Use
+[Feature readiness](FEATURE_READINESS.md) for current status and the
+[project guide](../README.md) for running, testing and deployment. Account/bracket transports
 and DEV-specific configuration must not be blindly copied into production.
+
+## October 15–16 published milestones
+
+- October 15: device-local DEV tournaments, blind draw, format overrides and
+  scorer integration. See [acceptance evidence](LOCAL_TOURNAMENTS.md).
+- October 16: optional Minnesota Cutthroat published to production and DEV.
+  See [rules and tests](MINNESOTA_CUTTHROAT.md).
+- October 16: Minnesota Play for places published to production and DEV.
+  First place and primary records stay protected; continuation and placement
+  records remain device-local. See [rules and tests](MINNESOTA_PLACES.md).
+- [Feature readiness](FEATURE_READINESS.md) records exact commits, successful
+  Pages runs and verification limits. Production Coming Soon gates stayed closed.
+
+The older draft/unpublished labels, cache values and temporary test blockers
+below apply to the date of each entry. They are not current release claims or
+standing authorization for a later publication.
 
 ## October 10 Open DEV Test Navigation
 
