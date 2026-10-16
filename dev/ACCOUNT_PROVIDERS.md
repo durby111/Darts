@@ -3,7 +3,9 @@
 Implemented behind the real-account gate and independent provider switches.
 **Neither provider is enabled in code.** No Firebase Console provider, OAuth
 credential, Apple Developer resource, backend config, rules or production asset
-was changed. The site remains sample-only until isolated-backend validation.
+was changed. Real account access remains sample-only until isolated-backend validation;
+ordinary scoring and device-local DEV brackets have separate availability. See
+[Feature readiness](FEATURE_READINESS.md).
 
 ## Behavior and release controls
 

@@ -1,8 +1,9 @@
 # DEV real-account rollout review — October 12, 2026
 
 This is a review bundle, not approval or an enabled rollout. For the preferred
-separate-project setup, see [SEPARATE_BACKEND_SETUP.md](SEPARATE_BACKEND_SETUP.md). Current `main`
-`78d3043` still exposes sample account/bracket pages. No live accounts, mail,
+separate-project setup, see [SEPARATE_BACKEND_SETUP.md](SEPARATE_BACKEND_SETUP.md). At this October 12 review, `main`
+`78d3043` exposed sample account/bracket pages. See [Feature readiness](FEATURE_READINESS.md)
+for the current scorer release and separate device-local bracket mode. No live accounts, mail,
 Firestore writes, provider grants or security configuration were changed during
 this validation.
 

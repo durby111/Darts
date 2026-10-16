@@ -4,9 +4,11 @@ A vanilla-JS PWA for scoring 29 darts games across Cricket, X01, target,
 party, practice, and team modes. Runs on a tablet by the dartboard. No bundler, no framework —
 ES modules served as static files from GitHub Pages.
 
-This file is the source of truth for *how the app is supposed to work*. If
-something here drifts from reality, the code wins — but update this file in
-the same commit.
+Start with [README.md](README.md) for navigation and running the app.
+[Feature readiness](dev/FEATURE_READINESS.md) is the current release-status index;
+[Testing](docs/TESTING.md) and [Deployment](docs/DEPLOYMENT.md) hold operational
+guidance. This file retains architecture and dated design/infrastructure context.
+Source wins when documentation drifts; update the affected guidance with code.
 
 Brand spelling is **BlakeOut**, with that exact casing and no space, in all
 new or updated user-facing text. Do not rename storage keys or identifiers.
@@ -18,7 +20,7 @@ new or updated user-facing text. Do not rename storage keys or identifiers.
 ```
 /                  → live (production) build, served at blakeoutdarts.com/
 /dev/              → dev build, served at blakeoutdarts.com/dev/
-                     ALL active work happens here. Promote to root when stable.
+                     DEV-only features remain here; review shared changes separately.
 /dev/js/           → ES modules
 /dev/css/          → split per concern (variables, layout, components, games)
 /dev/index.html    → single-page shell
@@ -26,8 +28,9 @@ new or updated user-facing text. Do not rename storage keys or identifiers.
 /Screenshots/      → user reference shots, gitignored
 ```
 
-When making changes, edit `/dev/`. The user copies dev → root manually when
-ready to ship.
+Keep DEV-only work under `/dev/`. Authorized production fixes can update the
+reviewed root/shared modules directly. Never copy the whole DEV tree to root;
+use the scoped [release procedure](docs/DEPLOYMENT.md).
 
 ---
 
@@ -36,11 +39,18 @@ ready to ship.
 - **GitHub Pages** at `https://blakeoutdarts.com/`. Branch: `main`.
 - `www.blakeoutdarts.com` and the repository's `github.io` URL redirect to the
   apex domain after DNS and Pages certificate provisioning complete.
-- Push to `main` → ~1 min rebuild → live.
+- An authorized push to `main` rebuilds the whole Pages site. Verify the matching
+  build/deploy run and served content separately; propagation time is not guaranteed.
 - No build step. Files are served as-is, so any module that doesn't exist on
   disk will 404 in the browser.
 
 ## Firebase
+
+The operational details below preserve September 2026 setup evidence; they are
+not a fresh console audit. Real DEV account/bracket access is currently gated.
+Named client apps are not separate projects; see the
+[rollout review](dev/REAL_ACCOUNT_ROLLOUT.md) and
+[separate-backend proposal](dev/SEPARATE_BACKEND_SETUP.md).
 
 - **Project**: `blakeout`
 - **Owner account**: `DartsBlakeOut@gmail.com` (same email shown in the app
@@ -98,9 +108,15 @@ It covers three things:
 
 | Path | Access |
 |------|--------|
-| `rosters/{rosterId}/players/{playerId}` | Read/write/delete for anyone who knows the 128-bit `rosterId`. Writes restricted to exactly `email`/`name`/`updatedAt`, `email` must equal the doc id, name 1–40 chars. |
+| `rosters/{rosterId}/players/{playerId}` | Requires `request.auth != null` (anonymous sign-in qualifies) and a 32-character lowercase hexadecimal `rosterId`. Anyone satisfying those checks and knowing the ID can read/write/delete; access is not bound to an owner UID. Create/update allows only `email`/`name`/`updatedAt` fields, requires `email` to equal the document ID, and a name of 1–40 characters. |
 | `roster/{document}` | **Denied** — retired global collection from the 2026-07-26 fix. |
 | `usage/{period}` | Read for any signed-in client; writes pinned to an exact `+1` on a two-field doc. |
+
+Anonymous authentication does not establish owner identity or per-account roster
+isolation. Roster privacy depends on the unguessable ID; anyone receiving a
+roster link can authenticate anonymously and access that roster subject to the
+field checks. See the canonical [rules](firestore.rules), not this summary, for
+the exact enforcement conditions.
 
 The DEV integration adds separate collections without changing those rules:
 
@@ -115,11 +131,18 @@ The DEV integration adds separate collections without changing those rules:
 | `blakeoutDevCasualResults/{id}` | Immutable verified-scorekeeper records; private to the scorekeeper and verified participants with receipts. |
 | `blakeoutDevCasualReceipts/{resultId}${uid}` | Per-participant access receipt, created only by the original scorekeeper for a declared verified profile. |
 
-### DEV scoring, brackets, and accounts
+### Retained cloud integration design and historical validation
 
-- `/dev/` remains the ordinary offline scorer. `/dev/brackets/` runs doubles
-  double-elimination tournaments; `/dev/accounts/` manages verified profiles
-  and tournament/casual dart records. Navigation is also available in Game Menu.
+This section describes implemented cloud capabilities and their earlier tests,
+not currently enabled routes. DEV account/bracket routes now open sample previews;
+real providers remain gated. Published device-local brackets are a separate
+mode. See [Feature readiness](dev/FEATURE_READINESS.md) for current availability.
+
+- Historically, `/dev/brackets/` hosted the cloud doubles double-elimination
+  integration and `/dev/accounts/` hosted verified profiles and recorded stats.
+  Those routes now redirect to in-memory sample previews; real cloud features
+  remain gated. `/dev/` remains the ordinary scorer, and published device-local
+  tournaments use the separate `/dev/local/brackets/` route.
 - Winner and Chicago leg-result dialogs use the theme-aware `dev/css/winner.css`
   design: dart emblem, clear winner/score hierarchy, double-bull finish callout,
   touch-sized actions and reduced-motion support. Existing scoring, undo and
@@ -273,10 +296,11 @@ Critical: the app must always be playable with no network.
   called once at init. Local writes queue in IndexedDB and replay when the
   device reconnects.
 - Roster edits offline → sync on reconnect.
-- (Phase 3) Stats updates use `FieldValue.increment()` so deltas from multiple
-  devices merge atomically even after both were offline simultaneously.
-- (Phase 4) Email sends are queued in IndexedDB; `flushQueue()` runs on app
-  start and on `window.addEventListener('online', ...)`.
+- Recorded statistics use immutable result ledgers and verified identities; the
+  earlier increment-counter approach is not the current account contract.
+- Match-summary email queuing was a Phase 4 proposal, not delivered behavior.
+- Minnesota placement continuation persists separately on-device; it does not
+  add placement turns to the primary result or cloud statistics.
 
 If Firebase init fails entirely (no network at all on first ever load, or
 config missing), the app still works — `firebase.js` uses dynamic imports
@@ -295,7 +319,8 @@ roster section just shows "(offline)".
 - Cricket targets per type are defined in `state.js:initCricket()`.
 - Each player carries `{ name, score, throws, totalMarks, history,
   lastTurnMarks, cricketData?, rosterEmail? }`. `rosterEmail` (added Phase 1)
-  is what Phase 3 will key stats against.
+  is legacy roster context, not verified account identity. Recorded stats use
+  explicitly linked verified profile IDs, never inferred names or emails.
 - Active game is auto-saved to localStorage on every dart so a refresh /
   app-update doesn't lose state.
 
@@ -383,7 +408,10 @@ captured in `cricket.js` at the moment of closure.
 
 ---
 
-## 4-phase delivery plan (the big feature push)
+## Historical 4-phase delivery plan
+
+These milestones preserve the original plan; use the current status index for
+availability. Cloud implementations can exist while their release gates stay closed.
 
 ### Phase 1 — Roster + Firebase + footer  ✅ DONE
 - Firestore-backed player roster, collapsible card on setup screen
@@ -409,25 +437,36 @@ captured in `cricket.js` at the moment of closure.
 - Verified Firebase UIDs supersede the earlier proposed email/roster identity
   for lifetime statistics. Never claim a verified account by matching a name,
   synthetic guest ID, or legacy roster email.
-- Casual-game sync and any scalable aggregate counters remain future work.
+- Casual recorded-game support was implemented later but remains gated with
+  real accounts. Scalable aggregate counters remain future work.
   Raw results are immutable and exportable; keep scoring/storage decoupled.
 
-### Phase 4 — Emailed summaries + offline queue  ⏳
-- EmailJS in browser (free tier). Service id / template id / public key
-  entered once on setup, persisted to Firestore `config/email`
-- `dev/js/email.js`: `queueSummary()` writes to IndexedDB store
-  `pending_emails`; `flushQueue()` runs on app start + `online` event
-- `recordMatchEnd` from Phase 3 enqueues one summary per emailed player
-- Players without an email are skipped silently
+### Phase 4 — Proposed emailed summaries + offline queue (not implemented)
+
+The original proposal below is retained as design history, not current behavior
+or a committed implementation contract:
+
+- Use browser EmailJS, with proposed service/template/public-key setup and
+  storage under `config/email`. This configuration flow was not implemented.
+- Add a proposed `dev/js/email.js` module with `queueSummary()` to enqueue
+  summaries in an IndexedDB `pending_emails` store and `flushQueue()` on app
+  start/reconnection. That module and those functions do not exist in this checkout.
+- Have a proposed match-end hook enqueue a summary for each emailed player
+  and skip players without email. No such summary-delivery flow is enabled.
+
+Existing branded account verification/reset email infrastructure is separate;
+see [email-worker operations](dev/email-worker/README.md).
 
 ---
 
 ## Decisions that have been confirmed
 
-- Backend: Firebase (Firestore + Anonymous Auth, plus verified DEV accounts).
+- Backend: Firebase (Firestore + Anonymous Auth; verified DEV account
+  implementation exists behind closed real-provider gates).
   Monitor reads, writes, storage and auth quotas before expanding usage.
-- Email backend: EmailJS, not Firebase Trigger Email extension (less vendor
-  lock-in for Phase 4).
+- EmailJS was an earlier match-summary proposal, not a delivered integration.
+  Branded verification/reset infrastructure is documented separately under
+  `dev/email-worker/`; do not conflate it with match-summary emails.
 - Team rotation: whole turn each member, then swap teams.
 - Delivery: 4 phases, each independently usable and committable.
 - Email is optional on roster entries; no-email players are local-only.
@@ -437,7 +476,8 @@ captured in `cricket.js` at the moment of closure.
 ## Patterns to reuse
 
 - localStorage namespacing: `blakeout_configs`, `blakeout_active_game` (see
-  `state.js`). Phase 4 will add `blakeout_pending_emails`.
+  `state.js` and `build-context.js`). Do not invent or migrate a pending-email
+  storage key until that separate feature is designed.
 - `setGameStartCallback` hand-off (`setup.js` → `app.js`): reuse for the
   team-builder → game transition in Phase 2.
 - Custom event dispatch (used by `chicago.js`, `game121.js`): reuse for
