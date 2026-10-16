@@ -104,8 +104,8 @@ export const GAME_REGISTRY = [
         id: 'minnesota', label: 'Minnesota', sub: 'Cricket variant', icon: '✕',
         engine: 'cricket', category: 'cricket',
         tags: ['cricket', 'marks', 'minnesota', 'triples', 'doubles', 'beds'],
-        desc: 'Cricket plus Triples, Doubles and Bed rows.',
-        rules: 'Standard cricket 15–20 + Bull, plus extra rows: any Triple, any Double, and 3-in-a-bed. Each row needs 3 marks to close; open rows score points like cricket numbers.'
+        desc: 'Cricket plus Triples, Doubles and Bed rows. Optional Cutthroat scoring.',
+        rules: 'Standard cricket 15–20 + Bull, plus extra rows: any Triple, any Double, and 3-in-a-bed. Each row needs 3 marks to close; open rows score points like cricket numbers. Cutthroat option: excess marks and special-row scores penalize each opponent with that row open. Close every row and have the lowest or tied-lowest score to win; at least two players or teams.'
     },
     {
         id: 'chaos', label: 'Chaos Cricket', sub: 'Random targets', icon: '🎲',

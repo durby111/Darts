@@ -6,6 +6,7 @@ import { diagramViewport } from './viewport.js';
 import { confirmDialog } from '../confirm-dialog.js';
 
 const $ = id => document.getElementById(id);
+const formatLabel = format => GAMES[format.gameType] + (format.minnesotaCutthroat ? ' · Cutthroat' : '');
 const GAMES = { chicago: 'Chicago', '301': '301', '501': '501', cricket: 'Cricket', spanish: 'Spanish Cricket', minnesota: 'Minnesota Cricket' };
 let current = null, draft = [], profiles = [], rosterDirty = false, resultDirty = false;
 let selectedMatch = null, busy = false, refreshing = false, previewTimer;
@@ -399,7 +400,7 @@ function renderList() {
             const link = document.createElement('a');
             link.className = 'tournament-link';
             link.href = `?id=${encodeURIComponent(tournament.id)}`;
-            link.append(textElement('strong', tournament.title), textElement('span', `${tournament.date} · ${GAMES[tournament.gameType]} · ${tournament.status}`));
+            link.append(textElement('strong', tournament.title), textElement('span', `${tournament.date} · ${formatLabel(tournament)} · ${tournament.status}`));
             link.addEventListener('click', async event => {
                 event.preventDefault();
                 if (busy || pendingConfirmation) return;
@@ -442,7 +443,7 @@ function renderTournament() {
     if (!current) return;
     $('tournamentTitle').textContent = current.title;
     renderFormats();
-    $('tournamentMeta').textContent = `${current.date} · ${GAMES[current.gameType]} · best of ${current.bestOf} · ${current.status} · revision ${current.revision}`;
+    $('tournamentMeta').textContent = `${current.date} · ${formatLabel(current)} · best of ${current.bestOf} · ${current.status} · revision ${current.revision}`;
     $('rosterPanel').hidden = !owner() || current.status !== 'registration';
     $('spectatorNote').hidden = !!owner();
     $('lockedNote').hidden = current.status === 'registration';
@@ -515,7 +516,7 @@ async function openResult(matchId) {
     resultDirty = false;
     $('resultPanel').hidden = false;
     const format = engine.matchFormat(current, match);
-    $('resultHeading').textContent = `${match.code} · ${match.status === 'complete' ? 'Correct result' : 'Ready to play'} · ${GAMES[format.gameType]} · best of ${format.bestOf}`;
+    $('resultHeading').textContent = `${match.code} · ${match.status === 'complete' ? 'Correct result' : 'Ready to play'} · ${formatLabel(format)} · best of ${format.bestOf}`;
     $('resultNames').textContent = `${teamLabel(current, match.teamA)} vs ${teamLabel(current, match.teamB)}`;
     $('winner').replaceChildren(new Option(teamLabel(current, match.teamA), match.teamA), new Option(teamLabel(current, match.teamB), match.teamB));
     $('winner').value = match.winnerId || match.teamA;
@@ -539,7 +540,7 @@ function scoreControls() {
 
 function renderFormats() {
     $('formatPanel').hidden = !platform.LOCAL_ONLY || !owner() || current?.status !== 'live';
-    $('formatSummary').textContent = Object.entries(current?.formats || {}).flatMap(([scope, entries]) => Object.entries(entries).map(([key, f]) => `${scope}: ${key} — ${GAMES[f.gameType]}, best of ${f.bestOf}`)).join(' · ') || 'No overrides; all matches use the event default.';
+    $('formatSummary').textContent = Object.entries(current?.formats || {}).flatMap(([scope, entries]) => Object.entries(entries).map(([key, f]) => `${scope}: ${key} — ${formatLabel(f)}, best of ${f.bestOf}`)).join(' · ') || 'No overrides; all matches use the event default.';
     const scope = $('formatScope').value;
     const matches = current?.matches || [];
     const keys = [...new Set(matches.map(m => scope === 'brackets' ? m.bracket : scope === 'rounds' ? `${m.bracket}:${m.round}` : m.id))];
@@ -549,6 +550,7 @@ function renderFormats() {
 }
 $('formatScope').addEventListener('change', renderFormats);
 $('formatGame').addEventListener('change', () => {
+    $('formatMinnesotaOption').hidden = !platform.LOCAL_ONLY || $('formatGame').value !== 'minnesota';
     $('formatBestOf').disabled = $('formatGame').value === 'chicago';
     if ($('formatBestOf').disabled) $('formatBestOf').value = '3';
 });
@@ -556,11 +558,12 @@ $('formatForm').addEventListener('submit', event => {
     event.preventDefault();
     if (!platform.LOCAL_ONLY || !owner() || busy || pendingConfirmation) return;
     const scope = $('formatScope').value, key = $('formatTarget').value;
-    const format = { gameType: $('formatGame').value, bestOf: Number($('formatBestOf').value) };
+    const format = { gameType: $('formatGame').value, bestOf: Number($('formatBestOf').value),
+        ...($('formatGame').value === 'minnesota' && $('formatMinnesotaCutthroat').checked ? { minnesotaCutthroat: true } : {}) };
     action(async () => {
         const saved = await platform.updateTournament(current.id, current.revision, stored => engine.setFormat(stored, scope, key, format));
         accept(saved);
-        notice(`Game selection saved for ${key}: ${GAMES[format.gameType]}, best of ${format.bestOf}. More specific overrides take priority.`);
+        notice(`Game selection saved for ${key}: ${formatLabel(format)}, best of ${format.bestOf}. More specific overrides take priority.`);
     });
 });
 $('drawPartners').addEventListener('click', async () => {
@@ -587,12 +590,14 @@ $('createForm').addEventListener('submit', async event => {
         const next = engine.createTournament({
             id: id('t'), ownerId: user.uid, title: publicLabel($('title').value, 'Title', 100),
             date: $('date').value, gameType: $('gameType').value, bestOf: Number($('bestOf').value),
+            ...(platform.LOCAL_ONLY && $('gameType').value === 'minnesota' && $('createMinnesotaCutthroat').checked ? { minnesotaCutthroat: true } : {}),
         });
         const saved = await platform.createTournamentDocument(next);
         if (!isCurrent()) return;
         accept(saved);
         history.replaceState(null, '', `?id=${encodeURIComponent(saved.id)}`);
         $('createForm').reset();
+        $('createMinnesotaOption').hidden = true;
         $('bestOf').disabled = true;
         $('date').value = new Date().toLocaleDateString('en-CA');
         $('createPanel').open = false;
@@ -602,6 +607,7 @@ $('createForm').addEventListener('submit', async event => {
 $('createForm').addEventListener('input', invalidateConfirmation);
 $('createForm').addEventListener('change', invalidateConfirmation);
 $('gameType').addEventListener('change', () => {
+    $('createMinnesotaOption').hidden = !platform.LOCAL_ONLY || $('gameType').value !== 'minnesota';
     $('bestOf').disabled = $('gameType').value === 'chicago';
     if ($('bestOf').disabled) $('bestOf').value = '3';
 });

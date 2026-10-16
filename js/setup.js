@@ -248,6 +248,10 @@ export function initSetupControls() {
         beginMatchFromTeams(teams);
     });
 
+    document.getElementById('minnesotaCutthroat')?.addEventListener('change', () => {
+        document.getElementById('gameType').dispatchEvent(new Event('change'));
+    });
+
     // Game type change — option-panel visibility is registry-driven.
     document.getElementById('gameType').addEventListener('change', function () {
         const isCricket = isCricketGame(this.value);
@@ -260,7 +264,8 @@ export function initSetupControls() {
         const isGolf = this.value === 'golf';
         const isShanghai = this.value === 'shanghai';
         const isChaos = this.value === 'chaos';
-        const isCutThroat = this.value === 'cutthroat';
+        const isCutThroat = this.value === 'cutthroat' || (this.value === 'minnesota' && document.getElementById('minnesotaCutthroat')?.checked);
+        document.getElementById('minnesotaCutthroatOption')?.classList.toggle('hidden', this.value !== 'minnesota');
         const isTeamCricket = this.value === 'teamcricket';
         document.getElementById('cricketOptions').classList.toggle('hidden', !isCricket);
         document.getElementById('spanishBullsOption').classList.toggle('hidden', !isSpanish);
@@ -289,7 +294,7 @@ export function initSetupControls() {
         }
         const count = document.getElementById('numPlayers');
         const gameDef = getGame(this.value);
-        const minPlayers = gameDef?.minPlayers || (isCutThroat ? 2 : 1);
+        const minPlayers = Math.max(gameDef?.minPlayers || 1, isCutThroat ? 2 : 1);
         const maxPlayers = gameDef?.maxPlayers || 4;
         count?.querySelectorAll('option').forEach(option => {
             const value = parseInt(option.value);
@@ -542,7 +547,7 @@ function updateResumeButton() {
     if (!resumeBtn) return;
     const saved = loadActiveGame();
     if (saved && saved.players && saved.players.length > 0) {
-        const gameLabel = saved.type.toUpperCase();
+        const gameLabel = saved.type.toUpperCase() + (saved.minnesotaCutthroat ? ' CUTTHROAT' : '');
         const players = saved.players.map(p => p.name).join(' vs ');
         resumeBtn.textContent = `Resume ${gameLabel} (${players})`;
         resumeBtn.classList.remove('hidden');
@@ -666,7 +671,9 @@ async function beginOptionalMatch(playerSeeds, teams, force = false) {
 
 function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null, recording = null) {
     const gameType = document.getElementById('gameType').value;
-    const cricketPoints = gameType === 'cutthroat'
+    const minnesotaCutthroat = gameType === 'minnesota' && document.getElementById('minnesotaCutthroat')?.checked === true;
+    if ((gameType === 'cutthroat' || minnesotaCutthroat) && playerSeeds.length < 2) throw new Error('Cutthroat requires at least two players or teams.');
+    const cricketPoints = gameType === 'cutthroat' || minnesotaCutthroat
         ? true
         : document.getElementById('cricketPoints').checked;
     const finishType = document.getElementById('finishType').value;
@@ -698,6 +705,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
         currentPlayer: 0,
         currentInput: '',
         cricketPoints: cricketPoints,
+        minnesotaCutthroat,
         finishType: is121 ? 'double-out' : finishType,
         pendingDarts: [],
         completedRounds: 0,
@@ -831,6 +839,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
 
 export function launchTournamentScorer(tournament, scoringRecords = null) {
     document.getElementById('gameType').value = tournament.gameType;
+    document.getElementById('minnesotaCutthroat').checked = tournament.gameType === 'minnesota' && tournament.minnesotaCutthroat === true;
     document.getElementById('cricketPoints').checked = true;
     document.getElementById('finishType').value = 'double-out';
     document.getElementById('spanishBulls').checked = false;
@@ -884,6 +893,7 @@ export async function playAgain() {
         select.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
+    document.getElementById('minnesotaCutthroat').checked = game.type === 'minnesota' && game.minnesotaCutthroat === true;
     const seeds = game.players.map(p => ({ id: p.id, playerId: p.playerId, name: p.name, rosterEmail: p.rosterEmail || null }));
 
     // Preserve team mode + reset rotation so "Play Again" starts each team

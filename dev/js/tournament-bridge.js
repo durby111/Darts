@@ -106,7 +106,8 @@ export async function launchRequestedMatch() {
         }
         if (existing) {
             if (JSON.stringify(existing.tournament.teams) !== JSON.stringify(teams) ||
-                existing.tournament.gameType !== effective.gameType || existing.tournament.bestOf !== effective.bestOf) {
+                existing.tournament.gameType !== effective.gameType || existing.tournament.bestOf !== effective.bestOf ||
+                !!existing.tournament.minnesotaCutthroat !== !!effective.minnesotaCutthroat) {
                 throw new Error('The team roster or format changed. Your local result is kept, but cannot be applied to this match.');
             }
             existing.tournament.eventLabels = eventLabels;
@@ -121,7 +122,7 @@ export async function launchRequestedMatch() {
             }
             launchTournamentScorer({
                 tournamentId: tournament.id, matchId: request.matchId, revision: tournament.revision,
-                ownerId: account.uid, gameType: effective.gameType, bestOf: effective.bestOf, ...(LOCAL_TOURNAMENT ? { localOnly: true } : {}),
+                ownerId: account.uid, gameType: effective.gameType, bestOf: effective.bestOf, ...(effective.minnesotaCutthroat ? { minnesotaCutthroat: true } : {}), ...(LOCAL_TOURNAMENT ? { localOnly: true } : {}),
                 teams, eventLabels, resultId: newRecordId(), legWins: [0, 0], legComplete: false,
                 winnerIndex: null, status: 'scoring'
             });
@@ -207,7 +208,7 @@ export async function saveTournamentResult() {
         const { teams } = authoritativeMatch(tournament, session.matchId, account.uid, true);
         const effective = matchFormat(tournament, tournament.matches.find(m => m.id === session.matchId));
         if (account.uid !== session.ownerId || JSON.stringify(teams) !== JSON.stringify(session.teams) ||
-            effective.gameType !== session.gameType || effective.bestOf !== session.bestOf) {
+            effective.gameType !== session.gameType || effective.bestOf !== session.bestOf || !!effective.minnesotaCutthroat !== !!session.minnesotaCutthroat) {
             throw new Error('The owner, teams, or format changed. Local result retained for review.');
         }
         const { recordResult } = await import('./brackets/engine.js');
@@ -278,7 +279,7 @@ export function renderTournamentControls(message = '') {
     const status = document.createElement('span');
     status.className = 'tournament-series';
     status.textContent = casual ? `Casual stats · ${session.legWins.join(' – ')}` : `Series ${session.legWins.join(' – ')} · best of ${session.bestOf}`;
-    if (effectiveType === 'minnesota') status.textContent += ' · Scroll targets ↕';
+    if (effectiveType === 'minnesota') status.textContent += (session.minnesotaCutthroat ? ' · Cutthroat' : '') + ' · Scroll targets ↕';
     controls.append(status);
     const label = document.createElement('label');
     label.className = 'tournament-darts-label';

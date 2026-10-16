@@ -12,6 +12,7 @@ export let game = {
     currentPlayer: 0,
     currentInput: '',
     cricketPoints: true,
+    minnesotaCutthroat: false,
     cricketTargets: [],
     finishType: 'double-out',
     pendingDarts: [],
@@ -402,6 +403,7 @@ export function saveActiveGame() {
         currentPlayer: game.currentPlayer,
         currentInput: game.currentInput,
         cricketPoints: game.cricketPoints,
+        minnesotaCutthroat: game.type === 'minnesota' && game.minnesotaCutthroat === true,
         cricketTargets: game.cricketTargets,
         finishType: game.finishType,
         pendingDarts: deepClone(game.pendingDarts),
@@ -508,7 +510,8 @@ export function restoreActiveGame(snapshot) {
         players: snapshot.players,
         currentPlayer: snapshot.currentPlayer,
         currentInput: snapshot.currentInput || '',
-        cricketPoints: snapshot.cricketPoints,
+        cricketPoints: snapshot.type === 'minnesota' && snapshot.minnesotaCutthroat === true ? true : snapshot.cricketPoints,
+        minnesotaCutthroat: snapshot.type === 'minnesota' && snapshot.minnesotaCutthroat === true,
         cricketTargets: snapshot.cricketTargets || [],
         finishType: snapshot.finishType,
         pendingDarts: snapshot.pendingDarts || [],
@@ -566,6 +569,7 @@ export function getCurrentConfig() {
         player3: document.getElementById('player3').value,
         player4: document.getElementById('player4').value,
         cricketPoints: document.getElementById('cricketPoints').checked,
+        minnesotaCutthroat: document.getElementById('gameType').value === 'minnesota' && document.getElementById('minnesotaCutthroat')?.checked === true,
         spanishBulls: document.getElementById('spanishBulls').checked,
         dartsPerLeg: document.getElementById('dartsPerLeg').value,
         totalLegs121: document.getElementById('totalLegs121').value,
@@ -588,6 +592,7 @@ export function applyConfig(config) {
     document.getElementById('player3').value = config.player3 || 'Player 3';
     document.getElementById('player4').value = config.player4 || 'Player 4';
     document.getElementById('cricketPoints').checked = config.cricketPoints !== false;
+    if (document.getElementById('minnesotaCutthroat')) document.getElementById('minnesotaCutthroat').checked = config.gameType === 'minnesota' && config.minnesotaCutthroat === true;
     document.getElementById('spanishBulls').checked = config.spanishBulls || false;
     if (config.dartsPerLeg) document.getElementById('dartsPerLeg').value = config.dartsPerLeg;
     if (config.totalLegs121) document.getElementById('totalLegs121').value = config.totalLegs121;

@@ -31,7 +31,7 @@ Usage:
     python3 dev/tests/dev_test.py --only themes  # single test
 """
 
-import argparse, asyncio, inspect, json, subprocess, sys, time
+import argparse, asyncio, inspect, json, subprocess, sys, time, shutil, traceback
 from pathlib import Path
 
 DEV_ROOT = Path(__file__).resolve().parent.parent   # .../blakeout/dev
@@ -1513,18 +1513,17 @@ async def test_sw_caches_only_own_assets(page):
         source => {
             // Evaluate the real predicate from sw.js against sample URLs.
             const origin = location.origin;
-            const fn = new Function('self', 'source', `
-                const scope = { location: { origin: arguments[0].location.origin } };
-                ${source.match(/const SDK_ORIGIN[\\s\\S]*?\\n}/)[0]}
-                return isCacheable;
-            `);
-            const isCacheable = fn({ location: { origin } }, source);
+            // Evaluate the whole worker with inert event registration so its
+            // scope helpers stay identical to the shipped worker.
+            const fn = new Function('self', source + '\\nreturn isCacheable;');
+            const isCacheable = fn({ location: { origin, href: new URL('./sw.js', location.href).href },
+                addEventListener() {} });
             const check = (url) => {
                 try { return isCacheable({ url }); } catch (e) { return 'ERR:' + e.message; }
             };
             return {
-                ownPage:    check(origin + '/index.html'),
-                ownScript:  check(origin + '/js/x01.js'),
+                ownPage:    check(new URL('./index.html', location.href).href),
+                ownScript:  check(new URL('./js/x01.js', location.href).href),
                 firebaseSdk:check('https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js'),
                 firestore:  check('https://firestore.googleapis.com/v1/projects/blakeout/databases/(default)/documents/roster'),
                 identity:   check('https://identitytoolkit.googleapis.com/v1/accounts:signUp'),
@@ -2914,11 +2913,17 @@ async def test_winner_screen(page):
                 const card = modal.querySelector('.modal-content');
                 const box = card.getBoundingClientRect();
                 return {left:box.left, right:box.right, top:box.top, bottom:box.bottom,
-                    overflow:card.scrollWidth > card.clientWidth};
+                    // The target watermark intentionally extends beyond the card.
+                    // Assert clipping and actual content fit, not decorative scrollWidth.
+                    clipped:getComputedStyle(card).overflowX === 'hidden',
+                    overflow:[...card.children].some(child => {
+                        const r = child.getBoundingClientRect();
+                        return r.width > 0 && (r.left < box.left || r.right > box.right);
+                    })};
             }""")
             assert geometry["left"] >= 0 and geometry["right"] <= width
             assert geometry["top"] >= 0 and geometry["bottom"] <= height
-            assert not geometry["overflow"], (width, height, theme, geometry)
+            assert geometry["clipped"] and not geometry["overflow"], (width, height, theme, geometry)
             for button in ["playAgainBtn", "newGameBtn", "winnerCancelBtn"]:
                 await page.locator("#" + button).scroll_into_view_if_needed()
                 box = await page.locator("#" + button).bounding_box()
@@ -2930,7 +2935,7 @@ async def test_winner_screen(page):
         showWinner('A'.repeat(160));
     }""")
     assert await page.locator("#blakeoutMessage").is_hidden()
-    assert await modal.evaluate("m => m.querySelector('.modal-content').scrollWidth === m.querySelector('.modal-content').clientWidth")
+    assert await modal.evaluate("m => { const n = m.querySelector('.winner-name'); return n.scrollWidth === n.clientWidth; }")
     await page.evaluate("""async () => {
         const { game } = await import('./js/state.js');
         const { renderTournamentControls } = await import('./js/tournament-bridge.js');
@@ -2942,7 +2947,8 @@ async def test_winner_screen(page):
     assert await page.locator("#playAgainBtn").is_hidden()
     assert await page.locator("#winnerCancelBtn").is_hidden()
     assert await page.locator("#tournamentSaveResult").is_visible()
-    assert await page.locator("#tournamentSaveResult").is_enabled()
+    # This ordinary DEV route keeps cloud account/bracket gates closed.
+    assert await page.locator("#tournamentSaveResult").is_disabled()
     await page.locator("#tournamentResultReturn").scroll_into_view_if_needed()
     box = await page.locator("#tournamentResultReturn").bounding_box()
     assert box["y"] + box["height"] <= 844
@@ -2994,7 +3000,7 @@ async def run_one(page, name, fn, screens_dir, keep_screens):
             await page.screenshot(path=str(shot_path), full_page=True)
         except Exception:
             pass
-        return {"ok": False, "error": str(e), "console": errors, "screenshot": str(shot_path)}
+        return {"ok": False, "error": traceback.format_exc(), "console": errors, "screenshot": str(shot_path)}
 
 
 def discover():
@@ -3018,8 +3024,10 @@ async def main_async(only, keep_screens):
     try:
         from playwright.async_api import async_playwright
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
+            browser = await p.chromium.launch(headless=True, executable_path=shutil.which("chromium"))
             ctx = await browser.new_context(viewport={"width": 900, "height": 1600})
+            # Local regressions must never contact a real backend or email service.
+            await ctx.route("**/*", lambda route: route.continue_() if route.request.url.startswith(f"http://localhost:{PORT}/") or route.request.url.startswith(f"http://127.0.0.1:{PORT}/") else route.abort())
 
             # Warm-up: first load installs the service worker, which fires a
             # one-time controllerchange → location.reload(). Let that happen

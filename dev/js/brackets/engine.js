@@ -12,6 +12,8 @@ function requireText(value, label) {
 }
 
 function validateFormat(tournament) {
+    if (tournament.minnesotaCutthroat !== undefined && typeof tournament.minnesotaCutthroat !== 'boolean') throw Error('Invalid Minnesota scoring option.');
+    if (tournament.minnesotaCutthroat && tournament.gameType !== 'minnesota') throw Error('Cutthroat option requires Minnesota.');
     if (!GAME_TYPES.has(tournament.gameType)) throw new Error('Unsupported tournament game type.');
     if (!Number.isSafeInteger(tournament.bestOf) || tournament.bestOf < 1 || tournament.bestOf > 99 || tournament.bestOf % 2 !== 1) {
         throw new Error('Best-of must be a positive odd integer.');
@@ -25,13 +27,14 @@ function requireRegistration(tournament) {
     if (tournament.status !== 'registration') throw new Error('Registration is closed.');
 }
 
-export function createTournament({ id, ownerId, title, date, gameType, bestOf = 3 }) {
+export function createTournament({ id, ownerId, title, date, gameType, bestOf = 3, minnesotaCutthroat = false }) {
     const tournament = {
         id: requireText(id, 'Tournament ID'),
         ownerId: requireText(ownerId, 'Owner ID'),
         title: requireText(title, 'Title'),
         date: requireText(date, 'Date'),
         gameType,
+        ...(minnesotaCutthroat ? { minnesotaCutthroat } : {}),
         bestOf: gameType === 'chicago' ? 3 : bestOf,
         status: 'registration',
         registrations: [],
@@ -325,9 +328,9 @@ export function matchFormat(tournament, match) {
     const format = tournament.formats?.matches?.[match.id]
         || tournament.formats?.rounds?.[`${match.bracket}:${match.round}`]
         || tournament.formats?.brackets?.[match.bracket]
-        || { gameType: tournament.gameType, bestOf: tournament.bestOf };
+        || { gameType: tournament.gameType, bestOf: tournament.bestOf, ...(tournament.minnesotaCutthroat ? { minnesotaCutthroat: true } : {}) };
     validateFormat(format);
-    return { gameType: format.gameType, bestOf: format.bestOf };
+    return { gameType: format.gameType, bestOf: format.bestOf, ...(format.minnesotaCutthroat ? { minnesotaCutthroat: true } : {}) };
 }
 
 export function setFormat(tournament, scope, key, format) {
@@ -342,7 +345,7 @@ export function setFormat(tournament, scope, key, format) {
     const next = clone(tournament);
     next.formats ||= {};
     next.formats[scope] ||= {};
-    next.formats[scope][key] = { gameType: format.gameType, bestOf: format.bestOf };
+    next.formats[scope][key] = { gameType: format.gameType, bestOf: format.bestOf, ...(format.minnesotaCutthroat ? { minnesotaCutthroat: true } : {}) };
     next.revision++;
     return next;
 }

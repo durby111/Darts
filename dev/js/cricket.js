@@ -14,7 +14,16 @@ function activeThrowerName() {
     return t ? t.name : null;
 }
 
-function isCutThroat() { return game.type === 'cutthroat'; }
+function isCutThroat() { return game.type === 'cutthroat' || (game.type === 'minnesota' && game.minnesotaCutthroat === true); }
+function hasWinningScore(player) {
+    if (isCutThroat() && game.players.length < 2) return false;
+    return game.players.every(p => !game.cricketPoints || (isCutThroat() ? player.score <= p.score : player.score >= p.score));
+}
+function penalizeOpenOpponents(target, points, apply) {
+    game.players.forEach((opponent, index) => {
+        if (index !== game.currentPlayer && !opponent.cricketData[target].closed) apply(index, points);
+    });
+}
 function isQuickie() { return game.type === 'quickie'; }
 function isWildcard() { return game.type === 'wildcard'; }
 
@@ -57,7 +66,8 @@ function calculatePendingScoreDeltas() {
         const maxMarks = player.cricketData[target].maxMarks;
 
         if (dart.specialScore !== undefined) {
-            deltas[game.currentPlayer] += dart.specialScore;
+            if (isCutThroat()) penalizeOpenOpponents(target, dart.specialScore, (i, points) => { deltas[i] += points; });
+            else deltas[game.currentPlayer] += dart.specialScore;
             localMarks[target] = Math.min(localMarks[target] + 1, maxMarks);
             continue;
         }
@@ -367,6 +377,14 @@ function finishQuickieAtLimit() {
 // --- Exported Functions ---
 
 export function updateCricketDisplay() {
+    let mode = document.getElementById('minnesotaModeNotice');
+    if (!mode) {
+        mode = document.createElement('p'); mode.id = 'minnesotaModeNotice';
+        mode.setAttribute('role', 'status');
+        document.getElementById('cricketMain').prepend(mode);
+    }
+    mode.hidden = game.type !== 'minnesota';
+    mode.textContent = game.minnesotaCutthroat ? 'Minnesota Cutthroat · points to open opponents · lowest score wins' : 'Minnesota · normal scoring';
     const pendingDeltas = calculatePendingScoreDeltas();
     const numPlayers = game.players.length;
 
@@ -470,6 +488,8 @@ export function cricketConfirm() {
     let actualDarts = 0;
     let scoringMarks = 0;
     const pointsBefore = player.score;
+    const opponentPointsBefore = game.players.reduce((sum, p, i) => sum + (i === game.currentPlayer ? 0 : p.score), 0);
+    const turnPoints = () => isCutThroat() ? game.players.reduce((sum, p, i) => sum + (i === game.currentPlayer ? 0 : p.score), 0) - opponentPointsBefore : player.score - pointsBefore;
 
     // Snapshot marks BEFORE this turn, per target — needed so the
     // closed-in-one-turn flag reflects turn start, not per-dart state.
@@ -491,10 +511,12 @@ export function cricketConfirm() {
         const maxMarks = cricketData.maxMarks;
         const marksBefore = cricketData.marks;
         const scoreBefore = player.score;
+        const opponentScores = game.players.map(p => p.score);
 
         if (dart.specialScore !== undefined) {
             // Special score from Minnesota keypad
-            if (!recordingSession() || (game.cricketPoints && game.players.some((p, i) =>
+            if (isCutThroat()) penalizeOpenOpponents(target, dart.specialScore, (i, points) => { game.players[i].score += points; });
+            else if (!recordingSession() || (game.cricketPoints && game.players.some((p, i) =>
                 i !== game.currentPlayer && !p.cricketData[target].closed))) player.score += dart.specialScore;
             cricketData.marks = Math.min(cricketData.marks + 1, maxMarks);
         } else {
@@ -538,9 +560,10 @@ export function cricketConfirm() {
             cricketData.closedInOneTurn = cricketData.marksBeforeClose === 0;
         }
         const faceValue = target === 'Bull' ? 25 : Number(target);
+        // Count a scoring dart once, even when it penalizes multiple opponents.
+        const scored = isCutThroat() ? Math.max(0, ...game.players.map((p, i) => i === game.currentPlayer ? 0 : p.score - opponentScores[i])) : Math.max(0, player.score - scoreBefore);
         scoringMarks += Math.max(0, cricketData.marks - marksBefore) +
-            (faceValue > 0 ? Math.max(0, player.score - scoreBefore) / faceValue :
-                (dart.specialScore > 0 && player.score > scoreBefore ? 1 : 0));
+            (faceValue > 0 ? scored / faceValue : (dart.specialScore > 0 && scored > 0 ? 1 : 0));
 
         // Track marks for grey indicators
         if (!lastTurnMarks[target]) lastTurnMarks[target] = 0;
@@ -553,7 +576,7 @@ export function cricketConfirm() {
             }
         }
         if (recordingSession() && game.cricketTargets.every(t => player.cricketData[t].closed) &&
-            game.players.every(p => !game.cricketPoints || player.score >= p.score)) {
+            hasWinningScore(player)) {
             isBlakeout = target === 'Bull' && multiplier === 2;
             break;
         }
@@ -568,15 +591,9 @@ export function cricketConfirm() {
     // Check win: all targets closed AND score >= all opponents' scores (if cricketPoints)
     const allTargetsClosed = game.cricketTargets.every(t => player.cricketData[t].closed);
     if (allTargetsClosed) {
-        let hasWon = true;
-        if (game.cricketPoints) {
-            hasWon = game.players.every((p, i) => {
-                if (i === game.currentPlayer) return true;
-                return isCutThroat() ? player.score <= p.score : player.score >= p.score;
-            });
-        }
+        const hasWon = hasWinningScore(player);
         if (hasWon) {
-            recordTurn({ points: player.score - pointsBefore, darts: actualDarts, marks: scoringMarks });
+            recordTurn({ points: turnPoints(), darts: actualDarts, marks: scoringMarks });
             player.lastTurnMarks = lastTurnMarks;
             game.pendingDarts = [];
             saveActiveGame();
@@ -593,7 +610,7 @@ export function cricketConfirm() {
         updateCricketDisplay();
         return;
     }
-    recordTurn({ points: player.score - pointsBefore, darts: actualDarts, marks: scoringMarks });
+    recordTurn({ points: turnPoints(), darts: actualDarts, marks: scoringMarks });
 
     // Save lastTurnMarks for the grey indicators
     player.lastTurnMarks = lastTurnMarks;

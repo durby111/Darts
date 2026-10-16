@@ -62,6 +62,7 @@
                             <option value="spanish">Spanish Cricket</option>
                             <option value="minnesota">Minnesota Cricket</option>
                         </select></label>
+                        <label id="createMinnesotaOption" hidden><input id="createMinnesotaCutthroat" type="checkbox">Minnesota Cutthroat · lowest score wins</label>
                         <label>Best of (legs)<input id="bestOf" type="number" min="1" max="99" step="2" value="3" required disabled></label>
                     </div>
                     <p>Chicago is always best of 3. Other games use your selected odd-numbered series length.</p>
@@ -143,6 +144,7 @@
                     <label>Apply to<select id="formatScope"><option value="brackets">Bracket</option><option value="rounds">Round</option><option value="matches">Individual match</option></select></label>
                     <label>Selection<select id="formatTarget"></select></label>
                     <label>Game<select id="formatGame"><option value="301">301</option><option value="501">501</option><option value="cricket">Cricket</option><option value="spanish">Spanish Cricket</option><option value="minnesota">Minnesota Cricket</option><option value="chicago">Chicago</option></select></label>
+                    <label id="formatMinnesotaOption" hidden><input id="formatMinnesotaCutthroat" type="checkbox">Minnesota Cutthroat · lowest score wins</label>
                     <label>Best of<input id="formatBestOf" type="number" min="1" max="99" step="2" value="1" required></label>
                     <button id="saveFormat" type="submit">Save game selection</button>
                 </form>

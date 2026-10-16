@@ -11,7 +11,7 @@ export function beginScoringLeg(gameType) {
     const session = recordingSession();
     if (!session) return;
     game.scoringRecords ||= { id: session.resultId, legs: [] };
-    game.scoringRecords.legs.push({ id: newRecordId(), gameType, winnerId: null, turns: [] });
+    game.scoringRecords.legs.push({ id: newRecordId(), gameType, ...(gameType === 'minnesota' && game.minnesotaCutthroat ? { minnesotaCutthroat: true } : {}), winnerId: null, turns: [] });
     session.legComplete = false;
 }
 
@@ -93,6 +93,7 @@ export function scoringResult() {
     const session = recordingSession();
     return {
         gameType: session.gameType,
+        ...(session.gameType === 'minnesota' && session.minnesotaCutthroat ? { minnesotaCutthroat: true } : {}),
         legScores: game.scoringRecords.legs.map(({ id, gameType, winnerId }) => ({ id, gameType, winnerId })),
         records: JSON.parse(JSON.stringify(game.scoringRecords)),
         participantIds: [...new Set(session.teams.flatMap(t => t.members.map(m => m.playerId)).filter(Boolean))],
