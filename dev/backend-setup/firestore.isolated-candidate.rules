@@ -235,22 +235,44 @@ service cloud.firestore {
           && ids.join(',').matches('^[A-Za-z0-9_-]{1,128}(,[A-Za-z0-9_-]{1,128})*$'));
     }
 
-    // Results are immutable scorekeeper declarations, not certified statistics.
-    // Nested leg/turn values are not exhaustively validated: see review blocker.
+    function devBackend(data) {
+      return data.get('backendKey', '') == 'blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271';
+    }
+
+    function devLegScores(value) {
+      let entry = "\\{\"id\":\"[A-Za-z0-9_-]{1,128}\",\"gameType\":\"(301|501|701|801|901|1101|1501|cricket|spanish|minnesota|chaos|quickie|cutthroat|wildcard|hammer|teamhammer|chicago|121|baseball|bermuda|golf|shanghai|countup|gotcha|sharktank|tictactoe|robinhood|doubledown|teamcricket)\",\"winnerId\":(null|\"[A-Za-z0-9_-]{1,128}\")\\}";
+      return value is string && value.size() <= 50000
+        && value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$')
+        && (value == '[]' || value.split('\\},\\{').size() <= 99);
+    }
+
+    function devLedger(value, ids) {
+      let id = '"[A-Za-z0-9_-]{1,128}"';
+      let nullable = '(null|' + id + ')';
+      let numeric = '(0|[1-9][0-9]{0,11})(\\.[0-9]{1,32})?([eE]-[0-9]{1,3})?';
+      let player = ids.size() == 0 ? 'null' : '(null|"(' + ids.join('|') + ')")';
+      let turn = '\\{"id":' + id + ',"registrationId":' + nullable + ',"playerId":' + player
+        + ',"teamId":' + id + ',"points":' + numeric + ',"darts":[1-3],"marks":' + numeric + ',"bust":(true|false)\\}';
+      let game = "(301|501|701|801|901|1101|1501|cricket|spanish|minnesota|chaos|quickie|cutthroat|wildcard|hammer|teamhammer|chicago|121|baseball|bermuda|golf|shanghai|countup|gotcha|sharktank|tictactoe|robinhood|doubledown|teamcricket)";
+      let leg = '\\{"id":' + id + ',"gameType":"' + game + '","winnerId":' + nullable
+        + ',"minnesotaCutthroat":(true|false),"turns":\\[(' + turn + '(,' + turn + ')*)?\\]\\}';
+      return value == null || (value is string && value.size() <= 700000
+        && value.matches('^\\{"id":' + id + ',"legs":\\[(' + leg + '(,' + leg + ')*)?\\],"winnerIds":\\[(' + id + '(,' + id + ')*)?\\]\\}$')
+        && value.split('"turns":').size() <= 100
+        && value.split('"winnerIds":')[1].split(',').size() <= 128
+        && !value.matches('.*"gameType":"(301|501|701|801|901|1101|1501|cricket|spanish|chaos|quickie|cutthroat|wildcard|hammer|teamhammer|chicago|121|baseball|bermuda|golf|shanghai|countup|gotcha|sharktank|tictactoe|robinhood|doubledown|teamcricket)","winnerId":' + nullable + ',"minnesotaCutthroat":true.*'));
+    }
+
     function devResultExtras(data) {
-      let records = data.get('records', {'id': 'absent', 'legs': []});
-      return (data.get('winnerId', null) == null || devId(data.winnerId))
-        && data.get('scoreA', 0) is int && data.get('scoreA', 0) >= 0
-        && data.get('scoreA', 0) <= 99
-        && data.get('scoreB', 0) is int && data.get('scoreB', 0) >= 0
-        && data.get('scoreB', 0) <= 99
+      return devBackend(data)
+        && (!data.keys().hasAny(['records']) || data.records is string)
+        && (data.get('winnerId', null) == null || devId(data.winnerId))
+        && data.get('scoreA', 0) is int && data.get('scoreA', 0) >= 0 && data.get('scoreA', 0) <= 99
+        && data.get('scoreB', 0) is int && data.get('scoreB', 0) >= 0 && data.get('scoreB', 0) <= 99
         && data.get('forfeit', false) is bool
         && data.get('minnesotaCutthroat', false) is bool
         && (!data.get('minnesotaCutthroat', false) || data.gameType == 'minnesota')
-        && records is map && records.keys().hasAll(['id', 'legs'])
-        && records.keys().hasOnly(['id', 'legs', 'winnerIds'])
-        && devId(records.id) && records.legs is list && records.legs.size() <= 99
-        && devUidList(records.get('winnerIds', []));
+        && devLedger(data.get('records', null), data.participantIds);
     }
 
     function devParticipant(ids, index) {
@@ -282,7 +304,7 @@ service cloud.firestore {
           'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt'])
         && data.keys().hasOnly(['ownerId', 'tournamentId', 'participantIds',
           'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt',
-          'winnerId', 'scoreA', 'scoreB', 'forfeit', 'records', 'minnesotaCutthroat'])
+          'winnerId', 'scoreA', 'scoreB', 'forfeit', 'records', 'minnesotaCutthroat', 'backendKey'])
         && devId(data.ownerId) && devId(data.tournamentId)
         && devText(data.matchId, 100) && data.matchId.size() > 0
         && devGame(data.gameType)
@@ -294,7 +316,7 @@ service cloud.firestore {
         && devParticipant(data.participantIds, 2)
         && devParticipant(data.participantIds, 3)
         && devResultCounters(data.perPlayer, data.participantIds)
-        && data.legScores is list && data.legScores.size() <= 99
+        && devLegScores(data.legScores)
         && devResultExtras(data);
     }
 
@@ -351,7 +373,7 @@ service cloud.firestore {
       allow list: if devVerified() && resource.data.ownerId == request.auth.uid;
       allow create: if devVerified() && devId(id)
         && request.resource.data.keys().hasAll(['ownerId', 'participantIds', 'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt'])
-        && request.resource.data.keys().hasOnly(['ownerId', 'participantIds', 'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt', 'winnerId', 'winnerIds', 'scoreA', 'scoreB', 'forfeit', 'records', 'minnesotaCutthroat'])
+        && request.resource.data.keys().hasOnly(['ownerId', 'participantIds', 'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt', 'winnerId', 'winnerIds', 'scoreA', 'scoreB', 'forfeit', 'records', 'minnesotaCutthroat', 'backendKey'])
         && request.resource.data.ownerId == request.auth.uid
         && devCasualGame(request.resource.data.gameType)
         && devText(request.resource.data.matchId, 128) && request.resource.data.matchId.size() > 0
@@ -361,7 +383,7 @@ service cloud.firestore {
         && (request.resource.data.get('winnerIds', []).size() == 0
           || (request.resource.data.winnerIds == request.resource.data.winnerIds.join(',').split(',')
             && request.resource.data.winnerIds.join(',').matches('^[A-Za-z0-9_-]{1,128}(,[A-Za-z0-9_-]{1,128})*$')))
-        && request.resource.data.legScores is list && request.resource.data.legScores.size() <= 99
+        && devLegScores(request.resource.data.legScores)
         && request.resource.data.participantIds is list && request.resource.data.participantIds.size() <= 128
         && request.resource.data.participantIds.toSet().size() == request.resource.data.participantIds.size()
         && (request.resource.data.participantIds.size() == 0
@@ -378,8 +400,10 @@ service cloud.firestore {
           || resource.data.playerId == request.auth.uid || resource.data.ownerId == request.auth.uid);
       allow list: if devVerified() && resource.data.playerId == request.auth.uid;
       allow create: if devVerified()
-        && request.resource.data.keys().hasAll(['resultId', 'playerId', 'ownerId'])
-        && request.resource.data.keys().hasOnly(['resultId', 'playerId', 'ownerId'])
+        && request.resource.data.keys().hasAll(['resultId', 'playerId', 'ownerId', 'backendKey'])
+        && request.resource.data.keys().hasOnly(['resultId', 'playerId', 'ownerId', 'backendKey'])
+        && devBackend(request.resource.data)
+        && devBackend(get(/databases/$(database)/documents/blakeoutDevCasualResults/$(request.resource.data.resultId)).data)
         && devId(request.resource.data.resultId) && devId(request.resource.data.playerId)
         && id == request.resource.data.resultId + '$' + request.resource.data.playerId
         && request.resource.data.ownerId == request.auth.uid

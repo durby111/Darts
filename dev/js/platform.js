@@ -1,5 +1,6 @@
+import { encodeResultLedger, decodeResultLedger } from './result-payload.js';
 // Dev accounts deliberately use a named app, never the scorer's anonymous auth.
-import { assertDevConfig, requireCurrentBackend } from './backend-context.js';
+import { BACKEND_KEY, assertDevConfig, requireCurrentBackend } from './backend-context.js';
 import { ACCOUNT_PROVIDERS, ACCOUNT_PROVIDER_PROJECT } from './account-provider-config.js';
 
 export const GUEST_SIGNUP_AVAILABLE = false;
@@ -476,6 +477,8 @@ function encodeResultCounters(counters, participantIds, casual = false) {
 }
 
 function decodeResult(document, source = 'tournament') {
+    requireCurrentBackend(document);
+    document = decodeResultLedger(document);
     if (typeof document.perPlayer !== 'string') throw new Error('Unsupported stored DEV result counter format.');
     const perPlayer = JSON.parse(document.perPlayer);
     encodeResultCounters(perPlayer, document.participantIds, source === 'casual');
@@ -789,6 +792,7 @@ export async function saveMatchResult(tournamentId, expectedRevision, resultId, 
         const resultSnapshot = await transaction.get(resultRef);
         if (resultSnapshot.exists()) {
             const existing = resultSnapshot.data();
+            requireCurrentBackend(existing);
             if (existing.tournamentId !== tournamentId || existing.matchId !== result.matchId) {
                 throw new Error('Result ID is already used by another match.');
             }
@@ -814,7 +818,7 @@ export async function saveMatchResult(tournamentId, expectedRevision, resultId, 
         }
         await validateLinkedProfiles(next, reference => transaction.get(reference));
         const record = {
-            ...result, ownerId: user.uid, tournamentId, participantIds,
+            ...result, ...encodeResultLedger(result), backendKey: BACKEND_KEY, ownerId: user.uid, tournamentId, participantIds,
             perPlayer: encodeResultCounters(result.perPlayer, participantIds), createdAt: Date.now()
         };
         withoutPrivateData(record);
@@ -864,7 +868,7 @@ export async function saveCasualResult(resultId, result, context) {
         const profiles = await Promise.all(result.participantIds.map(uid => transaction.get(ref('profiles', uid))));
         requireAccountSession(user);
         if (profiles.some(profile => !profile.exists())) throw new Error('Casual statistics can only reference existing verified player profiles. Guests must be excluded.');
-        const document = { ...result, ownerId: user.uid, perPlayer, createdAt: Date.now() };
+        const document = { ...result, ...encodeResultLedger(result), backendKey: BACKEND_KEY, ownerId: user.uid, perPlayer, createdAt: Date.now() };
         withoutPrivateData(document);
         transaction.set(reference, document);
         return document;
@@ -881,8 +885,9 @@ export async function saveCasualResult(resultId, result, context) {
                 requireAccountSession(user);
                 const receipt = await transaction.get(casualReceiptRef(resultId, uid));
                 requireAccountSession(user);
+                if (receipt.exists()) requireCurrentBackend(receipt.data());
                 if (!receipt.exists()) transaction.set(casualReceiptRef(resultId, uid), {
-                    resultId, playerId: uid, ownerId: user.uid
+                    backendKey: BACKEND_KEY, resultId, playerId: uid, ownerId: user.uid
                 });
             })));
         const failed = outcomes.find(outcome => outcome.status === 'rejected');
@@ -907,6 +912,7 @@ export async function listMyResults() {
     const casual = new Map(owned.docs.map(item =>
         [item.id, decodeResult({ ...item.data(), id: item.id }, 'casual')]));
     const received = await Promise.all(receipts.docs.filter(receipt => !casual.has(receipt.data().resultId)).map(async receipt => {
+        requireCurrentBackend(receipt.data());
         const record = await storeSDK.getDocFromServer(ref('casualResults', receipt.data().resultId));
         if (!record.exists()) throw new Error('A casual result receipt references a missing record.');
         return decodeResult({ ...record.data(), id: record.id }, 'casual');

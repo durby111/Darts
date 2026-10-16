@@ -3,13 +3,14 @@
 Local preparation only, based on account candidate
 `756cf9901c11045019a3ce13c50accf200575fad`. This is **not compiled, deployed,
 or approved for activation**. The root `firestore.rules`, root `firebase.json`,
-application code and all public feature/provider gates are unchanged.
+production application code and all public feature/provider gates are unchanged.
+The later local hardening adds DEV-only ledger encoding and stored backend markers.
 
 ## Deliverables and deployment separation
 
 - `firestore.isolated-candidate.rules`: separate review candidate for the default
   database of `blakeout-darts-dev` only. No Firebase configuration references it.
-- `isolated-rules-cases.json`: synthetic initial documents and 139 expected
+- `isolated-rules-cases.json`: synthetic initial documents and 155 expected
   allow/deny cases, including explicit known-limitation probes.
 - `../tests/isolated_rules_test.py`: source-contract checks and an optional
   localhost-only emulator runner that loads **this candidate**, not root rules.
@@ -66,13 +67,14 @@ checks. Minnesota cutthroat metadata is allowed only for Minnesota results.
 
 The following are **unresolved design limits, not passing security claims**:
 
-1. `records.legs` and `legScores` are bounded lists but their nested objects and
-   turns are not exhaustively validated. An owner can include unexpected nested
-   data visible to permitted participants. The suite deliberately expects an
-   allow for a synthetic nested-extra-field probe. Before live trial, either
-   redesign/strictly encode the ledger for enforceable rules validation, strip
-   it from cloud writes, or introduce a reviewed trusted writer. Client
-   `withoutPrivateData` validation is not a security boundary.
+1. Nested ledgers now use canonical JSON wire strings with exact schemas at every
+   leg/turn level. Unknown keys, free text, out-of-range turn values, unrelated
+   player IDs and noncanonical reads are rejected by the adapter. The candidate
+   rules have corresponding full-string grammars, size/leg limits and ID
+   membership checks. The former expected-allow nested-extra-field probe is now
+   expected-deny. This resolves the proposed schema gap; **Firestore enforcement,
+   RE2 behavior and expression budgets remain unverified** until emulator tests.
+   It does not certify that declared turns or aggregate scores happened.
 2. Packed tournament JSON cannot establish that the declared result participant
    list truly belongs to the chosen ready match, or that counters match darts.
    Existing-profile checks and owner/revision/game checks prevent some mistakes,
@@ -88,10 +90,12 @@ The following are **unresolved design limits, not passing security claims**:
 4. Expressions, access-call counts/caching, RE2 grammar support and query proofs
    have not been tested in Firestore. Largest-result budget fixtures are included.
    An emulator compilation or budget failure must be fixed before live approval.
-5. The rules do not enforce the client backend marker: it is not in the stored
-   result schema. Old-session protection remains the earlier candidate's isolated
-   app/persistence namespace and client origin guards, not a server migration or
-   authentication guarantee. No old data/queues should be imported.
+5. The adapter now writes the exact project/app `backendKey` into results and
+   receipts, and candidate rules require it on creation and receipt linkage.
+   Reads/retries in the adapter reject foreign or missing markers rather than
+   upgrading old records. This is schema consistency and accidental replay
+   protection, **not attestation**: a malicious client can copy the public marker.
+   Existing local saves remain intact; no old data or queued results are migrated.
 6. Removing public tournament reads deliberately blocks logged-out cloud browsing.
    This is compatible with a restricted verified-account trial, not a public
    spectator release. The shipped feature gates remain off.
@@ -105,7 +109,7 @@ python3 dev/tests/isolated_rules_test.py
 ```
 
 With no emulator configured this runs source checks and explicitly skips all
-139 enforcement cases. Once an approved existing emulator is provisioned in
+155 enforcement cases. Once an approved existing emulator is provisioned in
 this same executor, set `FIRESTORE_EMULATOR_HOST=127.0.0.1:<approved-port>` and
 run the same command. No Firebase CLI or credentials are needed by the runner.
 Do not retry the denied download or choose an alternate mirror/environment.
@@ -127,15 +131,14 @@ self-join identity/name/open-state/idempotency; owner/participant/unrelated resu
 reads and scoped queries; immutable writes/deletes; counter membership and shape;
 receipt ownership/path/participant/profile checks; missing receipt denial;
 Minnesota metadata; tournament lifecycle/revision; four-player twelve-counter
-transactions; 128/384 casual boundaries and overflow; and the two residual-risk
-expected-allow probes. This is a concrete test plan, not an assertion that the
+transactions; 128/384 casual boundaries and overflow; the remaining missing-profile residual-risk expected-allow probe; strict ledger
+negative cases; foreign/missing backend markers; and receipt marker linkage. This is a concrete test plan, not an assertion that the
 rules already enforce its expectations.
 
 After this suite can run, additional required emulator integration work is to run
 the actual adapter against these candidate rules (not mocked SDKs), including
 concurrent signup/start/save, multi-receipt interruption/retry, fresh/reused auth,
-query indexes, offline reconnect, and the complete nested-ledger design selected
-above. Real mail/OAuth, actual-device and cross-device behavior remain separate.
+query indexes, offline reconnect, and the new strict nested-ledger wire format. Real mail/OAuth, actual-device and cross-device behavior remain separate.
 
 ## Evidence and exact blocker
 
@@ -147,15 +150,16 @@ environments were used. The previous emulator-download rejection was not retried
 
 Completed: candidate source-contract tests, synthetic matrix structure/uniqueness,
 Python syntax check and `git diff --check`. No compilation or emulator case ran.
-Canonical root rules/config, app/provider gates and application runtime files are
-byte-identical to the preceding local account candidate.
+Canonical root rules/config and all public gates remain byte-identical to the
+preceding local account candidate. DEV runtime changes are covered separately in
+`ISOLATED_RESULT_HARDENING.md`; no production runtime changed.
 
 Next provisioning requirement: provide an approved Firestore emulator JAR plus
 its supported local launcher/version (or an already-running approved loopback
 Firestore emulator) **in this executor**. Its compiled-rules endpoint and actual
 allow/deny behavior must then pass the candidate suite. No Firebase Console
-change is needed merely to finish this local preparation. The nested-ledger and
-participant-integrity limits above must be addressed or explicitly scoped before
+change is needed merely to finish this local preparation. The new nested-ledger enforcement must be proven and the
+participant-integrity limits above addressed or explicitly scoped before
 requesting a live trial. Any later deployment request must name the exact tested
 rules hash, `blakeout-darts-dev` default database, designated synthetic/live test
 accounts and records, and cleanup scope; mail, settings changes and DEV activation

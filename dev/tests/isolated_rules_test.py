@@ -26,7 +26,7 @@ def static_checks():
         assert (ROOT / file).read_bytes() == subprocess.check_output(
             ['git', 'show', f'{BASE}:{file}'], cwd=ROOT), file
     assert 'firestore.isolated-candidate.rules' not in (ROOT / 'firebase.json').read_text()
-    assert matrix['syntheticOnly'] and len(matrix['cases']) == 139
+    assert matrix['syntheticOnly'] and len(matrix['cases']) == 155
     assert len({c['name'] for c in matrix['cases']}) == len(matrix['cases'])
     assert {c['operation'] for c in matrix['cases']} == {'get', 'list', 'query', 'write', 'commit', 'delete'}
     matches = set(re.findall(r'match /([^/]+)/', source))
@@ -44,7 +44,7 @@ def static_checks():
     assert 'return existsAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id))' in source
     assert 'devResultExtras(request.resource.data)' in source
     assert any(c['name'].startswith('KNOWN LIMIT:') for c in matrix['cases'])
-    print('PASS static source contracts: root rules/config and gates unchanged; eight DEV collection families; verified-only grants; closed fallback; 139 unique synthetic cases')
+    print('PASS static source contracts: root rules/config and gates unchanged; eight DEV collection families; verified-only grants; closed fallback; 155 unique synthetic cases')
     print('Candidate SHA256:', hashlib.sha256(RULES.read_bytes()).hexdigest())
     return matrix
 
@@ -62,7 +62,7 @@ def wire(value):
 def emulator_checks(matrix):
     host = os.environ.get('FIRESTORE_EMULATOR_HOST')
     if not host:
-        print('SKIP compilation/enforcement: FIRESTORE_EMULATOR_HOST unset; no emulator provisioned. 139 cases NOT executed.')
+        print('SKIP compilation/enforcement: FIRESTORE_EMULATOR_HOST unset; no emulator provisioned. 155 cases NOT executed.')
         return
     # Literal loopback only; no schemes, external hosts, mirrors or proxy routing.
     if not re.fullmatch(r'(127\.0\.0\.1|localhost):[0-9]{1,5}', host):

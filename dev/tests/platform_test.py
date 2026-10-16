@@ -489,6 +489,19 @@ NEW_FEATURE_TESTS = r"""async () => {
  await reject(()=>saveIsolatedCasual(p,'bad-source',{...casual,source:'tournament'}),'casual source cannot masquerade as tournament');
  await reject(()=>saveIsolatedCasual(p,'bad-winners',{...casual,winnerIds:['not a side ID']}),'casual tied winners require stable IDs');
  assert(saved.source==='casual'&&saved.provenance==='scorekeeper-recorded','casual source/provenance explicit');
+ const key=(await import('/dev/js/backend-context.js')).BACKEND_KEY;
+ const stored=testDocs.get('blakeoutDevCasualResults/casual-five');
+ assert(stored.backendKey===key&&typeof stored.legScores==='string'&&typeof stored.records==='string','backend marker and strict ledger stored');
+ assert(testDocs.get('blakeoutDevCasualReceipts/casual-five$verified_owner').backendKey===key,'receipt backend marker stored');
+ const originalWire=JSON.stringify([...testDocs]);
+ await reject(()=>saveIsolatedCasual(p,'malformed-nested',{...casual,records:{id:'bad',legs:[{note:'unexpected'}]}}),'unknown nested ledger rejected');
+ assert(JSON.stringify([...testDocs])===originalWire,'malformed ledger writes no result or receipts');
+ const foreign={...stored,backendKey:'old-backend'};
+ testDocs.set('blakeoutDevCasualResults/casual-five',foreign);
+ await reject(()=>saveIsolatedCasual(p,'casual-five',casual),'old-backend stored retry rejected');
+ assert(testDocs.get('blakeoutDevCasualResults/casual-five').backendKey==='old-backend','old record not migrated');
+ testDocs.set('blakeoutDevCasualResults/casual-five',stored);
+
  assert(JSON.stringify(testDocs.get('blakeoutDevTournaments/join_event'))===pubBefore,'casual save never touches tournament');
  const first=JSON.stringify(testDocs.get('blakeoutDevCasualResults/casual-five'));
  await saveIsolatedCasual(p,'casual-five',casual);
@@ -1289,7 +1302,11 @@ async def run():
             await device_page.locator("#accountEmail").fill("owner@example.com")
             await device_page.locator("#accountPassword").fill("Test-only-password-123")
             await device_page.locator("#passwordSignIn").click()
-            await device_page.wait_for_function("document.querySelector('#records').textContent.includes('casual-keeper')")
+            try:
+                await device_page.wait_for_function("document.querySelector('#records').textContent.includes('casual-keeper')")
+            except Exception:
+                print('Fresh-device status:', await device_page.locator('#accountStatus').inner_text())
+                raise
             recovered = await device_page.evaluate("async()=>await(await import('/dev/js/platform.js')).listMyResults()")
             assert {record["id"] for record in recovered} == {record["id"] for record in data["results"]}
             await device_page.evaluate("globalThis.testOffline=true")

@@ -46,13 +46,15 @@
       "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
       "gameType": "301",
       "matchId": "match",
-      "legScores": [],
-      "createdAt": 1
+      "legScores": "[]",
+      "createdAt": 1,
+      "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
     },
     "blakeoutDevCasualReceipts/casual$alice": {
       "resultId": "casual",
       "playerId": "alice",
-      "ownerId": "owner"
+      "ownerId": "owner",
+      "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
     },
     "blakeoutDevResults/result": {
       "ownerId": "owner",
@@ -62,9 +64,10 @@
       "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
       "gameType": "301",
       "matchId": "match",
-      "legScores": [],
+      "legScores": "[]",
       "createdAt": 1,
-      "tournamentId": "event"
+      "tournamentId": "event",
+      "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
     }
   },
   "cases": [
@@ -529,7 +532,8 @@
       "allow": false,
       "path": "blakeoutDevCasualResults/casual/private/x",
       "data": {
-        "name": "Synthetic"
+        "name": "Synthetic",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -539,7 +543,8 @@
       "allow": false,
       "path": "blakeoutDevCasualResults/casual/private/x",
       "data": {
-        "name": "Synthetic"
+        "name": "Synthetic",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1174,13 +1179,15 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
-          "createdAt": 1
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevCasualReceipts/casual$alice": {
           "resultId": "casual",
           "playerId": "alice",
-          "ownerId": "owner"
+          "ownerId": "owner",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevResults/result": {
           "ownerId": "owner",
@@ -1190,9 +1197,10 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
+          "legScores": "[]",
           "createdAt": 1,
-          "tournamentId": "event"
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         }
       }
     },
@@ -1298,13 +1306,15 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
-          "createdAt": 1
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevCasualReceipts/casual$alice": {
           "resultId": "casual",
           "playerId": "alice",
-          "ownerId": "owner"
+          "ownerId": "owner",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevResults/result": {
           "ownerId": "owner",
@@ -1314,9 +1324,10 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
+          "legScores": "[]",
           "createdAt": 1,
-          "tournamentId": "event"
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevSignups/event/players/alice": {
           "playerId": "alice",
@@ -1368,9 +1379,10 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
+        "legScores": "[]",
         "createdAt": 1,
-        "tournamentId": "event"
+        "tournamentId": "event",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1429,8 +1441,9 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
-        "createdAt": 1
+        "legScores": "[]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1540,8 +1553,9 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
-        "createdAt": 1
+        "legScores": "[]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1558,8 +1572,9 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
-        "createdAt": 1
+        "legScores": "[]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1576,9 +1591,10 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
+        "legScores": "[]",
         "createdAt": 1,
-        "email": "x@y"
+        "email": "x@y",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1595,8 +1611,9 @@
         "perPlayer": "[{\"playerId\":\"bob\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
-        "createdAt": 1
+        "legScores": "[]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1614,8 +1631,9 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
-        "createdAt": 1
+        "legScores": "[]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1632,8 +1650,9 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
-        "createdAt": 1
+        "legScores": "[]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1650,9 +1669,10 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
+        "legScores": "[]",
         "createdAt": 1,
-        "scoreA": -1
+        "scoreA": -1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1669,13 +1689,10 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
+        "legScores": "[]",
         "createdAt": 1,
-        "records": {
-          "id": "new",
-          "legs": [],
-          "email": "x@y"
-        }
+        "records": "{\"id\":\"new\",\"legs\":[],\"email\":\"x@y\",\"winnerIds\":[]}",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1692,9 +1709,10 @@
         "perPlayer": "[]",
         "gameType": "minnesota",
         "matchId": "match",
-        "legScores": [],
+        "legScores": "[]",
         "createdAt": 1,
-        "minnesotaCutthroat": true
+        "minnesotaCutthroat": true,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1711,9 +1729,10 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
+        "legScores": "[]",
         "createdAt": 1,
-        "minnesotaCutthroat": true
+        "minnesotaCutthroat": true,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1730,9 +1749,10 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
+        "legScores": "[]",
         "createdAt": 1,
-        "tournamentId": "event"
+        "tournamentId": "event",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -1787,9 +1807,10 @@
             "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
             "gameType": "301",
             "matchId": "match",
-            "legScores": [],
+            "legScores": "[]",
             "createdAt": 1,
-            "tournamentId": "event"
+            "tournamentId": "event",
+            "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
           }
         }
       ],
@@ -1838,13 +1859,15 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
-          "createdAt": 1
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevCasualReceipts/casual$alice": {
           "resultId": "casual",
           "playerId": "alice",
-          "ownerId": "owner"
+          "ownerId": "owner",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevResults/result": {
           "ownerId": "owner",
@@ -1854,9 +1877,10 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
+          "legScores": "[]",
           "createdAt": 1,
-          "tournamentId": "event"
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         }
       }
     },
@@ -1912,9 +1936,10 @@
             "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
             "gameType": "301",
             "matchId": "match",
-            "legScores": [],
+            "legScores": "[]",
             "createdAt": 1,
-            "tournamentId": "event"
+            "tournamentId": "event",
+            "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
           }
         }
       ]
@@ -1928,7 +1953,8 @@
       "data": {
         "resultId": "casual",
         "playerId": "alice",
-        "ownerId": "owner"
+        "ownerId": "owner",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       },
       "seed": {
         "blakeoutDevProfiles/owner": {
@@ -1975,8 +2001,9 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
-          "createdAt": 1
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevResults/result": {
           "ownerId": "owner",
@@ -1986,9 +2013,10 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
+          "legScores": "[]",
           "createdAt": 1,
-          "tournamentId": "event"
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         }
       }
     },
@@ -2001,7 +2029,8 @@
       "data": {
         "resultId": "casual",
         "playerId": "alice",
-        "ownerId": "owner"
+        "ownerId": "owner",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       },
       "seed": {
         "blakeoutDevProfiles/owner": {
@@ -2048,8 +2077,9 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
-          "createdAt": 1
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevResults/result": {
           "ownerId": "owner",
@@ -2059,9 +2089,10 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
+          "legScores": "[]",
           "createdAt": 1,
-          "tournamentId": "event"
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         }
       }
     },
@@ -2074,7 +2105,8 @@
       "data": {
         "resultId": "casual",
         "playerId": "alice",
-        "ownerId": "owner"
+        "ownerId": "owner",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -2086,7 +2118,8 @@
       "data": {
         "resultId": "casual",
         "playerId": "bob",
-        "ownerId": "owner"
+        "ownerId": "owner",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -2098,7 +2131,8 @@
       "data": {
         "resultId": "casual",
         "playerId": "alice",
-        "ownerId": "owner"
+        "ownerId": "owner",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       },
       "seed": {
         "blakeoutDevProfiles/owner": {
@@ -2142,8 +2176,9 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
-          "createdAt": 1
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevResults/result": {
           "ownerId": "owner",
@@ -2153,9 +2188,10 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
+          "legScores": "[]",
           "createdAt": 1,
-          "tournamentId": "event"
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         }
       }
     },
@@ -2210,8 +2246,9 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
-          "createdAt": 1
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevResults/result": {
           "ownerId": "owner",
@@ -2221,9 +2258,10 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
+          "legScores": "[]",
           "createdAt": 1,
-          "tournamentId": "event"
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         }
       }
     },
@@ -2236,7 +2274,8 @@
       "data": {
         "resultId": "casual",
         "playerId": "alice",
-        "ownerId": "owner"
+        "ownerId": "owner",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -2247,10 +2286,10 @@
       "path": "blakeoutDevCasualReceipts/casual$alice"
     },
     {
-      "name": "KNOWN LIMIT: nested leg data not exhaustively validated",
+      "name": "nested leg unknown fields denied",
       "auth": "owner",
       "operation": "write",
-      "allow": true,
+      "allow": false,
       "path": "blakeoutDevCasualResults/new",
       "data": {
         "ownerId": "owner",
@@ -2260,16 +2299,10 @@
         "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
+        "legScores": "[]",
         "createdAt": 1,
-        "records": {
-          "id": "new",
-          "legs": [
-            {
-              "unexpected": "synthetic-only"
-            }
-          ]
-        }
+        "records": "{\"id\":\"new\",\"legs\":[{\"unexpected\":\"synthetic-only\"}],\"winnerIds\":[]}",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -2286,8 +2319,9 @@
         "perPlayer": "[]",
         "gameType": "301",
         "matchId": "match",
-        "legScores": [],
-        "createdAt": 1
+        "legScores": "[]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -2342,9 +2376,10 @@
             "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
             "gameType": "301",
             "matchId": "match",
-            "legScores": [],
+            "legScores": "[]",
             "createdAt": 1,
-            "tournamentId": "event"
+            "tournamentId": "event",
+            "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
           }
         }
       ]
@@ -2490,8 +2525,9 @@
         "perPlayer": "[{\"playerId\":\"user0\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user0\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user0\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user1\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user1\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user1\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user2\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user2\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user2\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user3\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user3\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user3\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user4\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user4\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user4\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user5\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user5\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user5\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user6\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user6\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user6\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user7\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user7\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user7\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user8\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user8\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user8\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user9\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user9\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user9\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user10\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user10\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user10\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user11\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user11\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user11\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user12\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user12\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user12\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user13\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user13\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user13\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user14\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user14\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user14\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user15\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user15\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user15\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user16\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user16\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user16\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user17\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user17\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user17\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user18\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user18\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user18\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user19\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user19\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user19\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user20\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user20\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user20\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user21\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user21\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user21\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user22\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user22\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user22\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user23\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user23\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user23\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user24\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user24\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user24\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user25\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user25\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user25\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user26\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user26\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user26\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user27\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user27\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user27\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user28\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user28\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user28\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user29\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user29\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user29\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user30\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user30\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user30\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user31\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user31\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user31\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user32\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user32\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user32\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user33\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user33\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user33\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user34\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user34\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user34\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user35\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user35\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user35\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user36\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user36\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user36\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user37\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user37\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user37\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user38\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user38\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user38\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user39\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user39\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user39\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user40\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user40\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user40\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user41\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user41\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user41\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user42\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user42\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user42\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user43\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user43\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user43\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user44\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user44\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user44\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user45\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user45\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user45\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user46\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user46\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user46\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user47\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user47\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user47\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user48\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user48\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user48\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user49\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user49\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user49\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user50\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user50\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user50\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user51\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user51\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user51\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user52\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user52\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user52\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user53\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user53\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user53\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user54\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user54\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user54\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user55\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user55\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user55\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user56\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user56\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user56\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user57\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user57\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user57\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user58\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user58\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user58\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user59\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user59\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user59\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user60\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user60\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user60\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user61\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user61\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user61\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user62\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user62\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user62\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user63\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user63\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user63\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user64\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user64\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user64\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user65\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user65\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user65\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user66\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user66\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user66\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user67\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user67\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user67\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user68\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user68\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user68\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user69\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user69\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user69\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user70\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user70\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user70\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user71\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user71\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user71\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user72\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user72\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user72\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user73\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user73\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user73\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user74\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user74\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user74\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user75\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user75\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user75\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user76\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user76\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user76\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user77\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user77\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user77\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user78\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user78\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user78\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user79\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user79\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user79\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user80\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user80\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user80\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user81\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user81\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user81\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user82\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user82\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user82\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user83\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user83\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user83\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user84\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user84\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user84\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user85\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user85\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user85\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user86\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user86\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user86\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user87\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user87\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user87\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user88\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user88\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user88\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user89\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user89\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user89\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user90\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user90\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user90\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user91\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user91\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user91\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user92\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user92\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user92\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user93\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user93\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user93\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user94\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user94\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user94\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user95\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user95\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user95\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user96\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user96\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user96\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user97\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user97\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user97\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user98\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user98\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user98\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user99\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user99\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user99\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user100\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user100\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user100\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user101\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user101\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user101\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user102\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user102\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user102\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user103\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user103\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user103\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user104\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user104\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user104\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user105\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user105\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user105\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user106\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user106\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user106\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user107\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user107\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user107\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user108\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user108\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user108\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user109\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user109\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user109\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user110\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user110\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user110\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user111\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user111\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user111\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user112\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user112\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user112\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user113\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user113\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user113\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user114\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user114\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user114\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user115\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user115\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user115\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user116\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user116\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user116\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user117\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user117\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user117\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user118\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user118\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user118\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user119\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user119\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user119\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user120\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user120\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user120\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user121\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user121\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user121\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user122\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user122\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user122\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user123\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user123\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user123\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user124\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user124\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user124\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user125\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user125\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user125\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user126\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user126\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user126\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user127\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user127\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user127\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "chicago",
         "matchId": "match",
-        "legScores": [],
-        "createdAt": 1
+        "legScores": "[]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -2636,8 +2672,9 @@
         "perPlayer": "[{\"playerId\":\"user0\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user0\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user0\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user1\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user1\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user1\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user2\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user2\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user2\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user3\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user3\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user3\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user4\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user4\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user4\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user5\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user5\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user5\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user6\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user6\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user6\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user7\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user7\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user7\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user8\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user8\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user8\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user9\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user9\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user9\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user10\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user10\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user10\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user11\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user11\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user11\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user12\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user12\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user12\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user13\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user13\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user13\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user14\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user14\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user14\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user15\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user15\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user15\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user16\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user16\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user16\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user17\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user17\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user17\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user18\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user18\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user18\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user19\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user19\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user19\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user20\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user20\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user20\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user21\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user21\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user21\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user22\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user22\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user22\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user23\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user23\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user23\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user24\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user24\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user24\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user25\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user25\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user25\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user26\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user26\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user26\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user27\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user27\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user27\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user28\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user28\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user28\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user29\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user29\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user29\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user30\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user30\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user30\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user31\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user31\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user31\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user32\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user32\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user32\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user33\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user33\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user33\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user34\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user34\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user34\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user35\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user35\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user35\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user36\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user36\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user36\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user37\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user37\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user37\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user38\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user38\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user38\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user39\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user39\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user39\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user40\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user40\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user40\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user41\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user41\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user41\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user42\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user42\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user42\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user43\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user43\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user43\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user44\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user44\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user44\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user45\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user45\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user45\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user46\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user46\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user46\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user47\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user47\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user47\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user48\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user48\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user48\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user49\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user49\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user49\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user50\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user50\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user50\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user51\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user51\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user51\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user52\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user52\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user52\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user53\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user53\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user53\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user54\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user54\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user54\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user55\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user55\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user55\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user56\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user56\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user56\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user57\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user57\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user57\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user58\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user58\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user58\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user59\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user59\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user59\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user60\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user60\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user60\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user61\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user61\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user61\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user62\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user62\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user62\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user63\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user63\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user63\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user64\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user64\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user64\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user65\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user65\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user65\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user66\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user66\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user66\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user67\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user67\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user67\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user68\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user68\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user68\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user69\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user69\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user69\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user70\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user70\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user70\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user71\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user71\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user71\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user72\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user72\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user72\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user73\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user73\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user73\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user74\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user74\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user74\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user75\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user75\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user75\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user76\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user76\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user76\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user77\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user77\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user77\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user78\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user78\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user78\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user79\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user79\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user79\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user80\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user80\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user80\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user81\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user81\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user81\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user82\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user82\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user82\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user83\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user83\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user83\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user84\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user84\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user84\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user85\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user85\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user85\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user86\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user86\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user86\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user87\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user87\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user87\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user88\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user88\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user88\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user89\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user89\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user89\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user90\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user90\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user90\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user91\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user91\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user91\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user92\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user92\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user92\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user93\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user93\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user93\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user94\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user94\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user94\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user95\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user95\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user95\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user96\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user96\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user96\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user97\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user97\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user97\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user98\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user98\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user98\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user99\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user99\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user99\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user100\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user100\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user100\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user101\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user101\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user101\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user102\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user102\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user102\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user103\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user103\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user103\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user104\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user104\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user104\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user105\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user105\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user105\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user106\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user106\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user106\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user107\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user107\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user107\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user108\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user108\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user108\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user109\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user109\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user109\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user110\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user110\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user110\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user111\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user111\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user111\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user112\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user112\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user112\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user113\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user113\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user113\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user114\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user114\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user114\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user115\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user115\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user115\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user116\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user116\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user116\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user117\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user117\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user117\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user118\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user118\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user118\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user119\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user119\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user119\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user120\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user120\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user120\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user121\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user121\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user121\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user122\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user122\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user122\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user123\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user123\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user123\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user124\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user124\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user124\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user125\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user125\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user125\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user126\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user126\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user126\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user127\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user127\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user127\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0}]",
         "gameType": "chicago",
         "matchId": "match",
-        "legScores": [],
-        "createdAt": 1
+        "legScores": "[]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -2781,8 +2818,9 @@
         "perPlayer": "[{\"playerId\":\"user0\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user0\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user0\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user1\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user1\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user1\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user2\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user2\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user2\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user3\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user3\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user3\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user4\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user4\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user4\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user5\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user5\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user5\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user6\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user6\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user6\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user7\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user7\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user7\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user8\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user8\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user8\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user9\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user9\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user9\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user10\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user10\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user10\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user11\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user11\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user11\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user12\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user12\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user12\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user13\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user13\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user13\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user14\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user14\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user14\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user15\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user15\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user15\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user16\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user16\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user16\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user17\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user17\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user17\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user18\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user18\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user18\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user19\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user19\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user19\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user20\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user20\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user20\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user21\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user21\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user21\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user22\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user22\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user22\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user23\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user23\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user23\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user24\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user24\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user24\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user25\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user25\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user25\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user26\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user26\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user26\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user27\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user27\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user27\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user28\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user28\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user28\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user29\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user29\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user29\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user30\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user30\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user30\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user31\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user31\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user31\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user32\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user32\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user32\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user33\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user33\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user33\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user34\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user34\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user34\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user35\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user35\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user35\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user36\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user36\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user36\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user37\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user37\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user37\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user38\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user38\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user38\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user39\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user39\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user39\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user40\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user40\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user40\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user41\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user41\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user41\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user42\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user42\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user42\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user43\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user43\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user43\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user44\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user44\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user44\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user45\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user45\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user45\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user46\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user46\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user46\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user47\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user47\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user47\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user48\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user48\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user48\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user49\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user49\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user49\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user50\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user50\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user50\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user51\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user51\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user51\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user52\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user52\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user52\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user53\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user53\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user53\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user54\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user54\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user54\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user55\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user55\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user55\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user56\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user56\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user56\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user57\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user57\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user57\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user58\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user58\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user58\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user59\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user59\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user59\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user60\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user60\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user60\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user61\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user61\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user61\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user62\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user62\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user62\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user63\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user63\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user63\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user64\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user64\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user64\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user65\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user65\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user65\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user66\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user66\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user66\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user67\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user67\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user67\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user68\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user68\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user68\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user69\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user69\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user69\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user70\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user70\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user70\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user71\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user71\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user71\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user72\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user72\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user72\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user73\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user73\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user73\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user74\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user74\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user74\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user75\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user75\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user75\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user76\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user76\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user76\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user77\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user77\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user77\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user78\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user78\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user78\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user79\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user79\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user79\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user80\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user80\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user80\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user81\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user81\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user81\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user82\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user82\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user82\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user83\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user83\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user83\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user84\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user84\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user84\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user85\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user85\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user85\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user86\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user86\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user86\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user87\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user87\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user87\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user88\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user88\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user88\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user89\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user89\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user89\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user90\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user90\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user90\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user91\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user91\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user91\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user92\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user92\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user92\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user93\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user93\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user93\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user94\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user94\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user94\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user95\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user95\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user95\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user96\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user96\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user96\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user97\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user97\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user97\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user98\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user98\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user98\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user99\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user99\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user99\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user100\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user100\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user100\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user101\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user101\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user101\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user102\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user102\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user102\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user103\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user103\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user103\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user104\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user104\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user104\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user105\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user105\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user105\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user106\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user106\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user106\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user107\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user107\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user107\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user108\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user108\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user108\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user109\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user109\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user109\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user110\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user110\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user110\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user111\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user111\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user111\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user112\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user112\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user112\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user113\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user113\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user113\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user114\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user114\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user114\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user115\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user115\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user115\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user116\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user116\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user116\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user117\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user117\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user117\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user118\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user118\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user118\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user119\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user119\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user119\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user120\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user120\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user120\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user121\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user121\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user121\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user122\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user122\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user122\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user123\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user123\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user123\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user124\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user124\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user124\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user125\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user125\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user125\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user126\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user126\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user126\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user127\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user127\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user127\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"user0\",\"gameType\":\"301\",\"points\":0,\"darts\":1,\"marks\":0}]",
         "gameType": "chicago",
         "matchId": "match",
-        "legScores": [],
-        "createdAt": 1
+        "legScores": "[]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
       }
     },
     {
@@ -2840,9 +2878,10 @@
             "perPlayer": "[{\"playerId\":\"owner\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"owner\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"owner\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"alice\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"alice\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"bob\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"bob\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"bob\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"fourth\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"fourth\",\"gameType\":\"501\",\"points\":301,\"darts\":9,\"marks\":0},{\"playerId\":\"fourth\",\"gameType\":\"cricket\",\"points\":301,\"darts\":9,\"marks\":0}]",
             "gameType": "chicago",
             "matchId": "match",
-            "legScores": [],
+            "legScores": "[]",
             "createdAt": 1,
-            "tournamentId": "event"
+            "tournamentId": "event",
+            "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
           }
         }
       ],
@@ -2891,13 +2930,15 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
-          "createdAt": 1
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevCasualReceipts/casual$alice": {
           "resultId": "casual",
           "playerId": "alice",
-          "ownerId": "owner"
+          "ownerId": "owner",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevResults/result": {
           "ownerId": "owner",
@@ -2907,12 +2948,524 @@
           "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
           "gameType": "301",
           "matchId": "match",
-          "legScores": [],
+          "legScores": "[]",
           "createdAt": 1,
-          "tournamentId": "event"
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         },
         "blakeoutDevProfiles/fourth": {
           "name": "Fourth"
+        }
+      }
+    },
+    {
+      "name": "strict canonical ledger accepted",
+      "auth": "owner",
+      "operation": "write",
+      "allow": true,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"alice\",\"teamId\":\"side1\",\"points\":60,\"darts\":3,\"marks\":0,\"bust\":false}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "missing backend marker denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"alice\",\"teamId\":\"side1\",\"points\":60,\"darts\":3,\"marks\":0,\"bust\":false}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "foreign backend marker denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "old-project",
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"alice\",\"teamId\":\"side1\",\"points\":60,\"darts\":3,\"marks\":0,\"bust\":false}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "raw nested ledger denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": {
+          "id": "new",
+          "legs": [
+            {
+              "id": "leg1",
+              "gameType": "301",
+              "winnerId": "side1",
+              "minnesotaCutthroat": false,
+              "turns": [
+                {
+                  "id": "turn1",
+                  "registrationId": "slot1",
+                  "playerId": "alice",
+                  "teamId": "side1",
+                  "points": 60,
+                  "darts": 3,
+                  "marks": 0,
+                  "bust": false
+                }
+              ]
+            }
+          ],
+          "winnerIds": [
+            "side1"
+          ]
+        }
+      }
+    },
+    {
+      "name": "explicit null ledger denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": null
+      }
+    },
+    {
+      "name": "private nested email denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"alice\",\"teamId\":\"side1\",\"points\":60,\"darts\":3,\"marks\":0,\"bust\":false,\"email\":\"secret@example.invalid\"}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "unrelated player denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"bob\",\"teamId\":\"side1\",\"points\":60,\"darts\":3,\"marks\":0,\"bust\":false}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "invalid darts denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"alice\",\"teamId\":\"side1\",\"points\":60,\"darts\":4,\"marks\":0,\"bust\":false}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "negative points denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"alice\",\"teamId\":\"side1\",\"points\":-1,\"darts\":3,\"marks\":0,\"bust\":false}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "string numeric denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"alice\",\"teamId\":\"side1\",\"points\":60,\"darts\":3,\"marks\":\"0\",\"bust\":false}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "bad boolean denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"alice\",\"teamId\":\"side1\",\"points\":60,\"darts\":3,\"marks\":0,\"bust\":\"false\"}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "unknown leg summary field denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":null,\"note\":\"secret\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"alice\",\"teamId\":\"side1\",\"points\":60,\"darts\":3,\"marks\":0,\"bust\":false}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "escaped identity denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualResults/new",
+      "data": {
+        "ownerId": "owner",
+        "participantIds": [
+          "alice"
+        ],
+        "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+        "gameType": "301",
+        "matchId": "match",
+        "legScores": "[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\"}]",
+        "createdAt": 1,
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271",
+        "records": "{\"id\":\"new\",\"legs\":[{\"id\":\"leg1\",\"gameType\":\"301\",\"winnerId\":\"side1\",\"minnesotaCutthroat\":false,\"turns\":[{\"id\":\"turn1\",\"registrationId\":\"slot1\",\"playerId\":\"\\u0061lice\",\"teamId\":\"side1\",\"points\":60,\"darts\":3,\"marks\":0,\"bust\":false}]}],\"winnerIds\":[\"side1\"]}"
+      }
+    },
+    {
+      "name": "receipt wrong backend denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualReceipts/casual$alice",
+      "data": {
+        "resultId": "casual",
+        "playerId": "alice",
+        "ownerId": "owner",
+        "backendKey": "old-project"
+      },
+      "seed": {
+        "blakeoutDevProfiles/owner": {
+          "name": "Owner"
+        },
+        "blakeoutDevProfiles/alice": {
+          "name": "Alice"
+        },
+        "blakeoutDevProfiles/bob": {
+          "name": "Bob"
+        },
+        "blakeoutDevTournaments/event": {
+          "id": "event",
+          "ownerId": "owner",
+          "title": "Synthetic event",
+          "date": "2026-10-16",
+          "gameType": "301",
+          "bestOf": 1,
+          "status": "registration",
+          "registrations": "[]",
+          "teams": "[]",
+          "matches": "[]",
+          "revision": 0,
+          "createdAt": 1,
+          "updatedAt": 1
+        },
+        "blakeoutDevRosterPrivate/event": {
+          "tournamentId": "event",
+          "ownerId": "owner",
+          "revision": 0,
+          "registrations": "[]"
+        },
+        "blakeoutDevSignupState/event": {
+          "tournamentId": "event",
+          "revision": 0,
+          "lastJoiner": null,
+          "members": []
+        },
+        "blakeoutDevCasualResults/casual": {
+          "ownerId": "owner",
+          "participantIds": [
+            "alice"
+          ],
+          "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+          "gameType": "301",
+          "matchId": "match",
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
+        },
+        "blakeoutDevResults/result": {
+          "ownerId": "owner",
+          "participantIds": [
+            "alice"
+          ],
+          "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+          "gameType": "301",
+          "matchId": "match",
+          "legScores": "[]",
+          "createdAt": 1,
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
+        }
+      }
+    },
+    {
+      "name": "receipt missing backend denied",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualReceipts/casual$alice",
+      "data": {
+        "resultId": "casual",
+        "playerId": "alice",
+        "ownerId": "owner"
+      },
+      "seed": {
+        "blakeoutDevProfiles/owner": {
+          "name": "Owner"
+        },
+        "blakeoutDevProfiles/alice": {
+          "name": "Alice"
+        },
+        "blakeoutDevProfiles/bob": {
+          "name": "Bob"
+        },
+        "blakeoutDevTournaments/event": {
+          "id": "event",
+          "ownerId": "owner",
+          "title": "Synthetic event",
+          "date": "2026-10-16",
+          "gameType": "301",
+          "bestOf": 1,
+          "status": "registration",
+          "registrations": "[]",
+          "teams": "[]",
+          "matches": "[]",
+          "revision": 0,
+          "createdAt": 1,
+          "updatedAt": 1
+        },
+        "blakeoutDevRosterPrivate/event": {
+          "tournamentId": "event",
+          "ownerId": "owner",
+          "revision": 0,
+          "registrations": "[]"
+        },
+        "blakeoutDevSignupState/event": {
+          "tournamentId": "event",
+          "revision": 0,
+          "lastJoiner": null,
+          "members": []
+        },
+        "blakeoutDevCasualResults/casual": {
+          "ownerId": "owner",
+          "participantIds": [
+            "alice"
+          ],
+          "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+          "gameType": "301",
+          "matchId": "match",
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
+        },
+        "blakeoutDevResults/result": {
+          "ownerId": "owner",
+          "participantIds": [
+            "alice"
+          ],
+          "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+          "gameType": "301",
+          "matchId": "match",
+          "legScores": "[]",
+          "createdAt": 1,
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
+        }
+      }
+    },
+    {
+      "name": "receipt cannot attach to foreign result backend",
+      "auth": "owner",
+      "operation": "write",
+      "allow": false,
+      "path": "blakeoutDevCasualReceipts/casual$alice",
+      "data": {
+        "resultId": "casual",
+        "playerId": "alice",
+        "ownerId": "owner",
+        "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
+      },
+      "seed": {
+        "blakeoutDevProfiles/owner": {
+          "name": "Owner"
+        },
+        "blakeoutDevProfiles/alice": {
+          "name": "Alice"
+        },
+        "blakeoutDevProfiles/bob": {
+          "name": "Bob"
+        },
+        "blakeoutDevTournaments/event": {
+          "id": "event",
+          "ownerId": "owner",
+          "title": "Synthetic event",
+          "date": "2026-10-16",
+          "gameType": "301",
+          "bestOf": 1,
+          "status": "registration",
+          "registrations": "[]",
+          "teams": "[]",
+          "matches": "[]",
+          "revision": 0,
+          "createdAt": 1,
+          "updatedAt": 1
+        },
+        "blakeoutDevRosterPrivate/event": {
+          "tournamentId": "event",
+          "ownerId": "owner",
+          "revision": 0,
+          "registrations": "[]"
+        },
+        "blakeoutDevSignupState/event": {
+          "tournamentId": "event",
+          "revision": 0,
+          "lastJoiner": null,
+          "members": []
+        },
+        "blakeoutDevCasualResults/casual": {
+          "ownerId": "owner",
+          "participantIds": [
+            "alice"
+          ],
+          "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+          "gameType": "301",
+          "matchId": "match",
+          "legScores": "[]",
+          "createdAt": 1,
+          "backendKey": "old-backend"
+        },
+        "blakeoutDevResults/result": {
+          "ownerId": "owner",
+          "participantIds": [
+            "alice"
+          ],
+          "perPlayer": "[{\"playerId\":\"alice\",\"gameType\":\"301\",\"points\":301,\"darts\":9,\"marks\":0}]",
+          "gameType": "301",
+          "matchId": "match",
+          "legScores": "[]",
+          "createdAt": 1,
+          "tournamentId": "event",
+          "backendKey": "blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271"
         }
       }
     }
