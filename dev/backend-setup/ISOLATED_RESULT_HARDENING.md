@@ -47,18 +47,13 @@ The separate candidate rules suite now contains **155** synthetic allow/deny
 cases. The former permissive nested-field case is now expected-deny; new cases
 cover canonical ledgers, private/unknown nested fields, unrelated identities,
 invalid numeric/boolean values, escaped IDs, missing/foreign markers and receipt
-marker mismatch. **All emulator enforcement cases and compilation are skipped**
-until a permitted emulator is provisioned. Completed checks: 30 codec/negative/source-grammar checks, full mocked platform
-account suite (including 44 feature assertions), 62 scorer/recording browser
-groups, four isolation groups, 16 navigation groups, seven local-tournament flows
-(including real offline service-worker use), 13 mocked provider groups and five
-production-artifact groups. One fresh-device mock run timed out under concurrent
-load; the full rerun passed. Both logs are retained. The full jsdom suite was not
-rerun because its local dependency is no longer installed; no download was made.
-
-No live email, Google sign-in, Firestore rules enforcement, cross-device account,
-physical touch or rules-expression-budget success is claimed. No change to Mike's
-Firebase Console is needed to complete this local work.
+marker mismatch. The original skipped-emulator status is superseded by the local
+QA at commit `19c552b110c2394d083172c78e17dbbfa0b5a211`: real emulator compilation,
+155 enforcement cases, 1000-turn ledger, real SDK adapter/auth/concurrency/offline
+coverage and all Node suites passed. See `LOCAL_EMULATOR_QA.md` for boundaries
+and `PILOT_PREPARATION.md` for the later named-pilot restriction and separate evidence.
+No live email, Google sign-in, live deployed rules, physical-device or real
+cross-device account success is claimed.
 
 ## Remaining scope decision and recommendation
 
@@ -84,8 +79,7 @@ actual-score truth are not proven even when profiles exist. A malicious scorekee
 can select other valid participants and make assertions about their play; a trusted
 writer would also need explicit consent/business rules to prevent that.
 
-Next infrastructure requirement is unchanged: an approved official Firestore
-emulator artifact plus supported launcher, or an approved running loopback emulator,
-in this same executor. Then compile and run all synthetic cases plus actual-adapter
-integration, query and largest-ledger budget checks. Only after those checks and
-scope decisions should an exact DEV-only live-trial approval be requested.
+Local emulator provisioning and baseline integration are now complete. The next
+requirements are verified live DEV metadata, explicit pilot membership, acceptance
+of the remaining data-model scope, and separately authorized deployment/account/
+email/activation/cleanup steps described in `PILOT_PREPARATION.md`.

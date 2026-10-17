@@ -38,6 +38,8 @@ def static_checks():
     for grant in re.findall(r'allow [^:]+:\s*if ([^;]+);', source):
         assert grant.startswith('devVerified()') or grant.strip() == 'false', grant
     assert "in ['password', 'google.com']" in source
+    assert "&& request.auth.uid in devPilotUids()" in source
+    assert re.search(r"function devPilotUids\(\)\s*\{[^}]*return \[\];", source)
     assert "database == '(default)'" in source
     assert "get('email_verified', false) == true" in source
     assert "match /{document=**}" in source and 'allow read, write: if false;' in source
@@ -59,7 +61,7 @@ def wire(value):
     raise ValueError('Unsupported synthetic value')
 
 
-def emulator_checks(matrix):
+def emulator_checks(matrix, pilot_phases=True):
     host = os.environ.get('FIRESTORE_EMULATOR_HOST')
     if not host:
         print('SKIP compilation/enforcement: FIRESTORE_EMULATOR_HOST unset; no emulator provisioned. 155 cases NOT executed.')
@@ -96,33 +98,43 @@ def emulator_checks(matrix):
         return [{'update': {'name': prefix + '/' + item['path'],
                  'fields': {k: wire(v) for k, v in item['data'].items()}}} for item in items]
 
-    code, body = request('PUT', f'/emulator/v1/projects/{project}:securityRules',
-                        {'rules': {'files': [{'name': RULES.name, 'content': RULES.read_text()}]}})
-    assert code == 200, f'Candidate compilation failed: {code} {body}'
-    print('PASS candidate compiled in localhost emulator, project', project)
-    for case in matrix['cases']:
-        code, body = request('DELETE', f'/emulator/v1/projects/{project}/databases/(default)/documents', admin=True)
-        assert code == 200, (code, body)
-        seed = case.get('seed', matrix['seed'])
-        code, body = request('POST', '/v1/' + prefix + ':commit',
-            {'writes': writes([{'path': k, 'data': v} for k, v in seed.items()])}, admin=True)
-        assert code == 200, (code, body)
-        op = case['operation']; path = case.get('path', '')
-        if op in ['get', 'list', 'delete']:
-            code, body = request('DELETE' if op == 'delete' else 'GET', '/v1/' + prefix + '/' + path, auth=case['auth'])
-        elif op == 'query':
-            field, operator, value = case['where']
-            code, body = request('POST', '/v1/' + prefix + ':runQuery', {'structuredQuery': {
-                'from': [{'collectionId': path}], 'where': {'fieldFilter': {
-                    'field': {'fieldPath': field}, 'op': operator, 'value': wire(value)}}}}, auth=case['auth'])
-        else:
-            items = case['writes'] if op == 'commit' else [{'path': path, 'data': case['data']}]
-            code, body = request('POST', '/v1/' + prefix + ':commit', {'writes': writes(items)}, auth=case['auth'])
-        # Missing-document GET may return 404 only after rules permit access.
-        allowed = code == 200 or (op == 'get' and code == 404)
-        assert (allowed if case['allow'] else code == 403), (case['name'], case['allow'], code, body)
-        print('PASS', case['name'])
-    print(f"PASS {len(matrix['cases'])} synthetic emulator cases; no live Firebase/provider claims")
+    source = RULES.read_text()
+    marker = 'return [];'
+    assert source.count(marker) == 1
+    synthetic = sorted({c['auth'] for c in matrix['cases'] if c['auth']})
+    listed = source.replace(marker, 'return ' + json.dumps(synthetic) + ';')
+    # Same tokens/data across phases: revocation is rules membership, not signout.
+    phases = [('default-empty', source), ('listed', listed),
+              ('verified-unlisted', listed), ('revoked', source)] if pilot_phases else [('listed', listed)]
+    for phase, rules in phases:
+        code, body = request('PUT', f'/emulator/v1/projects/{project}:securityRules',
+                            {'rules': {'files': [{'name': RULES.name, 'content': rules}]}})
+        assert code == 200, f'Candidate compilation failed: {code} {body}'
+        print('PASS compile', phase, 'localhost emulator project', project)
+        for case in matrix['cases']:
+            code, body = request('DELETE', f'/emulator/v1/projects/{project}/databases/(default)/documents', admin=True)
+            assert code == 200, (code, body)
+            seed = case.get('seed', matrix['seed'])
+            code, body = request('POST', '/v1/' + prefix + ':commit',
+                {'writes': writes([{'path': k, 'data': v} for k, v in seed.items()])}, admin=True)
+            assert code == 200, (code, body)
+            op = case['operation']; path = case.get('path', '')
+            if op in ['get', 'list', 'delete']:
+                code, body = request('DELETE' if op == 'delete' else 'GET', '/v1/' + prefix + '/' + path, auth=('unlisted' if phase == 'verified-unlisted' else case['auth']))
+            elif op == 'query':
+                field, operator, value = case['where']
+                code, body = request('POST', '/v1/' + prefix + ':runQuery', {'structuredQuery': {
+                    'from': [{'collectionId': path}], 'where': {'fieldFilter': {
+                        'field': {'fieldPath': field}, 'op': operator, 'value': wire(value)}}}}, auth=('unlisted' if phase == 'verified-unlisted' else case['auth']))
+            else:
+                items = case['writes'] if op == 'commit' else [{'path': path, 'data': case['data']}]
+                code, body = request('POST', '/v1/' + prefix + ':commit', {'writes': writes(items)}, auth=('unlisted' if phase == 'verified-unlisted' else case['auth']))
+            # Missing-document GET may return 404 only after rules permit access.
+            allowed = code == 200 or (op == 'get' and code == 404)
+            assert (allowed if phase == 'listed' and case['allow'] else code == 403), (case['name'], case['allow'], code, body)
+            print('PASS', phase, case['name'])
+        print(f"PASS {phase}: {len(matrix['cases'])} synthetic emulator cases")
+
 
 
 if __name__ == '__main__':

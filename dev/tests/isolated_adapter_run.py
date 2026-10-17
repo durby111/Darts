@@ -53,6 +53,7 @@ try:
             except OSError:
                 if time.monotonic()>deadline:raise
                 time.sleep(.2)
+    if '--integration-only' not in sys.argv:run('pilot-guard',[qa['PYTHON'],'dev/tests/isolated_pilot_guard_test.py'])
     if '--integration-only' not in sys.argv:run('isolated-rules',[qa['PYTHON'],'dev/tests/isolated_rules_test.py'])
     if '--integration-only' not in sys.argv:run('large-ledger',[qa['PYTHON'],'dev/tests/isolated_large_ledger_test.py'])
     run('adapter-integration',[qa['NODE'],'dev/tests/isolated_adapter_integration.mjs'])

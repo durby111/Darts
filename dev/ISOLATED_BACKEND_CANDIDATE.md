@@ -53,12 +53,12 @@ contract groups; platform/account browser contracts; and all 24 bracket UI cases
 (22 in the full run, with the two updated fixture assertions passing focused
 reruns). These counts do not represent live Firebase/provider tests.
 
-No available Firestore emulator was found and `FIRESTORE_EMULATOR_HOST` was unset.
-The optional emulator tests were skipped. The previously denied emulator download
-was not retried or bypassed. Rules were neither compiled nor deployed, and no
-live provider, real email, live Firestore write/read, physical touch, or
-cross-device account test is claimed. Reported deny-all rules mean cloud records
-are not ready for use even if a future UI gate is opened.
+Later local QA supersedes the original skipped-emulator status: Java 21 and the
+existing emulator compiled and enforced the candidate, with real Auth/Firestore
+SDK integration under loopback-only network isolation. Baseline evidence and the
+later empty-allowlist pilot changes are distinguished in
+`backend-setup/PILOT_PREPARATION.md`. No live rules/provider/mail behavior has
+been verified. Reported live deny-all rules remain unverified and unchanged.
 
 All changes are under `dev/`. Production assets, production gameplay, root
 service worker, root Firebase config, canonical rules, Firebase deployment

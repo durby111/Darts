@@ -43,7 +43,10 @@ real user browser profiles are imported. Synthetic emulator state is ephemeral.
 
 The browser verifies the served adapter matches the worktree bytes. Backend
 project/app constants and corresponding candidate-rule markers are translated to
-`demo-blakeout-adapter-task3` / `demo-app`; all validation logic is retained.
+`demo-blakeout-adapter-task3` / `demo-app`; all validation logic is retained. The shipped pilot UID list is empty. Tests
+first prove default denial, then explicitly insert only synthetic fixture UIDs
+into ephemeral emulator rules, test revocation, and retain owner/privacy checks.
+The real-SDK suite uses emulator-generated UIDs; it never edits the shipped list.
 Local SDK wrappers attach Auth/Firestore emulators before use. No Firestore data
 or transaction implementation is stubbed. Deliberate fault injections include
 one ABORTED commit, denied commits/receipt writes, a held commit and a paused read.
@@ -78,3 +81,6 @@ No production deployment, live rule mutation, account creation or data migration
 is part of this workflow. Scorekeeper declarations remain unverified claims about
 play; rules do not certify darts or participant consent. Existing privacy and
 schema limits remain documented in ISOLATED_RULES_REVIEW.md.
+
+The offline deployment guard tests run with the rules suite. See `PILOT_PREPARATION.md`
+for exact targeting/hash checks and essential user prerequisites.

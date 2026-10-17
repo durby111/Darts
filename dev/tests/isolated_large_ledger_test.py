@@ -9,4 +9,4 @@ r=json.loads(c['data']['records']);turn=r['legs'][0]['turns'][0]
 r['legs'][0]['turns']=[dict(turn,id=f'turn{i}') for i in range(1000)]
 c['data']['records']=json.dumps(r,separators=(',',':'));c['name']='1000-turn canonical ledger enforcement'
 m['cases']=[c]
-t.emulator_checks(m)
+t.emulator_checks(m, pilot_phases=False)

@@ -16,14 +16,21 @@ const backendOriginal = await fs.readFile(root+'/dev/js/backend-context.js','utf
 const oldProject = /DEV_BACKEND = '([^']+)'/.exec(backendOriginal)[1];
 const oldApp = /DEV_APP_ID = '([^']+)'/.exec(backendOriginal)[1];
 const backend = backendOriginal.replaceAll(oldProject,project).replaceAll(oldApp,'demo-app');
-const rules = (await fs.readFile(root+'/dev/backend-setup/firestore.isolated-candidate.rules','utf8')).replaceAll(oldProject,project).replaceAll(oldApp,'demo-app');
+const emptyRules = (await fs.readFile(root+'/dev/backend-setup/firestore.isolated-candidate.rules','utf8')).replaceAll(oldProject,project).replaceAll(oldApp,'demo-app');
 async function localJSON(origin, endpoint, body, method='POST') {
   assert([authOrigin,storeOrigin].includes(origin));
   const r=await fetch(origin+endpoint,{method,redirect:'error',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(15000)});
   const j=await r.json(); assert(r.ok,JSON.stringify(j)); return j;
 }
+const pilotUids=[];
+let rules=emptyRules;
+async function setPilots(uids) {
+ assert.equal(emptyRules.split('return [];').length,2);
+ rules=emptyRules.replace('return [];','return '+JSON.stringify(uids)+';');
+ await localJSON(storeOrigin,`/emulator/v1/projects/${project}:securityRules`,{rules:{files:[{name:'synthetic-pilot.rules',content:rules}]}},'PUT');
+}
 await localJSON(storeOrigin,`/emulator/v1/projects/${project}:securityRules`,{rules:{files:[{name:'candidate.rules',content:rules}]}},'PUT');
-console.log('PASS compile candidate rules with synthetic project/app marker translation only');
+console.log('PASS compile empty pilot candidate; synthetic project/app markers');
 const bundle=await fs.readFile(process.env.BLAKEOUT_QA_OUTPUT+'/sdk.js','utf8');
 const server=http.createServer((req,res)=>{res.writeHead(403);res.end('Harness routes only');});
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -96,7 +103,15 @@ try {
  const code=codes.oobCodes.find(x=>x.email===email&&x.requestType==='VERIFY_EMAIL').oobCode;
  await localJSON(authOrigin,`/identitytoolkit.googleapis.com/v1/accounts:update?key=${project}`,{oobCode:code});
  assert(await a.evaluate(async()=>{await api.refreshAccount();return api.requireVerifiedAccount().emailVerified;}));
+ assert.equal(await a.evaluate(async()=>{try{await api.saveProfile('Synthetic Owner');return null;}catch(e){return e.code;}}),'permission-denied');
+ console.log('PASS verified real SDK user denied by empty pilot allowlist');
+ pilotUids.push(uid);await setPilots(pilotUids);
  await a.evaluate(()=>api.saveProfile('Synthetic Owner'));
+ await setPilots([]);
+ assert.equal(await a.evaluate(async()=>{try{await sdk.getDocFromServer(sdk.doc(testDB,'blakeoutDevProfiles',api.getAccount().uid));return null;}catch(e){return e.code;}}),'permission-denied');
+ assert.equal(await a.evaluate(async()=>{try{await api.saveProfile('Revoked');return null;}catch(e){return e.code;}}),'permission-denied');
+ await setPilots(pilotUids);
+ console.log('PASS same authenticated SDK session denied server reads/writes after pilot revocation');
  assert.equal((await a.evaluate(()=>api.getProfile())).name,'Synthetic Owner');
  await b.evaluate(args=>api.signInAccount(args.email,args.password),{email,password});
  assert.equal((await b.evaluate(()=>api.getProfile())).id,uid);
@@ -188,7 +203,10 @@ try {
   const codes=await localJSON(authOrigin,`/emulator/v1/projects/${project}/oobCodes`,undefined,'GET');
   const code=codes.oobCodes.find(x=>x.email===email&&x.requestType==='VERIFY_EMAIL').oobCode;
   await localJSON(authOrigin,`/identitytoolkit.googleapis.com/v1/accounts:update?key=${project}`,{oobCode:code});
-  await d.page.evaluate(async label=>{await api.refreshAccount();await api.saveProfile(label);},label);
+  await d.page.evaluate(()=>api.refreshAccount());
+  assert.equal(await d.page.evaluate(async()=>{try{await sdk.getDocFromServer(sdk.doc(testDB,'blakeoutDevProfiles',api.getAccount().uid));return null;}catch(e){return e.code;}}),'permission-denied');
+  pilotUids.push(uid);await setPilots(pilotUids);
+  await d.page.evaluate(label=>api.saveProfile(label),label);
   return {...d,uid};
  }
  const participant=await verifiedDevice('SyntheticParticipant'), outsider=await verifiedDevice('SyntheticOutsider');
