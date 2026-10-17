@@ -232,7 +232,7 @@ service cloud.firestore {
     function devUidList(ids) {
       return ids is list && ids.size() <= 128
         && (ids.size() == 0 || (ids == ids.join(',').split(',')
-          && ids.join(',').matches('^[A-Za-z0-9_-]{1,128}(,[A-Za-z0-9_-]{1,128})*$'));
+          && ids.join(',').matches('^[A-Za-z0-9_-]{1,128}(,[A-Za-z0-9_-]{1,128})*$')));
     }
 
     function devBackend(data) {
