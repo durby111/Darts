@@ -2,8 +2,6 @@
    Keep local roster APIs for compatibility without opening legacy Firebase
    apps, persistence queues, or anonymous sessions. */
 
-let db;
-let sdk = null;              // resolved Firestore SDK fns after init
 let rosterCache = [];
 let rosterListeners = [];
 let initState = 'pending';   // pending | ready | error
@@ -91,14 +89,6 @@ export function getRosterShareUrl() {
     throw new Error('DEV cloud roster sharing is disabled; existing roster data is unchanged.');
 }
 
-function playersCollection() {
-    return sdk.collection(db, 'rosters', getRosterId(), 'players');
-}
-
-function playerDoc(id) {
-    return sdk.doc(db, 'rosters', getRosterId(), 'players', id);
-}
-
 export async function initFirebase() {
     // Anonymous Auth is off in the isolated project. Do not initialize a default
     // app, reopen old IndexedDB queues, sync a production roster or send usage writes.
@@ -127,58 +117,15 @@ export function onRosterChange(fn) {
     return () => { rosterListeners = rosterListeners.filter(f => f !== fn); };
 }
 
-/**
- * Add or update a roster player. Doc ID is the email lowercased + trimmed,
- * inside this device's private roster.
- * Uses merge: true so future stats writes don't clobber profile fields.
- */
+/** Keep validation and the disabled-write error for existing setup callers. */
 export async function upsertPlayer({ email, name }) {
     const cleanName = (name || '').trim().slice(0, MAX_NAME_LENGTH);
     if (!cleanName) throw new Error('name required');
-    if (!db || !sdk) throw new Error('Roster is offline. Check your connection and refresh.');
-
-    // Players without an email get a synthetic local-only ID. Their stats
-    // accrue on whichever device entered them (no cross-device merge).
-    // The id is stored as the `email` field so Firestore rules — which require
-    // request.resource.data.email == doc id — still pass.
-    const id = normalizeEmail(email) || `noemail-${cryptoId()}`;
-
-    const ref = playerDoc(id);
-    await sdk.setDoc(ref, {
-        email: id,
-        name: cleanName,
-        updatedAt: sdk.serverTimestamp()
-    }, { merge: true });
+    throw new Error('Roster is offline. Check your connection and refresh.');
 }
 
-function cryptoId() {
-    const a = new Uint8Array(8);
-    crypto.getRandomValues(a);
-    return Array.from(a, b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/* ============================================
-   Monthly usage counter
-   ============================================
-   Answers "roughly how many devices used the app this month?" without any
-   analytics vendor and without storing anything about a person. One doc per
-   month holds a single integer:
-
-       usage/2026-07       { month: '2026-07',     devices: 42 }
-       usage/2026-07-dev   { month: '2026-07-dev', devices: 3 }
-
-   Dev and production share one Firebase project, so the dev build counts
-   into its own `-dev` doc and can't inflate the real number.
-
-   Each device increments a given month at most once, gated by localStorage
-   ('blakeout_usage_month'). That makes this a monthly-active-DEVICES count,
-   not people: two devices used by one player count twice, and clearing site
-   data lets a device count again.
-
-   Firestore rules must allow the exact +1 pattern (see CLAUDE.md). If they
-   don't, the write is rejected and the app carries on unaffected.
-   ============================================ */
-
+// Retained injected-adapter test/compatibility seam. The DEV app supplies no
+// database or SDK and never sends usage writes; production has its own module.
 const USAGE_KEY = 'blakeout_usage_month';
 
 function currentUsagePeriod() {
@@ -202,11 +149,11 @@ function isCountableHost() {
  *
  * `deps` exists so the test battery can drive this with a stub Firestore —
  * the battery runs on localhost, which is deliberately never counted.
- * Production calls it with no arguments.
+ * With no injected adapter this disabled DEV implementation is a no-op.
  */
 export function recordMonthlyUsage(deps = {}) {
-    const activeDb = deps.db || db;
-    const activeSdk = deps.sdk || sdk;
+    const activeDb = deps.db;
+    const activeSdk = deps.sdk;
     const countable = deps.countableHost === undefined ? isCountableHost() : deps.countableHost;
     if (!activeDb || !activeSdk || !countable) return;
 
@@ -238,14 +185,8 @@ export function recordMonthlyUsage(deps = {}) {
  * Defaults to the current period. Returns null when unavailable.
  */
 export async function getMonthlyUsage(period = currentUsagePeriod()) {
-    if (!db || !sdk || !sdk.getDoc) return null;
-    try {
-        const snap = await sdk.getDoc(sdk.doc(db, 'usage', period));
-        return snap.exists() ? (snap.data().devices || 0) : 0;
-    } catch (err) {
-        console.warn('[Firebase] usage read failed:', err?.code || err);
-        return null;
-    }
+    // Preserve the read API without retaining unreachable Firestore work.
+    return null;
 }
 
 export function isRealEmail(value) {
@@ -253,9 +194,8 @@ export function isRealEmail(value) {
 }
 
 export async function deletePlayer(email) {
-    const id = normalizeEmail(email);
-    if (!id || !db || !sdk) return;
-    await sdk.deleteDoc(playerDoc(id));
+    normalizeEmail(email); // Preserve argument validation for existing callers.
+    // Cloud roster sync is disabled; retain the existing no-op.
 }
 
 export function findPlayerByName(name) {

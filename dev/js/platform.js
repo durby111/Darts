@@ -660,51 +660,11 @@ export async function joinTournament(id) {
     return tournament;
 }
 
-async function guestConnection() {
-    throw new Error('Online guest signup is unavailable: Anonymous Auth is disabled for the isolated DEV project. Ask the organizer to add you, or use device-local brackets.');
-}
-
-// Unlike verified join, return the exact device-owned row ID alongside the
-// unchanged tournament object so callers never identify guests by name.
+// Retain the public adapter contract while online guest signup is disabled.
+// Validate the name before reporting unavailability, as the original API did.
 export async function joinTournamentAsGuest(id, name) {
-    name = publicName(name);
-    const connection = await guestConnection();
-    const guest = connection.auth.currentUser;
-    if (!guest?.isAnonymous) throw new Error('An anonymous guest session is required.');
-    const checkGuest = () => {
-        if (connection.auth.currentUser !== guest || !guest.isAnonymous) {
-            throw new Error('The guest session changed. Try again with the original guest session.');
-        }
-    };
-    await sessionTransaction(connection.db, checkGuest, async transaction => {
-        const [snapshot, state, signup] = await Promise.all([
-            transaction.get(ref('tournaments', id, connection.db)),
-            transaction.get(ref('signupState', id, connection.db)),
-            transaction.get(signupRef(id, guest.uid, connection.db))
-        ]);
-        if (!snapshot.exists()) throw new Error('Tournament not found.');
-        const tournament = decodeTournament(snapshot.data());
-        if (signup.exists()) {
-            if (signup.data().playerId !== null) throw new Error('This device identity is already registered with an account.');
-            if (signup.data().name !== name) {
-                throw new Error(`This device already registered guest "${signup.data().name}". The organizer can add other guests on a shared device.`);
-            }
-            return;
-        }
-        if (tournament.status !== 'registration') throw new Error('Registration is closed.');
-        const revision = (signupVersion(state) ?? tournament.revision) + 1;
-        const members = state.exists() ? state.data().members : [];
-        if (members.length >= 128) throw new Error('This event has reached its 128 self-registration limit. Contact the organizer.');
-        transaction.set(signupRef(id, guest.uid, connection.db), {
-            playerId: null, registrationId: `guest-${guest.uid}`, name, joinRevision: revision
-        });
-        transaction.set(ref('signupState', id, connection.db), {
-            tournamentId: id, revision, lastJoiner: guest.uid, members: [...members, guest.uid]
-        });
-    });
-    const tournament = await getTournament(id);
-    checkGuest();
-    return { tournament, registrationId: `guest-${guest.uid}` };
+    publicName(name);
+    throw new Error('Online guest signup is unavailable: Anonymous Auth is disabled for the isolated DEV project. Ask the organizer to add you, or use device-local brackets.');
 }
 
 export async function saveProfile(name) {
