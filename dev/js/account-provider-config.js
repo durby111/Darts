@@ -2,6 +2,6 @@
 // project/provider and its approved-domain behavior have been verified.
 export const ACCOUNT_PROVIDER_PROJECT = 'blakeout-darts-dev';
 export const ACCOUNT_PROVIDERS = Object.freeze({
-    google: Object.freeze({ enabled: false, redirectEnabled: false }),
+    google: Object.freeze({ enabled: true, redirectEnabled: false }),
     apple: Object.freeze({ enabled: false, redirectEnabled: false })
 });

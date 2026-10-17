@@ -1,3 +1,4 @@
+import { activeScorerMatch } from './scorer-status.js';
 import { BACKEND_KEY } from '../backend-context.js';
 import * as platform from '../platform.js';
 import * as engine from './engine.js';
@@ -260,6 +261,7 @@ function draw() {
     }
     renderDiagram($('diagram'), diagramState, {
         preview: current.status === 'registration',
+        inProgressMatchId: activeScorerMatch(current, platform.LOCAL_ONLY, localStorage),
         canScore: !!owner(), canCorrect: platform.LOCAL_ONLY ? match => engine.canCorrect(current, match) : null, onSelect: openResult,
     });
 }

@@ -13,7 +13,7 @@
 <body class="dev-build platform-page" data-app-feature="accounts">
     <div id="featureUnavailableShell">
         <header class="platform-header">
-            <a href="../">🎯 BlakeOut <span class="dev-badge">DEV</span></a>
+            <a class="platform-brand" href="../"><span class="platform-brand-logo" aria-hidden="true"></span><span class="platform-brand-text"><span class="platform-brand-name">BlakeOut</span><span class="platform-brand-subtitle">DARTS SCORER <span class="dev-badge">DEV</span></span></span></a>
             <nav aria-label="Main navigation">
                 <a href="../">Scoring</a>
                 <a href="../preview/brackets/">Brackets · sample</a>
@@ -32,7 +32,7 @@
     </div>
     <template id="featurePageTemplate">
     <header class="platform-header">
-        <a href="../">🎯 BlakeOut <span class="dev-badge">DEV</span></a>
+        <a class="platform-brand" href="../"><span class="platform-brand-logo" aria-hidden="true"></span><span class="platform-brand-text"><span class="platform-brand-name">BlakeOut</span><span class="platform-brand-subtitle">DARTS SCORER <span class="dev-badge">DEV</span></span></span></a>
         <nav aria-label="Main navigation">
             <a href="../">Scoring</a>
             <a href="../brackets/">Brackets</a>
@@ -83,7 +83,7 @@
             <h2>Verify your email</h2>
             <p id="verificationIdentity"></p>
             <p>Open the verification email, follow its link, then return here. Until verification is complete, profiles, account records, and organizer actions remain unavailable.</p>
-            <p>Branded account emails come from BlakeOut &lt;noreply@blakeoutdarts.com&gt;. Check Spam or Junk if an email is missing. The verification link opens Firebase's secure account page.</p>
+            <p>Account verification and password-reset emails use Firebase for this DEV pilot. Check Spam or Junk if an email is missing. The verification link opens Firebase's secure account page.</p>
             <div class="platform-actions">
                 <button id="sendVerification" type="button">Resend verification email</button>
                 <button id="refreshVerification" type="button">I’ve verified — refresh account</button>
@@ -114,8 +114,8 @@
         </section>
         <details class="platform-card">
             <summary>Firebase setup and DEV data</summary>
-            <p>This is a separate DEV account system in the existing BlakeOut Firebase project. No third-party analytics is used. Branded verification and password-reset requests are processed through Cloudflare, Firebase, and Resend. Resend receives your email address and the account-action email for delivery; your password is not sent to Cloudflare or Resend.</p>
-            <p>Project administrators must enable Authentication → Sign-in method → Email/Password, authorize the hosting domain, and publish the isolated <code>blakeoutDevProfiles</code>, <code>blakeoutDevTournaments</code>, <code>blakeoutDevRosterPrivate</code>, and <code>blakeoutDevResults</code> rules from <code>firestore.rules</code>. Email link (passwordless sign-in) is optional. These changes are not deployed by this page. Payment, check-in, and standby flags are visible only to the tournament organizer.</p>
+            <p>This account pilot uses the separate blakeout-darts-dev Firebase project. No third-party analytics is used. Firebase handles sign-in, verification emails and password resets; the Cloudflare/Resend email service is not used by this pilot.</p>
+            <p>Only the approved, verified pilot account can access DEV cloud records under the isolated pilot rules. This page does not deploy rules or change access. Email-link sign-in is unavailable for this pilot. Payment, check-in, and standby flags are visible only to the tournament organizer.</p>
             <p>Immediate self-registration uses separate public <code>blakeoutDevSignups</code> entries and a <code>blakeoutDevSignupState</code> revision index. Players can join with a verified account or enter a guest display name on the tournament page. Guest device authentication is separate from your account, never links a name to an account, and grants no lifetime statistics, bracket, or private-roster privileges. There is no approval queue; check-in and team assignment remain separate event logistics.</p>
             <p>Each device can self-register one guest per event. The organizer can add more name-only guests on a shared tablet. Guest registration does not sign you out of a verified account.</p>
             <p>Casual results use <code>blakeoutDevCasualResults</code> with verified-player <code>blakeoutDevCasualReceipts</code>. Interrupted delivery can be retried without rewriting scores. Larger teams are supported: up to 128 verified participants and 384 per-player game counters, with explicit errors rather than truncation. Self-registration allows up to 128 players per event; tournament brackets still support 32 doubles teams.</p>

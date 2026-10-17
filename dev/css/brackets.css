@@ -87,3 +87,15 @@
     .bracket-toolbar > label { width: 100%; }
     .bracket-fields > button { width: 100%; }
 }
+
+/* Explicit states remain legible in every app theme; icons/text do not rely on color. */
+.match-card.ready { border: 2px solid var(--platform-link); }
+.match-card.ready .match-header { background: var(--platform-button-bg); color: var(--platform-button-ink); }
+.match-card.ready .match-state { color: inherit; }
+.match-card.in-progress { border: 3px solid #d38b19; }
+.match-card.in-progress .match-header { background: #654000; color: #fff3d5; }
+.match-slot.won { background: #174d32; outline-color: #59cf89; color: #fff; }
+.match-slot.lost { background: #65232b; outline-color: #ff8591; color: #fff; }
+.match-slot.won .slot-members, .match-slot.lost .slot-members,
+.match-slot.won .slot-score, .match-slot.lost .slot-score { color: #fff; }
+.brackets-page .match-slot.won .source-jump, .brackets-page .match-slot.lost .source-jump { color: #fff; }
