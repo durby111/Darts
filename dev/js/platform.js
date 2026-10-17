@@ -1,3 +1,4 @@
+import { explainRevisionDenial } from './transaction-conflict.js';
 import { encodeResultLedger, decodeResultLedger } from './result-payload.js';
 // Dev accounts deliberately use a named app, never the scorer's anonymous auth.
 import { BACKEND_KEY, assertDevConfig, requireCurrentBackend } from './backend-context.js';
@@ -777,6 +778,15 @@ export async function updateTournament(id, expectedRevision, updater) {
         setTournamentPair(transaction, next, bundle);
         removeOmittedSignups(transaction, id, next, bundle);
         return next;
+    }).catch(async error => {
+        throw await explainRevisionDenial(error, {
+            expectedRevision,
+            assertSession: () => { requireAccountSession(user); requireVerifiedAccount(); },
+            readCurrentRevision: () => accountTransaction(user, async transaction => {
+                const { current } = await ownerTournament(id, user.uid, transaction);
+                return current.revision;
+            })
+        });
     });
 }
 
@@ -826,6 +836,15 @@ export async function saveMatchResult(tournamentId, expectedRevision, resultId, 
         removeOmittedSignups(transaction, tournamentId, next, bundle);
         transaction.set(resultRef, record);
         return next;
+    }).catch(async error => {
+        throw await explainRevisionDenial(error, {
+            expectedRevision,
+            assertSession: () => { requireAccountSession(user); requireVerifiedAccount(); },
+            readCurrentRevision: () => accountTransaction(user, async transaction => {
+                const { current } = await ownerTournament(tournamentId, user.uid, transaction);
+                return current.revision;
+            })
+        });
     });
 }
 

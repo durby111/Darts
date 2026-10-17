@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """Local-only isolation contracts. SDK/provider traffic is mocked; no live data/mail."""
-import asyncio,functools,threading,json
+import asyncio,functools,threading,json,os,shutil
 from pathlib import Path
 from http.server import ThreadingHTTPServer,SimpleHTTPRequestHandler
 from playwright.async_api import async_playwright
 from platform_test import APP,AUTH,STORE
 from feature_test_helpers import enable_future_features
 ROOT=Path(__file__).resolve().parents[2]
-OUT=Path('/workspace/scratch/isolated-backend-20261016')
+OUT=Path(os.environ.get('BLAKEOUT_QA_OUTPUT','/tmp/blakeout-isolated-qa'))/'backend-browser'
 class Quiet(SimpleHTTPRequestHandler):
  def log_message(self,*args):pass
 async def main():
  OUT.mkdir(parents=True,exist_ok=True);server=ThreadingHTTPServer(('127.0.0.1',0),functools.partial(Quiet,directory=str(ROOT)));threading.Thread(target=server.serve_forever,daemon=True).start();base=f'http://127.0.0.1:{server.server_port}'
  try:
   async with async_playwright() as p:
-   browser=await p.chromium.launch(executable_path='/usr/bin/chromium')
+   browser=await p.chromium.launch(executable_path=shutil.which('chromium') or shutil.which('google-chrome'))
    # Ordinary DEV never loads Firebase SDK or touches old roster/account continuation.
    c=await browser.new_context(service_workers='block');external=[]
    async def ordinary(route):

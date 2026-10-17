@@ -39,7 +39,7 @@ import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
-RUNTIME = ROOT / f".platform-test-runtime-{os.getpid()}"
+RUNTIME = Path(os.environ.get("TMPDIR", "/tmp")) / f"bo-platform-{os.getpid()}"
 sys.dont_write_bytecode = True
 
 APP = """
