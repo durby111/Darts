@@ -22,9 +22,9 @@
         </header>
         <main class="platform-main">
             <section class="feature-unavailable" aria-labelledby="featureUnavailableTitle">
-                <span class="feature-test-badge">DEV test · sample data</span>
+                <span class="feature-test-badge">DEV account pilot</span>
                 <h1 id="featureUnavailableTitle">Players &amp; Records</h1>
-                <p>Opening the interactive test. Nothing is saved or sent. Real sign-in and cloud saving are off.</p>
+                <p>Loading the DEV account pilot. Only approved pilot accounts can access cloud records.</p>
                 <p><a class="back-to-scoring" href="../preview/accounts/">Open Players &amp; Records test</a></p>
                 <p><a href="../">Back to scoring</a></p>
             </section>
@@ -41,7 +41,7 @@
     </header>
     <main class="platform-main">
         <h1>Your verified account</h1>
-        <p>Use an enabled sign-in method and a verified account to keep the same player ID across devices. Your email is private; only your chosen display name is shared with signed-in players. Passwords are handled by Firebase and never saved by this page.</p>
+        <p>Use an enabled sign-in method and a verified account to keep the same player ID across devices. Your email is private; only your chosen display name is shared with approved, verified pilot players. Passwords are handled by Firebase and never saved by this page.</p>
         <p id="accountStatus" class="platform-notice" role="status" aria-live="polite">Connecting to Firebase…</p>
         <section class="platform-card" id="signInPanel">
             <h2>Sign in or create an account</h2>
@@ -50,7 +50,8 @@
                 <label for="accountEmail">Your email</label>
                 <input id="accountEmail" name="email" type="email" autocomplete="email" required maxlength="254">
                 <label for="accountPassword">Password</label>
-                <input id="accountPassword" name="password" type="password" autocomplete="current-password" required minlength="6">
+                <input id="accountPassword" name="password" type="password" autocomplete="current-password" required minlength="1" aria-describedby="signupPasswordHint">
+                <p id="signupPasswordHint">New accounts require 10–4096 characters with uppercase, lowercase, a number and a special character. Sign in with your existing password.</p>
                 <div class="platform-actions">
                     <button id="passwordSignIn" type="submit" disabled>Sign in</button>
                     <button id="passwordRegister" type="button" disabled>Create account</button>
@@ -68,7 +69,7 @@
             </div>
             <details id="emailLinkPanel">
                 <summary>Optional email-link sign-in</summary>
-                <p>Existing email links still work. These optional sign-in emails still come from Firebase, not the branded sender. Spark email-link delivery has a low daily quota; email/password is the recommended sign-in method.</p>
+                <p>Email-link sign-in is unavailable for this DEV pilot. Use email and password; verification and password-reset emails use Firebase.</p>
                 <form id="emailForm">
                     <label for="linkEmail">Email for this sign-in link</label>
                     <input id="linkEmail" name="linkEmail" type="email" autocomplete="email" required maxlength="254">

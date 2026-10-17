@@ -439,6 +439,10 @@ export function initSetupControls() {
 // --- Roster UI ---
 
 function initRosterUI() {
+    for (const id of ['rosterAddBtn', 'rosterShareBtn']) {
+        const control = document.getElementById(id);
+        if (control) { control.disabled = true; control.title = 'DEV cloud roster sync is disabled. Local scoring remains available.'; }
+    }
     const addBtn = document.getElementById('rosterAddBtn');
     const nameInput = document.getElementById('rosterAddName');
     const emailInput = document.getElementById('rosterAddEmail');
@@ -531,7 +535,7 @@ function renderRoster(roster) {
     const status = document.getElementById('rosterStatus');
     if (status) {
         const init = getInitState();
-        if (init.state === 'error') status.textContent = '(offline)';
+        if (init.state === 'error') status.textContent = '(DEV cloud roster off — local scoring available)';
         else status.textContent = roster.length ? `(${roster.length})` : '';
     }
 }

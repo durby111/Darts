@@ -1,11 +1,14 @@
+import { explainRevisionDenial } from './transaction-conflict.js';
+import { encodeResultLedger, decodeResultLedger } from './result-payload.js';
 // Dev accounts deliberately use a named app, never the scorer's anonymous auth.
-import { ACCOUNT_EMAIL_SERVICE_URL } from './account-email-config.js';
-import { sendAccountEmail } from './account-email.js';
+import { BACKEND_KEY, assertDevConfig, requireCurrentBackend } from './backend-context.js';
 import { ACCOUNT_PROVIDERS, ACCOUNT_PROVIDER_PROJECT } from './account-provider-config.js';
 
+export const GUEST_SIGNUP_AVAILABLE = false;
+
 const SDK_BASE = 'https://www.gstatic.com/firebasejs/10.13.2';
-const APP_NAME = 'blakeout-dev-accounts';
-const EMAIL_KEY = 'blakeout_dev_email_link';
+const APP_NAME = 'blakeout-darts-dev-accounts';
+const EMAIL_KEY = 'blakeout_darts_dev_email_link';
 const CASUAL_GAME_PATTERN = /^(301|501|701|801|901|1101|1501|cricket|spanish|minnesota|chaos|quickie|cutthroat|wildcard|hammer|teamhammer|chicago|121|baseball|bermuda|golf|shanghai|countup|gotcha|sharktank|tictactoe|robinhood|doubledown|teamcricket)$/;
 const COLLECTIONS = Object.freeze({
     profiles: 'blakeoutDevProfiles',
@@ -17,9 +20,7 @@ const COLLECTIONS = Object.freeze({
 });
 const listeners = new Set();
 let initialization, auth, db, authSDK, storeSDK, account = null;
-let guestInitialization;
 let accountRefresh;
-let emailLinkRequest = 0;
 
 function publishAccount(user) {
     account = user;
@@ -40,8 +41,10 @@ export async function initPlatform() {
             if (!config.firebaseConfig?.apiKey || !config.firebaseConfig?.projectId) {
                 throw new Error('Firebase configuration is missing. Check dev/js/firebase-config.js.');
             }
+            assertDevConfig(config.firebaseConfig);
             const app = apps.getApps().find(item => item.name === APP_NAME)
                 || apps.initializeApp(config.firebaseConfig, APP_NAME);
+            assertDevConfig(app.options);
             authSDK = authentication;
             storeSDK = firestore;
             auth = authentication.getAuth(app);
@@ -85,7 +88,7 @@ export function requireVerifiedAccount() {
 }
 
 export function isAccountLink() {
-    return !!authSDK && authSDK.isSignInWithEmailLink(auth, location.href);
+    return false; // Email-link sign-in is not enabled on this isolated backend.
 }
 
 export function pendingAccountEmail() {
@@ -102,9 +105,21 @@ function accountReturnSettings() {
     return { url: new URL('../accounts/', import.meta.url).href, handleCodeInApp: false };
 }
 
+// Signup guidance mirrors the observed DEV console policy; Firebase remains authoritative.
+// Do not apply this policy to existing-account sign-in (force-upgrade was not selected).
+export function validateSignupPassword(password) {
+    if (typeof password !== 'string' || password.length < 10 || password.length > 4096
+        || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)
+        || !/[!-/:-@\[-`{-~]/.test(password)) {
+        const error = new Error('For a new account, use 10–4096 characters including an uppercase letter, a lowercase letter, a number and a special character.');
+        error.code = 'auth/password-does-not-meet-requirements';
+        throw error;
+    }
+}
+
 export async function registerAccount(email, password) {
+    validateSignupPassword(password);
     await initPlatform();
-    if (typeof password !== 'string' || password.length < 6) throw new Error('Use a password with at least 6 characters.');
     const credential = await authSDK.createUserWithEmailAndPassword(auth, accountEmail(email), password);
     requireAccountSession(credential.user);
     publishAccount(credential.user);
@@ -122,7 +137,7 @@ export async function signInAccount(email, password) {
 }
 
 const PROVIDER_IDS = Object.freeze({ google: 'google.com', apple: 'apple.com' });
-const PROVIDER_RETURN_KEY = 'blakeout_dev_provider_return';
+const PROVIDER_RETURN_KEY = 'blakeout_darts_dev_provider_return';
 let providerBusy = false;
 let providerReturn;
 
@@ -229,23 +244,13 @@ async function verifyAccountEmail(user) {
     if (!user || user.isAnonymous) throw new Error('Sign in before requesting a verification email.');
     requireAccountSession(user);
     if (user.emailVerified) throw new Error('This email address is already verified.');
-    if (ACCOUNT_EMAIL_SERVICE_URL) {
-        const token = await user.getIdToken(true);
-        requireAccountSession(user);
-        await sendAccountEmail(ACCOUNT_EMAIL_SERVICE_URL, 'verify-email', { token });
-    } else {
-        await authSDK.sendEmailVerification(user, accountReturnSettings());
-    }
+    await authSDK.sendEmailVerification(user, accountReturnSettings());
 }
 
 export async function resetAccountPassword(email) {
     await initPlatform();
     email = accountEmail(email);
-    if (ACCOUNT_EMAIL_SERVICE_URL) {
-        await sendAccountEmail(ACCOUNT_EMAIL_SERVICE_URL, 'reset-password', { email });
-    } else {
-        await authSDK.sendPasswordResetEmail(auth, email, accountReturnSettings());
-    }
+    await authSDK.sendPasswordResetEmail(auth, email, accountReturnSettings());
 }
 
 export async function refreshAccount() {
@@ -274,37 +279,12 @@ export async function refreshAccount() {
     return refresh.promise;
 }
 
-export async function sendAccountLink(email) {
-    await initPlatform();
-    email = accountEmail(email);
-    const user = getAccount();
-    const request = ++emailLinkRequest;
-    await authSDK.sendSignInLinkToEmail(auth, email, {
-        url: new URL('../accounts/', import.meta.url).href,
-        handleCodeInApp: true
-    });
-    if (getAccount() !== user || request !== emailLinkRequest) return;
-    try { localStorage.setItem(EMAIL_KEY, email); } catch { /* Cross-device completion asks for email. */ }
+export async function sendAccountLink() {
+    throw new Error('Email-link sign-in is unavailable for this DEV project. Use email and password.');
 }
 
-export async function completeAccountLink(email) {
-    await initPlatform();
-    if (!isAccountLink()) throw new Error('Open the sign-in link from your email first.');
-    email = accountEmail(email);
-    const linkURL = location.href;
-    const request = emailLinkRequest;
-    const credential = await authSDK.signInWithEmailLink(auth, email, linkURL);
-    const user = credential.user;
-    requireAccountSession(user);
-    await user.getIdToken(true);
-    requireAccountSession(user);
-    requireVerifiedAccount();
-    // A later link request/navigation owns its own continuation state.
-    if (request === emailLinkRequest && pendingAccountEmail() === email) {
-        try { localStorage.removeItem(EMAIL_KEY); } catch { /* Storage may be disabled. */ }
-    }
-    if (location.href === linkURL) history.replaceState(null, '', location.pathname);
-    return user;
+export async function completeAccountLink() {
+    throw new Error('Old email sign-in links cannot be used with this DEV project. Use email and password.');
 }
 
 export async function signOutAccount() {
@@ -510,6 +490,8 @@ function encodeResultCounters(counters, participantIds, casual = false) {
 }
 
 function decodeResult(document, source = 'tournament') {
+    requireCurrentBackend(document);
+    document = decodeResultLedger(document);
     if (typeof document.perPlayer !== 'string') throw new Error('Unsupported stored DEV result counter format.');
     const perPlayer = JSON.parse(document.perPlayer);
     encodeResultCounters(perPlayer, document.participantIds, source === 'casual');
@@ -679,34 +661,7 @@ export async function joinTournament(id) {
 }
 
 async function guestConnection() {
-    await initPlatform();
-    if (!guestInitialization) {
-        guestInitialization = (async () => {
-            const [config, apps] = await Promise.all([
-                import('./firebase-config.js'), import(`${SDK_BASE}/firebase-app.js`)
-            ]);
-            const name = 'blakeout-dev-guests';
-            const app = apps.getApps().find(item => item.name === name)
-                || apps.initializeApp(config.firebaseConfig, name);
-            const guestAuth = authSDK.getAuth(app);
-            await authSDK.setPersistence(guestAuth, authSDK.browserLocalPersistence);
-            await new Promise((resolve, reject) => {
-                const unsubscribe = authSDK.onAuthStateChanged(guestAuth, () => {
-                    unsubscribe();
-                    resolve();
-                }, reject);
-            });
-            if (!guestAuth.currentUser) await authSDK.signInAnonymously(guestAuth);
-            if (!guestAuth.currentUser?.isAnonymous) {
-                throw new Error('The guest session is not anonymous. Your signed-in account has not been changed.');
-            }
-            return { auth: guestAuth, db: storeSDK.getFirestore(app) };
-        })().catch(error => {
-            guestInitialization = null;
-            throw error;
-        });
-    }
-    return guestInitialization;
+    throw new Error('Online guest signup is unavailable: Anonymous Auth is disabled for the isolated DEV project. Ask the organizer to add you, or use device-local brackets.');
 }
 
 // Unlike verified join, return the exact device-owned row ID alongside the
@@ -835,12 +790,22 @@ export async function updateTournament(id, expectedRevision, updater) {
         setTournamentPair(transaction, next, bundle);
         removeOmittedSignups(transaction, id, next, bundle);
         return next;
+    }).catch(async error => {
+        throw await explainRevisionDenial(error, {
+            expectedRevision,
+            assertSession: () => { requireAccountSession(user); requireVerifiedAccount(); },
+            readCurrentRevision: () => accountTransaction(user, async transaction => {
+                const { current } = await ownerTournament(id, user.uid, transaction);
+                return current.revision;
+            })
+        });
     });
 }
 
 // Firestore may retry updater: it must be pure (precompute randomized draws,
 // collect UI input, and do network work before calling either transaction API).
-export async function saveMatchResult(tournamentId, expectedRevision, resultId, result, updater) {
+export async function saveMatchResult(tournamentId, expectedRevision, resultId, result, updater, context) {
+    requireCurrentBackend(context);
     await initPlatform();
     const user = requireVerifiedAccount();
     return accountTransaction(user, async transaction => {
@@ -849,6 +814,7 @@ export async function saveMatchResult(tournamentId, expectedRevision, resultId, 
         const resultSnapshot = await transaction.get(resultRef);
         if (resultSnapshot.exists()) {
             const existing = resultSnapshot.data();
+            requireCurrentBackend(existing);
             if (existing.tournamentId !== tournamentId || existing.matchId !== result.matchId) {
                 throw new Error('Result ID is already used by another match.');
             }
@@ -874,7 +840,7 @@ export async function saveMatchResult(tournamentId, expectedRevision, resultId, 
         }
         await validateLinkedProfiles(next, reference => transaction.get(reference));
         const record = {
-            ...result, ownerId: user.uid, tournamentId, participantIds,
+            ...result, ...encodeResultLedger(result), backendKey: BACKEND_KEY, ownerId: user.uid, tournamentId, participantIds,
             perPlayer: encodeResultCounters(result.perPlayer, participantIds), createdAt: Date.now()
         };
         withoutPrivateData(record);
@@ -882,6 +848,15 @@ export async function saveMatchResult(tournamentId, expectedRevision, resultId, 
         removeOmittedSignups(transaction, tournamentId, next, bundle);
         transaction.set(resultRef, record);
         return next;
+    }).catch(async error => {
+        throw await explainRevisionDenial(error, {
+            expectedRevision,
+            assertSession: () => { requireAccountSession(user); requireVerifiedAccount(); },
+            readCurrentRevision: () => accountTransaction(user, async transaction => {
+                const { current } = await ownerTournament(tournamentId, user.uid, transaction);
+                return current.revision;
+            })
+        });
     });
 }
 
@@ -891,7 +866,8 @@ function casualReceiptRef(resultId, playerId) {
     return storeSDK.doc(db, 'blakeoutDevCasualReceipts', `${resultId}$${playerId}`);
 }
 
-export async function saveCasualResult(resultId, result) {
+export async function saveCasualResult(resultId, result, context) {
+    requireCurrentBackend(context);
     await initPlatform();
     const user = requireVerifiedAccount();
     const reference = ref('casualResults', resultId);
@@ -923,7 +899,7 @@ export async function saveCasualResult(resultId, result) {
         const profiles = await Promise.all(result.participantIds.map(uid => transaction.get(ref('profiles', uid))));
         requireAccountSession(user);
         if (profiles.some(profile => !profile.exists())) throw new Error('Casual statistics can only reference existing verified player profiles. Guests must be excluded.');
-        const document = { ...result, ownerId: user.uid, perPlayer, createdAt: Date.now() };
+        const document = { ...result, ...encodeResultLedger(result), backendKey: BACKEND_KEY, ownerId: user.uid, perPlayer, createdAt: Date.now() };
         withoutPrivateData(document);
         transaction.set(reference, document);
         return document;
@@ -940,8 +916,9 @@ export async function saveCasualResult(resultId, result) {
                 requireAccountSession(user);
                 const receipt = await transaction.get(casualReceiptRef(resultId, uid));
                 requireAccountSession(user);
+                if (receipt.exists()) requireCurrentBackend(receipt.data());
                 if (!receipt.exists()) transaction.set(casualReceiptRef(resultId, uid), {
-                    resultId, playerId: uid, ownerId: user.uid
+                    backendKey: BACKEND_KEY, resultId, playerId: uid, ownerId: user.uid
                 });
             })));
         const failed = outcomes.find(outcome => outcome.status === 'rejected');
@@ -966,6 +943,7 @@ export async function listMyResults() {
     const casual = new Map(owned.docs.map(item =>
         [item.id, decodeResult({ ...item.data(), id: item.id }, 'casual')]));
     const received = await Promise.all(receipts.docs.filter(receipt => !casual.has(receipt.data().resultId)).map(async receipt => {
+        requireCurrentBackend(receipt.data());
         const record = await storeSDK.getDocFromServer(ref('casualResults', receipt.data().resultId));
         if (!record.exists()) throw new Error('A casual result receipt references a missing record.');
         return decodeResult({ ...record.data(), id: record.id }, 'casual');

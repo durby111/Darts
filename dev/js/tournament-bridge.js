@@ -1,3 +1,4 @@
+import { BACKEND_KEY, requireCurrentBackend } from './backend-context.js';
 import { game, recordingSession, saveActiveGame, loadActiveGame, restoreActiveGame, saveGameState } from './state.js';
 import { launchTournamentScorer, resumeGame } from './setup.js';
 import { showModal, hideModal } from './ui.js';
@@ -90,6 +91,7 @@ export async function launchRequestedMatch() {
     try {
         const request = JSON.parse(localStorage.getItem(LAUNCH_KEY));
         if (!request?.tournamentId || !request.matchId) throw new Error('Missing tournament launch request. Return to brackets.');
+        if (!LOCAL_TOURNAMENT) requireCurrentBackend(request);
         note(LOCAL_TOURNAMENT ? 'Loading the saved local match…' : 'Verifying tournament ownership and current match online…');
         const { api, account } = await platform();
         const tournament = await api.getTournament(request.tournamentId);
@@ -105,6 +107,7 @@ export async function launchRequestedMatch() {
             return;
         }
         if (existing) {
+            if (!LOCAL_TOURNAMENT) requireCurrentBackend(existing.tournament);
             if (JSON.stringify(existing.tournament.teams) !== JSON.stringify(teams) ||
                 existing.tournament.gameType !== effective.gameType || existing.tournament.bestOf !== effective.bestOf ||
                 !!existing.tournament.minnesotaCutthroat !== !!effective.minnesotaCutthroat) {
@@ -121,6 +124,7 @@ export async function launchRequestedMatch() {
                 return;
             }
             launchTournamentScorer({
+                ...(!LOCAL_TOURNAMENT ? { backendKey: BACKEND_KEY } : {}),
                 tournamentId: tournament.id, matchId: request.matchId, revision: tournament.revision,
                 ownerId: account.uid, gameType: effective.gameType, bestOf: effective.bestOf, ...(effective.minnesotaCutthroat ? { minnesotaCutthroat: true } : {}), ...(LOCAL_TOURNAMENT ? { localOnly: true } : {}),
                 teams, eventLabels, resultId: newRecordId(), legWins: [0, 0], legComplete: false,
@@ -189,6 +193,9 @@ export async function saveTournamentResult() {
         return;
     }
     if (!seriesComplete() || saving || game.tournament.status === 'saved') return;
+    if (!LOCAL_TOURNAMENT) {
+        try { requireCurrentBackend(game.tournament); } catch (error) { renderTournamentControls(error.message); return; }
+    }
     if (!confirm(LOCAL_TOURNAMENT ? 'Save this match result and its scoring record in this browser? No account statistics or cloud data will be sent.' : 'Save this tournament result and the registered players’ actual dart statistics?')) return;
     const session = game.tournament;
     const winnerId = session.teams[session.winnerIndex].id;
@@ -216,7 +223,7 @@ export async function saveTournamentResult() {
             session.pendingResult, current => {
                 authoritativeMatch(current, session.matchId, account.uid);
                 return recordResult(current, session.matchId, { winnerId, scoreA: session.legWins[0], scoreB: session.legWins[1] });
-            });
+            }, session);
         session.status = 'saved';
         game.undoHistory = [];
         game.redoHistory = [];

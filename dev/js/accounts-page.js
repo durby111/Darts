@@ -26,6 +26,10 @@ function status(message, error = false) {
 }
 
 function showError(error) {
+    if (['auth/weak-password', 'auth/password-does-not-meet-requirements'].includes(error.code)) {
+        status('Password requirements were not met. For a new account, use 10–4096 characters with uppercase, lowercase, a number and a special character. If this continues, check the current DEV password policy.', true);
+        return;
+    }
     const code = error.code ? `${error.code}: ` : '';
     status(`${code}${error.message || error} Check Firebase setup below if configuration or permissions are unavailable.`, true);
 }
@@ -311,7 +315,9 @@ try {
     const returningAccount = getAccount();
     try { await completeAccountProviderRedirect(); }
     catch (error) { if (getAccount() === returningAccount) status(error.message, true); }
-    for (const id of ['sendLink', 'passwordSignIn', 'passwordRegister', 'passwordReset']) $(id).disabled = false;
+    $('sendLink').disabled = true;
+    $('sendLink').title = 'Email-link sign-in is unavailable; use email and password.';
+    for (const id of ['passwordSignIn', 'passwordRegister', 'passwordReset']) $(id).disabled = false;
     renderProviders();
     if (isAccountLink()) {
         $('signInPanel').hidden = false;
