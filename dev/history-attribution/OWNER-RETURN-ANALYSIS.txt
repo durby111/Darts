@@ -1,0 +1,78 @@
+Owner-by-owner redesign — DISABLED, SOURCE WRITER STILL BLOCKED
+
+Implemented owner-return-adapter.mjs alongside owner-return.rules. The adapter
+uses the current verified Auth identity, never a UID argument for materialization;
+reads canonical source, occurrence, immutable grant, revocation and current
+private receipt within one SDK transaction. Rule checks are independent of
+client validation. Consent/revocation timestamps must equal request.time.
+No route imports these files; no composer/release config points to this ruleset.
+Canonical source writes stay denied rather than accepting browser-supplied UIDs.
+
+RULE READ ACCOUNTING, NO CACHE CREDIT:
+Consent create: binding get=1. Revoke create: grant get=1.
+Private materialize write: grant for binding=1, occurrence=1, grant for timing=1,
+revocation exists=1, optional revocation get=1, operation get=1, current exists=1:
+maximum7. Current receipt data uses resource, not another get. Each owner-only
+consent/revoke/history read uses auth/path only=0. Source occurrence read=0,
+source operation read checks occurrence membership=1, binding read=0.
+Adapter transaction reads five documents; their read-rule extra lookup=1 plus
+write-rule max7=8 total rule document accesses, under20. Five client reads are
+not themselves five rules get() calls. No other-player consent documents read.
+These counts are static analysis, not emulator-measured evaluation budgets.
+Canonical WRITER budget is NOT established because writer is not implemented.
+
+RACES:
+1. Post-result consent: grant.at must equal its write request.time and be strictly
+   earlier than occurrence.firstAcceptance. Equal timestamps fail closed.
+2. Revocation before/equal acceptance rejects attribution; revocation after
+   acceptance does not erase already-authorized ownership. Grant expiry compares
+   to first acceptance, not a later correction or delivery time.
+3. Grant and revocation versions are immutable, nondeletable. Renewal creates a
+   new grant ID. Renewal after result cannot backfill it. Revocation cannot be
+   moved forward by overwriting its timestamp.
+4. Delivery reads grant/revoke/source/current together. Concurrent edits trigger
+   SDK retry; server rules recheck state. Latest history revision only increases.
+5. Late old operation or duplicate delivery is no-op in adapter; raw same/older
+   writes fail rules. Source operation is immutable and exact owner counter/time/
+   status/revision must match. Caller cannot inject arbitrary projection values.
+6. Upstream correction replacing teams requires a NEW occurrence ID. Corrections
+   within the original occurrence keep its firstAcceptance and owner bindings.
+   Undo records a tombstone there; replacement never reuses that private key.
+7. Account switch during any awaited read rejects in adapter; rules use current
+   request.auth.uid. Board exclusion is independently required in rules.
+
+EXACT REMAINING CONSTRAINT:
+Existing tdEvents stores a mutable results map keyed by reusable match slot;
+its immutable audit lacks canonical occurrence ID and immutable first-acceptance
+membership/seat-binding identity. Existing qrGames has pairing grants but no
+canonical casual result/correction ledger. Neither can safely mint haOccurrences,
+haBindings or immutable operations with the invariants this consumer assumes.
+The provided rules therefore deny their creation. No privileged seed, Admin
+credential, broad allow-write or client-trusted source replaces this missing
+boundary. End-to-end canonical source production and discovery are NOT ready.
+This is a source-schema/authoritative-writer integration constraint, not a claim
+that Firestore cannot express the owner checks or that a paid plan is required.
+
+Required next coherent source integration:
+- Add canonical occurrence first-operation ID to tournament head+audit atomic
+  update; preserve it for same-contest correction, create a new ID after undo
+  followed by a new record; validate binding and membership from event roster.
+- Source first-acceptance server time and immutable binding version must be
+  coupled to the first accepted result in rules with getAfter, never caller time.
+- Add canonical casual source retaining all participants without all-player
+  consent reads; each owner's later projection validates only their immutable
+  binding/timing and exact source counter. Phone QR claims remain identity only.
+- Implement owner source discovery without broad private receipt reads; no
+  caller is required to guess operation IDs. Board must remain denied history.
+- Measure writer/read budgets and run all44 retained acceptance cases plus
+  generation/timing regressions. Do not deploy this consumer-only rules file.
+
+Executed analysis/model contracts:
+node --test dev/history-attribution/test_owner_return_analysis.mjs
+7/7 pass: budget, post-result grant, revoke/expiry, renewal, identity/binding,
+new occurrence and out-of-order correction/undo. These tests DO NOT execute
+Firestore rules or SDK adapter. Actual SDK/enforcement gate remains blocked.
+
+Official limits and transactions:
+https://firebase.google.com/docs/firestore/security/rules-conditions#access_call_limits
+https://firebase.google.com/docs/firestore/manage-data/transactions
