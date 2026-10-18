@@ -66,7 +66,10 @@ export function applyOperation(previous, op, consents, now) {
     const revision=previous.revision+1;
     const result=op.kind==='undo'?null:publicResult(op.result);
     check(op.kind==='undo'||(result&&['501','cricket','tournament'].includes(result.type)),'Unsupported result kind');
-    const after={eventId:op.eventId,matchId:op.matchId,revision,status:op.kind==='undo'?'undone':'active',result,recipients:clone(recipients)};
+    const original=prior?.contestBinding;
+    const contestBinding=original||{teamA:result?.teamA??null,teamB:result?.teamB??null};
+    if(prior&&result)check((result.teamA??null)===contestBinding.teamA&&(result.teamB??null)===contestBinding.teamB,'Contest binding changed; a new occurrence is required');
+    const after={contestBinding,eventId:op.eventId,matchId:op.matchId,revision,status:op.kind==='undo'?'undone':'active',result,recipients:clone(recipients)};
     const ledger=clone(previous);ledger.revision=revision;ledger.matches[op.matchId]=after;
     ledger.operations[op.operationId]={digest,revision};
     ledger.audit.push({operationId:op.operationId,eventId:op.eventId,matchId:op.matchId,revision,at:now,actor:clone(op.actor),before:prior?clone(prior):null,after:clone(after),affected:clone(op.affected)});

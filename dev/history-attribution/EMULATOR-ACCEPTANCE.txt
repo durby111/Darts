@@ -74,3 +74,14 @@ history assertions, network interface/routes, emulator logs, no skipped cases.
 Measure read/write rule-access budgets for cases09/10/31/42; do not assume cache
 reuse makes an otherwise over-budget transaction valid. Confirm SDK query/index
 requirements and quota behavior without asserting unlimited Spark capacity.
+
+2026-10-18 ENFORCEMENT DESIGN STOP:
+See ENFORCEMENT-BLOCKERS.txt. Retain all 44 required cases, but the proposed
+all-player atomic outbox layout is not implementation-ready at the current
+128-player casual capacity. Before translating the matrix into SDK operations,
+replace that unsupported dependency with individually bounded owner validation
+or explicitly approve a smaller scope. Add cases for >20 distinct consent
+owners, consent-version chronology across revoke/regrant, and the real engine
+sequence undo W2.1 -> correct W1.1 -> rerecord W2.1 with different teams. The
+new contest must never inherit old ownership; old accepted receipts remain
+correctable only within their original occurrence. No case is waived.
