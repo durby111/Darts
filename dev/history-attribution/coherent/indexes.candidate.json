@@ -1,0 +1,1 @@
+{"indexes":[{"collectionGroup":"occurrences","queryScope":"COLLECTION","fields":[{"fieldPath":"participants","arrayConfig":"CONTAINS"},{"fieldPath":"at","order":"ASCENDING"}]}],"fieldOverrides":[]}

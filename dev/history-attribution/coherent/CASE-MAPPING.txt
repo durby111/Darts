@@ -1,0 +1,46 @@
+All44 emulator cases retained; all are NOT RUN. Use compose_rules.py output.
+Synthetic role lists are inserted only in the isolated emulator fixture; the
+source lists stay empty and no credentials or live identities are created.
+
+01-06: hcBindings + hcOwners/UID/grants; real phone confirmation from tdEvents
+roster or qrGames seat grant. Reject forged UID, wrong scope/game/seat/handle,
+unverified/anonymous, changed displayed identity. A QR claim alone is insufficient.
+07-08: hcContexts results still advance for guests/absent consent; historical
+owner materialize eligibility uses server first acceptance, expiry and revocation.
+09-11: atomic hcContexts/{c}/state/current + operations/{op} + occurrences/{op}
+for first record. Operation IS the durable outbox; no per-player fanout documents.
+Case10 now omits canonical participant/binding snapshot or the required occurrence,
+not an imaginary fanout write: reject transaction. Omitting private materialization
+is intentional and must not block scoring. Case11 rejects each orphan write.
+12-14: reject modified operation/occurrence/receipt payload, forged actor, invalid
+winner/score, revision, counter owner. Organizer actor is known; tablet human null.
+15-20: actual racing SDK transactions, stale review, idempotent lost response,
+operation-ID reuse, terminate/restart before/after commit. Producer must run.
+21-23: closed event and offline phone retain source; grants->discover->operations
+50-row queries; test fixed index, all pages, query-rule inference, foreign UID.
+24-27: raw tablet reads/writes hcOwners/* history and resume denied; verified owner
+exact projection allowed; malformed source/counter and cross-owner projection denied.
+28-30: duplicate/older delivery cannot downgrade; corrected/undo revisions replace
+same occurrence; original audit and first acceptance are immutable.
+31-33: revoked consent cannot authorize replacement occurrence; old valid occurrence
+can be corrected. Renewed grant after first acceptance cannot backfill. New
+occurrence after undo/upstream replacement cannot inherit old binding/participants.
+34-35: actual tournament descendant constraints; undo in reverse order, compare
+model affected matches and resulting occurrence/history state.
+36-38: consent/revoke vs first result server ordering, account switching, source/
+grant/revoke mutation and deletion denials. Reject same-time first consent/result.
+39-41: shape/privacy guards and exact own-counter projection. All-player canonical
+input remains intact; lack of consent yields no private record, not dropped player.
+42: measure full transaction rule-call/expression budgets for first tournament,
+correction, casual128-owner source and owner projection. No cache assumption or
+weakened validator on failure. Canonical original QR seat limit remains unchanged;
+use successive independent valid claims if preparing capacity fixtures.
+43-44: run closed/public prior regressions and deny-all SDK/REST controls. The
+44-case gate is not satisfied by local fixture or source-text tests.
+
+Additional integrated cases required: canonical context alias denied; original
+board revocation rejects subsequent writes; source end rejects producer/consent;
+changed casual participant set requires undo/replacement; new phone can recover
+all grants with no local cache; 51+ occurrences and operation pagination; no
+per-user dynamically deployed index; immutable source operation remains readable
+to its participating owner after consent revoke/expiry for correction delivery.

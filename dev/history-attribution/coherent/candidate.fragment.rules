@@ -1,0 +1,190 @@
+// DISABLED; composer output only. Reuses existing qrBoard/tdOperator/publicVerified.
+function hcPlayer() { return publicVerified() && !qrBoard(); }
+function hcContext(c) { return get(/databases/$(database)/documents/hcContexts/$(c)).data; }
+function hcSourceActive(c) { return c.kind == 'tournament' ? (get(/databases/$(database)/documents/tdEvents/$(c.sourceId)).data.active && (request.auth.uid != c.boardUid || get(/databases/$(database)/documents/tdEvents/$(c.sourceId)).data.boardUid == c.boardUid)) : get(/databases/$(database)/documents/qrGames/$(c.sourceId)).data.active; }
+function hcWriter(c) {
+ return request.auth != null && ((qrBoard() && request.auth.uid == c.boardUid)
+  || (tdOperator() && c.kind == 'tournament' && request.auth.uid == c.ownerUid));
+}
+function hcOccurrence(c,o) { return get(/databases/$(database)/documents/hcContexts/$(c)/occurrences/$(o)).data; }
+function hcSource(c,p) { return get(/databases/$(database)/documents/hcContexts/$(c)/operations/$(p)).data; }
+function hcInitial(c,d,h,m,v) {
+ let e = get(/databases/$(database)/documents/tdEvents/$(d.sourceId)).data;
+ let a = tdResolve(e.topology[m].sourceA,h.results);
+ let b = tdResolve(e.topology[m].sourceB,h.results);
+ let n = int(e.bestOf / 2) + 1;
+ return m in e.topology && a.ready && b.ready && a.team != null && b.team != null
+  && v.keys().hasOnly(['teamA','teamB','winnerId','scoreA','scoreB','forfeit','players'])
+  && v.teamA == a.team && v.teamB == b.team && v.winnerId in [a.team,b.team]
+  && v.players == [] && v.forfeit is bool
+  && (m != 'GF2' || h.results.GF1.winnerId == h.results.GF1.teamB)
+  && !h.results.keys().hasAny(e.descendants[m])
+  && (v.forfeit ? v.scoreA == null && v.scoreB == null
+   : v.scoreA is int && v.scoreB is int && v.scoreA >= 0 && v.scoreB >= 0
+     && (v.winnerId == a.team ? v.scoreA == n && v.scoreB < n : v.scoreB == n && v.scoreA < n));
+}
+function hcNoDescendants(d,h,m) {
+ let e = get(/databases/$(database)/documents/tdEvents/$(d.sourceId)).data;
+ return !h.results.keys().hasAny(e.descendants[m]);
+}
+function hcRoster(d,v) {
+ let e = get(/databases/$(database)/documents/tdEvents/$(d.sourceId)).data;
+ return e.teams[v.teamA].memberIds.concat(e.teams[v.teamB].memberIds);
+}
+function hcParticipants(d,v) {
+ let e = get(/databases/$(database)/documents/tdEvents/$(d.sourceId)).data;
+ let r = e.teams[v.teamA].memberIds.concat(e.teams[v.teamB].memberIds);
+ return [e.roster[r[0]].expectedUid,e.roster[r[1]].expectedUid,e.roster[r[2]].expectedUid,e.roster[r[3]].expectedUid];
+}
+function hcOccurrenceValid(c,d,h,p,o) {
+ return o.keys().hasOnly(['contextId','matchId','firstOp','at','members','registrations','participants'])
+  && o.contextId == c && o.matchId == p.matchId && o.firstOp == p.occurrenceId
+  && o.at == request.time && o.members is map && o.members.size() <= 128
+  && o.members == get(/databases/$(database)/documents/hcContexts/$(c)/links/current).data.members
+  && (d.kind == 'tournament' ? o.participants == hcParticipants(d,p.after) : o.participants == p.after.perPlayer.keys())
+  && (d.kind == 'tournament' ? o.registrations == hcRoster(d,p.after) : o.registrations == []);
+}
+function hcAfterValid(c,d,h,p) {
+ return p.after == null ? (p.before != null && (d.kind != 'tournament' || hcNoDescendants(d,h,p.matchId)))
+  : d.kind == 'tournament' ? hcInitial(c,d,h,p.matchId,p.after)
+  : p.matchId == d.sourceId && p.after.keys().hasOnly(['gameType','perPlayer','winnerId'])
+    && p.after.gameType == d.gameType && p.after.perPlayer is map
+    && p.after.perPlayer.size() <= 128 && (p.after.winnerId == null || p.after.winnerId is string);
+}
+function hcTransition(c,h,n,p) {
+ let d = hcContext(c);
+ let before = h.results.get(p.matchId,null);
+ let occurrenceId = before == null ? n.lastOp : h.active[p.matchId];
+ let o = before == null ? getAfter(/databases/$(database)/documents/hcContexts/$(c)/occurrences/$(occurrenceId)).data : hcOccurrence(c,occurrenceId);
+ let organizer = d.kind == 'tournament' && request.auth.uid == d.ownerUid;
+ return hcWriter(d) && d.active && hcSourceActive(d)
+  && n.keys().hasOnly(['revision','results','active','lastOp']) && n.revision == h.revision + 1
+  && n.results.diff(h.results).affectedKeys().hasOnly([p.matchId]) && n.results.diff(h.results).affectedKeys().size() == 1
+  && n.active.diff(h.active).affectedKeys().hasOnly([p.matchId]) && n.active[p.matchId] == occurrenceId
+  && p.keys().hasOnly(['contextId','matchId','occurrenceId','revision','kind','before','after','input','actorUid','humanUid','source','at'])
+  && p.contextId == c && p.occurrenceId == occurrenceId && p.revision == n.revision
+  && p.before == before && p.after == n.results.get(p.matchId,null)
+  && p.kind == (p.after == null ? 'undo' : before == null ? 'record' : 'correct')
+  && p.actorUid == request.auth.uid && p.humanUid == (organizer ? request.auth.uid : null)
+  && p.source == (organizer ? 'organizer' : 'shared-device-unknown-human') && p.at == request.time
+  && (before != null || hcOccurrenceValid(c,d,h,p,o))
+  && (d.kind == 'tournament' || p.after == null || p.after.perPlayer.keys().toSet() == o.participants.toSet())
+  && (p.after == null ? p.input == {'operation':'undo'}
+      : d.kind == 'tournament' ? p.input == {'winnerId':p.after.winnerId,'scoreA':p.after.scoreA,'scoreB':p.after.scoreB,'forfeit':p.after.forfeit}
+      : p.input == {'perPlayer':p.after.perPlayer,'winnerId':p.after.winnerId})
+  && hcAfterValid(c,d,h,p);
+}
+match /hcContexts/{c} {
+ allow get: if hcWriter(resource.data) || hcPlayer();
+ allow list,delete: if false;
+ allow update: if (resource.data.kind == 'tournament' ? tdOperator() && request.auth.uid == resource.data.ownerUid : qrBoard() && request.auth.uid == resource.data.boardUid) && resource.data.active && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active']) && request.resource.data.active == false;
+ allow create: if request.resource.data.keys().hasOnly(['kind','sourceId','ownerUid','boardUid','gameType','active'])
+  && c == (request.resource.data.kind == 'tournament' ? 't_' : 'g_') + request.resource.data.sourceId
+  && request.resource.data.active == true
+  && (request.resource.data.kind == 'tournament'
+   ? tdOperator() && request.resource.data.ownerUid == request.auth.uid
+     && request.resource.data.ownerUid == get(/databases/$(database)/documents/tdEvents/$(request.resource.data.sourceId)).data.ownerUid
+     && request.resource.data.boardUid == get(/databases/$(database)/documents/tdEvents/$(request.resource.data.sourceId)).data.boardUid
+     && request.resource.data.gameType == get(/databases/$(database)/documents/tdEvents/$(request.resource.data.sourceId)).data.gameType
+   : request.resource.data.kind == 'casual' && qrBoard() && request.resource.data.ownerUid == request.auth.uid
+     && request.resource.data.boardUid == request.auth.uid && request.resource.data.gameType in ['501','cricket']
+     && get(/databases/$(database)/documents/qrGames/$(request.resource.data.sourceId)).data.board == request.auth.uid)
+  && hcSourceActive(request.resource.data)
+  && getAfter(/databases/$(database)/documents/hcContexts/$(c)/links/current).data == {'members':{}}
+  && getAfter(/databases/$(database)/documents/hcContexts/$(c)/state/current).data == {'revision':0,'results':{},'active':{},'lastOp':''};
+ match /links/{s} {
+  allow get: if s == 'current' && (hcWriter(hcContext(c)) || hcPlayer());
+  allow list,delete: if false;
+  allow create: if s == 'current' && hcWriter(getAfter(/databases/$(database)/documents/hcContexts/$(c)).data) && request.resource.data == {'members':{}};
+  allow update: if s == 'current' && hcPlayer() && request.resource.data.keys().hasOnly(['members'])
+   && request.resource.data.members.size() <= 128 && request.resource.data.members.diff(resource.data.members).affectedKeys().hasOnly([request.auth.uid])
+   && getAfter(/databases/$(database)/documents/hcBindings/$(request.resource.data.members[request.auth.uid])).data.uid == request.auth.uid
+   && getAfter(/databases/$(database)/documents/hcBindings/$(request.resource.data.members[request.auth.uid])).data.contextId == c;
+ }
+ match /state/{s} {
+  allow get: if s == 'current' && hcWriter(hcContext(c));
+  allow list,delete: if false;
+  allow create: if s == 'current' && hcWriter(getAfter(/databases/$(database)/documents/hcContexts/$(c)).data)
+    && request.resource.data == {'revision':0,'results':{},'active':{},'lastOp':''};
+  allow update: if s == 'current' && hcTransition(c,resource.data,request.resource.data,getAfter(/databases/$(database)/documents/hcContexts/$(c)/operations/$(request.resource.data.lastOp)).data);
+ }
+ match /occurrences/{o} {
+  allow get: if hcWriter(hcContext(c)) || (hcPlayer() && request.auth.uid in resource.data.participants);
+  allow list: if request.query.limit != null && request.query.limit > 0 && request.query.limit <= 50 && (hcWriter(hcContext(c)) || (hcPlayer() && request.auth.uid in resource.data.participants));
+  allow update,delete: if false;
+  allow create: if getAfter(/databases/$(database)/documents/hcContexts/$(c)/operations/$(o)).data.kind == 'record'
+   && getAfter(/databases/$(database)/documents/hcContexts/$(c)/state/current).data.lastOp == o
+   && getAfter(/databases/$(database)/documents/hcContexts/$(c)/state/current).data.revision == get(/databases/$(database)/documents/hcContexts/$(c)/state/current).data.revision + 1;
+ }
+ match /operations/{p} {
+  allow get: if hcWriter(hcContext(c)) || (hcPlayer() && request.auth.uid in hcOccurrence(c,resource.data.occurrenceId).participants);
+  allow list: if request.query.limit != null && request.query.limit > 0 && request.query.limit <= 50 && (hcWriter(hcContext(c)) || (hcPlayer() && request.auth.uid in hcOccurrence(c,resource.data.occurrenceId).participants));
+  allow update,delete: if false;
+  allow create: if getAfter(/databases/$(database)/documents/hcContexts/$(c)/state/current).data.lastOp == p
+   && getAfter(/databases/$(database)/documents/hcContexts/$(c)/state/current).data.revision == get(/databases/$(database)/documents/hcContexts/$(c)/state/current).data.revision + 1;
+ }
+}
+function hcBindingValid(b) {
+ let c = hcContext(b.contextId);
+ return c.active && hcSourceActive(c) && b.uid == request.auth.uid && b.keys().hasOnly(['uid','contextId','scope','registrationId','seatId','invitationId'])
+  && (c.kind == 'tournament'
+   ? b.scope == 'named-tournament' && b.seatId == '' && b.invitationId == ''
+     && get(/databases/$(database)/documents/tdEvents/$(c.sourceId)).data.roster[b.registrationId].expectedUid == request.auth.uid
+   : b.scope == 'game-seat' && get(/databases/$(database)/documents/qrGames/$(c.sourceId)/grants/$(b.seatId)).data.uid == request.auth.uid
+     && get(/databases/$(database)/documents/qrGames/$(c.sourceId)/grants/$(b.seatId)).data.handle == b.invitationId
+     && get(/databases/$(database)/documents/qrGames/$(c.sourceId)/grants/$(b.seatId)).data.expires > request.time);
+}
+match /hcBindings/{b} {
+ allow get: if hcPlayer() && (!exists(/databases/$(database)/documents/hcBindings/$(b)) || resource.data.uid == request.auth.uid);
+ allow list,update,delete: if false;
+ allow create: if hcPlayer() && hcBindingValid(request.resource.data);
+}
+function hcEligible(u,g,c,o) {
+ let grant = get(/databases/$(database)/documents/hcOwners/$(u)/grants/$(g)).data;
+ let first = hcOccurrence(c,o);
+ let context = hcContext(c);
+ let revoked = /databases/$(database)/documents/hcOwners/$(u)/revocations/$(g);
+ return grant.uid == u && grant.contextId == c && first.members[u] == grant.bindingId && u in first.participants
+  && (context.kind != 'tournament' || grant.registrationId in first.registrations)
+  && grant.at < first.at && first.at < grant.expires
+  && (!exists(revoked) || get(revoked).data.at > first.at);
+}
+function hcCounter(u,kind,v) {
+ return v.keys().hasOnly(['playerId','gameType','points','darts','marks']) && v.playerId == u && v.gameType == kind
+ && v.points is number && v.points >= 0 && v.points < 1000000000000
+ && v.darts is int && v.darts >= 0 && v.darts < 1000000000000
+ && v.marks is number && v.marks >= 0 && v.marks < 1000000000000;
+}
+function hcProjection(u,c,o,d) {
+ let p = hcSource(c,d.operationId);
+ let context = hcContext(c);
+ return d.keys().hasOnly(['uid','contextId','occurrenceId','operationId','grantId','revision','status','counter','at'])
+  && d.uid == u && d.contextId == c && d.occurrenceId == o && p.occurrenceId == o
+  && d.revision == p.revision && d.at == p.at && d.status == (p.after == null ? 'undone':'active')
+  && d.counter == (p.after == null ? null : context.kind == 'tournament' ? p.after : p.after.perPlayer[u])
+  && (p.after == null || context.kind == 'tournament' || hcCounter(u,context.gameType,d.counter));
+}
+match /hcOwners/{u} {
+ match /grants/{g} {
+  allow read: if hcPlayer() && request.auth.uid == u;
+  allow create: if hcPlayer() && request.auth.uid == u
+   && request.resource.data.keys().hasOnly(['uid','contextId','scope','registrationId','seatId','invitationId','bindingId','at','expires'])
+   && hcContext(request.resource.data.contextId).active && hcSourceActive(hcContext(request.resource.data.contextId))
+   && request.resource.data.uid == u && request.resource.data.at == request.time
+   && request.resource.data.expires > request.time && request.resource.data.expires <= request.time + duration.value(12,'h')
+   && getAfter(/databases/$(database)/documents/hcBindings/$(request.resource.data.bindingId)).data == {'uid':u,'contextId':request.resource.data.contextId,'scope':request.resource.data.scope,'registrationId':request.resource.data.registrationId,'seatId':request.resource.data.seatId,'invitationId':request.resource.data.invitationId};
+  allow update,delete: if false;
+ }
+ match /revocations/{g} {
+  allow read: if hcPlayer() && request.auth.uid == u;
+  allow create: if hcPlayer() && request.auth.uid == u && get(/databases/$(database)/documents/hcOwners/$(u)/grants/$(g)).data.uid == u && request.resource.data == {'at':request.time};
+  allow update,delete: if false;
+ }
+ match /contexts/{c}/history/{o} {
+  allow read: if hcPlayer() && request.auth.uid == u;
+  allow create,update: if hcPlayer() && request.auth.uid == u && hcEligible(u,request.resource.data.grantId,c,o)
+   && hcProjection(u,c,o,request.resource.data)
+   && (!exists(/databases/$(database)/documents/hcOwners/$(u)/contexts/$(c)/history/$(o)) || request.resource.data.revision > resource.data.revision);
+  allow delete: if false;
+ }
+}
