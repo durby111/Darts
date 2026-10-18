@@ -1,3 +1,4 @@
+import { requireCloudResume, encodeActiveSnapshot, decodeActiveSnapshot } from './cloud-resume-codec.js';
 import { explainRevisionDenial } from './transaction-conflict.js';
 import { encodeResultLedger, decodeResultLedger } from './result-payload.js';
 // Dev accounts deliberately use a named app, never the scorer's anonymous auth.
@@ -105,9 +106,21 @@ function accountReturnSettings() {
     return { url: new URL('../accounts/', import.meta.url).href, handleCodeInApp: false };
 }
 
+// Signup guidance mirrors the observed DEV console policy; Firebase remains authoritative.
+// Do not apply this policy to existing-account sign-in (force-upgrade was not selected).
+export function validateSignupPassword(password) {
+    if (typeof password !== 'string' || password.length < 10 || password.length > 4096
+        || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)
+        || !/[!-/:-@\[-`{-~]/.test(password)) {
+        const error = new Error('For a new account, use 10–4096 characters including an uppercase letter, a lowercase letter, a number and a special character.');
+        error.code = 'auth/password-does-not-meet-requirements';
+        throw error;
+    }
+}
+
 export async function registerAccount(email, password) {
+    validateSignupPassword(password);
     await initPlatform();
-    if (typeof password !== 'string' || password.length < 6) throw new Error('Use a password with at least 6 characters.');
     const credential = await authSDK.createUserWithEmailAndPassword(auth, accountEmail(email), password);
     requireAccountSession(credential.user);
     publishAccount(credential.user);
@@ -948,3 +961,54 @@ export const storage = Object.freeze({
     updateTournament, joinTournament, joinTournamentAsGuest, saveMatchResult, saveCasualResult,
     listMyResults, saveProfile, getProfile, listProfiles
 });
+
+// Owner-private continuation snapshots; deliberately separate from result records
+// and future QR seat grants. A snapshot never grants scoring/history permission.
+function activeGameRef(uid, id) {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error('Invalid active game ID.');
+    return storeSDK.doc(db, 'blakeoutDevActiveGames', uid, 'games', id);
+}
+export async function saveCloudGame(id, expectedRevision, operationId, snapshot) {
+    requireCloudResume();
+    if (!Number.isInteger(expectedRevision) || expectedRevision < -1 || !/^[A-Za-z0-9_-]{1,128}$/.test(operationId)) throw new Error('Invalid active game revision or operation.');
+    const payload = encodeActiveSnapshot(snapshot);
+    await initPlatform();
+    const user = requireVerifiedAccount();
+    if (snapshot.cloudResume?.ownerId !== user.uid || snapshot.cloudResume?.id !== id) throw new Error('Active game belongs to another session.');
+    const reference = activeGameRef(user.uid, id);
+    return storeSDK.runTransaction(db, async tx => {
+        requireAccountSession(user); requireVerifiedAccount();
+        const old = await tx.get(reference);
+        requireAccountSession(user); requireVerifiedAccount();
+        const value = old.exists() ? old.data() : null;
+        if (value?.operationId === operationId) {
+            if (value.payload !== payload) throw new Error('Operation ID reused for different state.');
+            return value.revision;
+        }
+        if ((value?.revision ?? -1) !== expectedRevision) {
+            const error = new Error('Another device saved newer state. Reload the cloud game before continuing.');
+            error.code = 'platform/active-game-conflict'; throw error;
+        }
+        const revision = expectedRevision + 1;
+        tx.set(reference, { ownerId: user.uid, backendKey: BACKEND_KEY, gameId: id, revision, operationId, payload, updatedAt: Date.now() });
+        return revision;
+    });
+}
+export async function loadCloudGame(id) {
+    requireCloudResume(); await initPlatform();
+    const user = requireVerifiedAccount();
+    const doc = await storeSDK.getDocFromServer(activeGameRef(user.uid, id));
+    requireAccountSession(user); requireVerifiedAccount();
+    if (!doc.exists()) return null;
+    const record = doc.data(); requireCurrentBackend(record);
+    const snapshot = decodeActiveSnapshot(record.payload);
+    if (record.ownerId !== user.uid || snapshot.cloudResume?.ownerId !== user.uid || snapshot.cloudResume?.id !== id) throw new Error('Invalid active game owner.');
+    return { snapshot, revision: record.revision, id };
+}
+export async function listCloudGames() {
+    requireCloudResume(); await initPlatform();
+    const user = requireVerifiedAccount();
+    const docs = await storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db, 'blakeoutDevActiveGames', user.uid, 'games'), storeSDK.limit(50)));
+    requireAccountSession(user); requireVerifiedAccount();
+    return docs.docs.map(d => { const r=d.data(); requireCurrentBackend(r); const s=decodeActiveSnapshot(r.payload); return {id:d.id, type:s.type, players:s.players.map(p=>p.name), updatedAt:r.updatedAt}; });
+}

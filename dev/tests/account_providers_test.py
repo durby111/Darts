@@ -58,7 +58,7 @@ async def run():
                     await r.fulfill(content_type='text/javascript',body=modules[name])
                 elif name=='firebase-config.js':
                     await r.fulfill(content_type='text/javascript',body='export const firebaseConfig='+json.dumps({'apiKey':'mock-only','projectId':project,'authDomain':project+'.firebaseapp.com','appId':'1:901185136996:web:89d4f413520e66ff773271'})+';')
-                elif name=='account-provider-config.js':
+                elif name=='account-provider-config.js' and google is not None:
                     await r.fulfill(content_type='text/javascript',body="export const ACCOUNT_PROVIDER_PROJECT='blakeout-darts-dev';export const ACCOUNT_PROVIDERS="+json.dumps({'google':{'enabled':google,'redirectEnabled':redirect},'apple':{'enabled':apple,'redirectEnabled':redirect}})+';')
                 elif url.startswith(base+'/'):await r.continue_()
                 else:await r.abort()
@@ -70,6 +70,16 @@ async def run():
             else:
                 await page.wait_for_function("document.querySelector('#accountStatus').textContent.includes('isolated project')")
             return context,page
+        context,page=await fixture(google=None)
+        assert await page.locator('#googleSignIn').is_enabled()
+        assert await page.locator('#appleSignIn').is_disabled()
+        await page.locator('#googleSignIn').click()
+        await page.wait_for_function("!document.querySelector('#profilePanel').hidden")
+        assert await page.evaluate("oauthCalls.length===1 && oauthCalls[0].id==='google.com' && oauthCalls[0].mode==='popup'")
+        assert await page.evaluate("oauthCalls[0].scopes.length===0 && oauthCalls[0].parameters.prompt==='select_account'")
+        assert await page.locator('#providerRedirect').is_hidden()
+        passed('actual candidate switch enables Google popup only; explicit chooser, no extra scopes, Apple and redirect off (mock SDK)')
+        await context.close()
         context,page=await fixture()
         assert await page.locator('#googleSignIn').is_disabled() and await page.locator('#appleSignIn').is_disabled()
         error=await page.evaluate("async()=>{try{await(await import('/dev/js/platform.js')).signInAccountProvider('google');}catch(e){return e.code;}}")

@@ -16,7 +16,7 @@ const backendOriginal = await fs.readFile(root+'/dev/js/backend-context.js','utf
 const oldProject = /DEV_BACKEND = '([^']+)'/.exec(backendOriginal)[1];
 const oldApp = /DEV_APP_ID = '([^']+)'/.exec(backendOriginal)[1];
 const backend = backendOriginal.replaceAll(oldProject,project).replaceAll(oldApp,'demo-app');
-const emptyRules = (await fs.readFile(root+'/dev/backend-setup/firestore.isolated-candidate.rules','utf8')).replaceAll(oldProject,project).replaceAll(oldApp,'demo-app');
+const emptyRules = (await fs.readFile(root+'/dev/backend-setup/firestore.isolated-candidate.rules','utf8')).replaceAll(oldProject,project).replaceAll(oldApp,'demo-app').replace(/(function devPilotUids\(\)\s*\{[^}]*return )\[[^\]]*\];/, '$1[];');
 async function localJSON(origin, endpoint, body, method='POST') {
   assert([authOrigin,storeOrigin].includes(origin));
   const r=await fetch(origin+endpoint,{method,redirect:'error',headers:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(15000)});

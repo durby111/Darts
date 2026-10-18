@@ -18,13 +18,31 @@ MATRIX = ROOT / 'dev/backend-setup/isolated-rules-cases.json'
 BASE = '756cf9901c11045019a3ce13c50accf200575fad'
 
 
+def pilot_list(source):
+    match = re.search(r'(function devPilotUids\(\)\s*\{[^}]*return )(\[[^\]]*\]);', source)
+    assert match, 'Missing explicit pilot list'
+    return json.loads(match.group(2))
+
+
+def with_pilots(source, uids):
+    pattern = r'(function devPilotUids\(\)\s*\{[^}]*return )(\[[^\]]*\]);'
+    result, count = re.subn(pattern, lambda m: m.group(1) + json.dumps(uids) + ';', source)
+    assert count == 1
+    return result
+
+
 def static_checks():
     source = RULES.read_text()
     matrix = json.loads(MATRIX.read_text())
-    for file in ['firestore.rules', 'firebase.json', 'dev/js/feature-availability.js',
-                 'dev/js/account-provider-config.js']:
+    for file in ['firestore.rules', 'firebase.json']:
         assert (ROOT / file).read_bytes() == subprocess.check_output(
             ['git', 'show', f'{BASE}:{file}'], cwd=ROOT), file
+    provider = subprocess.check_output(['git', 'show', f'{BASE}:dev/js/account-provider-config.js'], cwd=ROOT).decode()
+    expected_provider = provider.replace('google: Object.freeze({ enabled: false, redirectEnabled: false })', 'google: Object.freeze({ enabled: true, redirectEnabled: false })')
+    assert (ROOT / 'dev/js/account-provider-config.js').read_text() == expected_provider, 'Only approved DEV Google popup switch may change; Apple/redirect stay disabled'
+    assert 'accounts: true' in (ROOT / 'dev/js/feature-availability.js').read_text()
+    assert 'brackets: false' in (ROOT / 'dev/js/feature-availability.js').read_text()
+    assert 'accounts: false' in (ROOT / 'js/feature-availability.js').read_text()
     assert 'firestore.isolated-candidate.rules' not in (ROOT / 'firebase.json').read_text()
     assert matrix['syntheticOnly'] and len(matrix['cases']) == 155
     assert len({c['name'] for c in matrix['cases']}) == len(matrix['cases'])
@@ -39,14 +57,14 @@ def static_checks():
         assert grant.startswith('devVerified()') or grant.strip() == 'false', grant
     assert "in ['password', 'google.com']" in source
     assert "&& request.auth.uid in devPilotUids()" in source
-    assert re.search(r"function devPilotUids\(\)\s*\{[^}]*return \[\];", source)
+    assert pilot_list(source) == []
     assert "database == '(default)'" in source
     assert "get('email_verified', false) == true" in source
     assert "match /{document=**}" in source and 'allow read, write: if false;' in source
     assert 'return existsAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id))' in source
     assert 'devResultExtras(request.resource.data)' in source
     assert any(c['name'].startswith('KNOWN LIMIT:') for c in matrix['cases'])
-    print('PASS static source contracts: root rules/config and gates unchanged; eight DEV collection families; verified-only grants; closed fallback; 155 unique synthetic cases')
+    print('PASS static source contracts: root rules/config and production gates unchanged; DEV accounts enabled; eight DEV collection families; verified-only grants; closed fallback; 155 unique synthetic cases')
     print('Candidate SHA256:', hashlib.sha256(RULES.read_bytes()).hexdigest())
     return matrix
 
@@ -99,13 +117,27 @@ def emulator_checks(matrix, pilot_phases=True):
                  'fields': {k: wire(v) for k, v in item['data'].items()}}} for item in items]
 
     source = RULES.read_text()
-    marker = 'return [];'
-    assert source.count(marker) == 1
+    empty = with_pilots(source, [])
     synthetic = sorted({c['auth'] for c in matrix['cases'] if c['auth']})
-    listed = source.replace(marker, 'return ' + json.dumps(synthetic) + ';')
+    listed = with_pilots(source, synthetic)
     # Same tokens/data across phases: revocation is rules membership, not signout.
-    phases = [('default-empty', source), ('listed', listed),
-              ('verified-unlisted', listed), ('revoked', source)] if pilot_phases else [('listed', listed)]
+    phases = [('exact-candidate', source), ('default-empty', empty), ('listed', listed),
+              ('verified-unlisted', listed), ('revoked', empty)] if pilot_phases else [('listed', listed)]
+    if pilot_phases:
+        code, body = request('PUT', f'/emulator/v1/projects/{project}:securityRules',
+                            {'rules': {'files': [{'name': RULES.name, 'content': source}]}})
+        assert code == 200, (code, body)
+        # Exact reviewed rules bytes; unsigned synthetic emulator claims only.
+        # No real token, account call, email, or live project is used.
+        for uid in pilot_list(source):
+            code, body = request('POST', '/v1/' + prefix + ':commit',
+                {'writes': writes([{'path': 'blakeoutDevProfiles/' + uid, 'data': {'name': 'Synthetic Pilot Test'}}])}, auth=uid)
+            assert code == 200, (code, body)
+            code, body = request('GET', '/v1/' + prefix + '/blakeoutDevProfiles/' + uid, auth=uid)
+            assert code == 200, (code, body)
+            code, body = request('GET', '/v1/' + prefix + '/blakeoutDevProfiles/' + uid, auth='unlisted')
+            assert code == 403, (code, body)
+        print('PASS exact candidate: named UID profile write/read allowed; unlisted read denied')
     for phase, rules in phases:
         code, body = request('PUT', f'/emulator/v1/projects/{project}:securityRules',
                             {'rules': {'files': [{'name': RULES.name, 'content': rules}]}})

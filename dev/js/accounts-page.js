@@ -26,6 +26,10 @@ function status(message, error = false) {
 }
 
 function showError(error) {
+    if (['auth/weak-password', 'auth/password-does-not-meet-requirements'].includes(error.code)) {
+        status('Password requirements were not met. For a new account, use 10–4096 characters with uppercase, lowercase, a number and a special character. If this continues, check the current DEV password policy.', true);
+        return;
+    }
     const code = error.code ? `${error.code}: ` : '';
     status(`${code}${error.message || error} Check Firebase setup below if configuration or permissions are unavailable.`, true);
 }

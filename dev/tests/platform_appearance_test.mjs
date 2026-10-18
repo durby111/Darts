@@ -53,7 +53,7 @@ async function boot({ theme, mode, feature = 'accounts', unavailableStorage = fa
         if (!cache.has(file)) {
             const source = file === 'feature-availability.js' && unlocked
                 ? 'export const isFeatureAvailable = () => true;'
-                : read(`js/${file}`);
+                : file === 'feature-availability.js' ? read(`js/${file}`).replace('accounts: true', 'accounts: false') : read(`js/${file}`);
             cache.set(file, new vm.SourceTextModule(source, { context, identifier: file, initializeImportMeta: meta => { meta.url = `https://example.test/dev/js/${file}`; },
                 importModuleDynamically: async specifier => {
                     imports.push(specifier);
@@ -235,7 +235,8 @@ for (const theme of themes) for (const mode of modes) for (const supported of [t
 pass('all 48 backdrop palettes follow active styles in supported/fallback CSS; Arctic remains light only in Modern/Classic');
 
 const platform = read('css/platform.css');
-assert.equal((platform.match(/#[\da-f]{3,8}\b/gi) || []).length, 2, 'Only fixed semantic outcome outlines may define literals');
+assert.deepEqual(platform.match(/#[\da-f]{3,8}\b/gi) || [], ['#258942', '#d04747', '#080b0ee8', '#080b0eb3', '#fff', '#b9e6de'],
+    'Only fixed outcome outlines and reviewed dark wallpaper header branding may define literal colors');
 assert.equal((platform.match(/background: var\(--platform-backdrop, rgba\(0, 0, 0, \.84\)\);/g) || []).length, 2,
     'Native and fallback dialogs share a token and safe older-engine fallback');
 assert.doesNotMatch(platform, /background: var\(--bg-image-overlay\)/);
@@ -247,7 +248,7 @@ for (const feature of ['accounts', 'brackets']) {
     assert.ok(html.indexOf('scoreboard-palettes.css') < html.indexOf('platform.css'));
 }
 for (const marker of ['.platform-error', '.platform-empty', '.platform-page dialog', '.platform-page :focus-visible', '.platform-page .feature-unavailable .back-to-scoring']) assert.ok(platform.includes(marker));
-assert.ok(read('js/feature-availability.js').includes('accounts: false'));
+assert.ok(read('js/feature-availability.js').includes('accounts: true'));
 assert.ok(read('js/feature-availability.js').includes('brackets: false'));
-pass('shared components cover error/empty/app-owned dialog/focus/actions; native prompts remain browser-owned and flags remain closed');
+pass('shared components cover error/empty/app-owned dialog/focus/actions; native prompts remain browser-owned and DEV account pilot is enabled and brackets remain closed');
 console.log(`\n${passed}/${passed} platform appearance groups passed. Browser, touch, layout, and live backend verification remain separate.`);

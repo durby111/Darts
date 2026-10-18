@@ -5,9 +5,13 @@
 
 import { BUILD_STORAGE } from './build-context.js';
 
+let activeGameOwner = null;
+export function setActiveGameOwner(uid) { activeGameOwner = uid || null; }
+
 // Singleton game state
 export let game = {
     type: '501',
+    cloudResume: null,
     players: [],
     currentPlayer: 0,
     currentInput: '',
@@ -402,8 +406,9 @@ function pruneSavedRecoveries(session) {
     }
 }
 
-export function saveActiveGame() {
-    const snapshot = {
+export function snapshotActiveGame(fullUndo = false) {
+    return {
+        cloudResume: game.cloudResume ? deepClone(game.cloudResume) : null,
         type: game.type,
         players: deepClone(game.players),
         currentPlayer: game.currentPlayer,
@@ -436,16 +441,21 @@ export function saveActiveGame() {
         x01Input: game.x01Input ? deepClone(game.x01Input) : null,
         minnesotaPlaces: game.minnesotaPlaces ? deepClone(game.minnesotaPlaces) : null,
         minnesotaInput: game.minnesotaInput ? deepClone(game.minnesotaInput) : null,
-        undoHistory: (recordingSession() || game.minnesotaPlaces) ? game.undoHistory : [],
-        redoHistory: (recordingSession() || game.minnesotaPlaces) ? game.redoHistory : [],
+        undoHistory: (fullUndo || recordingSession() || game.minnesotaPlaces) ? game.undoHistory : [],
+        redoHistory: (fullUndo || recordingSession() || game.minnesotaPlaces) ? game.redoHistory : [],
         timestamp: Date.now()
     };
+}
+
+export function saveActiveGame() {
+    const snapshot = snapshotActiveGame(Boolean(game.cloudResume));
     try {
         const session = recordingSession();
         archivePreviousTournament(session?.resultId);
         const stored = JSON.stringify(compactTournamentSnapshot(snapshot));
         if (ACTIVE_GAME_IMPORT_KEY) localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
         localStorage.setItem(ACTIVE_GAME_KEY, stored);
+        document.dispatchEvent(new CustomEvent('activeGameSaved'));
         if (game.minnesotaPlaces?.locked) {
             // One stable key per continuation: reload/retry/undo update its local
             // record without duplicating or editing the primary scoring result.
@@ -488,7 +498,9 @@ export function loadActiveGame() {
             localStorage.setItem(ACTIVE_GAME_IMPORT_KEY, '1');
         }
         if (!stored) return null;
-        return expandTournamentSnapshot(JSON.parse(stored));
+        const snapshot = expandTournamentSnapshot(JSON.parse(stored));
+        if (snapshot.cloudResume && snapshot.cloudResume.ownerId !== activeGameOwner) return null;
+        return snapshot;
     } catch {
         return null;
     }
@@ -523,6 +535,7 @@ export function localRecordingRecoveries(source = 'casual') {
 export function restoreActiveGame(snapshot) {
     snapshot = expandTournamentSnapshot(snapshot);
     Object.assign(game, {
+        cloudResume: snapshot.cloudResume || null,
         type: snapshot.type,
         players: snapshot.players,
         currentPlayer: snapshot.currentPlayer,

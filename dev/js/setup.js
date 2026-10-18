@@ -824,9 +824,11 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
     resetX01Input();
     resetTicTacToeInput();
 
+    game.cloudResume = null;
     clearActiveGame();
     if (recordingSession() && !isChicago) beginScoringLeg(gameType);
     saveActiveGame();
+    document.dispatchEvent(new CustomEvent('activeGameStarted'));
     const scaleSlider = document.getElementById('uiScale');
     const scale = parseFloat(scaleSlider?.value || '1.0');
     document.documentElement.style.setProperty('--ui-scale', scale);

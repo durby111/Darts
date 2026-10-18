@@ -17,12 +17,13 @@ class Node {
 const attached=[];const menu=new Node('menu');
 const context=vm.createContext({URL,document:{createElement:t=>new Node(t),querySelector:s=>s==='.setup-header'?{after:n=>attached.push(n)}:s==='#gameMenuModal .modal-content'?menu:null}});
 const flags=new vm.SourceTextModule(read('js/feature-availability.js'),{context});await flags.link(()=>{});await flags.evaluate();
-for(const f of ['accounts','brackets','unknown'])assert.equal(flags.namespace.isFeatureAvailable(f),false);
+assert.equal(flags.namespace.isFeatureAvailable('accounts'),true);
+for(const f of ['brackets','unknown'])assert.equal(flags.namespace.isFeatureAvailable(f),false);
 assert.equal(Object.isFrozen(flags.namespace.FEATURE_AVAILABILITY),true);
 assert.equal(flags.namespace.featureTestPath('brackets'),'preview/brackets/');
 assert.equal(flags.namespace.featureTestPath('accounts'),'preview/accounts/');
 assert.equal(flags.namespace.featureTestPath('unknown'),null);
-pass('real providers remain off; explicit sample test routes are available without bypasses');
+pass('DEV accounts enabled; brackets closed; sample routes retained');
 const nav=new vm.SourceTextModule(read('js/platform-nav.js'),{context,initializeImportMeta:m=>{m.url='https://example.test/dev/js/platform-nav.js';}});
 await nav.link(s=>{assert.equal(s,'./feature-availability.js');return flags;});await nav.evaluate();
 for(const row of [attached[0],menu.children[0]]){
@@ -30,23 +31,23 @@ for(const row of [attached[0],menu.children[0]]){
     assert.equal(row.children[0].tag,'a');assert.equal(row.children[0].href,'https://example.test/dev/');
     for(const [i,f] of [[1,'brackets'],[2,'accounts']]){
         const b=row.children[i];assert.equal(b.tag,'a');assert.equal(b.disabled,false);
-        assert.equal(b.dataset.appFeature,f);assert.equal(b.href,`https://example.test/dev/preview/${f}/`);
-        assert.equal(b.children[0].textContent,'Sample');
+        if(f==='accounts'){assert.equal(b.href,'https://example.test/dev/accounts/');assert.equal(b.children.length,0);}
+        else {assert.equal(b.dataset.appFeature,f);assert.equal(b.href,`https://example.test/dev/preview/${f}/`);assert.equal(b.children[0].textContent,'Sample');}
 
     }
 }
-pass('setup and cloned Game Menu expose active, clearly labeled sample links');
+pass('setup and Game Menu link to actual DEV accounts and bracket samples');
 for(const feature of ['accounts','brackets','unknown']){
     let dynamic=0,domAccess=0; const destinations=[];
     const ctx=vm.createContext({URL,location:{replace:url=>destinations.push(url)},document:{body:{dataset:{appFeature:feature}},getElementById(){domAccess++;throw Error('Locked page touched live feature DOM');}}});
-    const flag=new vm.SourceTextModule(read('js/feature-availability.js'),{context:ctx});await flag.link(()=>{});await flag.evaluate();
+    const flag=new vm.SourceTextModule(read('js/feature-availability.js').replace('accounts: true','accounts: false'),{context:ctx});await flag.link(()=>{});await flag.evaluate();
     const theme=new vm.SyntheticModule([],()=>{},{context:ctx});await theme.link(()=>{});await theme.evaluate();
     const boot=new vm.SourceTextModule(read('js/feature-page.js'),{context:ctx,initializeImportMeta:m=>{m.url='https://example.test/dev/js/feature-page.js';},importModuleDynamically:()=>{dynamic++;throw Error('Feature initialized');}});
     await boot.link(s=>s==='./feature-availability.js'?flag:theme);await boot.evaluate();
     assert.equal(dynamic,0);assert.equal(domAccess,0);
     assert.deepEqual(destinations,feature==='unknown'?[]:[`https://example.test/dev/preview/${feature}/`]);
 }
-pass('direct routes enter samples without importing providers or consuming real action tokens');
+pass('explicit closed-gate fixtures enter samples without provider imports');
 const htmlResult=execFileSync('python3',['-c',String.raw`
 from html.parser import HTMLParser
 from pathlib import Path

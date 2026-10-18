@@ -989,6 +989,7 @@ function initX01Controls() {
     onEl('undoBtnX01', 'click', () => {
         if (expressionStr.length > 0) {
             clearInput();
+            saveActiveGame();
         } else {
             undoWithCooldown(() => {
                 updateX01Display();
