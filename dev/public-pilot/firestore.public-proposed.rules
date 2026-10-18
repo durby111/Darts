@@ -1,0 +1,714 @@
+rules_version = '2';
+// LOCAL REVIEW CANDIDATE ONLY — isolated blakeout-darts-dev, default database.
+// Local emulator compilation/enforcement passed; not deployed or approved for activation.
+// Root firebase.json remains separate. Pilot membership is restricted to the explicitly approved UID.
+// See ISOLATED_RULES_REVIEW.md for scope, residual risks and test requirements.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function devPilotUids() {
+      // PILOT_UIDS: explicit approved Firebase UIDs only; empty denies all clients.
+      return [];
+    }
+
+    function devVerified() {
+      return database == '(default)' && request.auth != null && !qrBoard()
+        && devId(request.auth.uid)
+        && request.auth.uid in devPilotUids()
+        && request.auth.token.get('email_verified', false) == true
+        && request.auth.token.get('firebase', {}).get('sign_in_provider', '')
+          in ['password', 'google.com'];
+    }
+
+    function publicVerified() {
+      return database == '(default)' && request.auth != null && !qrBoard()
+        && devId(request.auth.uid)
+        && request.auth.token.get('email_verified', false) == true
+        && request.auth.token.get('firebase', {}).get('sign_in_provider', '') in ['password', 'google.com'];
+    }
+    function publicPage() {
+      return request.query.limit != null && request.query.limit > 0 && request.query.limit <= 50;
+    }
+
+    function devText(value, maximum) {
+      return value is string && value.size() <= maximum
+        && value.matches('^[^@]*$');
+    }
+
+    function devId(value) {
+      return value is string && value.matches('^[A-Za-z0-9_-]{1,128}$');
+    }
+
+    function devGame(value) {
+      return value in ['chicago', 'minnesota', '301', '501', 'cricket', 'spanish'];
+    }
+
+    // Profile documents deliberately contain no email, authentication claims,
+    // lifetime counters, or other private account information.
+    match /blakeoutDevProfiles/{uid} {
+      allow get: if publicVerified();
+      allow list: if publicVerified() && publicPage();
+      allow create, update: if publicVerified() && request.auth.uid == uid && devId(uid)
+        && request.resource.data.keys().hasAll(['name'])
+        && request.resource.data.keys().hasOnly(['name'])
+        && devText(request.resource.data.name, 40)
+        && request.resource.data.name.trim().size() > 0;
+      allow delete: if false;
+    }
+
+    // Canonical key order is produced only at the platform storage boundary.
+    // These grammars reject unknown nested keys without iterating 64+ entries.
+    function devRegistrationPayload(value) {
+      let text = '"([^"@\\\\\\x00-\\x1F]|\\\\["\\\\/bfnrt])*"';
+      let entry = '\\{"id":' + text + ',"playerId":(null|' + text
+        + '),"name":' + text + ',"tag":' + text + '\\}';
+      return value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$');
+    }
+
+    function devPrivateRosterPayload(value) {
+      let text = '"([^"@\\\\\\x00-\\x1F]|\\\\["\\\\/bfnrt])*"';
+      let entry = '\\{"id":' + text
+        + ',"paid":(true|false),"checkedIn":(true|false),"standby":(true|false)\\}';
+      return value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$');
+    }
+
+    function devTeamPayload(value) {
+      let text = '"([^"@\\\\\\x00-\\x1F]|\\\\["\\\\/bfnrt])*"';
+      let entry = '\\{"id":' + text + ',"name":' + text
+        + ',"memberIds":\\[' + text + '(,' + text + ')?\\]\\}';
+      return value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$');
+    }
+
+    function devMatchPayload(value) {
+      let text = '"([^"@\\\\\\x00-\\x1F]|\\\\["\\\\/bfnrt])*"';
+      let nullable = '(null|' + text + ')';
+      let source = '(null|\\{"teamId":' + text + '\\}|\\{"matchCode":'
+        + text + ',"outcome":"(winner|loser)"\\})';
+      let entry = '\\{"id":' + text + ',"code":' + text
+        + ',"bracket":"(winners|losers|final|reset)","round":[0-9]+,"position":[0-9]+'
+        + ',"sourceA":' + source + ',"sourceB":' + source
+        + ',"teamA":' + nullable + ',"teamB":' + nullable
+        + ',"status":"(pending|ready|complete|bye|void)","winnerId":' + nullable
+        + ',"scoreA":(null|[0-9]+),"scoreB":(null|[0-9]+),"forfeit":(true|false)\\}';
+      return value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$');
+    }
+
+    function devTournament(data, id) {
+      return data.keys().hasAll(['id', 'ownerId', 'title', 'date', 'gameType',
+          'bestOf', 'status', 'registrations', 'teams', 'matches',
+          'revision', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['id', 'ownerId', 'title', 'date', 'gameType',
+          'bestOf', 'status', 'registrations', 'teams', 'matches',
+          'revision', 'createdAt', 'updatedAt'])
+        && devId(id) && data.id == id && devId(data.ownerId)
+        && devText(data.title, 100) && data.title.size() > 0
+        && data.date is string && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && devGame(data.gameType)
+        && data.bestOf is int && data.bestOf >= 1 && data.bestOf <= 99
+        && data.bestOf % 2 == 1 && (data.gameType != 'chicago' || data.bestOf == 3)
+        && data.status in ['registration', 'live', 'complete']
+        // Public arrays are JSON strings on the wire (platform.js decodes them).
+        // Grammars allow normal JSON quote/backslash/control escapes but never
+        // Unicode escapes, so an escaped @ cannot bypass the no-email check.
+        // Unicode names are stored literally. Counters/emails never belong here.
+        && devText(data.registrations, 100000)
+        && devText(data.teams, 50000)
+        && devText(data.matches, 200000)
+        && devRegistrationPayload(data.registrations)
+        && devTeamPayload(data.teams)
+        && devMatchPayload(data.matches)
+        && data.revision is int && data.revision >= 0
+        && data.createdAt is int && data.createdAt > 0
+        && data.updatedAt is int && data.updatedAt >= data.createdAt;
+    }
+
+    match /blakeoutDevTournaments/{id} {
+      allow read: if devVerified();
+      allow create: if devVerified() && devTournament(request.resource.data, id)
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.revision == 0
+        && request.resource.data.status == 'registration'
+        && devPairedPrivateRoster(id, request.resource.data)
+        && devPairedSignupState(id, request.resource.data.revision);
+      allow update: if devVerified() && resource.data.ownerId == request.auth.uid
+        && devTournament(request.resource.data, id)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.revision == devNextRevision(id, resource.data.revision)
+        && request.resource.data.updatedAt >= resource.data.updatedAt
+        && devPairedPrivateRoster(id, request.resource.data)
+        && devPairedSignupState(id, request.resource.data.revision);
+      allow delete: if false;
+    }
+
+    function devPairedPrivateRoster(id, tournament) {
+      let metadata = getAfter(/databases/$(database)/documents/blakeoutDevRosterPrivate/$(id)).data;
+      return metadata.ownerId == tournament.ownerId
+        && metadata.tournamentId == id && metadata.revision == tournament.revision;
+    }
+
+    function devPrivateRoster(data, id) {
+      return data.keys().hasAll(['tournamentId', 'ownerId', 'revision', 'registrations'])
+        && data.keys().hasOnly(['tournamentId', 'ownerId', 'revision', 'registrations'])
+        && devId(id) && data.tournamentId == id && data.ownerId == request.auth.uid
+        && data.revision is int && data.revision >= 0
+        && devText(data.registrations, 100000) && devPrivateRosterPayload(data.registrations)
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.ownerId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.revision == data.revision;
+    }
+
+    match /blakeoutDevRosterPrivate/{id} {
+      // Absent-document reads allow atomic creation, but never reveal another
+      // organizer's roster flags. Listing is deliberately not supported.
+      allow get: if devVerified()
+        && (!exists(/databases/$(database)/documents/blakeoutDevRosterPrivate/$(id))
+          || resource.data.ownerId == request.auth.uid);
+      allow list: if false;
+      allow create: if devVerified() && devPrivateRoster(request.resource.data, id)
+        && request.resource.data.revision == 0;
+      allow update: if devVerified() && resource.data.ownerId == request.auth.uid
+        && devPrivateRoster(request.resource.data, id)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.revision == devNextRevision(id, resource.data.revision);
+      allow delete: if false;
+    }
+
+    // Fresh events require atomic signup state; no legacy data is migrated.
+    // Missing-state fallback is needed when computing revision zero on creation.
+    function devNextRevision(id, legacyRevision) {
+      return exists(/databases/$(database)/documents/blakeoutDevSignupState/$(id))
+        ? get(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.revision + 1
+        : legacyRevision + 1;
+    }
+
+    function devPairedSignupState(id, revision) {
+      return existsAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id))
+        && (getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.revision == revision
+          && getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.lastJoiner == null);
+    }
+
+    function devSignupOwnerWrite(id, revision) {
+      return getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.ownerId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.revision == revision;
+    }
+
+    function devSelfJoin(id, revision) {
+      return get(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.status == 'registration'
+        && !exists(/databases/$(database)/documents/blakeoutDevSignups/$(id)/players/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/blakeoutDevSignups/$(id)/players/$(request.auth.uid)).data.joinRevision == revision;
+    }
+
+    function devSignupMembers(id) {
+      return exists(/databases/$(database)/documents/blakeoutDevSignupState/$(id))
+        ? get(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.members : [];
+    }
+
+    match /blakeoutDevSignupState/{id} {
+      allow read: if devVerified();
+      allow create, update: if devVerified() && devId(id)
+        && request.resource.data.keys().hasAll(['tournamentId', 'revision', 'lastJoiner', 'members'])
+        && request.resource.data.keys().hasOnly(['tournamentId', 'revision', 'lastJoiner', 'members'])
+        && request.resource.data.tournamentId == id
+        && request.resource.data.members is list && request.resource.data.members.size() <= 128
+        && request.resource.data.members.toSet().size() == request.resource.data.members.size()
+        && devUidList(request.resource.data.members)
+        && request.resource.data.revision is int
+        && request.resource.data.revision == (
+          exists(/databases/$(database)/documents/blakeoutDevTournaments/$(id))
+            ? devNextRevision(id, get(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.revision)
+            : 0)
+        && ((devVerified() && request.resource.data.lastJoiner == null
+              && request.resource.data.members.hasOnly(devSignupMembers(id))
+              && devSignupOwnerWrite(id, request.resource.data.revision))
+          || (request.resource.data.lastJoiner == request.auth.uid
+              && request.resource.data.members == devSignupMembers(id).concat([request.auth.uid])
+              && devSelfJoin(id, request.resource.data.revision)));
+      allow delete: if false;
+    }
+
+    match /blakeoutDevSignups/{id}/players/{uid} {
+      allow read: if devVerified();
+      allow create: if devVerified() && uid == request.auth.uid && devId(uid)
+        && request.resource.data.keys().hasAll(['playerId', 'registrationId', 'name', 'joinRevision'])
+        && request.resource.data.keys().hasOnly(['playerId', 'registrationId', 'name', 'joinRevision'])
+        && devText(request.resource.data.name, 40) && request.resource.data.name.trim().size() > 0
+        && (request.resource.data.playerId == uid
+            && request.resource.data.registrationId == 'self-' + uid
+            && request.resource.data.name == get(/databases/$(database)/documents/blakeoutDevProfiles/$(uid)).data.name)
+        && get(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.status == 'registration'
+        && getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.lastJoiner == uid
+        && request.resource.data.joinRevision == getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.revision;
+      allow update: if false;
+      allow delete: if devVerified()
+        && get(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.ownerId == request.auth.uid
+        && devSignupOwnerWrite(id, getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.revision)
+        && getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.lastJoiner == null
+        && !(uid in getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.members)
+        && getAfter(/databases/$(database)/documents/blakeoutDevSignupState/$(id)).data.revision
+          == devNextRevision(id, get(/databases/$(database)/documents/blakeoutDevTournaments/$(id)).data.revision);
+    }
+
+    function devUidList(ids) {
+      return ids is list && ids.size() <= 128
+        && (ids.size() == 0 || (ids == ids.join(',').split(',')
+          && ids.join(',').matches('^[A-Za-z0-9_-]{1,128}(,[A-Za-z0-9_-]{1,128})*$')));
+    }
+
+    function devBackend(data) {
+      return data.get('backendKey', '') == 'blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271';
+    }
+
+    function devLegScores(value) {
+      let entry = "\\{\"id\":\"[A-Za-z0-9_-]{1,128}\",\"gameType\":\"(301|501|701|801|901|1101|1501|cricket|spanish|minnesota|chaos|quickie|cutthroat|wildcard|hammer|teamhammer|chicago|121|baseball|bermuda|golf|shanghai|countup|gotcha|sharktank|tictactoe|robinhood|doubledown|teamcricket)\",\"winnerId\":(null|\"[A-Za-z0-9_-]{1,128}\")\\}";
+      return value is string && value.size() <= 50000
+        && value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$')
+        && (value == '[]' || value.split('\\},\\{').size() <= 99);
+    }
+
+    function devLedger(value, ids) {
+      let id = '"[A-Za-z0-9_-]{1,128}"';
+      let nullable = '(null|' + id + ')';
+      let numeric = '(0|[1-9][0-9]{0,11})(\\.[0-9]{1,32})?([eE]-[0-9]{1,3})?';
+      let player = ids.size() == 0 ? 'null' : '(null|"(' + ids.join('|') + ')")';
+      let turn = '\\{"id":' + id + ',"registrationId":' + nullable + ',"playerId":' + player
+        + ',"teamId":' + id + ',"points":' + numeric + ',"darts":[1-3],"marks":' + numeric + ',"bust":(true|false)\\}';
+      let game = "(301|501|701|801|901|1101|1501|cricket|spanish|minnesota|chaos|quickie|cutthroat|wildcard|hammer|teamhammer|chicago|121|baseball|bermuda|golf|shanghai|countup|gotcha|sharktank|tictactoe|robinhood|doubledown|teamcricket)";
+      let leg = '\\{"id":' + id + ',"gameType":"' + game + '","winnerId":' + nullable
+        + ',"minnesotaCutthroat":(true|false),"turns":\\[(' + turn + '(,' + turn + ')*)?\\]\\}';
+      return value == null || (value is string && value.size() <= 700000
+        && value.matches('^\\{"id":' + id + ',"legs":\\[(' + leg + '(,' + leg + ')*)?\\],"winnerIds":\\[(' + id + '(,' + id + ')*)?\\]\\}$')
+        && value.split('"turns":').size() <= 100
+        && value.split('"winnerIds":')[1].split(',').size() <= 128
+        && !value.matches('.*"gameType":"(301|501|701|801|901|1101|1501|cricket|spanish|chaos|quickie|cutthroat|wildcard|hammer|teamhammer|chicago|121|baseball|bermuda|golf|shanghai|countup|gotcha|sharktank|tictactoe|robinhood|doubledown|teamcricket)","winnerId":' + nullable + ',"minnesotaCutthroat":true.*'));
+    }
+
+    function devResultExtras(data) {
+      return devBackend(data)
+        && (!data.keys().hasAny(['records']) || data.records is string)
+        && (data.get('winnerId', null) == null || devId(data.winnerId))
+        && data.get('scoreA', 0) is int && data.get('scoreA', 0) >= 0 && data.get('scoreA', 0) <= 99
+        && data.get('scoreB', 0) is int && data.get('scoreB', 0) >= 0 && data.get('scoreB', 0) <= 99
+        && data.get('forfeit', false) is bool
+        && data.get('minnesotaCutthroat', false) is bool
+        && (!data.get('minnesotaCutthroat', false) || data.gameType == 'minnesota')
+        && devLedger(data.get('records', null), data.participantIds);
+    }
+
+    function devParticipant(ids, index) {
+      return ids.size() <= index || (devId(ids[index])
+        && exists(/databases/$(database)/documents/blakeoutDevProfiles/$(ids[index])));
+    }
+
+    // Repeated per-map validation exceeded Firestore's 1000-expression budget
+    // with full doubles results. Canonical JSON checks all 12 Chicago counters
+    // in one regex. IDs have already passed devId, so this alternation cannot
+    // inject regex syntax. APIs decode the wire string back to ordinary arrays.
+    function devResultCounters(value, ids) {
+      let players = (ids.size() > 0 ? ids[0] : '')
+        + (ids.size() > 1 ? '|' + ids[1] : '')
+        + (ids.size() > 2 ? '|' + ids[2] : '')
+        + (ids.size() > 3 ? '|' + ids[3] : '');
+      let whole = '(0|[1-9][0-9]{0,11})';
+      let numeric = whole + '(\\.[0-9]{1,32})?([eE]-[0-9]{1,3})?';
+      let entry = '\\{"playerId":"(' + players
+        + ')","gameType":"(chicago|minnesota|301|501|cricket|spanish)","points":' + numeric
+        + ',"darts":' + whole + ',"marks":' + numeric + '\\}';
+      return value is string && value.size() <= 8192
+        && ((ids.size() == 0 && value == '[]')
+          || (ids.size() > 0 && value.matches('^\\[(' + entry + '(,' + entry + '){0,11})?\\]$')));
+    }
+
+    function devResult(data) {
+      return data.keys().hasAll(['ownerId', 'tournamentId', 'participantIds',
+          'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt'])
+        && data.keys().hasOnly(['ownerId', 'tournamentId', 'participantIds',
+          'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt',
+          'winnerId', 'scoreA', 'scoreB', 'forfeit', 'records', 'minnesotaCutthroat', 'backendKey'])
+        && devId(data.ownerId) && devId(data.tournamentId)
+        && devText(data.matchId, 100) && data.matchId.size() > 0
+        && devGame(data.gameType)
+        && data.createdAt is int && data.createdAt > 0
+        && data.participantIds is list && data.participantIds.size() <= 4
+        && data.participantIds.toSet().size() == data.participantIds.size()
+        && devParticipant(data.participantIds, 0)
+        && devParticipant(data.participantIds, 1)
+        && devParticipant(data.participantIds, 2)
+        && devParticipant(data.participantIds, 3)
+        && devResultCounters(data.perPlayer, data.participantIds)
+        && devLegScores(data.legScores)
+        && devResultExtras(data);
+    }
+
+    match /blakeoutDevResults/{id} {
+      // A verified transaction may check an absent result ID for idempotency.
+      allow get: if devVerified()
+        && (!exists(/databases/$(database)/documents/blakeoutDevResults/$(id))
+          || resource.data.ownerId == request.auth.uid
+          || request.auth.uid in resource.data.participantIds);
+      allow list: if devVerified()
+        && (resource.data.ownerId == request.auth.uid
+          || request.auth.uid in resource.data.participantIds);
+      allow create: if devVerified() && devId(id)
+        && devResult(request.resource.data)
+        && request.resource.data.ownerId == request.auth.uid
+        && get(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.ownerId == request.auth.uid
+        && get(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.status == 'live'
+        && request.resource.data.gameType == get(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.gameType
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.status in ['live', 'complete']
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.ownerId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.revision
+          == devNextRevision(request.resource.data.tournamentId,
+            get(/databases/$(database)/documents/blakeoutDevTournaments/$(request.resource.data.tournamentId)).data.revision);
+      allow update, delete: if false;
+    }
+
+    function devCasualGame(value) {
+      return value in ['301', '501', '701', '801', '901', '1101', '1501',
+        'cricket', 'spanish', 'minnesota', 'chaos', 'quickie', 'cutthroat',
+        'wildcard', 'hammer', 'teamhammer', 'chicago', '121', 'baseball',
+        'bermuda', 'golf', 'shanghai', 'countup', 'gotcha', 'sharktank',
+        'tictactoe', 'robinhood', 'doubledown', 'teamcricket'];
+    }
+
+    function devCasualCounters(value, ids) {
+      let games = '(301|501|701|801|901|1101|1501|cricket|spanish|minnesota|chaos|quickie|cutthroat|wildcard|hammer|teamhammer|chicago|121|baseball|bermuda|golf|shanghai|countup|gotcha|sharktank|tictactoe|robinhood|doubledown|teamcricket)';
+      let whole = '(0|[1-9][0-9]{0,11})';
+      let numeric = whole + '(\\.[0-9]{1,32})?([eE]-[0-9]{1,3})?';
+      let entry = '\\{"playerId":"(' + ids.join('|') + ')","gameType":"' + games
+        + '","points":' + numeric + ',"darts":' + whole + ',"marks":' + numeric + '\\}';
+      // A bounded repetition would expand the 128-UID alternation hundreds of
+      // times in RE2. Flat canonical objects permit a separate native count.
+      return value is string && value.size() <= 100000
+        && ((ids.size() == 0 && value == '[]')
+          || (ids.size() > 0 && value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$')
+            && value.split('\\},\\{').size() <= 384));
+    }
+
+    function publicCounters(value, ids, game) {
+      let games = game;
+      let whole = '(0|[1-9][0-9]{0,11})';
+      let numeric = whole + '(\\.[0-9]{1,32})?([eE]-[0-9]{1,3})?';
+      let entry = '\\{"playerId":"(' + ids.join('|') + ')","gameType":"' + games
+        + '","points":' + numeric + ',"darts":' + whole + ',"marks":' + numeric + '\\}';
+      // A bounded repetition would expand the 128-UID alternation hundreds of
+      // times in RE2. Flat canonical objects permit a separate native count.
+      return value is string && value.size() <= 100000
+        && ((ids.size() == 0 && value == '[]')
+          || (ids.size() > 0 && value.matches('^\\[(' + entry + '(,' + entry + ')*)?\\]$')
+            && value.split('\\},\\{').size() <= 384));
+    }
+
+    match /blakeoutDevCasualResults/{id} {
+      allow get: if publicVerified()
+        && (!exists(/databases/$(database)/documents/blakeoutDevCasualResults/$(id))
+          || resource.data.ownerId == request.auth.uid
+          || exists(/databases/$(database)/documents/blakeoutDevCasualReceipts/$(id + '$' + request.auth.uid)));
+      allow list: if publicVerified() && publicPage() && resource.data.ownerId == request.auth.uid;
+      allow create: if publicVerified() && devId(id)
+        && request.resource.data.keys().hasAll(['ownerId', 'participantIds', 'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['ownerId', 'participantIds', 'perPlayer', 'gameType', 'matchId', 'legScores', 'createdAt', 'winnerId', 'winnerIds', 'scoreA', 'scoreB', 'forfeit', 'records', 'minnesotaCutthroat', 'backendKey'])
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.gameType in ['501', 'cricket']
+        && request.resource.data.participantIds == [request.auth.uid]
+        && devText(request.resource.data.matchId, 128) && request.resource.data.matchId.size() > 0
+        && request.resource.data.createdAt is int && request.resource.data.createdAt > 0
+        && request.resource.data.get('winnerIds', []) is list
+        && request.resource.data.get('winnerIds', []).size() <= 128
+        && (request.resource.data.get('winnerIds', []).size() == 0
+          || (request.resource.data.winnerIds == request.resource.data.winnerIds.join(',').split(',')
+            && request.resource.data.winnerIds.join(',').matches('^[A-Za-z0-9_-]{1,128}(,[A-Za-z0-9_-]{1,128})*$')))
+        && devLegScores(request.resource.data.legScores)
+        && request.resource.data.participantIds is list && request.resource.data.participantIds.size() <= 128
+        && request.resource.data.participantIds.toSet().size() == request.resource.data.participantIds.size()
+        && (request.resource.data.participantIds.size() == 0
+          || (request.resource.data.participantIds == request.resource.data.participantIds.join(',').split(',')
+            && request.resource.data.participantIds.join(',').matches('^[A-Za-z0-9_-]{1,128}(,[A-Za-z0-9_-]{1,128})*$')))
+        && publicCounters(request.resource.data.perPlayer, request.resource.data.participantIds, request.resource.data.gameType)
+        && devResultExtras(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /blakeoutDevCasualReceipts/{id} {
+      allow get: if publicVerified()
+        && (!exists(/databases/$(database)/documents/blakeoutDevCasualReceipts/$(id))
+          || resource.data.playerId == request.auth.uid || resource.data.ownerId == request.auth.uid);
+      allow list: if publicVerified() && publicPage() && resource.data.playerId == request.auth.uid;
+      allow create: if publicVerified()
+        && request.resource.data.keys().hasAll(['resultId', 'playerId', 'ownerId', 'backendKey'])
+        && request.resource.data.keys().hasOnly(['resultId', 'playerId', 'ownerId', 'backendKey'])
+        && request.resource.data.playerId == request.auth.uid
+        && devBackend(request.resource.data)
+        && devBackend(get(/databases/$(database)/documents/blakeoutDevCasualResults/$(request.resource.data.resultId)).data)
+        && devId(request.resource.data.resultId) && devId(request.resource.data.playerId)
+        && id == request.resource.data.resultId + '$' + request.resource.data.playerId
+        && request.resource.data.ownerId == request.auth.uid
+        && get(/databases/$(database)/documents/blakeoutDevCasualResults/$(request.resource.data.resultId)).data.ownerId == request.auth.uid
+        && request.resource.data.playerId in get(/databases/$(database)/documents/blakeoutDevCasualResults/$(request.resource.data.resultId)).data.participantIds
+        && exists(/databases/$(database)/documents/blakeoutDevProfiles/$(request.resource.data.playerId));
+      allow update, delete: if false;
+    }
+
+    // No grants for legacy roster(s), usage, other collections or subcollections.
+// Insert inside the default database match. Empty until a separately reviewed pilot.
+function qrBoardUids() { return []; }
+function qrPlayerUids() { return []; }
+function qrBoard() {
+  return database == '(default)' && request.auth != null && request.auth.uid in qrBoardUids();
+}
+function qrPlayer() {
+  return database == '(default)' && request.auth != null && !qrBoard()
+    && request.auth.uid in qrPlayerUids()
+    && request.auth.token.get('email_verified', false) == true
+    && request.auth.token.get('firebase', {}).get('sign_in_provider', '') in ['password', 'google.com'];
+}
+function qrGame(g) { return get(/databases/$(database)/documents/qrGames/$(g)).data; }
+function qrOwner(g) { return qrBoard() && qrGame(g).board == request.auth.uid; }
+function qrOpen(g) { return qrGame(g).active == true; }
+function qrSeat(s) { return s in ['1','2','3','4']; }
+function qrHandle(h) { return h is string && h.matches('^[a-f0-9]{64}$'); }
+function qrInvite(h) { return get(/databases/$(database)/documents/qrInvites/$(h)).data; }
+function qrGrantAfter(g,s) { return getAfter(/databases/$(database)/documents/qrGames/$(g)/grants/$(s)).data; }
+function qrMemberAfter(g,u) { return getAfter(/databases/$(database)/documents/qrGames/$(g)/members/$(u)).data; }
+function qrClaim(g,s,h,u) {
+  let i = qrInvite(h);
+  let after = getAfter(/databases/$(database)/documents/qrInvites/$(h)).data;
+  return qrPlayer() && u == request.auth.uid && qrOpen(g)
+    && i.game == g && i.seat == s && i.status == 'open'
+    && i.expires > request.time
+    && get(/databases/$(database)/documents/qrGames/$(g)/seats/$(s)).data.handle == h
+    && after.status == 'claimed' && after.uid == u;
+}
+match /qrGames/{g} {
+  allow get: if qrOwner(g) || qrPlayer();
+  allow list, delete: if false;
+  allow create: if qrBoard() && request.resource.data.keys().hasOnly(['board','active'])
+    && request.resource.data.board == request.auth.uid && request.resource.data.active == true;
+  allow update: if qrOwner(g) && resource.data.active == true
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active'])
+    && request.resource.data.active == false;
+  match /seats/{s} {
+    allow get: if qrOwner(g) || qrPlayer();
+    allow list, delete: if false;
+    allow create, update: if qrOwner(g) && qrOpen(g) && qrSeat(s)
+      && !exists(/databases/$(database)/documents/qrGames/$(g)/grants/$(s))
+      && request.resource.data.keys().hasOnly(['handle']) && qrHandle(request.resource.data.handle)
+      && getAfter(/databases/$(database)/documents/qrInvites/$(request.resource.data.handle)).data.game == g
+      && getAfter(/databases/$(database)/documents/qrInvites/$(request.resource.data.handle)).data.seat == s;
+  }
+  match /grants/{s} {
+    allow get: if qrOwner(g) || (qrPlayer() && (!exists(/databases/$(database)/documents/qrGames/$(g)/grants/$(s)) || resource.data.uid == request.auth.uid));
+    allow list, update: if false;
+    allow create: if request.resource.data.keys().hasOnly(['uid','handle','code','expires'])
+      && qrSeat(s) && qrClaim(g,s,request.resource.data.handle,request.resource.data.uid)
+      && request.resource.data.code == get(/databases/$(database)/documents/qrSecrets/$(request.resource.data.handle)).data.code
+      && request.resource.data.expires > request.time
+      && request.resource.data.expires <= request.time + duration.value(4,'h')
+      && qrMemberAfter(g,request.auth.uid).seat == s
+      && qrMemberAfter(g,request.auth.uid).handle == request.resource.data.handle;
+    allow delete: if (qrOwner(g) || (qrPlayer() && resource.data.uid == request.auth.uid))
+      && !existsAfter(/databases/$(database)/documents/qrGames/$(g)/members/$(resource.data.uid));
+  }
+  match /members/{u} {
+    allow get: if qrOwner(g) || (qrPlayer() && u == request.auth.uid);
+    allow list, update: if false;
+    allow create: if request.resource.data.keys().hasOnly(['seat','handle'])
+      && qrClaim(g,request.resource.data.seat,request.resource.data.handle,u)
+      && qrGrantAfter(g,request.resource.data.seat).uid == u
+      && qrGrantAfter(g,request.resource.data.seat).handle == request.resource.data.handle;
+    allow delete: if (qrOwner(g) || (qrPlayer() && u == request.auth.uid))
+      && !existsAfter(/databases/$(database)/documents/qrGames/$(g)/grants/$(resource.data.seat));
+  }
+  // A minimal server-authorized action to test that a grant is still usable.
+  // This is NOT score/history authorization and carries no game results.
+  match /checkins/{s} {
+    allow get: if qrOwner(g) || (qrPlayer() && resource.data.uid == request.auth.uid);
+    allow list, delete: if false;
+    allow create, update: if qrPlayer() && qrOpen(g)
+      && request.resource.data.keys().hasOnly(['uid','handle','at'])
+      && request.resource.data.uid == request.auth.uid && request.resource.data.at == request.time
+      && get(/databases/$(database)/documents/qrGames/$(g)/grants/$(s)).data.uid == request.auth.uid
+      && get(/databases/$(database)/documents/qrGames/$(g)/grants/$(s)).data.handle == request.resource.data.handle
+      && get(/databases/$(database)/documents/qrGames/$(g)/grants/$(s)).data.expires > request.time;
+  }
+}
+match /qrInvites/{h} {
+  allow get: if qrPlayer() || (qrBoard() && qrOwner(resource.data.game));
+  allow list, delete: if false;
+  allow create: if qrOwner(request.resource.data.game) && qrOpen(request.resource.data.game)
+    && qrHandle(h) && qrSeat(request.resource.data.seat)
+    && request.resource.data.keys().hasOnly(['game','seat','expires','status','uid'])
+    && request.resource.data.status == 'open' && request.resource.data.uid == ''
+    && request.resource.data.expires > request.time
+    && request.resource.data.expires <= request.time + duration.value(120,'s')
+    && getAfter(/databases/$(database)/documents/qrGames/$(request.resource.data.game)/seats/$(request.resource.data.seat)).data.handle == h;
+  allow update: if qrClaim(resource.data.game,resource.data.seat,h,request.auth.uid)
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','uid'])
+    && qrGrantAfter(resource.data.game,resource.data.seat).uid == request.auth.uid
+    && qrGrantAfter(resource.data.game,resource.data.seat).handle == h;
+}
+match /qrSecrets/{h} {
+  allow get: if qrBoard() && qrOwner(resource.data.game);
+  allow list, update, delete: if false;
+  allow create: if request.resource.data.keys().hasOnly(['game','code'])
+    && qrOwner(request.resource.data.game) && qrOpen(request.resource.data.game)
+    && request.resource.data.code is string && request.resource.data.code.matches('^[0-9]{6}$')
+    && getAfter(/databases/$(database)/documents/qrInvites/$(h)).data.game == request.resource.data.game;
+}
+
+    match /blakeoutDevActiveGames/{uid}/games/{id} {
+      function owner() { return devVerified() && request.auth.uid == uid; }
+      function valid() {
+        let d = request.resource.data;
+        return d.keys().hasAll(['ownerId','backendKey','gameId','revision','operationId','payload','updatedAt','status','archivedAt'])
+          && d.keys().hasOnly(['ownerId','backendKey','gameId','revision','operationId','payload','updatedAt','status','archivedAt'])
+          && id.matches('[A-Za-z0-9_-]{1,128}') && d.ownerId == uid && d.gameId == id && devBackend(d)
+          && d.revision is int && d.revision >= 0
+          && d.operationId is string && d.operationId.matches('[A-Za-z0-9_-]{1,128}')
+          && d.payload is string && d.payload.size() <= 450000
+          && d.updatedAt == request.time;
+      }
+      function transition() {
+        let before = resource.data;
+        let after = request.resource.data;
+        return after.revision == before.revision + 1 && (
+          (before.status == 'active' && after.status == 'active' && after.archivedAt == null)
+          || (before.status == 'active' && after.status == 'archived' && after.payload == before.payload && after.archivedAt == request.time)
+          || (before.status == 'archived' && after.status == 'active' && after.payload == before.payload && after.archivedAt == null)
+          || (before.status == 'archived' && after.status == 'discarded' && after.payload == ''
+            && after.archivedAt == before.archivedAt && request.time >= before.archivedAt + duration.value(30, 'd'))
+        );
+      }
+      allow read: if owner();
+      allow create: if owner() && valid() && request.resource.data.revision == 0
+        && request.resource.data.status == 'active' && request.resource.data.archivedAt == null;
+      allow update: if owner() && valid() && transition();
+      allow delete: if false;
+    }
+
+
+function tdResolve(s,r) {
+  return s == null ? {'ready':true,'team':null} : 'teamId' in s ? {'ready':true,'team':s.teamId}
+    : !(s.matchCode in r) ? {'ready':false,'team':null}
+    : {'ready':true,'team':s.outcome == 'winner' ? r[s.matchCode].winnerId
+      : r[s.matchCode].winnerId == r[s.matchCode].teamA ? r[s.matchCode].teamB : r[s.matchCode].teamA};
+}
+function tdOperatorUids() { return []; }
+function tdOperator() { return request.auth != null && request.auth.uid in tdOperatorUids() && devVerified(); }
+function tdEvent(e) { return get(/databases/$(database)/documents/tdEvents/$(e)).data; }
+function tdWriter(d) {
+  return (d.boardUid == request.auth.uid && qrBoard())
+    || (d.ownerUid == request.auth.uid && tdOperator());
+}
+function tdIdentity(e,r,revision) {
+  let path = /databases/$(database)/documents/tdEvents/$(e)/identities/$(r);
+  let value = exists(path) ? get(path).data : null;
+  return value != null && value.active && value.expires > request.time
+    && value.rosterRevision == revision ? value.uid : null;
+}
+function tdPerson(e,d,r,p) {
+  return p == {'registrationId':r,'uid':d.roster[r].expectedUid == null ? null : tdIdentity(e,r,d.rosterRevision)};
+}
+function tdAttribution(e,d,v) {
+  let a = d.teams[v.teamA].memberIds;
+  let b = d.teams[v.teamB].memberIds;
+  return v.players is list && v.players.size() == 4
+    && tdPerson(e,d,a[0],v.players[0])
+    && tdPerson(e,d,a[1],v.players[1])
+    && tdPerson(e,d,b[0],v.players[2])
+    && tdPerson(e,d,b[1],v.players[3]);
+}
+function tdResult(e,d,old,m,v) {
+  let a = tdResolve(d.topology[m].sourceA,old.results);
+  let b = tdResolve(d.topology[m].sourceB,old.results);
+  let threshold = int(d.bestOf / 2) + 1;
+  return v.keys().hasOnly(['teamA','teamB','winnerId','scoreA','scoreB','forfeit','players'])
+    && a.ready && b.ready && a.team != null && b.team != null
+    && v.teamA == a.team && v.teamB == b.team && v.winnerId in [a.team,b.team]
+    && (m != 'GF2' || old.results.GF1.winnerId == old.results.GF1.teamB)
+    && v.forfeit is bool
+    && (v.forfeit ? (v.scoreA == null && v.scoreB == null)
+      : (v.scoreA is int && v.scoreB is int && v.scoreA >= 0 && v.scoreB >= 0
+        && (v.winnerId == v.teamA ? v.scoreA == threshold && v.scoreB < threshold
+          : v.scoreB == threshold && v.scoreA < threshold)))
+    && tdAttribution(e,d,v);
+}
+function tdAction(e,old,next,log) {
+  let d = tdEvent(e);
+  let organizer = d.ownerUid == request.auth.uid;
+  let before = old.results.get(log.matchId,null);
+  let after = next.results.get(log.matchId,null);
+  let changed = next.results.diff(old.results).affectedKeys();
+  return tdWriter(d) && d.active && log.matchId in d.topology
+    && next.keys().hasOnly(['revision','results','lastOp'])
+    && next.revision == old.revision + 1 && next.results is map
+    && changed.size() == 1 && changed.hasOnly([log.matchId])
+    && !old.results.keys().hasAny(d.descendants[log.matchId])
+    && log.keys().hasOnly(['eventId','operationId','matchId','revision','operation','before','after','actorUid','humanUid','source','at','reason'])
+    && log.eventId == e && log.operationId == next.lastOp && log.revision == next.revision
+    && log.before == before && log.after == after
+    && log.operation == (after == null ? 'undo' : before == null ? 'record' : 'correct')
+    && log.actorUid == request.auth.uid
+    && log.humanUid == (organizer ? request.auth.uid : null)
+    && log.source == (organizer ? 'organizer' : 'shared-device-unknown-human')
+    && log.at == request.time && log.reason is string && log.reason.size() > 0 && log.reason.size() <= 200
+    && (after == null ? before != null : tdResult(e,d,old,log.matchId,after));
+}
+match /tdEvents/{e} {
+  allow get: if tdWriter(resource.data) || qrPlayer();
+  allow list: if tdWriter(resource.data);
+  allow delete: if false;
+  allow create: if tdOperator()
+    && request.resource.data.keys().hasOnly(['eventId','ownerUid','boardUid','title','gameType','bestOf','active','rosterRevision','teams','roster','topology','descendants','seed'])
+    && request.resource.data.eventId == e && request.resource.data.ownerUid == request.auth.uid
+    && request.resource.data.boardUid in qrBoardUids() && request.resource.data.active == true
+    && request.resource.data.rosterRevision == 0 && request.resource.data.teams is map
+    && request.resource.data.teams.size() >= 2 && request.resource.data.teams.size() <= 20
+    && request.resource.data.roster is map && request.resource.data.topology is map
+    && request.resource.data.descendants is map && request.resource.data.seed is string
+    && request.resource.data.seed.size() <= 200000 && request.resource.data.title is string
+    && request.resource.data.bestOf in [1,3,5,7,9]
+    && getAfter(/databases/$(database)/documents/tdEvents/$(e)/state/current).data.revision == 0;
+  allow update: if tdOperator() && resource.data.ownerUid == request.auth.uid && resource.data.active
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active','boardUid'])
+    && request.resource.data.active is bool
+    && (request.resource.data.boardUid == null || request.resource.data.boardUid in qrBoardUids());
+  match /state/{id} {
+    allow read: if id == 'current' && tdWriter(tdEvent(e));
+    allow delete: if false;
+    allow create: if id == 'current' && tdOperator()
+      && getAfter(/databases/$(database)/documents/tdEvents/$(e)).data.ownerUid == request.auth.uid
+      && request.resource.data == {'revision':0,'results':{},'lastOp':''};
+    allow update: if id == 'current'
+      && !exists(/databases/$(database)/documents/tdEvents/$(e)/audit/$(request.resource.data.lastOp))
+      && tdAction(e,resource.data,request.resource.data,getAfter(/databases/$(database)/documents/tdEvents/$(e)/audit/$(request.resource.data.lastOp)).data);
+  }
+  match /audit/{op} {
+    allow read: if tdWriter(tdEvent(e));
+    allow update, delete: if false;
+    // The mandatory head update validates this exact audit in tdAction. Require
+    // that update here; do not duplicate the whole validation/expression budget.
+    allow create: if request.resource.data.operationId == op
+      && getAfter(/databases/$(database)/documents/tdEvents/$(e)/state/current).data.lastOp == op
+      && getAfter(/databases/$(database)/documents/tdEvents/$(e)/state/current).data.revision
+        == get(/databases/$(database)/documents/tdEvents/$(e)/state/current).data.revision + 1;
+  }
+  match /identities/{r} {
+    allow get: if tdWriter(tdEvent(e)) || (qrPlayer() && tdEvent(e).roster[r].expectedUid == request.auth.uid);
+    allow list: if false;
+    allow create, update: if qrPlayer() && tdEvent(e).active
+      && tdEvent(e).roster[r].expectedUid == request.auth.uid
+      && request.resource.data.keys().hasOnly(['uid','active','scope','rosterRevision','expires','at'])
+      && request.resource.data.uid == request.auth.uid && request.resource.data.active is bool
+      && request.resource.data.scope == 'named-tournament-history'
+      && request.resource.data.rosterRevision == tdEvent(e).rosterRevision
+      && request.resource.data.at == request.time && request.resource.data.expires > request.time
+      && request.resource.data.expires <= request.time + duration.value(12,'h');
+    allow delete: if (qrPlayer() && resource.data.uid == request.auth.uid)
+      || (tdOperator() && tdEvent(e).ownerUid == request.auth.uid);
+  }
+}
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
