@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import http from 'node:http';
 import {createRequire} from 'node:module';
 import {isPermissionDenied} from '../tournament-device/permission-denied.mjs';
 const require=createRequire(import.meta.url),modules=process.env.BLAKEOUT_QA_MODULES;
@@ -11,7 +12,18 @@ const apps=require(modules+'/firebase/app'),sdk=require(modules+'/firebase/fires
 const host=process.env.FIRESTORE_EMULATOR_HOST;assert.match(host||'',/^127\.0\.0\.1:[0-9]+$/);
 const project='demo-blakeout-public-policy',base='http://'+host,port=Number(host.split(':')[1]);
 const source=fs.readFileSync(new URL('./firestore.public-proposed.rules',import.meta.url),'utf8');
-async function rules(content){const response=await fetch(base+`/emulator/v1/projects/${project}:securityRules`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({rules:{files:[{name:'sdk-control.rules',content}]}})});assert.equal(response.status,200,await response.text());}
+async function rules(content){
+ const url=new URL(base+`/emulator/v1/projects/${project}:securityRules`);
+ assert.equal(url.protocol,'http:');assert.equal(url.hostname,'127.0.0.1');assert.equal(Number(url.port),port);
+ const body=JSON.stringify({rules:{files:[{name:'sdk-control.rules',content}]}});
+ const response=await new Promise((resolve,reject)=>{
+  const req=http.request(url,{method:'PUT',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(body)}},res=>{
+   let text='';res.setEncoding('utf8');res.on('data',chunk=>text+=chunk);res.on('end',()=>resolve({status:res.statusCode,text}));res.on('error',reject);
+  });
+  req.setTimeout(30000,()=>req.destroy(new Error('Local rules control timed out')));req.on('error',reject);req.end(body);
+ });
+ assert.equal(response.status,200,response.text);
+}
 const clients=[];
 function client(uid,verified=true,provider='password'){
  const app=apps.initializeApp({projectId:project,apiKey:'demo-key',appId:'demo-app'},'query-'+uid);
