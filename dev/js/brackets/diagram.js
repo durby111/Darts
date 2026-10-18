@@ -102,7 +102,7 @@ export function teamLabel(tournament, teamId, labels = registrationLabels(tourna
     return `${team.name} — ${names.join(' & ')}`;
 }
 
-export function renderDiagram(host, tournament, { preview = false, canScore = false, canCorrect = null, onSelect, scale } = {}) {
+export function renderDiagram(host, tournament, { preview = false, canScore = false, canCorrect = null, inProgressMatchId = null, onSelect, scale } = {}) {
     const view = diagramViewport(host);
     const active = document.activeElement;
     const activeCard = host.contains(active) ? active.closest('.match-card') : null;
@@ -154,7 +154,8 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
     }
     for (const node of layout.nodes) {
         const match = node.match;
-        const card = element('article', `match-card ${match.status}`);
+        const inProgress = !preview && match.status === 'ready' && match.id === inProgressMatchId;
+        const card = element('article', `match-card ${match.status}${inProgress ? ' in-progress' : ''}`);
         card.id = `match-${match.code}`;
         card.dataset.code = match.code;
         card.tabIndex = -1;
@@ -165,7 +166,7 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
         card.style.top = `${node.y}px`;
         const state = preview ? (match.status === 'bye' ? 'Bye · Not played' : 'Not played')
             : match.status === 'bye' ? 'Bye · no win'
-                : match.status === 'void' ? 'Not required' : match.status === 'complete' ? (match.forfeit ? 'Forfeit' : 'Played') : match.status === 'ready' ? 'Ready' : 'Upcoming';
+                : inProgress ? '● In progress · device' : match.status === 'void' ? 'Not required' : match.status === 'complete' ? (match.forfeit ? 'Forfeit' : 'Played') : match.status === 'ready' ? '▶ Ready to play' : 'Waiting';
         const header = element('h4', 'match-header');
         header.append(element('span', 'match-code', match.code), element('span', 'match-state', state));
         card.append(header);
@@ -175,7 +176,7 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
             const played = !preview && match.status === 'complete';
             const won = played && teamId && match.winnerId === teamId;
             const slot = element('div', `match-slot${won ? ' won' : played && teamId ? ' lost' : ''}`);
-            const label = teamId ? teamLabel(tournament, teamId, labels) : source ? 'Not decided' : 'Bye';
+            const label = teamId ? teamLabel(tournament, teamId, labels) : source ? `Await ${source.outcome === 'winner' ? 'winner' : 'loser'} of ${source.matchCode}` : 'Bye';
             const text = element('span', 'slot-label');
             const team = tournament.teams.find(item => item.id === teamId);
             if (team) {
@@ -183,7 +184,7 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
             } else text.append(element('span', 'slot-team', label));
             text.title = label;
             slot.append(text);
-            if (played && teamId) slot.append(element('span', 'slot-score', `${match.forfeit ? '' : match[`score${side}`]} ${won ? 'Won' : 'Lost'}`.trim()));
+            if (played && teamId) slot.append(element('span', 'slot-score', `${match.forfeit ? '' : match[`score${side}`]} ${won ? '✓ Won' : '✕ Lost'}`.trim()));
             if (source?.matchCode) {
                 const jump = element('button', 'source-jump', `← ${source.outcome === 'winner' ? 'Winner' : 'Loser'} of ${source.matchCode}`);
                 jump.type = 'button';
@@ -196,7 +197,7 @@ export function renderDiagram(host, tournament, { preview = false, canScore = fa
             card.append(slot);
         }
         if (!preview && canScore && (match.status === 'ready' || canCorrect?.(match))) {
-            const select = element('button', 'match-action', match.status === 'complete' ? 'Correct result' : 'Score match');
+            const select = element('button', 'match-action', match.status === 'complete' ? 'Correct result' : inProgress ? 'Resume scorer' : 'Score match');
             select.type = 'button';
             select.addEventListener('click', () => onSelect?.(match.id));
             card.append(select);

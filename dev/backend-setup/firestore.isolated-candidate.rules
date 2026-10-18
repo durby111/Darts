@@ -1,7 +1,7 @@
 rules_version = '2';
 // LOCAL REVIEW CANDIDATE ONLY — isolated blakeout-darts-dev, default database.
 // Local emulator compilation/enforcement passed; not deployed or approved for activation.
-// Root firebase.json remains separate. Pilot membership is empty and fail-closed.
+// Root firebase.json remains separate. Pilot membership is restricted to the explicitly approved UID.
 // See ISOLATED_RULES_REVIEW.md for scope, residual risks and test requirements.
 service cloud.firestore {
   match /databases/{database}/documents {

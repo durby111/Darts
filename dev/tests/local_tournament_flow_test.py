@@ -103,11 +103,11 @@ async def run(browser,base,people,reset):
   # Sentinels only; never seed tournament state or mutate score/winner state.
   sentinels={'blakeout_active_game':'production-preserved','blakeout_dev_active_game':'existing-dev-preserved','blakeout_roster_id':'0123456789abcdef0123456789abcdef','blakeout_usage_month':'unchanged'}
   await page.evaluate('(values)=>Object.entries(values).forEach(([k,v])=>localStorage.setItem(k,v))',sentinels)
-  await page.locator('#createPanel summary').click();await page.fill('#title',f'Acceptance {people} people')
+  await page.locator('#createPanel summary').click();await page.fill('#title',f'TEST Acceptance {people} people')
   await page.select_option('#gameType','301');await page.fill('#bestOf','1')
   await page.locator('#createForm button[type=submit]').click();await ready(page)
   for i in range(people):
-   await page.fill('#guestName',f'Player {i+1}');await page.locator('#addForm button').click()
+   await page.fill('#guestName',f'TEST Player {i+1}');await page.locator('#addForm button').click()
   await page.check('[data-bulk-field=checkedIn]');await page.check('[data-bulk-field=paid]')
   await page.click('#drawPartners');await page.click('.platform-confirm-cancel')
   assert await page.locator('#rosterRows input[data-field=tag]').evaluate_all('(xs)=>xs.every(x=>!x.value)')
@@ -186,7 +186,7 @@ async def main():
  threading.Thread(target=server.serve_forever,daemon=True).start()
  try:
   async with async_playwright() as p:
-   browser=await p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+   browser=await p.chromium.launch(executable_path=os.environ.get('BLAKEOUT_QA_CHROME', '/usr/bin/chromium'),args=['--no-sandbox'])
    for people in map(int,os.environ.get('DARTS_PEOPLE','12,16,22').split(',')):
     await run(browser,f'http://127.0.0.1:{server.server_port}',people,people!=16)
    await browser.close()

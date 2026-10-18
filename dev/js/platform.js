@@ -1,3 +1,4 @@
+import { requireCloudResume, encodeActiveSnapshot, decodeActiveSnapshot } from './cloud-resume-codec.js';
 import { explainRevisionDenial } from './transaction-conflict.js';
 import { encodeResultLedger, decodeResultLedger } from './result-payload.js';
 // Dev accounts deliberately use a named app, never the scorer's anonymous auth.
@@ -105,9 +106,21 @@ function accountReturnSettings() {
     return { url: new URL('../accounts/', import.meta.url).href, handleCodeInApp: false };
 }
 
+// Signup guidance mirrors the observed DEV console policy; Firebase remains authoritative.
+// Do not apply this policy to existing-account sign-in (force-upgrade was not selected).
+export function validateSignupPassword(password) {
+    if (typeof password !== 'string' || password.length < 10 || password.length > 4096
+        || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)
+        || !/[!-/:-@\[-`{-~]/.test(password)) {
+        const error = new Error('For a new account, use 10–4096 characters including an uppercase letter, a lowercase letter, a number and a special character.');
+        error.code = 'auth/password-does-not-meet-requirements';
+        throw error;
+    }
+}
+
 export async function registerAccount(email, password) {
+    validateSignupPassword(password);
     await initPlatform();
-    if (typeof password !== 'string' || password.length < 6) throw new Error('Use a password with at least 6 characters.');
     const credential = await authSDK.createUserWithEmailAndPassword(auth, accountEmail(email), password);
     requireAccountSession(credential.user);
     publishAccount(credential.user);
@@ -948,3 +961,96 @@ export const storage = Object.freeze({
     updateTournament, joinTournament, joinTournamentAsGuest, saveMatchResult, saveCasualResult,
     listMyResults, saveProfile, getProfile, listProfiles
 });
+
+// Owner-private continuation snapshots; deliberately separate from result records
+// and future QR seat grants. A snapshot never grants scoring/history permission.
+function activeGameRef(uid, id) {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) throw new Error('Invalid active game ID.');
+    return storeSDK.doc(db, 'blakeoutDevActiveGames', uid, 'games', id);
+}
+export async function saveCloudGame(id, expectedRevision, operationId, snapshot) {
+    requireCloudResume();
+    if (!Number.isInteger(expectedRevision) || expectedRevision < -1 || !/^[A-Za-z0-9_-]{1,128}$/.test(operationId)) throw new Error('Invalid active game revision or operation.');
+    const payload = encodeActiveSnapshot(snapshot);
+    await initPlatform();
+    const user = requireVerifiedAccount();
+    if (snapshot.cloudResume?.ownerId !== user.uid || snapshot.cloudResume?.id !== id) throw new Error('Active game belongs to another session.');
+    const reference = activeGameRef(user.uid, id);
+    return storeSDK.runTransaction(db, async tx => {
+        requireAccountSession(user); requireVerifiedAccount();
+        const old = await tx.get(reference);
+        requireAccountSession(user); requireVerifiedAccount();
+        const value = old.exists() ? old.data() : null;
+        if (value?.operationId === operationId && value.status === 'active') {
+            if (value.payload !== payload) throw new Error('Operation ID reused for different state.');
+            return value.revision;
+        }
+        if ((value?.revision ?? -1) !== expectedRevision) {
+            const error = new Error('Another device saved newer state. Reload the cloud game before continuing.');
+            error.code = 'platform/active-game-conflict'; throw error;
+        }
+        if (value && value.status !== 'active') throw new Error('This cloud game is archived or discarded. Restore an archive explicitly before editing.');
+        const revision = expectedRevision + 1;
+        tx.set(reference, { ownerId: user.uid, backendKey: BACKEND_KEY, gameId: id, revision, operationId, payload, status:'active', archivedAt:null, updatedAt:storeSDK.serverTimestamp() });
+        return revision;
+    });
+}
+export async function loadCloudGame(id) {
+    requireCloudResume(); await initPlatform();
+    const user = requireVerifiedAccount();
+    const doc = await storeSDK.getDocFromServer(activeGameRef(user.uid, id));
+    requireAccountSession(user); requireVerifiedAccount();
+    if (!doc.exists()) return null;
+    const record = doc.data(); requireCurrentBackend(record);
+    if(record.status === 'discarded') return null;
+    if(!['active','archived'].includes(record.status)) throw new Error('Unsupported cloud game lifecycle.');
+    const snapshot = decodeActiveSnapshot(record.payload);
+    if (record.ownerId !== user.uid || snapshot.cloudResume?.ownerId !== user.uid || snapshot.cloudResume?.id !== id) throw new Error('Invalid active game owner.');
+    return { snapshot, revision: record.revision, id, status:record.status, archivedAt:record.archivedAt?.toMillis() ?? null };
+}
+// A stable document-ID cursor avoids skipping games when their save times change.
+export async function listCloudGamesPage({afterId=null, pageSize=20}={}) {
+    requireCloudResume(); await initPlatform();
+    if(!Number.isInteger(pageSize) || pageSize<1 || pageSize>50) throw new Error('Invalid cloud game page size.');
+    const user = requireVerifiedAccount();
+    if(afterId!==null) activeGameRef(user.uid,afterId);
+    const constraints=[storeSDK.orderBy(storeSDK.documentId())];
+    if(afterId!==null) constraints.push(storeSDK.startAfter(afterId));
+    constraints.push(storeSDK.limit(pageSize));
+    const docs=await storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db,'blakeoutDevActiveGames',user.uid,'games'),...constraints));
+    requireAccountSession(user); requireVerifiedAccount();
+    const items=docs.docs.filter(d=>d.data().status!=='discarded').map(d=>{
+        const r=d.data();requireCurrentBackend(r);
+        if(!['active','archived'].includes(r.status)) throw new Error('Unsupported cloud game lifecycle.');
+        const s=decodeActiveSnapshot(r.payload);
+        return {id:d.id,type:s.type,players:s.players.map(p=>p.name),status:r.status,revision:r.revision,
+            updatedAt:r.updatedAt.toMillis(),archivedAt:r.archivedAt?.toMillis() ?? null};
+    });
+    return {items,nextCursor:docs.docs.length===pageSize ? docs.docs.at(-1).id : null};
+}
+export async function listCloudGames() {return (await listCloudGamesPage({pageSize:50})).items;}
+
+// Reversible archive/restore, followed by explicit payload discard after30days.
+// Small terminal tombstones remain: a stale device cannot recreate a discarded ID.
+export async function changeCloudGame(id,expectedRevision,operationId,action) {
+    requireCloudResume();
+    const statuses={archive:'archived',restore:'active',discard:'discarded'};
+    if(!Object.hasOwn(statuses,action) || !Number.isInteger(expectedRevision) || expectedRevision<0
+        || !/^[A-Za-z0-9_-]{1,128}$/.test(operationId)) throw new Error('Invalid cloud lifecycle operation.');
+    await initPlatform();const user=requireVerifiedAccount();const reference=activeGameRef(user.uid,id);
+    return storeSDK.runTransaction(db,async tx=>{
+        requireAccountSession(user);requireVerifiedAccount();const old=await tx.get(reference);
+        requireAccountSession(user);requireVerifiedAccount();
+        if(!old.exists()) throw new Error('Cloud game no longer available.');
+        const value=old.data();requireCurrentBackend(value);
+        if(value.operationId===operationId && value.status===statuses[action]) return value.revision;
+        if(value.revision!==expectedRevision) {const e=new Error('Another device changed this game. Refresh before continuing.');e.code='platform/active-game-conflict';throw e;}
+        if((action==='archive' && value.status!=='active') || (action!=='archive' && value.status!=='archived')) throw new Error('Invalid cloud game lifecycle transition.');
+        // The rules enforce the30-day minimum using server time, not this client clock.
+        tx.set(reference,{...value,revision:value.revision+1,operationId,status:statuses[action],
+            payload:action==='discard' ? '' : value.payload,
+            archivedAt:action==='archive' ? storeSDK.serverTimestamp() : action==='restore' ? null : value.archivedAt,
+            updatedAt:storeSDK.serverTimestamp()});
+        return value.revision+1;
+    });
+}

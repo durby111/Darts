@@ -113,7 +113,10 @@ function prepareTemplate(fragment) {
         if (original.pathname === scorerURL.pathname) {
             link.href = scorerURL.href;
             link.dataset.leavePreview = 'true';
-            link.textContent = 'Back to scoring (leave preview)';
+            if (link.classList.contains('platform-brand')) {
+                link.setAttribute('aria-label', 'BlakeOut DEV — Back to scoring (leave preview)');
+                link.title = 'Back to scoring (leave preview)';
+            } else link.textContent = 'Back to scoring (leave preview)';
         } else if (/\/accounts\/$/.test(original.pathname)) link.href = new URL('./accounts/', previewRoot).href;
         else if (/\/brackets\/$/.test(original.pathname)) link.href = new URL('./brackets/', previewRoot).href;
         else link.removeAttribute('href');

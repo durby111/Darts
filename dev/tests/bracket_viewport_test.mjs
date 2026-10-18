@@ -72,7 +72,7 @@ async function fresh(count = 32, roundedScroll = false) {
     tournament = engine.saveRoster(tournament, Array.from({ length: count * 2 }, (_, i) => ({ id: `p${i}`, name: `Player ${i}`, tag: String(Math.floor(i / 2) + 1), paid: true, checkedIn: true, standby: false })));
     tournament = engine.startTournament(tournament);
     let selected = 0;
-    const render = (item = tournament) => diagram.renderDiagram(host, item, { canScore: true, onSelect: () => selected++ });
+    const render = (item = tournament, options = {}) => diagram.renderDiagram(host, item, { canScore: true, onSelect: () => selected++, ...options });
     render();
     const pointer = (type, id, x, y, target = host, pointerType = 'mouse') => {
         const event = new w.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x + box.left, clientY: y + box.top, button: 0 });
@@ -82,9 +82,25 @@ async function fresh(count = 32, roundedScroll = false) {
     const resize = (width, height) => { Object.assign(box, { width, height }); observers.forEach(callback => callback()); };
     const zoom = () => Number(host.dataset.zoom);
     const world = (x, y) => ({ x: (host.scrollLeft + x - parseFloat(host.querySelector('.diagram-canvas').style.left)) / zoom(), y: (host.scrollTop + y - parseFloat(host.querySelector('.diagram-canvas').style.top)) / zoom() });
-    return { dom, w, d, host, box, controls, controller, tournament, render, pointer, resize, zoom, world, selected: () => selected, captures };
+    return { engine, dom, w, d, host, box, controls, controller, tournament, render, pointer, resize, zoom, world, selected: () => selected, captures };
 }
 async function test(name, fn, roundedScroll = false) { const state = await fresh(32, roundedScroll); try { await fn(state); console.log(`PASS ${name}`); passed++; } finally { state.dom.window.close(); } }
+await test('Feeder labels, ready/scoring distinction and non-color result labels', ({engine,host,tournament,render}) => {
+    const pending=tournament.matches.find(m=>m.bracket==='losers' && m.sourceA?.matchCode);
+    assert.ok(host.querySelector(`[data-code="${pending.code}"]`).textContent.includes(`Await loser of ${pending.sourceA.matchCode}`));
+    const m=tournament.matches.find(m=>m.status==='ready');
+    render(tournament,{inProgressMatchId:m.id});
+    const card=host.querySelector(`[data-code="${m.code}"]`);
+    assert.ok(card.classList.contains('in-progress'));
+    assert.ok(card.textContent.includes('In progress · device'));
+    assert.ok(card.textContent.includes('Resume scorer'));
+    const done=engine.recordResult(tournament,m.id,{winnerId:m.teamA,scoreA:2,scoreB:0});
+    render(done,{inProgressMatchId:m.id});
+    const completed=host.querySelector(`[data-code="${m.code}"]`);
+    assert.ok(!completed.classList.contains('in-progress'));
+    assert.ok(completed.querySelector('.won').textContent.includes('✓ Won'));
+    assert.ok(completed.querySelector('.lost').textContent.includes('✕ Lost'));
+});
 await test('Rounded scroll offsets retain fractional drag, reversal and repeated gesture precision', ({ host, controller, pointer }) => {
     controller.zoomTo(1); host.scrollLeft = 500; host.scrollTop = 1000;
     for (let gesture = 1; gesture <= 3; gesture++) {

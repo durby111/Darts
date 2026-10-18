@@ -31,7 +31,11 @@ for(const feature of ['accounts','brackets']){
  assert.ok(!/href="(?!\.\.\/|\.\.\/css\/)[^\"]+"/.test(page));
 }
 pass('production identity retained; both direct feature routes are static disabled shells without account apps');
-for(const rel of ['js/state.js','js/app.js','js/scoring-records.js'])assert.equal(read(rel),read('dev/'+rel),rel);
+assert.equal(read('js/scoring-records.js'),read('dev/js/scoring-records.js'));
+// Active-game resume is DEV-only. Pin production scorer bytes rather than copy it there.
+for(const file of ['js/state.js','js/app.js','js/x01.js']) assert.equal(read(file),execFileSync('git',['show','3011d48:'+file],{cwd:root,encoding:'utf8'}),file);
+for(const file of ['cloud-resume-config.js','cloud-resume-codec.js','cloud-resume-ui.js']) assert.ok(read('dev/sw.js').includes('./js/'+file));
+assert.match(read('dev/js/cloud-resume-config.js'), /CLOUD_RESUME_ENABLED = false/);
 // The isolated DEV backend now adds origin guards to its casual-recording path.
 // Production must remain exactly the approved baseline, not acquire DEV transport.
 assert.equal(read('js/casual-recording.js'),execFileSync('git',['show','bed1772:js/casual-recording.js'],{cwd:root,encoding:'utf8'}));
@@ -42,7 +46,7 @@ assert.ok(!fs.existsSync(path.join(root,'js/platform.js')));assert.ok(!fs.exists
 for (const file of ['js/build-context.js','js/tournament-bridge.js','js/firebase.js']) {
  assert.equal(read(file),execFileSync('git',['show','8a1d7d7:'+file],{cwd:root,encoding:'utf8'}),file);
 }
-pass('shared scorer modules match; intentionally divergent DEV tournament modules leave released production unchanged; account transport not promoted');
+pass('shared recording module matches; intentionally divergent DEV resume/tournament modules leave released production unchanged; account transport not promoted');
 for(const build of ['','dev/']){
  const href='https://example.test/'+build+'sw.js';const ctx=vm.createContext({URL,self:{location:{href,origin:'https://example.test'},addEventListener(){}}});
  vm.runInContext(read(build+'sw.js')+'\nthis.audit={CACHE_NAME,ASSETS,isOwnCache,isOwnPath};',ctx);const a=ctx.audit;

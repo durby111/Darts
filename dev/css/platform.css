@@ -66,6 +66,29 @@ body.platform-page { margin: 0; background: var(--color-bg); color: var(--color-
 .platform-page a { color: var(--platform-link); }
 .platform-header a[aria-current="page"] { color: var(--color-text); text-decoration-thickness: 3px; text-underline-offset: .4em; }
 .platform-page .dev-badge { display: inline-block; color: var(--platform-button-ink); background: var(--platform-button-bg); border: 1px solid var(--platform-button-border); padding: .05rem .4rem; border-radius: .3rem; font-size: .72em; vertical-align: middle; }
+/* Match the scorer's setup banner without importing scoring layout styles.
+   CSS asset URLs remain correct in fetched sample/device-local templates. */
+.platform-header {
+    min-height: 148px;
+    padding-block: 24px;
+    border-bottom: 5px solid var(--color-primary-light);
+    background: linear-gradient(90deg, #080b0ee8, #080b0eb3), var(--app-wallpaper, url('../assets/background.jpg')) center 42% / cover;
+}
+.platform-header .platform-brand { display: flex; align-items: center; gap: 16px; color: #fff; min-width: 0; }
+.platform-brand-logo { width: 88px; height: 88px; flex: 0 0 88px; background: url('../assets/logo.png') center / contain no-repeat; }
+.platform-brand-text { display: flex; flex-direction: column; gap: 6px; }
+.platform-brand-name { font-family: Impact, 'Arial Narrow', 'DejaVu Sans Condensed', sans-serif; font-size: 54px; font-weight: 900; line-height: 1.1; }
+.platform-brand-subtitle { color: #b9e6de; font-size: 12px; font-weight: 800; }
+.platform-header nav { gap: 4px; padding: 4px; background: var(--color-surface-alt); border: 1px solid var(--color-border-light); border-radius: 12px; }
+.platform-header nav a { display: inline-flex; align-items: center; min-height: 44px; padding: .5rem .75rem; border-radius: 8px; color: var(--color-text); font-size: .875rem; font-weight: 600; text-decoration: none; }
+.platform-header nav a[aria-current="page"] { background: var(--color-primary); color: var(--color-on-primary); }
+.platform-header nav a:hover { box-shadow: inset 0 0 0 1px var(--color-border-light); }
+@media (max-width: 480px) {
+    .platform-brand-logo { width: 64px; height: 64px; flex-basis: 64px; }
+    .platform-brand-name { font-size: 40px; }
+    .platform-header nav { width: 100%; }
+    .platform-header nav a { white-space: normal; }
+}
 .platform-main { max-width: var(--platform-content-width); margin: auto; padding: var(--space-xl); }
 .platform-main h1 { line-height: 1.2; }
 .platform-card { margin: 1rem 0; padding: 1.25rem; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--platform-panel-radius); min-width: 0; }

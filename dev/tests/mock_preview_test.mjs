@@ -286,7 +286,7 @@ await test('DEV entries expose samples while provider modules and SW precaches r
     assert.equal(fs.existsSync(path.join(root, 'preview')), false);
     for (const p of ['js/feature-availability.js', '../js/feature-availability.js']) {
         const code = read(p);
-        assert.match(code, /brackets:\s*false/); assert.match(code, /accounts:\s*false/);
+        assert.match(code, /brackets:\s*false/); assert.match(code, p.startsWith('../') ? /accounts:\s*false/ : /accounts:\s*true/);
     }
     const fixtureCode = read('preview/fixture-platform.js');
     assert.doesNotMatch(fixtureCode, /\bfetch\s*\(|\blocalStorage\s*\.|\bsessionStorage\s*\.|\bindexedDB\s*\.|https?:\/\//);

@@ -43,8 +43,9 @@ real user browser profiles are imported. Synthetic emulator state is ephemeral.
 
 The browser verifies the served adapter matches the worktree bytes. Backend
 project/app constants and corresponding candidate-rule markers are translated to
-`demo-blakeout-adapter-task3` / `demo-app`; all validation logic is retained. The shipped pilot UID list is empty. Tests
-first prove default denial, then explicitly insert only synthetic fixture UIDs
+`demo-blakeout-adapter-task3` / `demo-app`; all validation logic is retained. The current candidate carries one user-supplied UID. Tests
+compile the exact candidate and prove its UID membership with unsigned emulator
+claims and synthetic data, then prove empty-list denial and insert synthetic fixture UIDs
 into ephemeral emulator rules, test revocation, and retain owner/privacy checks.
 The real-SDK suite uses emulator-generated UIDs; it never edits the shipped list.
 Local SDK wrappers attach Auth/Firestore emulators before use. No Firestore data

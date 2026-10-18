@@ -1,3 +1,4 @@
+import { initCloudResume } from './cloud-resume-ui.js';
 /* ============================================
    App Entry Point
    Screen routing, display dispatcher, PWA
@@ -415,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('updateButton', initUpdateButton);
     safeInit('tournamentBridge', initTournamentBridge);
     safeInit('casualRecording', initCasualRecording);
+    safeInit('cloudResume', initCloudResume);
 });
 
 // Save game on page unload (refresh, close, update)
