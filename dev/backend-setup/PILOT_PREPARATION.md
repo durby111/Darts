@@ -2,7 +2,9 @@
 
 No deployment, real account, email, credential action or UI activation is included.
 Every positive Firestore client grant now requires a UID in `devPilotUids()`.
-The on-disk list is **empty**. No real participant has been invented or enrolled.
+The current on-disk list contains only the user-supplied DEV UID
+`[LOCAL PILOT UID OMITTED]`. Mike reports completing verification.
+This is local preparation; the live rules still require separate publication approval.
 Verified password/Google claims, default-database, schema, ownership, revision,
 atomicity and privacy checks still apply after membership passes.
 
@@ -10,7 +12,7 @@ atomicity and privacy checks still apply after membership passes.
 
 - Project: `blakeout-darts-dev`; database: `(default)`.
 - Web app: `1:901185136996:web:89d4f413520e66ff773271`.
-- Candidate SHA256: `a5a1b1d6638fc271b4f941db7382e2a95f5d01af2bd57b1b9bd4efa7cfd96745`.
+- Candidate SHA256: `171a038cc0f7442a93cd35aea8080a71ee4ccca4e9f6409a4980adfb51da5d11`.
 - Separate config: `firebase.isolated-dev.json`; pinned identity/hash:
   `isolated-pilot-manifest.json`. Root `firebase.json` still selects root rules.
 
@@ -20,9 +22,10 @@ login or subprocess operation:
 ```sh
 python3 dev/backend-setup/prepare_isolated_pilot.py \
   --project blakeout-darts-dev \
-  --expected-sha256 a5a1b1d6638fc271b4f941db7382e2a95f5d01af2bd57b1b9bd4efa7cfd96745
+  --expected-sha256 171a038cc0f7442a93cd35aea8080a71ee4ccca4e9f6409a4980adfb51da5d11
 ```
 
+The current named candidate can prepare a command but never executes it.
 The guard refuses production, aliases, wrong hashes, altered manifest/config,
 symlinked files and an empty-list activation command. With an explicitly reviewed
 nonempty list (maximum 20 UIDs), `--prepare-command` only prints an exact DEV-only,
@@ -69,7 +72,8 @@ no test UID is written into the candidate. No live Firebase request is permitted
 4. Prepare and retest the exact populated rules bytes and updated hash/config before
    requesting narrowly scoped live rule-deployment approval. UI/provider activation,
    settings changes and real-device/second-device tests require their own concrete
-   approved scope. Existing public gates remain off; never enable Anonymous Auth.
+   approved scope. DEV accounts are enabled only in this local online candidate; production gates
+   and DEV brackets remain off. Never enable Anonymous Auth.
 
 ## Revocation and cleanup
 
@@ -85,3 +89,9 @@ client deletion. Before pilot authorization, inventory exact synthetic/live test
 records and their project/path/owner, agree retention, and approve narrowly scoped
 owner-console/admin deletion and Auth-account removal separately. Do not grant the
 client broad delete rights, delete unrelated records, or reuse production data.
+
+## Current online candidate
+
+See `ONLINE_DEV_PILOT.md` for the latest exact UID/rules hash, online return URL,
+reported console evidence, launch requirements and publication blockers. Earlier
+empty-list evidence above describes the preceding preparation stages, not live state.

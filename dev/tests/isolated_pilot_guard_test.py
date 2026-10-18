@@ -3,6 +3,7 @@
 import hashlib
 import importlib.util
 import json
+import re
 from pathlib import Path
 import tempfile
 
@@ -19,7 +20,11 @@ def check(name, mutate=None, project=g.PROJECT, expected=None, prepare=False, de
         d = Path(tmp)
         for f in ['firebase.isolated-dev.json', 'isolated-pilot-manifest.json', 'firestore.isolated-candidate.rules']:
             (d / f).write_bytes((DIR / f).read_bytes())
-        digest = hashlib.sha256((d / 'firestore.isolated-candidate.rules').read_bytes()).hexdigest()
+        rules = d / 'firestore.isolated-candidate.rules'
+        rules.write_text(re.sub(r'(function devPilotUids\(\)\s*\{[^}]*return )\[[^\]]*\];', lambda m: m.group(1)+'[];', rules.read_text()))
+        digest = hashlib.sha256(rules.read_bytes()).hexdigest()
+        pin = d / 'isolated-pilot-manifest.json'
+        data = json.loads(pin.read_text()); data['rulesSha256'] = digest; pin.write_text(json.dumps(data))
         if mutate:
             changed = mutate(d)
             if changed: digest = changed
@@ -58,3 +63,8 @@ check('manifest target tampering refused', lambda d: (d/'isolated-pilot-manifest
 check('symlink refused', lambda d: ((d/'firebase.isolated-dev.json').unlink(), (d/'firebase.isolated-dev.json').symlink_to(DIR/'firebase.isolated-dev.json')) and None)
 check('synthetic named fixture prepares DEV-only command without execution', named, prepare=True, deny=False)
 print(f'PASS {count} offline deployment guard cases')
+
+actual_digest = hashlib.sha256((DIR / 'firestore.isolated-candidate.rules').read_bytes()).hexdigest()
+actual = g.validate(DIR, g.PROJECT, actual_digest, True)
+assert actual['pilotCount'] == 1 and actual['executed'] is False
+print('PASS exact named candidate manifest/hash and DEV-only command preparation')

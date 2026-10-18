@@ -1,0 +1,115 @@
+function tdOperatorUids() { return []; }
+function tdOperator() { return request.auth != null && request.auth.uid in tdOperatorUids() && devVerified(); }
+function tdEvent(e) { return get(/databases/$(database)/documents/tdEvents/$(e)).data; }
+function tdWriter(d) {
+  return (d.boardUid == request.auth.uid && qrBoard())
+    || (d.ownerUid == request.auth.uid && tdOperator());
+}
+function tdIdentity(e,r,revision) {
+  let path = /databases/$(database)/documents/tdEvents/$(e)/identities/$(r);
+  let value = exists(path) ? get(path).data : null;
+  return value != null && value.active && value.expires > request.time
+    && value.rosterRevision == revision ? value.uid : null;
+}
+function tdPerson(e,d,r,p) {
+  return p == {'registrationId':r,'uid':d.roster[r].expectedUid == null ? null : tdIdentity(e,r,d.rosterRevision)};
+}
+function tdAttribution(e,d,v) {
+  let a = d.teams[v.teamA].memberIds;
+  let b = d.teams[v.teamB].memberIds;
+  return v.players is list && v.players.size() == 4
+    && tdPerson(e,d,a[0],v.players[0])
+    && tdPerson(e,d,a[1],v.players[1])
+    && tdPerson(e,d,b[0],v.players[2])
+    && tdPerson(e,d,b[1],v.players[3]);
+}
+function tdResult(e,d,old,m,v) {
+  let a = tdResolve(d.topology[m].sourceA,old.results);
+  let b = tdResolve(d.topology[m].sourceB,old.results);
+  let threshold = int(d.bestOf / 2) + 1;
+  return v.keys().hasOnly(['teamA','teamB','winnerId','scoreA','scoreB','forfeit','players'])
+    && a.ready && b.ready && a.team != null && b.team != null
+    && v.teamA == a.team && v.teamB == b.team && v.winnerId in [a.team,b.team]
+    && (m != 'GF2' || old.results.GF1.winnerId == old.results.GF1.teamB)
+    && v.forfeit is bool
+    && (v.forfeit ? (v.scoreA == null && v.scoreB == null)
+      : (v.scoreA is int && v.scoreB is int && v.scoreA >= 0 && v.scoreB >= 0
+        && (v.winnerId == v.teamA ? v.scoreA == threshold && v.scoreB < threshold
+          : v.scoreB == threshold && v.scoreA < threshold)))
+    && tdAttribution(e,d,v);
+}
+function tdAction(e,old,next,log) {
+  let d = tdEvent(e);
+  let organizer = d.ownerUid == request.auth.uid;
+  let before = old.results.get(log.matchId,null);
+  let after = next.results.get(log.matchId,null);
+  let changed = next.results.diff(old.results).affectedKeys();
+  return tdWriter(d) && d.active && log.matchId in d.topology
+    && next.keys().hasOnly(['revision','results','lastOp'])
+    && next.revision == old.revision + 1 && next.results is map
+    && changed.size() == 1 && changed.hasOnly([log.matchId])
+    && !old.results.keys().hasAny(d.descendants[log.matchId])
+    && log.keys().hasOnly(['eventId','operationId','matchId','revision','operation','before','after','actorUid','humanUid','source','at','reason'])
+    && log.eventId == e && log.operationId == next.lastOp && log.revision == next.revision
+    && log.before == before && log.after == after
+    && log.operation == (after == null ? 'undo' : before == null ? 'record' : 'correct')
+    && log.actorUid == request.auth.uid
+    && log.humanUid == (organizer ? request.auth.uid : null)
+    && log.source == (organizer ? 'organizer' : 'shared-device-unknown-human')
+    && log.at == request.time && log.reason is string && log.reason.size() > 0 && log.reason.size() <= 200
+    && (after == null ? before != null : tdResult(e,d,old,log.matchId,after));
+}
+match /tdEvents/{e} {
+  allow get: if tdWriter(resource.data) || qrPlayer();
+  allow list: if tdWriter(resource.data);
+  allow delete: if false;
+  allow create: if tdOperator()
+    && request.resource.data.keys().hasOnly(['eventId','ownerUid','boardUid','title','gameType','bestOf','active','rosterRevision','teams','roster','topology','descendants','seed'])
+    && request.resource.data.eventId == e && request.resource.data.ownerUid == request.auth.uid
+    && request.resource.data.boardUid in qrBoardUids() && request.resource.data.active == true
+    && request.resource.data.rosterRevision == 0 && request.resource.data.teams is map
+    && request.resource.data.teams.size() >= 2 && request.resource.data.teams.size() <= 20
+    && request.resource.data.roster is map && request.resource.data.topology is map
+    && request.resource.data.descendants is map && request.resource.data.seed is string
+    && request.resource.data.seed.size() <= 200000 && request.resource.data.title is string
+    && request.resource.data.bestOf in [1,3,5,7,9]
+    && getAfter(/databases/$(database)/documents/tdEvents/$(e)/state/current).data.revision == 0;
+  allow update: if tdOperator() && resource.data.ownerUid == request.auth.uid && resource.data.active
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active','boardUid'])
+    && request.resource.data.active is bool
+    && (request.resource.data.boardUid == null || request.resource.data.boardUid in qrBoardUids());
+  match /state/{id} {
+    allow read: if id == 'current' && tdWriter(tdEvent(e));
+    allow delete: if false;
+    allow create: if id == 'current' && tdOperator()
+      && getAfter(/databases/$(database)/documents/tdEvents/$(e)).data.ownerUid == request.auth.uid
+      && request.resource.data == {'revision':0,'results':{},'lastOp':''};
+    allow update: if id == 'current'
+      && !exists(/databases/$(database)/documents/tdEvents/$(e)/audit/$(request.resource.data.lastOp))
+      && tdAction(e,resource.data,request.resource.data,getAfter(/databases/$(database)/documents/tdEvents/$(e)/audit/$(request.resource.data.lastOp)).data);
+  }
+  match /audit/{op} {
+    allow read: if tdWriter(tdEvent(e));
+    allow update, delete: if false;
+    // The mandatory head update validates this exact audit in tdAction. Require
+    // that update here; do not duplicate the whole validation/expression budget.
+    allow create: if request.resource.data.operationId == op
+      && getAfter(/databases/$(database)/documents/tdEvents/$(e)/state/current).data.lastOp == op
+      && getAfter(/databases/$(database)/documents/tdEvents/$(e)/state/current).data.revision
+        == get(/databases/$(database)/documents/tdEvents/$(e)/state/current).data.revision + 1;
+  }
+  match /identities/{r} {
+    allow get: if tdWriter(tdEvent(e)) || (qrPlayer() && tdEvent(e).roster[r].expectedUid == request.auth.uid);
+    allow list: if false;
+    allow create, update: if qrPlayer() && tdEvent(e).active
+      && tdEvent(e).roster[r].expectedUid == request.auth.uid
+      && request.resource.data.keys().hasOnly(['uid','active','scope','rosterRevision','expires','at'])
+      && request.resource.data.uid == request.auth.uid && request.resource.data.active is bool
+      && request.resource.data.scope == 'named-tournament-history'
+      && request.resource.data.rosterRevision == tdEvent(e).rosterRevision
+      && request.resource.data.at == request.time && request.resource.data.expires > request.time
+      && request.resource.data.expires <= request.time + duration.value(12,'h');
+    allow delete: if (qrPlayer() && resource.data.uid == request.auth.uid)
+      || (tdOperator() && tdEvent(e).ownerUid == request.auth.uid);
+  }
+}

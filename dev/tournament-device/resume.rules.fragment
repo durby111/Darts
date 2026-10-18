@@ -1,0 +1,17 @@
+    match /blakeoutDevActiveGames/{uid}/games/{id} {
+      function owner() { return devVerified() && request.auth.uid == uid; }
+      function valid() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['ownerId','backendKey','gameId','revision','operationId','payload','updatedAt'])
+          && d.ownerId == uid && d.gameId == id && devBackend(d)
+          && d.revision is int && d.revision >= 0
+          && d.operationId is string && d.operationId.matches('[A-Za-z0-9_-]{1,128}')
+          && d.payload is string && d.payload.size() <= 450000
+          && d.updatedAt is int;
+      }
+      allow read: if owner();
+      allow create: if owner() && valid() && request.resource.data.revision == 0;
+      allow update: if owner() && valid() && request.resource.data.revision == resource.data.revision + 1;
+      allow delete: if false;
+    }
+

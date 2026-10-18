@@ -105,9 +105,21 @@ function accountReturnSettings() {
     return { url: new URL('../accounts/', import.meta.url).href, handleCodeInApp: false };
 }
 
+// Signup guidance mirrors the observed DEV console policy; Firebase remains authoritative.
+// Do not apply this policy to existing-account sign-in (force-upgrade was not selected).
+export function validateSignupPassword(password) {
+    if (typeof password !== 'string' || password.length < 10 || password.length > 4096
+        || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)
+        || !/[!-/:-@\[-`{-~]/.test(password)) {
+        const error = new Error('For a new account, use 10–4096 characters including an uppercase letter, a lowercase letter, a number and a special character.');
+        error.code = 'auth/password-does-not-meet-requirements';
+        throw error;
+    }
+}
+
 export async function registerAccount(email, password) {
+    validateSignupPassword(password);
     await initPlatform();
-    if (typeof password !== 'string' || password.length < 6) throw new Error('Use a password with at least 6 characters.');
     const credential = await authSDK.createUserWithEmailAndPassword(auth, accountEmail(email), password);
     requireAccountSession(credential.user);
     publishAccount(credential.user);

@@ -1,0 +1,105 @@
+// Insert inside the default database match. Empty until a separately reviewed pilot.
+function qrBoardUids() { return []; }
+function qrPlayerUids() { return []; }
+function qrBoard() {
+  return database == '(default)' && request.auth != null && request.auth.uid in qrBoardUids();
+}
+function qrPlayer() {
+  return database == '(default)' && request.auth != null && !qrBoard()
+    && request.auth.uid in qrPlayerUids()
+    && request.auth.token.get('email_verified', false) == true
+    && request.auth.token.get('firebase', {}).get('sign_in_provider', '') in ['password', 'google.com'];
+}
+function qrGame(g) { return get(/databases/$(database)/documents/qrGames/$(g)).data; }
+function qrOwner(g) { return qrBoard() && qrGame(g).board == request.auth.uid; }
+function qrOpen(g) { return qrGame(g).active == true; }
+function qrSeat(s) { return s in ['1','2','3','4']; }
+function qrHandle(h) { return h is string && h.matches('^[a-f0-9]{64}$'); }
+function qrInvite(h) { return get(/databases/$(database)/documents/qrInvites/$(h)).data; }
+function qrGrantAfter(g,s) { return getAfter(/databases/$(database)/documents/qrGames/$(g)/grants/$(s)).data; }
+function qrMemberAfter(g,u) { return getAfter(/databases/$(database)/documents/qrGames/$(g)/members/$(u)).data; }
+function qrClaim(g,s,h,u) {
+  let i = qrInvite(h);
+  let after = getAfter(/databases/$(database)/documents/qrInvites/$(h)).data;
+  return qrPlayer() && u == request.auth.uid && qrOpen(g)
+    && i.game == g && i.seat == s && i.status == 'open'
+    && i.expires > request.time
+    && get(/databases/$(database)/documents/qrGames/$(g)/seats/$(s)).data.handle == h
+    && after.status == 'claimed' && after.uid == u;
+}
+match /qrGames/{g} {
+  allow get: if qrOwner(g) || qrPlayer();
+  allow list, delete: if false;
+  allow create: if qrBoard() && request.resource.data.keys().hasOnly(['board','active'])
+    && request.resource.data.board == request.auth.uid && request.resource.data.active == true;
+  allow update: if qrOwner(g) && resource.data.active == true
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active'])
+    && request.resource.data.active == false;
+  match /seats/{s} {
+    allow get: if qrOwner(g) || qrPlayer();
+    allow list, delete: if false;
+    allow create, update: if qrOwner(g) && qrOpen(g) && qrSeat(s)
+      && !exists(/databases/$(database)/documents/qrGames/$(g)/grants/$(s))
+      && request.resource.data.keys().hasOnly(['handle']) && qrHandle(request.resource.data.handle)
+      && getAfter(/databases/$(database)/documents/qrInvites/$(request.resource.data.handle)).data.game == g
+      && getAfter(/databases/$(database)/documents/qrInvites/$(request.resource.data.handle)).data.seat == s;
+  }
+  match /grants/{s} {
+    allow get: if qrOwner(g) || (qrPlayer() && (!exists(/databases/$(database)/documents/qrGames/$(g)/grants/$(s)) || resource.data.uid == request.auth.uid));
+    allow list, update: if false;
+    allow create: if request.resource.data.keys().hasOnly(['uid','handle','code','expires'])
+      && qrSeat(s) && qrClaim(g,s,request.resource.data.handle,request.resource.data.uid)
+      && request.resource.data.code == get(/databases/$(database)/documents/qrSecrets/$(request.resource.data.handle)).data.code
+      && request.resource.data.expires > request.time
+      && request.resource.data.expires <= request.time + duration.value(4,'h')
+      && qrMemberAfter(g,request.auth.uid).seat == s
+      && qrMemberAfter(g,request.auth.uid).handle == request.resource.data.handle;
+    allow delete: if (qrOwner(g) || (qrPlayer() && resource.data.uid == request.auth.uid))
+      && !existsAfter(/databases/$(database)/documents/qrGames/$(g)/members/$(resource.data.uid));
+  }
+  match /members/{u} {
+    allow get: if qrOwner(g) || (qrPlayer() && u == request.auth.uid);
+    allow list, update: if false;
+    allow create: if request.resource.data.keys().hasOnly(['seat','handle'])
+      && qrClaim(g,request.resource.data.seat,request.resource.data.handle,u)
+      && qrGrantAfter(g,request.resource.data.seat).uid == u
+      && qrGrantAfter(g,request.resource.data.seat).handle == request.resource.data.handle;
+    allow delete: if (qrOwner(g) || (qrPlayer() && u == request.auth.uid))
+      && !existsAfter(/databases/$(database)/documents/qrGames/$(g)/grants/$(resource.data.seat));
+  }
+  // A minimal server-authorized action to test that a grant is still usable.
+  // This is NOT score/history authorization and carries no game results.
+  match /checkins/{s} {
+    allow get: if qrOwner(g) || (qrPlayer() && resource.data.uid == request.auth.uid);
+    allow list, delete: if false;
+    allow create, update: if qrPlayer() && qrOpen(g)
+      && request.resource.data.keys().hasOnly(['uid','handle','at'])
+      && request.resource.data.uid == request.auth.uid && request.resource.data.at == request.time
+      && get(/databases/$(database)/documents/qrGames/$(g)/grants/$(s)).data.uid == request.auth.uid
+      && get(/databases/$(database)/documents/qrGames/$(g)/grants/$(s)).data.handle == request.resource.data.handle
+      && get(/databases/$(database)/documents/qrGames/$(g)/grants/$(s)).data.expires > request.time;
+  }
+}
+match /qrInvites/{h} {
+  allow get: if qrPlayer() || (qrBoard() && qrOwner(resource.data.game));
+  allow list, delete: if false;
+  allow create: if qrOwner(request.resource.data.game) && qrOpen(request.resource.data.game)
+    && qrHandle(h) && qrSeat(request.resource.data.seat)
+    && request.resource.data.keys().hasOnly(['game','seat','expires','status','uid'])
+    && request.resource.data.status == 'open' && request.resource.data.uid == ''
+    && request.resource.data.expires > request.time
+    && request.resource.data.expires <= request.time + duration.value(120,'s')
+    && getAfter(/databases/$(database)/documents/qrGames/$(request.resource.data.game)/seats/$(request.resource.data.seat)).data.handle == h;
+  allow update: if qrClaim(resource.data.game,resource.data.seat,h,request.auth.uid)
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','uid'])
+    && qrGrantAfter(resource.data.game,resource.data.seat).uid == request.auth.uid
+    && qrGrantAfter(resource.data.game,resource.data.seat).handle == h;
+}
+match /qrSecrets/{h} {
+  allow get: if qrBoard() && qrOwner(resource.data.game);
+  allow list, update, delete: if false;
+  allow create: if request.resource.data.keys().hasOnly(['game','code'])
+    && qrOwner(request.resource.data.game) && qrOpen(request.resource.data.game)
+    && request.resource.data.code is string && request.resource.data.code.matches('^[0-9]{6}$')
+    && getAfter(/databases/$(database)/documents/qrInvites/$(h)).data.game == request.resource.data.game;
+}
