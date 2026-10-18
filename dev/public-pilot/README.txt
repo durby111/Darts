@@ -26,3 +26,17 @@ Existing 59 integration/775 account-rule/24 matcher passes test different rules.
 See ../release/real-player-pilot/README.txt for exact proposed scope, required
 frontend pagination/own-history integration, quota considerations, user acceptance
 and separate activation confirmation. Do not replace live rules with this file.
+
+Additional save-path compatibility evidence
+  node --experimental-vm-modules dev/public-pilot/test_save_compatibility.mjs
+Three fresh cloud control-flow cases pass: denied two-linked save retains both
+UIDs/pending payload/stable result ID and emits Not saved; self-only save reaches
+saved when stubbed platform API succeeds; denied directory lookup prevents save
+and retains local pending data. No teammate is silently trimmed. This executes
+real casual-recording.js with a stubbed PLATFORM API, not a real SDK/rules test.
+The actual emulator matrix's unsolicited-history case now explicitly supplies
+both alice and bob participant IDs/counters; expected total remains 50.
+Current unbounded directory query will reject even self-only attempts under the
+new rules. Generic reconnect/retry text is not adequate policy-specific UX.
+Pagination, explicit self-only setup and denial messaging remain activation
+blockers. Broader multiuser history is NOT complete; consent integration is held.

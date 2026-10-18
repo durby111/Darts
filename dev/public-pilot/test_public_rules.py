@@ -24,7 +24,7 @@ def cases():
  for game in ['501','cricket']:
   add('public own result '+game,'brandnew','write','blakeoutDevCasualResults/new',True,result('brandnew',game))
  add('unsupported 301 denied','alice','write','blakeoutDevCasualResults/new',False,result('alice','301'))
- foreign=result('alice');foreign['participantIds']=['bob'];foreign['perPlayer']=result('bob')['perPlayer']
+ foreign=result('alice');foreign['participantIds']=['alice','bob'];foreign['perPlayer']=json.dumps(json.loads(result('alice')['perPlayer'])+json.loads(result('bob')['perPlayer']),separators=(',',':'))
  add('unsolicited other player history denied','alice','write','blakeoutDevCasualResults/new',False,foreign)
  add('owner spoof denied','bob','write','blakeoutDevCasualResults/new',False,result())
  wrong=result();wrong['backendKey']='other';add('wrong backend denied','alice','write','blakeoutDevCasualResults/new',False,wrong)
