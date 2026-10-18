@@ -10,7 +10,7 @@ for(const scenario of ['two-linked-denial','self-only-success','directory-denial
  const notifications=[],snapshots=[],submitted=[],storage=new Map();let writes=0;
  const ctx=vm.createContext({console,Date,URL,confirm:()=>true,document:{dispatchEvent:e=>notifications.push(e.detail.message),getElementById:()=>null},CustomEvent:class{constructor(type,init){this.detail=init.detail;}},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)}});
  const denied=()=>Object.assign(new Error('PERMISSION_DENIED'),{code:'permission-denied'});
- const api={initPlatform:async()=>{},requireVerifiedAccount:()=>({uid:'alice'}),listProfiles:async()=>{if(scenario==='directory-denial')throw denied();return [{id:'alice'},{id:'bob'}];},saveCasualResult:async(id,payload)=>{submitted.push(JSON.parse(JSON.stringify(payload)));if(scenario==='two-linked-denial')throw denied();writes++;}};
+ const api={initPlatform:async()=>{},requireVerifiedAccount:()=>({uid:'alice'}),getProfilesByIds:async()=>{if(scenario==='directory-denial')throw denied();return [{id:'alice'},{id:'bob'}];},saveCasualResult:async(id,payload)=>{submitted.push(JSON.parse(JSON.stringify(payload)));if(scenario==='two-linked-denial')throw denied();writes++;}};
  const exportsByPath={
  './backend-context.js':{BACKEND_KEY:'synthetic',requireCurrentBackend:()=>{}},
  './state.js':{game,recordingSession:()=>game.recording,saveActiveGame:()=>{snapshots.push(JSON.parse(JSON.stringify(game)));return true;},restoreActiveGame:()=>{},localRecordingRecoveries:()=>[]},
@@ -24,7 +24,7 @@ for(const scenario of ['two-linked-denial','self-only-success','directory-denial
  assert.deepEqual(JSON.parse(JSON.stringify(game.recording.pendingResult.participantIds)),ids);
  assert.equal(game.recording.resultId,'stable-id');assert(snapshots.length>0);
  if(scenario==='self-only-success'){assert.equal(game.recording.status,'saved');assert.equal(writes,1);assert(notifications.some(x=>x.startsWith('Casual result saved')));}
- else{assert.equal(game.recording.status,'pending');assert.equal(writes,0);assert(notifications.some(x=>x.startsWith('Not saved:')&&x.includes('Kept on this device')));assert.equal(game.undoHistory.length,1);await mod.namespace.saveCasualResult();assert.equal(game.recording.status,'pending');assert.equal(writes,0);}
+ else{assert.equal(game.recording.status,'pending');assert.equal(writes,0);assert(notifications.some(x=>x.startsWith('Not saved:')&&x.includes('Kept on this device')));assert.equal(game.undoHistory.length,1);assert(notifications.some(x=>x.includes('current access policy')&&x.includes('Linked players have not been removed')));await mod.namespace.saveCasualResult();assert.equal(game.recording.status,'pending');assert.equal(writes,0);}
  if(scenario==='two-linked-denial')assert(submitted.every(x=>JSON.stringify(x.participantIds)==='["alice","bob"]'));
  if(scenario==='directory-denial')assert.equal(submitted.length,0);
  console.log('PASS save compatibility '+scenario+'; no participant trimming');

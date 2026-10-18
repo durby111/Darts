@@ -20,14 +20,15 @@ function button(text, id, action) {
     return element;
 }
 
-async function verifiedProfiles() {
+async function verifiedProfiles(ids = null, cursor = null) {
     if (!isFeatureAvailable('accounts')) throw new Error(ACCOUNTS_NOTICE);
     const api = await import('./platform.js');
     await api.initPlatform();
     const account = api.requireVerifiedAccount();
-    const profiles = await api.listProfiles();
+    const page = ids === null ? await api.listProfilePage(cursor) : { profiles: await api.getProfilesByIds(ids), nextCursor: null };
+    const profiles = page.profiles;
     if (api.requireVerifiedAccount().uid !== account.uid) throw new Error('The signed-in scorekeeper changed. Try again.');
-    return { api, account, profiles };
+    return { api, account, profiles, nextCursor: page.nextCursor };
 }
 
 export function initCasualRecording() {
@@ -110,22 +111,34 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
         return select;
     });
     let verifiedOwner = null;
-    const load = async () => {
+    let nextCursor = null;
+    let loading = false;
+    const known = new Map();
+    const more = button('Load more verified profiles', 'casualLinkMore', () => load(true));
+    more.hidden = true;
+    const load = async (append = false) => {
+        if (loading) return;
+        loading = true;
+        more.disabled = true;
         status.textContent = 'Loading verified profiles online…';
         try {
-            const { account, profiles } = await verifiedProfiles();
+            const { account, profiles, nextCursor: next } = await verifiedProfiles(null, append ? nextCursor : null);
+            if (append && verifiedOwner !== account.uid) throw new Error('Account changed. Reload profiles before continuing.');
+            nextCursor = next;
+            more.hidden = nextCursor === null;
+            profiles.forEach(profile => known.set(profile.id, profile));
             verifiedOwner = account.uid;
             selectors.forEach(select => {
                 const selected = select.value;
                 select.replaceChildren(new Option('Guest — no account statistics', ''));
-                profiles.forEach(profile => select.add(new Option(`${profile.name} · ID ${profile.id}`, profile.id)));
-                if (profiles.some(p => p.id === selected)) select.value = selected;
+                known.forEach(profile => select.add(new Option(`${profile.name} · ID ${profile.id}`, profile.id)));
+                if (known.has(selected)) select.value = selected;
             });
             status.textContent = `Verified scorekeeper ID: ${account.uid}. ${slots.length} human slots; scroll the list to review each one.`;
         } catch (error) {
             verifiedOwner = null;
             status.textContent = `${error.message} You can retry, or play normally without recording.`;
-        }
+        } finally { loading = false; more.disabled = false; }
     };
     const prepared = new Promise(resolve => {
         let finished = false;
@@ -139,7 +152,7 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
         const start = button('Start recorded game', 'casualLinkStart', async () => {
             start.disabled = true;
             try {
-                const { account, profiles } = await verifiedProfiles();
+                const { account, profiles } = await verifiedProfiles(selectors.map(s => s.value).filter(Boolean));
                 if (!verifiedOwner || account.uid !== verifiedOwner) throw new Error('Reload profiles for the current verified scorekeeper.');
                 if (document.getElementById('gameType').value !== gameType) throw new Error('The selected game changed. Cancel and start again.');
                 const linked = selectors.map(s => s.value).filter(Boolean);
@@ -165,7 +178,8 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
         });
         content.querySelector('#casualLinkActions').append(
             start,
-            button('Reload verified profiles', 'casualLinkReload', load),
+            button('Reload verified profiles', 'casualLinkReload', () => load(false)),
+            more,
             button('Play without recording', 'casualLinkSkip', () => finish({ playerSeeds, teams, recording: null })),
             button('Cancel', 'casualLinkCancel', () => finish(null))
         );
@@ -220,7 +234,7 @@ export async function saveCasualResult() {
     const notify = message => document.dispatchEvent(new CustomEvent('casualRecordingChanged', { detail: { message } }));
     notify('Verifying and saving casual result…');
     try {
-        const { api, account, profiles } = await verifiedProfiles();
+        const { api, account, profiles } = await verifiedProfiles(session.pendingResult.participantIds);
         if (account.uid !== session.ownerId) throw new Error('Sign in as the original verified scorekeeper to save this record.');
         if (session.pendingResult.participantIds.some(id => !profiles.some(p => p.id === id))) throw new Error('A linked player profile is no longer available.');
         await api.saveCasualResult(session.resultId, session.pendingResult, session);
@@ -235,7 +249,10 @@ export async function saveCasualResult() {
     } catch (error) {
         session.status = 'pending';
         saveActiveGame();
-        notify(`Not saved: ${error.message}. Kept on this device; reconnect and retry Save casual result.`);
+        const denied = ['permission-denied', 'firestore/permission-denied'].includes(error.code);
+        notify(denied
+            ? 'Not saved: the current access policy does not allow this account to save this result. Linked players have not been removed. Kept on this device; check the account and permitted recording scope before retrying.'
+            : `Not saved: ${error.message}. Kept on this device; reconnect and retry Save casual result.`);
     } finally {
         saving = false;
         const save = document.getElementById('casualSaveResult');

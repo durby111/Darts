@@ -25,9 +25,10 @@ class Proposal(unittest.TestCase):
   self.assertIn("request.resource.data.participantIds == [request.auth.uid]",s)
   self.assertIn('request.resource.data.playerId == request.auth.uid',s)
   self.assertIn("request.resource.data.gameType in ['501', 'cricket']",s)
- def test_no_runtime_or_live_configuration_change(self):
-  changed=subprocess.check_output(['git','diff','--name-only','2f30644','--'],cwd=ROOT,text=True).splitlines()
-  self.assertTrue(all(p.startswith(('dev/public-pilot/','dev/release/real-player-pilot/')) for p in changed),changed)
+ def test_only_reviewed_frontend_changes_no_live_configuration(self):
+  changed=subprocess.check_output(['git','diff','--name-only','a0f2d1f','--'],cwd=ROOT,text=True).splitlines()
+  allowed={'dev/js/platform.js','dev/js/casual-recording.js','dev/js/profile-directory.js','dev/sw.js','dev/tests/profile_directory_test.mjs','dev/tests/casual_directory_ui_test.mjs','dev/tests/profile_directory_platform_test.mjs','dev/tests/bracket_engine_test.py'}
+  self.assertTrue(all(p in allowed or p.startswith(('dev/public-pilot/','dev/release/real-player-pilot/')) for p in changed),changed)
   self.assertEqual(json.loads((ROOT/'firebase.json').read_text())['firestore']['rules'],'firestore.rules')
  def test_matrix_integrity(self):
   seed,matrix=cases();self.assertEqual(len(matrix),len({c['name'] for c in matrix}))

@@ -1,3 +1,4 @@
+import { readProfilePage } from './profile-directory.js';
 import { explainRevisionDenial } from './transaction-conflict.js';
 import { encodeResultLedger, decodeResultLedger } from './result-payload.js';
 // Dev accounts deliberately use a named app, never the scorer's anonymous auth.
@@ -727,12 +728,38 @@ export async function getProfile() {
     return snapshot.exists() ? { id: snapshot.id, name: snapshot.data().name } : null;
 }
 
+export async function listProfilePage(cursor = null) {
+    await initPlatform();
+    const user = requireVerifiedAccount();
+    const page = await readProfilePage(db, storeSDK, COLLECTIONS.profiles, cursor);
+    requireAccountSession(user);
+    return page;
+}
+
+export async function getProfilesByIds(ids) {
+    if (!Array.isArray(ids) || ids.length > 128 || ids.some(id => typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(id))) throw new Error('Invalid linked profile IDs.');
+    await initPlatform();
+    const user = requireVerifiedAccount();
+    const snapshots = await Promise.all([...new Set(ids)].map(id => storeSDK.getDocFromServer(ref('profiles', id))));
+    requireAccountSession(user);
+    return snapshots.filter(item => item.exists()).map(item => ({ id: item.id, name: item.data().name }));
+}
+
+// Legacy bracket caller expects the complete array; every request is bounded.
+// Casual setup uses listProfilePage directly and loads more only on request.
 export async function listProfiles() {
     await initPlatform();
     const user = requireVerifiedAccount();
-    const snapshot = await storeSDK.getDocsFromServer(storeSDK.collection(db, COLLECTIONS.profiles));
-    requireAccountSession(user);
-    return snapshot.docs.map(item => ({ id: item.id, name: item.data().name }));
+    const profiles = [];
+    let cursor = null;
+    do {
+        requireAccountSession(user);
+        const page = await listProfilePage(cursor);
+        requireAccountSession(user);
+        profiles.push(...page.profiles);
+        cursor = page.nextCursor;
+    } while (cursor !== null);
+    return profiles;
 }
 
 export async function listTournaments() {
@@ -958,5 +985,5 @@ export async function listMyResults() {
 export const storage = Object.freeze({
     initPlatform, listTournaments, getTournament, createTournamentDocument,
     updateTournament, joinTournament, joinTournamentAsGuest, saveMatchResult, saveCasualResult,
-    listMyResults, saveProfile, getProfile, listProfiles
+    listMyResults, saveProfile, getProfile, listProfiles, listProfilePage, getProfilesByIds
 });
