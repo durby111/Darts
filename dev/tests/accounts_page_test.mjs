@@ -290,4 +290,19 @@ for (const code of ['auth/weak-password', 'auth/password-does-not-meet-requireme
     });
 }
 
+await test('partial history stays visible and exports explicit availability; next account clears it', async () => {
+    const h = await harness();
+    h.hooks.listMyResults = async ({onUnavailable}) => { onUnavailable(['tournament']); return [record('accessible')]; };
+    await h.ui.refreshRecords();
+    assert.match(h.records(), /Match accessible/); assert.match(h.records(), /History incomplete/);
+    h.node('exportRecords').click();
+    const exported = JSON.parse(await h.state.exportBlob.text());
+    assert.equal(exported.historyComplete, false); assert.deepEqual(exported.unavailableSources, ['tournament']);
+    h.hooks.listMyResults = async ({onUnavailable}) => { onUnavailable([]); return []; };
+    await h.change(user('b'));
+    h.node('exportRecords').click();
+    const next = JSON.parse(await h.state.exportBlob.text());
+    assert.equal(next.playerId,'b');assert.equal(next.historyComplete,true);assert.deepEqual(next.unavailableSources,[]);
+});
+
 console.log(`\n${passed}/${passed} account UI ownership groups passed. DOM/provider fixtures are not browser or live-email proof.`);

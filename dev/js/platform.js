@@ -955,29 +955,63 @@ export async function saveCasualResult(resultId, result, context) {
     return decodeResult({ ...persisted, id: resultId }, 'casual');
 }
 
-export async function listMyResults() {
+// Fetch every page with a stable document cursor; never treat a limit as full history.
+async function historyPages(collectionName, filter, user) {
+    const docs = [];
+    let cursor = null;
+    do {
+        requireAccountSession(user);
+        const constraints = [filter, storeSDK.orderBy(storeSDK.documentId()), storeSDK.limit(50)];
+        if (cursor) constraints.push(storeSDK.startAfter(cursor));
+        const page = await storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db, collectionName), ...constraints));
+        requireAccountSession(user);
+        docs.push(...page.docs);
+        cursor = page.docs.length === 50 ? page.docs.at(-1) : null;
+    } while (cursor);
+    return docs;
+}
+
+export async function listMyResults({ onUnavailable } = {}) {
     await initPlatform();
     const user = requireVerifiedAccount();
+    const unavailable = [];
+    const tournament = historyPages(COLLECTIONS.results,
+        storeSDK.where('participantIds', 'array-contains', user.uid), user).catch(error => {
+        // Only an explicitly opted-in UI may show partial history. Other failures
+        // and legacy callers remain fail-closed; denial is never reported as empty.
+        if (typeof onUnavailable !== 'function' || !['permission-denied', 'firestore/permission-denied'].includes(error.code)) throw error;
+        unavailable.push('tournament');
+        return [];
+    });
     const [snapshot, receipts, owned] = await Promise.all([
-        storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db, COLLECTIONS.results),
-            storeSDK.where('participantIds', 'array-contains', user.uid))),
-        storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db, 'blakeoutDevCasualReceipts'),
-            storeSDK.where('playerId', '==', user.uid))),
-        storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db, COLLECTIONS.casualResults),
-            storeSDK.where('ownerId', '==', user.uid)))
+        tournament,
+        historyPages('blakeoutDevCasualReceipts', storeSDK.where('playerId', '==', user.uid), user),
+        historyPages(COLLECTIONS.casualResults, storeSDK.where('ownerId', '==', user.uid), user)
     ]);
     requireAccountSession(user);
-    const casual = new Map(owned.docs.map(item =>
+    const casual = new Map(owned.map(item =>
         [item.id, decodeResult({ ...item.data(), id: item.id }, 'casual')]));
-    const received = await Promise.all(receipts.docs.filter(receipt => !casual.has(receipt.data().resultId)).map(async receipt => {
+    for (const receipt of receipts) {
+        requireAccountSession(user);
         requireCurrentBackend(receipt.data());
-        const record = await storeSDK.getDocFromServer(ref('casualResults', receipt.data().resultId));
+        const id = receipt.data().resultId;
+        if (casual.has(id)) continue;
+        let record;
+        try { record = await storeSDK.getDocFromServer(ref('casualResults', id)); }
+        catch (error) {
+            requireAccountSession(user);
+            if (typeof onUnavailable !== 'function' || !['permission-denied', 'firestore/permission-denied'].includes(error.code)) throw error;
+            if (!unavailable.includes('linked-casual')) unavailable.push('linked-casual');
+            continue;
+        }
+        requireAccountSession(user);
         if (!record.exists()) throw new Error('A casual result receipt references a missing record.');
-        return decodeResult({ ...record.data(), id: record.id }, 'casual');
-    }));
+        casual.set(record.id, decodeResult({ ...record.data(), id: record.id }, 'casual'));
+    }
+    const results = [...snapshot.map(item => decodeResult({ ...item.data(), id: item.id })), ...casual.values()];
     requireAccountSession(user);
-    for (const record of received) casual.set(record.id, record);
-    return [...snapshot.docs.map(item => decodeResult({ ...item.data(), id: item.id })), ...casual.values()];
+    if (typeof onUnavailable === 'function') onUnavailable(unavailable);
+    return results;
 }
 
 // Importable boundary for a future adapter; this implementation never falls back

@@ -1,0 +1,50 @@
+Unpublished DEV candidate: cloud history compatibility, 2026-10-18
+Base: a18d166. No rules/configuration/feature gate changes.
+
+History API now uses document-ID ordering, limit(50), and snapshot cursors to
+read every page of tournament, owned casual and personal receipt queries.
+Account identity is checked around each page and linked-record read.
+Default listMyResults() remains strict. Accounts opts into an onUnavailable
+callback: explicit permission-denied on tournament queries or old linked
+casual record reads may yield partial history, with the inaccessible sources
+named visibly and in JSON export (historyComplete/unavailableSources).
+Network errors, invalid stored records, missing receipt targets and session
+changes still fail; they are not relabelled as empty/complete history.
+Denied owned-history/receipt-list queries remain errors.
+No cloud or local history is deleted or rewritten by these reads.
+
+Recording setup explains the proposed private-history scope: 501/Cricket,
+exactly the signed-in scorekeeper's own account linked. Other players can
+remain unlinked guests. Multiple linked players, other-only attribution or
+other game types require explicit acknowledgement of local recording. Setup
+never deselects another player to satisfy the scope. Consent to write someone
+else's private history is not inferred from a profile choice or QR identity.
+Save preflight for out-of-scope pending records preserves every participant,
+ledger, result ID, undo/redo state and pending local copy; it submits no cloud
+write. Existing self-only 501/Cricket save paths remain available when gates
+are enabled. Released gates remain unchanged/off. Shared-tablet tournament
+submission and active-game cloud resume code are untouched.
+
+Verification (synthetic SDK/DOM transport; NOT Firebase enforcement):
+node --experimental-vm-modules dev/tests/profile_directory_platform_test.mjs
+  7 groups: actual platform/helper, 105-record paging, targeted profile IDs,
+  guest checks, session changes, partial explicit denials, network/schema errors.
+node --experimental-vm-modules dev/tests/accounts_page_test.mjs
+  22 groups including partial display/export and clearing on account switch.
+BLAKEOUT_JSDOM_MODULE=/workspace/blakeout-recovery/container-build/node_modules/jsdom node --experimental-vm-modules dev/tests/casual_directory_ui_test.mjs
+  Actual setup DOM: selected off-page players retained; local acknowledgement
+  required before start; no participant trimming.
+node --experimental-vm-modules dev/public-pilot/test_save_compatibility.mjs
+  6 cases: two linked, self501, directory denial, unsupported301, other-only,
+  selfCricket. Out-of-scope attempts retain data and make zero submissions.
+Also passed profile_directory_test, 7 feature_recording_gate groups,
+5 test_proposal and 4 test_composition tests; 69 production baseline files
+identical. Evidence: /workspace/blakeout-recovery/history-compatibility-evidence/.
+
+Remaining cloud acceptance: actual Firebase SDK pagination/index behavior and
+public-rule enforcement require the pinned emulator JAR; proxy CONNECT403
+remains the verified blocker. No retry or alternate route attempted this turn.
+No product decision blocks this conservative local candidate. Before enabling
+cross-player private history, decide the explicit consent/attribution flow;
+that is separate from anyone being able to submit tablet tournament scores.
+No approval/submitter-login step was added to tournament scoring.

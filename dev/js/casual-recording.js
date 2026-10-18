@@ -7,6 +7,10 @@ import { BUILD_STORAGE } from './build-context.js';
 
 const HISTORY_KEY = BUILD_STORAGE.casualRecoveryPrefix + 'history';
 const ACCOUNTS_NOTICE = 'DEV uses sample Players & Records. Cloud saving is unavailable; your recorded games and results stay on this device. Use Resume to continue local scoring.';
+function personalHistoryAllowed(gameType, ids, uid) {
+    return ['501', 'cricket'].includes(gameType) && ids.length === 1 && ids[0] === uid;
+}
+
 let preparing = false;
 let saving = false;
 
@@ -60,7 +64,7 @@ export function initCasualRecording() {
         }
         const supported = RECORDING_GAMES.has(document.getElementById('gameType').value);
         document.getElementById('casualRecordingHint').textContent = supported
-            ? 'Start Game will let a verified scorekeeper link each person to a profile. Guests and normal offline play still work. Records are scorekeeper-declared, not certified results.'
+            ? 'Start Game lets you choose profile links. Private cloud history supports 501 and Cricket with only your own account linked; other recorded games stay on this device. Guests and normal offline play still work. Records are scorekeeper-declared, not certified results.'
             : 'This game is not recorded. It remains playable normally, including offline.';
     };
     document.getElementById('gameType').addEventListener('change', updateHint);
@@ -93,7 +97,8 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
     const content = document.createElement('div');
     content.className = 'modal-content';
     content.innerHTML = '<h2 id="casualLinkTitle">Link people to verified profiles</h2>' +
-        '<p>Choose by verified player ID—not by a matching name or email. Leave guests unlinked. A verified scorekeeper may record without playing.</p>' +
+        '<p>Choose by verified player ID—not by a matching name or email. Leave guests unlinked. Private cloud history currently supports 501 and Cricket with only your own account linked. Other games or linked players remain local; choosing a profile does not grant consent to write their history.</p>' +
+        '<label><input type="checkbox" id="casualLocalOnlyAck"> Keep this recorded game on this device if it cannot save to my private history. Preserve every linked player.</label>' +
         '<p id="casualLinkStatus" role="status"></p><div id="casualLinkSlots"></div><div id="casualLinkActions"></div>';
     modal.append(content);
     document.body.append(modal);
@@ -159,6 +164,7 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
                 if (!linked.length) throw new Error('Link at least one verified player, or choose Play without recording.');
                 if (new Set(linked).size !== linked.length) throw new Error('A verified player may occupy only one human slot.');
                 if (linked.some(id => !profiles.some(p => p.id === id))) throw new Error('A selected profile is no longer available. Reload profiles.');
+                if (!personalHistoryAllowed(gameType, linked, account.uid) && !content.querySelector('#casualLocalOnlyAck').checked) throw new Error('This selection cannot save to private cloud history. Confirm local recording, or change the links yourself. No players have been removed.');
                 slots.forEach(({ member }, i) => { member.playerId = selectors[i].value || null; });
                 const recording = {
                     backendKey: BACKEND_KEY, source: 'casual', resultId: newRecordId(), ownerId: account.uid,
@@ -234,6 +240,7 @@ export async function saveCasualResult() {
     const notify = message => document.dispatchEvent(new CustomEvent('casualRecordingChanged', { detail: { message } }));
     notify('Verifying and saving casual result…');
     try {
+        if (!personalHistoryAllowed(session.pendingResult.gameType, session.pendingResult.participantIds, session.ownerId)) throw Object.assign(new Error('This recording stays local under the current private-history scope.'), { code: 'permission-denied' });
         const { api, account, profiles } = await verifiedProfiles(session.pendingResult.participantIds);
         if (account.uid !== session.ownerId) throw new Error('Sign in as the original verified scorekeeper to save this record.');
         if (session.pendingResult.participantIds.some(id => !profiles.some(p => p.id === id))) throw new Error('A linked player profile is no longer available.');

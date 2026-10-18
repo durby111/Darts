@@ -8,6 +8,7 @@ import { GAME_REGISTRY } from './registry.js';
 
 const $ = id => document.getElementById(id);
 let records = [];
+let unavailableHistory = [];
 let accountGeneration = 0;
 let renderedAccount;
 let accountSession = 0;
@@ -119,11 +120,19 @@ async function refreshRecords() {
     const isCurrent = () => generation === accountGeneration && getAccount() === user
         && request === recordRequest;
     let loaded;
-    try { loaded = await listMyResults(); }
+    let unavailable = [];
+    try { loaded = await listMyResults({ onUnavailable: sources => { unavailable = sources; } }); }
     catch (error) { if (isCurrent()) throw error; return; }
     if (!isCurrent()) return;
+    unavailableHistory = unavailable;
     records = loaded.sort((a, b) => b.createdAt - a.createdAt);
     renderRecords(uid);
+    if (unavailableHistory.length) {
+        const warning = document.createElement('p');
+        const sources = unavailableHistory.map(source => source === 'tournament' ? 'tournament records' : 'some linked casual records');
+        warning.textContent = `History incomplete: ${sources.join(' and ')} are unavailable to this account. Displayed totals and export include accessible records only.`;
+        $('records').append(warning);
+    }
 }
 
 async function renderAccount(user) {
@@ -157,6 +166,7 @@ async function renderAccount(user) {
     $('lifetimeSummary').replaceChildren();
     $('exportRecords').disabled = true;
     records = [];
+    unavailableHistory = [];
     if (!verified) {
         status(signedIn
             ? 'You are signed in, but your email is not verified. Verify it before accessing profiles, records, or organizer actions.'
@@ -300,7 +310,7 @@ $('refreshRecords').addEventListener('click', () => action($('refreshRecords'), 
 $('exportRecords').addEventListener('click', () => {
     const user = getAccount();
     if (!user?.emailVerified || user.isAnonymous || renderedAccount !== user || $('exportRecords').disabled) return;
-    const content = JSON.stringify({ format: 'blakeout-dev-results-v1', playerId: user.uid, exportedAt: new Date().toISOString(), results: records }, null, 2);
+    const content = JSON.stringify({ format: 'blakeout-dev-results-v1', playerId: user.uid, exportedAt: new Date().toISOString(), results: records, historyComplete: unavailableHistory.length === 0, unavailableSources: unavailableHistory }, null, 2);
     const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
     const link = document.createElement('a');
     link.href = url;
