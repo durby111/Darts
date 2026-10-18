@@ -1,0 +1,9 @@
+{
+  "sourceCommit": "3ecfddb5d931a8ac57c1aa984c995217f8185b93",
+  "sourcePath": "dev/backend-setup/firestore.cloud-resume-candidate.rules",
+  "sourceSha256": "117e891db781d49c2ee460df0d6f58b0f5bad53ad96437b3d70466f0c2fc4f41",
+  "fragmentSha256": "b3b65b10c66a44b6aa5aad55fc727725287e8656c7dae2b8e85a41fd9a687720",
+  "productionBaseline": "e731a77339303bea6e349f60ace7730cbc754142",
+  "missingHistoricalBaseline": "3011d48",
+  "status": "review-only-enforcement-unverified"
+}

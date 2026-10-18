@@ -2,16 +2,29 @@
       function owner() { return devVerified() && request.auth.uid == uid; }
       function valid() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['ownerId','backendKey','gameId','revision','operationId','payload','updatedAt'])
-          && d.ownerId == uid && d.gameId == id && devBackend(d)
+        return d.keys().hasAll(['ownerId','backendKey','gameId','revision','operationId','payload','updatedAt','status','archivedAt'])
+          && d.keys().hasOnly(['ownerId','backendKey','gameId','revision','operationId','payload','updatedAt','status','archivedAt'])
+          && id.matches('[A-Za-z0-9_-]{1,128}') && d.ownerId == uid && d.gameId == id && devBackend(d)
           && d.revision is int && d.revision >= 0
           && d.operationId is string && d.operationId.matches('[A-Za-z0-9_-]{1,128}')
           && d.payload is string && d.payload.size() <= 450000
-          && d.updatedAt is int;
+          && d.updatedAt == request.time;
+      }
+      function transition() {
+        let before = resource.data;
+        let after = request.resource.data;
+        return after.revision == before.revision + 1 && (
+          (before.status == 'active' && after.status == 'active' && after.archivedAt == null)
+          || (before.status == 'active' && after.status == 'archived' && after.payload == before.payload && after.archivedAt == request.time)
+          || (before.status == 'archived' && after.status == 'active' && after.payload == before.payload && after.archivedAt == null)
+          || (before.status == 'archived' && after.status == 'discarded' && after.payload == ''
+            && after.archivedAt == before.archivedAt && request.time >= before.archivedAt + duration.value(30, 'd'))
+        );
       }
       allow read: if owner();
-      allow create: if owner() && valid() && request.resource.data.revision == 0;
-      allow update: if owner() && valid() && request.resource.data.revision == resource.data.revision + 1;
+      allow create: if owner() && valid() && request.resource.data.revision == 0
+        && request.resource.data.status == 'active' && request.resource.data.archivedAt == null;
+      allow update: if owner() && valid() && transition();
       allow delete: if false;
     }
 

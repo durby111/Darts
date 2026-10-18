@@ -84,9 +84,11 @@ These are end-of-match tournament records, not per-dart phone scoring. Do not
 substitute a device UID for the roster or confuse event revision/operation IDs
 with owner-private active scorer session IDs/revisions.
 
-`resume.rules.fragment` is pinned to the owner-private collection from accounts
-commit `9aed216`. It is included only to test isolation. This candidate does not
-merge or write the accounts/resume checkout. The full UI and write path for
+`resume.rules.fragment` now exactly matches the lifecycle collection from recovered
+commit `3ecfddb5d931a8ac57c1aa984c995217f8185b93`. It is included to review
+composition and test isolation; fresh emulator enforcement is BLOCKED in this
+cloud host. See COMBINED_REVIEW.txt and lifecycle-provenance.json. This candidate
+does not merge or write the accounts/resume checkout. The full UI and write path for
 existing `/dev/brackets/`, private account-history pages, historical counters,
 immutable legacy result IDs and owner-private active-game autosave remain
 unwired. Current match results and auditable UID attribution exist in the new

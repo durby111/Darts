@@ -1,3 +1,4 @@
+import {testLifecycle} from './test_lifecycle.mjs';
 import fs from 'node:fs/promises';
 import http from 'node:http';
 import assert from 'node:assert/strict';
@@ -75,10 +76,11 @@ try{
  // End/revoke preserve historical records but stop further device operations.
  state=await load(board.p,ev.eventId);match=state.bracket.matches.find(m=>m.status==='ready');const pending=await review(board.p,ev.eventId,match.id,score(match));await owner.p.evaluate(e=>api.end(e),ev.eventId);await clientReject('ended tournament submission',submit(board.p,pending),/ended/);assert.equal(await raw(board.p,ev.eventId,{matchId:match.id,after:pending.after}),'permission-denied');assert((await owner.p.evaluate(e=>api.audit(e),ev.eventId)).length>0);console.log('PASS end blocks future actions and retains historical audit');
  await owner.p.evaluate(e=>api.revokeDevice(e),five.eventId);await denied('revoked tablet read',board.p,e=>api.load(e),five.eventId);state=await load(owner.p,five.eventId);match=state.bracket.matches.find(m=>m.status==='ready');await submit(owner.p,await review(owner.p,five.eventId,match.id,score(match)));console.log('PASS device revocation leaves organizer alternative usable');
+ await testLifecycle({owner,board,otherOwner,denied,local,store,project});
  // Existing protected collections, including new owner-private resume collection.
  for(const col of ['blakeoutDevProfiles','blakeoutDevTournaments','blakeoutDevRosterPrivate','blakeoutDevSignupState','blakeoutDevResults','blakeoutDevCasualResults','blakeoutDevCasualReceipts']){await local(store+`/v1/projects/${project}/databases/(default)/documents/${col}/fixture`,{fields:{ownerId:{stringValue:board.uid}}},'PATCH');await denied('tablet read '+col,board.p,c=>session.storeSDK.getDocFromServer(session.storeSDK.doc(session.db,c,'fixture')),col);await denied('tablet write '+col,board.p,c=>session.storeSDK.setDoc(session.storeSDK.doc(session.db,c,session.auth.currentUser.uid),{name:'Test'}),col);}
  await denied('tablet signup access',board.p,()=>session.storeSDK.getDocFromServer(session.storeSDK.doc(session.db,'blakeoutDevSignups','fixture','players',session.auth.currentUser.uid)));
- await owner.p.evaluate(async()=>{const s=session.storeSDK,u=session.auth.currentUser.uid;await s.setDoc(s.doc(session.db,'blakeoutDevActiveGames',u,'games','private-session'),{ownerId:u,backendKey:'blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271',gameId:'private-session',revision:0,operationId:'op-private',payload:'private opaque snapshot',updatedAt:1});});
+ await owner.p.evaluate(async()=>{const s=session.storeSDK,u=session.auth.currentUser.uid;await s.setDoc(s.doc(session.db,'blakeoutDevActiveGames',u,'games','private-session'),{ownerId:u,backendKey:'blakeout-darts-dev:1:901185136996:web:89d4f413520e66ff773271',gameId:'private-session',revision:0,operationId:'op-private',payload:'private opaque snapshot',updatedAt:s.serverTimestamp(),status:'active',archivedAt:null});});
  await denied('tablet owner-private snapshot read',board.p,uid=>session.storeSDK.getDocFromServer(session.storeSDK.doc(session.db,'blakeoutDevActiveGames',uid,'games','private-session')),owner.uid);
  await denied('tablet owner-private snapshot write',board.p,uid=>session.storeSDK.setDoc(session.storeSDK.doc(session.db,'blakeoutDevActiveGames',uid,'games','private-session'),{payload:'changed'}),owner.uid);
  // 20 teams / 40 humans, complete double elimination including reset final.
