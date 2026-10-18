@@ -11,6 +11,8 @@ out=Path(os.environ['PUBLIC_POLICY_EVIDENCE']).resolve();assert not out.is_relat
 (out/'home').mkdir()
 env={'PATH':'/usr/bin:/bin','HOME':str(out/'home'),'PYTHONDONTWRITEBYTECODE':'1','FIRESTORE_EMULATOR_HOST':'127.0.0.1:18085','NO_PROXY':'127.0.0.1,localhost'}
 java=os.environ['BLAKEOUT_QA_JAVA'];jar=os.environ['BLAKEOUT_QA_JAR'];assert Path(java).is_absolute() and Path(jar).is_absolute()
+for key in ['BLAKEOUT_QA_NODE','BLAKEOUT_QA_MODULES']:
+ value=os.environ[key];assert Path(value).is_absolute();env[key]=value
 with (out/'firestore.log').open('w') as log:
  p=subprocess.Popen([java,'-jar',jar,'--host','127.0.0.1','--port','18085','--project_id','demo-blakeout-public-policy'],env=env,stdout=log,stderr=subprocess.STDOUT)
  try:

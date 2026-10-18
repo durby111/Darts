@@ -1,5 +1,5 @@
 """Actual Firestore emulator assertions with unsigned synthetic claims. No mocks/live calls."""
-import base64,copy,hashlib,importlib.util,json,os,re,urllib.request,urllib.error
+import base64,copy,hashlib,importlib.util,json,os,re,subprocess,urllib.request,urllib.error
 from pathlib import Path
 from compose_rules import compose,ROOT
 spec=importlib.util.spec_from_file_location('old_rules',ROOT/'dev/tests/isolated_rules_test.py');old=importlib.util.module_from_spec(spec);spec.loader.exec_module(old)
@@ -62,6 +62,7 @@ def run():
    claims={'sub':uid,'user_id':uid,'aud':project,'iss':'https://securetoken.google.com/'+project,'email_verified':uid not in ['unverified','anonymous'],'firebase':{'sign_in_provider':provider},'iat':0,'exp':4102444800}
    enc=lambda x:base64.urlsafe_b64encode(json.dumps(x).encode()).decode().rstrip('=')
    headers['Authorization']='Bearer '+enc({'alg':'none','typ':'JWT'})+'.'+enc(claims)+'.'
+  if not admin:assert headers.get('Authorization')!='Bearer owner'
   req=urllib.request.Request('http://'+host+path,data=None if data is None else json.dumps(data).encode(),headers=headers,method=method)
   try:
    with opener.open(req,timeout=30) as response:return response.status,response.read().decode()
@@ -73,7 +74,7 @@ def run():
   assert request('DELETE',f'/emulator/v1/projects/{project}/databases/(default)/documents',admin=True)[0]==200
   assert request('POST','/v1/'+prefix+':commit',{'writes':writes(c.get('seed',seed))},admin=True)[0]==200
   op=c['operation'];path=c['path'];uid=c['auth']
-  if op in ['get','list','delete']:code,body=request('DELETE' if op=='delete' else 'GET','/v1/'+prefix+'/'+path,uid=uid)
+  if op in ['get','delete']:code,body=request('DELETE' if op=='delete' else 'GET','/v1/'+prefix+'/'+path,uid=uid)
   elif op=='write':code,body=request('POST','/v1/'+prefix+':commit',{'writes':writes({path:c['data']})},uid=uid)
   else:
    q={'from':[{'collectionId':path}]}
@@ -87,5 +88,29 @@ def run():
  assert request('PUT',f'/emulator/v1/projects/{project}:securityRules',{'rules':{'files':[{'name':'public-device-overlap.rules','content':source}]}})[0]==200
  for path,data in [('blakeoutDevProfiles/board',{'name':'Board'}),('blakeoutDevCasualResults/board',result('board'))]:
   code,body=request('POST','/v1/'+prefix+':commit',{'writes':writes({path:data})},uid='board');assert code==403,(code,body);print('PASS overlapping board denied',path)
- print(f'PASS {len(matrix)+2} public-policy actual emulator cases; source SHA256 '+hashlib.sha256(compose().encode()).hexdigest())
+ # Restore exact public rules and seed >50 names before testing protocol surfaces.
+ source=compose()
+ assert request('PUT',f'/emulator/v1/projects/{project}:securityRules',{'rules':{'files':[{'name':'public.rules','content':source}]}})[0]==200
+ assert request('DELETE',f'/emulator/v1/projects/{project}/databases/(default)/documents',admin=True)[0]==200
+ protocol_seed={**seed,**{f'blakeoutDevProfiles/p{i:03d}':{'name':'Synthetic'} for i in range(75)}}
+ assert request('POST','/v1/'+prefix+':commit',{'writes':writes(protocol_seed)},admin=True)[0]==200
+ # ListDocuments is a distinct paginated protocol, NOT an absent-limit RunQuery.
+ protocol_failures=[]
+ for suffix in ['', '?pageSize=50', '?pageSize=51']:
+  code,body=request('GET','/v1/'+prefix+'/blakeoutDevProfiles'+suffix,uid='alice')
+  count=len(json.loads(body).get('documents',[])) if code==200 else None
+  print('REST ListDocuments diagnostic',suffix or '(default)',code,'documents',count,flush=True)
+  okay=(code==200 and count<=50) if suffix=='?pageSize=50' else code==403 if suffix=='?pageSize=51' else code==403 or (code==200 and count<=50)
+  if not okay:protocol_failures.append((suffix,code,body))
+ # Control: this same nonadmin token must fail when all reads are denied.
+ deny="rules_version = '2'; service cloud.firestore { match /databases/{db}/documents { match /{doc=**} { allow read, write: if false; } } }"
+ assert request('PUT',f'/emulator/v1/projects/{project}:securityRules',{'rules':{'files':[{'name':'deny-control.rules','content':deny}]}})[0]==200
+ for path in ['/v1/'+prefix+'/blakeoutDevProfiles/alice','/v1/'+prefix+'/blakeoutDevProfiles?pageSize=50']:
+  code,body=request('GET',path,uid='alice');assert code==403,('nonadmin REST control',code,body)
+ assert request('PUT',f'/emulator/v1/projects/{project}:securityRules',{'rules':{'files':[{'name':'public.rules','content':source}]}})[0]==200
+ print(f'PASS {len(matrix)+2} public-policy REST RunQuery/write cases; source SHA256 '+hashlib.sha256(source.encode()).hexdigest(),flush=True)
+ node=os.environ['BLAKEOUT_QA_NODE'];assert Path(node).is_absolute()
+ subprocess.run([node,str(ROOT/'dev/public-pilot/test_query_sdk.mjs')],check=True)
+ assert not protocol_failures,('REST protocol bounded-access failure; do not activate',protocol_failures)
+ print('PASS 5 REST protocol/control cases')
 if __name__=='__main__':run()
