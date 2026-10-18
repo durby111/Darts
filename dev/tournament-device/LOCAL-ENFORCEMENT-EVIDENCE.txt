@@ -34,27 +34,31 @@ No cloud emulator enforcement pass is claimed. Existing cloud provisioning
 constraints remain; successful laptop enforcement supersedes the earlier
 absence of real execution evidence only for the tested reduced tree.
 
-Cross-environment identity — PENDING hash relay
+Cross-environment identity — VERIFIED by relayed laptop SHA256 values
 The two supplied source blocks were copied exactly with LF/final newline and
 no filename comments; test_lifecycle imports the matcher and replaces all three
 predicates. A generated git diff hash differs from the supplied laptop patch:
 cloud patch 5ac67cc570aa5f904d5e17388560f11cd9841fcd8156633e2257e3bcca99ed20.
 Patch formatting may differ, but this is not proof of identical file contents.
-Laptop per-file hashes were requested through parent relay. Cloud SHA256:
+Parent relayed the laptop per-file hashes; all three exactly match. Cloud SHA256:
 permission-denied.mjs:
 b73621e71f706aedc42e148321d40c54d26bab272b691f1e1fd90efbcbb4d344
 permission-denied.test.mjs:
 e5303c42bd281170b69bb51bcecf5aa08a5b64cd968321cf47ca3deb6faf71e9
 test_lifecycle.mjs:
 c4ae5357dcc0a74e943eb4d7bc8ae4b446904820943e7d260b512f1d2df368ed
-Do not assert byte-identical laptop synchronization until these are compared.
+All three changed source files are byte-identical by SHA256 comparison.
+Exact compose() bytes (without print newline) also match the actual passing
+laptop run-2/candidate.rules:
+283f98856f5a93a6f8cecd19e54ab409799e49802afb1a99308a8b4f57ca5a1a.
+Different patch hashes do not indicate a source mismatch in these verified files.
 Cloud logs and source-hashes.json:
 /workspace/blakeout-recovery/local-verified-evidence/
 
 Release readiness
 Improved: real reported enforcement evidence for reduced combined rules/tests,
 strict test error matching, unchanged closed role lists/security rules.
-Still pending: source hash relay; scoped main runtime integration and full merged
+Still pending: scoped main runtime integration and full merged
 regression; exact live policy/config recovery; signup choice; Google/reset and
 real-player/multi-device acceptance. No tester enablement or deployment approval.
 Original backups, combined candidate and portability review commits preserved.
