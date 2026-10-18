@@ -1,3 +1,5 @@
+RESOLVED BY LAPTOP RERUN: see VERIFIED-READINESS.txt; following text preserves the investigation and expected tests.
+
 Public policy case 19 investigation — source review and rerun patch
 
 Reported laptop result: original public suite stopped at case 19, after 18 passes,

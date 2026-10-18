@@ -1,0 +1,68 @@
+Current review readiness — 2026-10-18 — activation remains OFF
+
+Public policy: VERIFIED ON LAPTOP, scoped to the transferred rules/test tree
+Parent relayed REPORT-query-verified.json from:
+/home/md/Documents/Codex/2026-10-16/task-3/evidence/public-policy-local/
+- 50 public-policy cases PASS, exit0, no skips.
+- 5 REST pagination/nonadmin controls PASS.
+- 9 actual full Firebase JS SDK cases PASS.
+- REST default returned30, pageSize50 returned50, pageSize51 denied403.
+- SDK absent limit and limit51 denied; own private record returned, cross-user
+  denied; same nonadmin principal denied under deny-all.
+These results resolve the earlier case19 endpoint mismatch. Default REST
+ListDocuments used a bounded page; it was not an unbounded structured query.
+No rule relaxation was needed. This is real emulator evidence with synthetic
+nonadmin claims, not production rules verification or real-account acceptance.
+
+Exact laptop helper synchronization
+Source test_query_sdk.mjs SHA256:
+d36c74c25c6aab28559f0284d3fa7808939608679365166c5b7b7a32d40499b4
+Proposed rules SHA256:
+4052f8b618e21cc64ca3f3d8f84416493352223866eb33d173909fd18f0d3b2c
+Both independently rehashed and matched in cloud. Rules bytes unchanged.
+The existing socket guard disables fetch, including local control requests.
+Only rules() now uses node:http with exact http/127.0.0.1/port assertions and a
+30-second timeout. Socket protection and all authorization assertions remain.
+Laptop patch SHA256 ccb404e2ef7be5cfe92aa1e09865a73a576bdca8ba8beaa8f1428f9935108c46.
+Cloud generated diff has different patch framing/hash; final source hash matches.
+Code synchronized in b3db517 on review/public-query-semantics-20261018.
+
+Separate evidence — do not combine counts or scopes
+Closed combined QR/resume tree: earlier laptop59 integration groups +775
+account-rule cases; strict denial matcher24 unit cases. Verified by prior source
+hash relay, recorded at2f30644. These remain CLOSED-policy results.
+Public policy: new50 +5 REST +9 SDK only. This does not establish the original
+775 closed expectations under public rules or all device operations in that mode.
+Cloud checks: source hashes, syntax and5 static proposal tests; no cloud emulator
+rerun claim. Three save-compatibility groups use a stubbed platform API.
+
+Final review inventory (branches remain separate, no main integration/push)
+1. Main released baseline e731a77339303bea6e349f60ace7730cbc754142.
+2. Recovered backups d90e97d /3ecfddb /06639b2 /44c0d0a retained unchanged.
+3. Closed combined rules/test source34c9be9, matcher921f7d3, verified evidence2f30644.
+4. Public signup proposal9d12638, compatibility/handoff a0f2d1f; public query
+   coverage18fa4a4 plus exact verified helper b3db517 (this branch).
+5. Frontend1018b7b, branch review/public-directory-ui-20261018, separate worktree
+   /workspace/blakeout-recovery/public-directory-ui. Includes bounded directory
+   pages, Load more, retained selected UIDs, targeted profile validation,
+   policy-specific denied-save messaging and DEV precache update. Cloud DOM/VM
+   checks passed, but it is NOT included in the laptop backend handoff/results.
+6. Docker portability dca3f24/618ff60 retained separately as review tooling;
+   neither used by the successful laptop run nor required for activation.
+
+Remaining blockers before concrete activation confirmation
+- Scoped integration on current main preserving released fixes and tests.
+- Actual SDK/browser acceptance of frontend1018b7b with proposed public rules;
+  no claim of combined backend/frontend acceptance yet.
+- History-query pagination and removal of denied legacy parallel query paths.
+- Explicit self-only recording setup; other-player history requires consent.
+  No automatic participant trimming. Broader multiuser history incomplete.
+- Exact current live owner-policy/config export, target mapping and rollback.
+- Confirm new-history501/Cricket scope (new301 writes would be denied); existing
+  known live301 acceptance does not validate this proposed scope.
+- Real signup/verification, Google linkage, completed reset, account isolation,
+  retry/reconnect, physical-device and multi-device acceptance.
+- Review Spark quota/abuse exposure and monitoring plan. No paid services added.
+- Present exact merged frontend/rules artifact and rollback for Mike's separate
+  activation confirmation. Public signup selection is not deployment approval.
+No live traffic, push, deployment, user enablement or production changes occurred.

@@ -116,9 +116,13 @@ complete abuse guarantee; provider quotas/settings need review. It is NOT enable
 by this candidate. Source: https://firebase.google.com/docs/app-check
 
 Evidence status
-Five static proposal tests PASS here, with policy mutation checks, deterministic
-composition, unchanged protected fragments, no runtime/config mutation and matrix
-integrity. Fifty actual emulator cases are ADDED, not run successfully here:
-cloud unshare still fails at /proc/self/uid_map read-only. The approved laptop
-emulator is the next supported execution path; its prior 59/775/24 results remain
-valid only for the closed reduced enforcement/test tree. No public-policy pass.
+The transferred public rules/test tree passed on the approved laptop: 50 public
+cases, 5 REST protocol/nonadmin controls and 9 actual SDK cases, exit0, no skips.
+Exact rules/helper hashes were matched in cloud; see
+../../public-pilot/VERIFIED-READINESS.txt for source provenance and scope.
+Cloud static checks remain separate; no cloud emulator pass is claimed.
+Prior closed59/775 and matcher24 results remain closed-policy/unit evidence.
+Frontend1018b7b has local DOM/VM coverage but was NOT included in this backend
+verification. Full merged frontend/backend and real-player acceptance remain
+pending, alongside history-query pagination, explicit self-only setup and consent.
+Activation remains disabled and requires separate concrete confirmation.

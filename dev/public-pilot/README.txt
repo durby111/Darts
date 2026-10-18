@@ -1,3 +1,5 @@
+CURRENT EVIDENCE: see VERIFIED-READINESS.txt. Laptop public50 + REST5 + SDK9 now pass; frontend acceptance remains pending.
+
 NEW public policy test handoff — no activation/deployment
 
 Base branch: review/combined-local-verified-20261018 (2f30644).
