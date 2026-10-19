@@ -4,7 +4,7 @@ function control(label,type,parent,id){const wrap=el('label',label,parent),input
 function button(label,parent,action){const b=el('button',label,parent);b.onclick=async()=>{b.disabled=true;try{await action();}catch(e){let s=document.querySelector('#desk-status');if(s)s.textContent=e.message;}finally{b.disabled=false;}};return b;}
 export async function mountDesk(root,session){
   root.replaceChildren();const organizer=session.role==='organizer',api=session.api;
-  el('p','LOCAL EMULATOR · synthetic identities',root).className='eyebrow';el('h1',organizer?'Organizer results':'Tournament result desk',root);
+  el('p',session.label||'LOCAL EMULATOR · synthetic identities',root).className='eyebrow';el('h1',organizer?'Organizer results':'Tournament result desk',root);
   el('p',organizer?'Signed-in organizer entry. Changes are recorded under your organizer identity.':'Anyone may enter a completed match here. The audit records this shared device; the person tapping is unknown.',root);
   const status=el('p','',root);status.id='desk-status';status.setAttribute('role','status');
   const label=el('label','Tournament',root),select=el('select','',label);select.id='event-select';
@@ -39,7 +39,7 @@ export async function mountDesk(root,session){
       el('p','Results can be entered without linking accounts. Each player may separately confirm history attribution for this tournament.',identities);
       const roster=el('select','',identities);roster.id='roster-select';el('option','Choose a roster identity',roster).value='';
       for(const [r,p] of Object.entries(event.roster))if(p.expectedUid)el('option',`${p.label} · ${r}`,roster).value=r;
-      const preview=el('div','',identities);roster.onchange=()=>{preview.replaceChildren();if(!roster.value)return;const url=`${location.origin}/#event=${encodeURIComponent(id)}&registration=${encodeURIComponent(roster.value)}`;const qr=el('div','',preview);qr.id='roster-qr';qr.innerHTML=window.makeQR(url);const link=el('a','Open local phone consent',preview);link.id='roster-link';link.href=url;link.target='_blank';link.rel='noopener';el('p','Local emulator link. A separate physical phone cannot reach this loopback server.',preview);};
+      const preview=el('div','',identities);roster.onchange=()=>{preview.replaceChildren();if(!roster.value)return;const url=session.identityLink?session.identityLink(id,roster.value):`${location.origin}/#event=${encodeURIComponent(id)}&registration=${encodeURIComponent(roster.value)}`;const qr=el('div','',preview);qr.id='roster-qr';qr.innerHTML=window.makeQR(url);const link=el('a',session.identityLink?'Open phone consent':'Open local phone consent',preview);link.id='roster-link';link.href=url;link.target='_blank';link.rel='noopener';if(!session.identityLink)el('p','Local emulator link. A separate physical phone cannot reach this loopback server.',preview);};
     }catch(e){status.textContent=e.message;}
   }
 }

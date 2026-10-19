@@ -1,8 +1,8 @@
+import {assertAdapterEnvironment} from '../history-attribution/environment.mjs';
 // Dependency injection uses the same Firebase 10.13.2 SDK as dev/js/platform.js.
 // Phone and board must have separate Auth/app instances. No tokens in grants.
-export function pairingAdapter({db, auth, sdk}) {
-  if(db?.app?.options?.projectId!=='demo-blakeout-adapter-task3' || auth?.app!==db.app)
-    throw Error('Emulator candidate requires one matching demo Auth/Firestore app');
+export function pairingAdapter({db, auth, sdk, environment}) {
+  assertAdapterEnvironment({db,auth,sdk,environment});
   const {doc,getDocFromServer,runTransaction,Timestamp,serverTimestamp}=sdk;
   const ref=(...parts)=>doc(db,...parts);
   const account=()=>{if(!auth.currentUser)throw Error('Sign in first');return auth.currentUser;};

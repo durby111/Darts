@@ -1,7 +1,8 @@
+import {assertAdapterEnvironment} from '../history-attribution/environment.mjs';
 import {template,project,propose,registrations} from './model.mjs';
 const stable=value=>JSON.stringify(value,(_key,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a.localeCompare(b))):v);
-export function tournamentDevice({db,auth,sdk}){
-  if(db?.app?.options?.projectId!=='demo-blakeout-adapter-task3'||auth?.app!==db.app)throw Error('Demo-only matching apps required');
+export function tournamentDevice({db,auth,sdk,environment}){
+  assertAdapterEnvironment({db,auth,sdk,environment});
   const {doc,getDocFromServer,getDocs,collection,query,where,runTransaction,serverTimestamp,Timestamp}=sdk;
   const ref=(...s)=>doc(db,...s),user=()=>{if(!auth.currentUser)throw Error('Device or organizer session required');return auth.currentUser;};
   const current=u=>{if(auth.currentUser!==u)throw Error('Session changed; select the event again');};

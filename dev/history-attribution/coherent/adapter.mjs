@@ -1,8 +1,9 @@
-// Disabled demo SDK candidate; all backend authorization is in candidate.rules.
+import {assertAdapterEnvironment} from '../environment.mjs';
+// Explicit environment routing; staged DEV entry stays disabled. Rules authorize data.
 import {project,propose,registrations} from '../../tournament-device/model.mjs';
 const clone=x=>structuredClone(x);
-export function historyAdapter({db,auth,sdk}) {
- if(db?.app?.options?.projectId!=='demo-blakeout-adapter-task3'||auth?.app!==db.app)throw Error('Demo only');
+export function historyAdapter({db,auth,sdk,environment}) {
+  assertAdapterEnvironment({db,auth,sdk,environment});
  const {doc,collection,query,where,orderBy,limit,startAfter,getDocsFromServer,runTransaction,serverTimestamp,Timestamp}=sdk;
  const ref=(...p)=>doc(db,...p),get=s=>{if(!s.exists())throw Error('Missing canonical document');return s.data();};
  const user=()=>{if(!auth.currentUser)throw Error('Sign in');return auth.currentUser;};
