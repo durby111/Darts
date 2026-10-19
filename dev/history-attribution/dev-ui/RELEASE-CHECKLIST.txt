@@ -29,9 +29,9 @@ BEFORE RELEASE — FOUR FINITE GATES
    adapters/lifecycle and real configured SDK sessions in isolated environment.
    Exact existing rules hash was independently validated on laptop; cloud has not
    transferred that full suite. New lifecycle tests use synthetic transport and
-   do not extend that enforcement claim. Resolve the pre-existing broad scorer
-   browser fixture failure and complete full end-to-end scoring/provider/device
-   coverage; no production changes are needed to fix the test fixture.
+   do not extend that enforcement claim. Broad scorer browser suite now passes after fixture repair and the null-session
+   product fix; see dev/tests/SCORER-VALIDATION-20261019.txt. Complete real
+   provider/device coverage separately; mocked browser tests are not enforcement.
 2. Live read-only verification + concrete approval: verify blakeout-darts-dev /
    (default) deployed rules and occurrences index readiness; compare actual live
    rules with reviewed candidate; confirm production remains separate blakeout.
@@ -54,14 +54,15 @@ BEFORE RELEASE — FOUR FINITE GATES
 CLOUD VERIFICATION
 57 Node model/adapter/DOM/lifecycle tests passed; 6 static source checks passed.
 Account, profile, feature and casual-save compatibility regression scripts passed.
-Bracket confirmation DOM suite and 7 feature-recording VM groups passed.
+Bracket confirmation DOM suite and 8 feature-recording VM groups passed.
 Chromium: release gate/no external requests; phone consent; separate seat claim
 and history confirmation (synthetic transport). Browser bundles build successfully.
 No new Firestore enforcement executed here.
 
-UNRESOLVED BROAD TEST (not caused by this diff, still a release blocker)
-python3 dev/tests/scoring_bridge_test.py passes label/resume and tournament
-501/Cricket storage checks, then times out in casual_fixture at line375 waiting
-for 'Verified scorekeeper ID'. Same failure reproduced in detached 6e4265c baseline.
-Logs retained outside source at attribution-evidence/lifecycle-scoring.log and
-lifecycle-scoring-baseline.log. Do not report this suite as fully passing.
+RESOLVED BROAD TEST
+Full python3 dev/tests/scoring_bridge_test.py run exits 0 with 63 PASS groups
+and no collected browser errors. Fixed missing query APIs/stale policy expectations
+in the SDK fixture and a real null-session access in ordinary-game controls.
+Earlier failure logs preserved; final evidence scorer-fixture-full-final.log.
+The new fixture-pagination regression covers 77 profiles across two bounded pages.
+Board-token configuration and exact separate approval are in BOARD-TOKEN-APPROVAL.txt.

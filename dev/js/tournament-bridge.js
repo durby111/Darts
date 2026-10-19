@@ -300,7 +300,7 @@ export function renderTournamentControls(message = '') {
         document.querySelector('#gameMenuModal h2').after(returnButton);
     }
     returnButton.hidden = !game.tournament;
-    returnButton.disabled = session.history ? !isFeatureAvailable('history') : !LOCAL_TOURNAMENT && !isFeatureAvailable('brackets');
+    returnButton.disabled = session?.history ? !isFeatureAvailable('history') : !LOCAL_TOURNAMENT && !isFeatureAvailable('brackets');
     returnButton.textContent = returnButton.disabled ? 'Return to tournament brackets · Cloud off' : 'Return to tournament brackets';
     returnButton.title = returnButton.disabled ? BRACKETS_NOTICE : '';
     if (!session) return;

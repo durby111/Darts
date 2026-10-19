@@ -1,0 +1,57 @@
+Broad scorer validation repair — 2026-10-19
+
+ROOT CAUSES
+1. Test fixture/environment contract drift: scoring_bridge_test.py's Firestore
+   double implemented only one where filter. Actual profile-directory code now
+   calls documentId/orderBy/limit/startAfter for bounded pages. The profile loader
+   caught the missing-method error and displayed it, while the old fixture waited
+   for a success string until timing out. The fixture now supports actual query
+   constraints and fails directly with the displayed profile error when loading
+   does not succeed. A dedicated test verifies 77 profiles in 50+27 distinct rows.
+2. Stale private-history expectations: legacy tests expected all casual games and
+   arbitrary linked users to receive private cloud records. Current product scope
+   permits own-account 501/Cricket only on the original personal path. Tests now
+   exercise supported writes, plus explicit denial/no-write/local-retention
+   assertions for unsupported games and multi-owner recordings. All six game
+   scoring paths, five-human rotation/undo/recovery, Chicago ties and Minnesota
+   counters remain covered. No product permission was widened to satisfy tests.
+3. Actual product regression in 8fce352: renderTournamentControls accessed
+   session.history even when an ordinary game had no recording session. This
+   interrupted ordinary game startup and left setup intercepting clicks. The
+   access now uses session?.history. A VM regression explicitly renders an ordinary
+   game after a recorded session and checks controls remain usable.
+
+SCOPE
+Only the null-session access changes product behavior. No activation switch,
+backend rule/index, identity, credential or production file changed. Browser suite
+uses real scorer/UI/engine/platform code with intercepted Firebase SDK boundaries;
+it is not emulator enforcement, real Firebase, Google or email acceptance.
+
+COMMANDS
+PYTHONDONTWRITEBYTECODE=1 python3 -u dev/tests/scoring_bridge_test.py
+node --test dev/tests/scoring_fixture_query_test.mjs
+node --test dev/history-attribution/test_*.mjs dev/history-attribution/coherent/test_flow.mjs dev/history-attribution/dev-ui/test_*.mjs
+PYTHONDONTWRITEBYTECODE=1 python3 dev/history-attribution/coherent/test_source_contract.py
+BLAKEOUT_JSDOM_MODULE=/workspace/blakeout-recovery/container-build/node_modules/jsdom node --experimental-vm-modules --test dev/tests/feature_recording_gate_test.mjs dev/tests/brackets_confirmations_test.mjs dev/tests/feature_availability_test.mjs dev/tests/profile_directory_platform_test.mjs dev/tests/accounts_page_test.mjs dev/public-pilot/test_save_compatibility.mjs
+python3 dev/history-attribution/dev-ui/test_browser.py
+
+EVIDENCE DIRECTORY
+/workspace/blakeout-recovery/attribution-evidence/
+scorer-fixture-full.log preserves the first post-fixture run and exposed null bug.
+scorer-fixture-full-final.log is the final full browser rerun.
+scorer-final-node.log and scorer-final-regressions.log hold supporting test results.
+Earlier lifecycle-scoring.log / lifecycle-scoring-baseline.log retain the original
+profile-fixture failure and unchanged-6e4265c baseline reproduction.
+
+BOARD SETUP
+See ../history-attribution/dev-ui/BOARD-TOKEN-APPROVAL.txt for minimal trusted
+endpoint, fixed board UID, server-side provisioning authorization, managed signer
+IAM, revocation and exact separate live-change approvals. No service deployed.
+
+FINAL RESULTS
+Full browser suite exit 0; 63 PASS groups; no collected browser errors.
+Final log SHA256: 7f6adeb0ee8396ba6200c222f5448f6cf462496edafda92dbabf6aaaa0432797
+57 supporting Node tests + 1 fixture-pagination test passed; 6 static checks passed.
+Six focused regression scripts passed, including 72 bracket confirmations,
+22 account ownership groups, 5 availability groups and 8 recording-gate VM groups.
+Staged Chromium disabled-route and separate claim/consent checks passed.

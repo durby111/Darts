@@ -23,18 +23,26 @@ const snapshot=ref=>({id:ref.id,exists:()=>ref.path in read(),data:()=>read()[re
 const online=()=>{if(localStorage.__offline==='1')throw Error('Offline');};
 export const collection=(db,path)=>({path});
 export const doc=(db,name,id)=>({path:name+'/'+id,id});
-export const getDocFromServer=async ref=>{online();return snapshot(ref);};
-export const query=(collection,filter)=>({...collection,filter});
+export const getDocFromServer=async ref=>{online();if(localStorage.__slowProfiles==='1' && ref.path.startsWith('blakeoutDevProfiles/'))await new Promise(resolve=>{globalThis.releaseProfiles=resolve;});return snapshot(ref);};
+export const query=(collection,...constraints)=>({...collection,constraints});
+export const documentId=()=> '__name__';
+export const orderBy=field=>({kind:'order',field});
+export const limit=count=>({kind:'limit',count});
+export const startAfter=cursor=>({kind:'cursor',cursor});
 export const where=(field,op,value)=>({field,op,value});
 export const getDocsFromServer=async ref=>{
   online();
   if(localStorage.__slowProfiles==='1' && ref.path==='blakeoutDevProfiles')
     await new Promise(resolve=>{globalThis.releaseProfiles=resolve;});
-  return {docs:Object.entries(read())
-    .filter(([path,value])=>path.startsWith(ref.path+'/') &&
-      (!ref.filter || (ref.filter.op==='==' ? value[ref.filter.field]===ref.filter.value :
-        value[ref.filter.field].includes(ref.filter.value))))
-    .map(([path])=>snapshot({path,id:path.split('/').at(-1)}))};
+  let rows=Object.entries(read()).filter(([path])=>path.startsWith(ref.path+'/') && !path.slice(ref.path.length+1).includes('/'));
+  for(const c of ref.constraints||[]){
+    if(c.op)rows=rows.filter(([,value])=>c.op==='=='?value[c.field]===c.value:value[c.field]?.includes(c.value));
+    else if(c.kind==='order')rows.sort(([a],[b])=>a<b?-1:a>b?1:0);
+    else if(c.kind==='cursor')rows=rows.filter(([path])=>path.split('/').at(-1)>(typeof c.cursor==='string'?c.cursor:c.cursor.id));
+    else if(c.kind!=='limit')throw Error('Unsupported SDK fixture constraint');
+  }
+  const cap=(ref.constraints||[]).find(c=>c.kind==='limit');if(cap)rows=rows.slice(0,cap.count);
+  return {docs:rows.map(([path])=>snapshot({path,id:path.split('/').at(-1)}))};
 };
 export const runTransaction=async(db,callback)=>{
   online();
@@ -212,7 +220,7 @@ async def storage_migration(page, base):
 async def storage_budget(page, base):
     for kind, casual in [("501", False), ("cricket", False), ("501", True), ("cricket", True)]:
         if casual:
-            await casual_fixture(page, base, kind, teams=[2, 3], links=["u1", "u2", "u3", "u4", "u5"])
+            await casual_fixture(page, base, kind, teams=[2, 3], links=["owner", "", "", "", ""])
         else:
             await fixture(page, base, kind)
         measured = await page.evaluate("""async kind=>{
@@ -372,11 +380,15 @@ async def casual_fixture(page, base, kind="301", players=2, teams=None, links=No
     if teams:
         await page.click("#teamStartMatchBtn")
     await page.wait_for_selector("#casualLink0")
-    await page.wait_for_function("document.getElementById('casualLinkStatus').textContent.includes('Verified scorekeeper ID')")
+    await page.wait_for_function("!document.getElementById('casualLinkStatus').textContent.includes('Loading verified profiles')")
+    profile_status = await page.locator('#casualLinkStatus').inner_text()
+    assert 'Verified scorekeeper ID' in profile_status, profile_status
     assert await page.locator("#casualLink0").input_value() == ""
-    links = links if links is not None else ["u1"] + [""] * ((sum(teams) if teams else players) - 1)
+    links = links if links is not None else ["owner"] + [""] * ((sum(teams) if teams else players) - 1)
     for i, uid in enumerate(links):
         await page.select_option(f"#casualLink{i}", uid)
+    if not (kind in ['501', 'cricket'] and [uid for uid in links if uid] == ['owner']):
+        await page.check('#casualLocalOnlyAck')
     if not start:
         return
     await page.click("#casualLinkStart")
@@ -406,6 +418,13 @@ async def personal_results(page, uid="u1"):
     }""", uid)
 
 
+async def assert_local_only(page):
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Not saved')")
+    assert await state(page, 'game.recording.status') == 'pending'
+    assert await state(page, '!!game.recording.pendingResult')
+    assert await page.evaluate("Object.keys(JSON.parse(localStorage.__documents||'{}')).filter(k=>k.startsWith('blakeoutDevCasualResults/')||k.startsWith('blakeoutDevCasualReceipts/')).length") == 0
+
+
 async def casual_cases(page, base):
     for kind in ["301", "501", "cricket", "spanish", "minnesota", "chicago"]:
         await casual_fixture(page, base, kind)
@@ -421,12 +440,17 @@ async def casual_cases(page, base):
             await close_cricket_leg(page)
         assert await state(page, "game.recording.legComplete")
         await page.click("#casualSaveResult")
-        await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
-        results = await personal_results(page)
-        assert len(results) == 1 and results[0]["source"] == "casual"
-        assert results[0]["participantIds"] == ["u1"]
-        assert sum(s["darts"] for s in results[0]["perPlayer"]) == (2 if kind == "chicago" else 1)
-    print("PASS six casual games through real platform, single-slot UID selection, guest exclusion")
+        if kind in ['501', 'cricket']:
+            await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
+            results = await personal_results(page, 'owner')
+            assert len(results) == 1 and results[0]['source'] == 'casual'
+            result = results[0]
+        else:
+            await assert_local_only(page)
+            result = await state(page, 'game.recording.pendingResult')
+        assert result['participantIds'] == ['owner']
+        assert sum(s['darts'] for s in result['perPlayer']) == (2 if kind == 'chicago' else 1)
+    print("PASS six casual scoring games: own 501/Cricket save; unsupported games retained locally without cloud writes")
 
     await casual_fixture(page, base, teams=[2, 3], links=["u1", "u2", "u3", "u4", "u5"])
     assert await state(page, "game.teams.map(t=>t.members.length)") == [2, 3]
@@ -440,7 +464,7 @@ async def casual_cases(page, base):
     await checkout(page)
     await page.evaluate("async()=>{await (await import('./js/platform.js')).initPlatform();changeTestUser({uid:'u4',emailVerified:true,isAnonymous:false});}")
     await page.click("#casualSaveResult")
-    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('original verified scorekeeper')")
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Not saved')")
     pending_id = await state(page, "game.recording.resultId")
     await page.evaluate("changeTestUser({uid:'owner',emailVerified:true,isAnonymous:false});localStorage.__offline='1'")
     await page.click("#casualSaveResult")
@@ -454,22 +478,35 @@ async def casual_cases(page, base):
     await page.click("#casualLocalHistory summary")
     await page.click(f"#casualResume-{pending_id}")
     assert await state(page, "game.recording.resultId") == pending_id
+    await page.evaluate("localStorage.__offline='0'")
+    await page.click('#casualSaveResult')
+    await assert_local_only(page)
+    assert (await state(page, 'game.recording.pendingResult.participantIds')) == ['u1','u2','u3','u4','u5']
+    print('PASS five-human team rotation, undo/reload, local recovery and no unauthorized multi-owner save')
+
+    # Separate supported own-history path proves wrong-account/offline/lost-reply retry.
+    await casual_fixture(page, base, '501')
+    await checkout(page)
+    await page.evaluate("changeTestUser({uid:'u4',emailVerified:true,isAnonymous:false})")
+    await page.click('#casualSaveResult')
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('original verified scorekeeper')")
+    await page.evaluate("changeTestUser({uid:'owner',emailVerified:true,isAnonymous:false});localStorage.__offline='1'")
+    await page.click('#casualSaveResult')
+    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Not saved')")
     await page.evaluate("localStorage.__offline='0';localStorage.__lostReply='1'")
-    await page.click("#casualSaveResult")
+    await page.click('#casualSaveResult')
     await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Not saved')")
     await page.evaluate("localStorage.__lostReply='0'")
-    await page.click("#casualSaveResult")
+    await page.click('#casualSaveResult')
     await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
-    for uid in ["u1", "u2", "u3", "u4", "u5"]:
-        results = await personal_results(page, uid)
-        assert len(results) == 1 and len(results[0]["participantIds"]) == 5
+    assert len(await personal_results(page,'owner')) == 1
     assert await page.evaluate("Object.keys(JSON.parse(localStorage.__documents)).filter(k=>k.startsWith('blakeoutDevCasualResults/')).length") == 1
-    print("PASS five-human team rotation, identity undo/reload, wrong account, offline recovery and duplicate save")
+    print('PASS own 501 wrong account, offline and lost-response replay without duplicate result')
 
-    await casual_fixture(page, base, "301", players=4, links=["owner", "u2", "", "u4"])
+    await casual_fixture(page, base, "501", players=4, links=["", "owner", "", ""])
     for _ in range(4):
         await score(page, 9, 3)
-    assert await state(page, "game.scoringRecords.legs[0].turns.map(t=>t.playerId)") == ["owner", "u2", None, "u4"]
+    assert await state(page, "game.scoringRecords.legs[0].turns.map(t=>t.playerId)") == [None, "owner", None, None]
     await checkout(page, 1)
     second_side = await state(page, "game.recording.teams[1].id")
     assert await state(page, "game.recording.winnerIndex") == 1
@@ -485,17 +522,17 @@ async def casual_cases(page, base):
     await page.evaluate("localStorage.__slowProfiles='0';globalThis.releaseProfiles()")
     await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
     second_winner_result = (await personal_results(page, "owner"))[0]
-    assert second_winner_result["participantIds"] == ["owner", "u2", "u4"]
+    assert second_winner_result["participantIds"] == ["owner"]
     assert second_winner_result["winnerId"] == second_side
     assert second_winner_result["records"]["winnerIds"] == [second_side]
     assert second_winner_result["legScores"][0]["winnerId"] == second_side
     print("PASS four singles, scorekeeper also playing and in-flight save protects the current game")
 
-    await casual_fixture(page, base, "301", players=1)
+    await casual_fixture(page, base, "501", players=1)
     await checkout(page)
     await page.click("#casualSaveResult")
     await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
-    assert len((await personal_results(page))[0]["records"]["winnerIds"]) == 1
+    assert len((await personal_results(page,"owner"))[0]["records"]["winnerIds"]) == 1
 
     await casual_fixture(page, base, "chicago", players=3, links=["u1", "u2", "u3"])
     await page.click("#chicago301Btn")
@@ -511,8 +548,8 @@ async def casual_cases(page, base):
     assert await state(page, "game.recording.legWins") == [1, 1, 1]
     tied_sides = await state(page, "game.recording.teams.map(t=>t.id)")
     await page.click("#casualSaveResult")
-    await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.includes('Casual result saved')")
-    result = (await personal_results(page))[0]
+    await assert_local_only(page)
+    result = await state(page, 'game.recording.pendingResult')
     assert result["winnerId"] is None and result["records"]["winnerIds"] == tied_sides
     assert [leg["winnerId"] for leg in result["legScores"]] == tied_sides
     assert [leg["gameType"] for leg in result["legScores"]] == ["301", "501", "cricket"]
@@ -610,8 +647,12 @@ async def minnesota_cases(page, base):
             await page.click("#tournamentNextLeg")
             await close_cricket_leg(page)
         await page.click("#casualSaveResult" if casual else "#tournamentSaveResult")
-        await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.toLowerCase().includes('result saved')")
-        result = (await personal_results(page))[0]
+        if casual:
+            await assert_local_only(page)
+            result = await state(page, 'game.recording.pendingResult')
+        else:
+            await page.wait_for_function("document.getElementById('tournamentResultPanel').textContent.toLowerCase().includes('result saved')")
+            result = (await personal_results(page))[0]
         assert result["perPlayer"][0]["gameType"] == "minnesota"
     print("PASS Minnesota tournament/casual Bed darts, special scoring marks, keypad persistence and result save")
 
