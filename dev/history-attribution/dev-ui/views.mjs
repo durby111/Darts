@@ -23,15 +23,29 @@ export async function mountHistoryView(root,session,{view='history',hash=''}={})
  if(view==='desk') {
   if(!['board','organizer'].includes(session.role))throw Error('A result desk session is required');
   const {mountDesk}=await import('../../tournament-device/ui.mjs');current();
-  return mountDesk(root,{...session,label:'DEV tournament results',api:historyDesk(session),identityLink:consentLink});
+  return mountDesk(root,{...session,label:'DEV tournament results',api:historyDesk(session),identityLink:consentLink,launchMatch:(event,match)=>{const u=new URL('/dev/',HISTORY_DEV_RELEASE.origin);u.search=new URLSearchParams({tournamentMatch:'1',historyMatch:'1',event,match,role:session.role});return u.href;}});
  }
  if(session.role==='board')throw Error('Shared devices cannot open personal history');
+ if(view==='claim') {
+  const params=consentParams(hash);if(!params.contextId.startsWith('g_'))throw Error('Game claim required');
+  let invitation;
+  try{invitation=await session.pairing.inspect(params.invitationId);}catch(error){await session.pairing.claimedSeat(params.contextId.slice(2),params.seatId,params.invitationId);current();return mountHistoryView(root,session,{view:'consent',hash});}
+  current();
+  if(invitation.game!==params.contextId.slice(2)||invitation.seat!==params.seatId)throw Error('QR seat differs');
+  text('h1','Claim this game seat');text('p',`Game ${invitation.game}, seat ${invitation.seat}. Signed in as ${user.uid}. This claim alone does not authorize history.`);
+  const code=text('input','');code.type='text';code.inputMode='numeric';code.maxLength=6;code.setAttribute('aria-label','Pairing code');
+  const label=text('label','This is my seat and identity '),ack=text('input','',label);ack.type='checkbox';
+  const status=text('p','');status.setAttribute('role','status');const claim=text('button','Confirm seat');claim.disabled=true;ack.onchange=()=>claim.disabled=!ack.checked;
+  claim.onclick=async()=>{if(!ack.checked)return;claim.disabled=true;try{current();await session.pairing.claim({game:invitation.game,seat:params.seatId,handle:params.invitationId,code:code.value,confirmedUid:user.uid});current();await mountHistoryView(root,session,{view:'consent',hash});}catch(e){if(session.auth.currentUser===user)status.textContent=e.message;claim.disabled=!ack.checked;}};
+  return;
+ }
  if(view==='consent') {
   const params=consentParams(hash),key=crypto.randomUUID();
-  return mountPhoneConsent(root,{
+  await mountPhoneConsent(root,{
    async consentDetails(p){const d=await session.history.consentDetails(p);current();return d;},
    async confirm(p){current();await session.history.confirm(p);current();}
   },{...params,bindingId:'b_'+key,grantId:'g_'+key,expiresAt:Date.now()+11*60*60*1000});
+  const link=text('a','Open your linked history');link.href=HISTORY_DEV_RELEASE.path+'#view=history';return;
  }
  if(view!=='history')throw Error('Unknown history view');
  text('h1','Your linked history');text('p','Refresh each consent scope to recover accepted results and later corrections. Refresh may need repeating while results are still arriving.');

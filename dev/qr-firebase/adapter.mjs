@@ -22,6 +22,7 @@ export function pairingAdapter({db, auth, sdk, environment}) {
     async revoke(game,seat){const u=account();await runTransaction(db,async t=>{const r=ref('qrGames',game,'grants',seat),g=await t.get(r);same(u);if(!g.exists())return;t.delete(r);t.delete(ref('qrGames',game,'members',g.data().uid));});},
     async end(game){const u=account();await runTransaction(db,async t=>{same(u);t.update(ref('qrGames',game),{active:false});});},
     async checkIn({game,seat,handle}){const u=account();await runTransaction(db,async t=>{same(u);t.set(ref('qrGames',game,'checkins',seat),{uid:u.uid,handle,at:serverTimestamp()});});},
+    async claimedSeat(game,seat,handle){const u=account();const [g,s]=await Promise.all([getDocFromServer(ref('qrGames',game)),getDocFromServer(ref('qrGames',game,'grants',seat))]);same(u);if(!g.data()?.active||!s.exists()||s.data().uid!==u.uid||s.data().handle!==handle||s.data().expires.toMillis()<=Date.now())throw Error('No current matching seat claim');return {uid:u.uid,game,seat,handle};},
     async participation(game,seat){const u=account();const [g,s]=await Promise.all([getDocFromServer(ref('qrGames',game)),getDocFromServer(ref('qrGames',game,'grants',seat))]);same(u);return {active:!!(g.data()?.active&&s.exists()&&s.data().expires.toMillis()>Date.now()),uid:s.data()?.uid??null};}
   });
 }

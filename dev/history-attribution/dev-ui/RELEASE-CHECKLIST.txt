@@ -1,0 +1,67 @@
+Finite release checklist — guarded lifecycle checkpoint, 2026-10-19
+
+IMPLEMENTED, STILL DISABLED
+[done] Separate shared-history opt-in in existing casual setup. Original personal
+  self-history path stays intact when shared mode is not selected. 501 and Cricket
+  supported; every linked counter preserved, including zero-dart participants.
+[done] Board game/context creation, source-ID retention across partial failure,
+  optional first-four-seat QR claims, explicit phone seat confirmation followed
+  by separate history consent, and exact-claim recovery after lost acknowledgement.
+  Original pairing limit remains four seats; later seats are explicitly guests.
+[done] Immutable tournament roster publication and retryable context setup after
+  original roster lock. Exact source comparison refuses replacement/migration.
+  Partial setup can be resumed via Prepare / open shared result desk.
+[done] Shared desk launches actual scorer; completion calls coherent producer,
+  freezes operation ID/payload/revision before sending, retains pending failures,
+  and leaves original private resume rules untouched. Old tournament result paths
+  are blocked when shared-history routing is selected, avoiding two active heads.
+[done] Board provisioning function: dedicated app/default DEV DB, explicit approved
+  UID + authorization reference, session persistence, custom token obtained from
+  supplied approved service, wrong UID signs out. No credentials minted or stored
+  in game state. No live provider/service/identity/role mutation performed.
+[done] history feature flag=false AND HISTORY_DEV_RELEASE.enabled=false. Accounts
+  stays true, brackets stays false, Google/Apple disabled. Approved source routes
+  for future activation: /dev/, /dev/brackets/, /dev/history-attribution/dev-ui/,
+  only at https://blakeoutdarts.com. Unknown paths/project/namespace fail closed.
+
+BEFORE RELEASE — FOUR FINITE GATES
+1. Final validation: run the returned executable enforcement suite against final
+   adapters/lifecycle and real configured SDK sessions in isolated environment.
+   Exact existing rules hash was independently validated on laptop; cloud has not
+   transferred that full suite. New lifecycle tests use synthetic transport and
+   do not extend that enforcement claim. Resolve the pre-existing broad scorer
+   browser fixture failure and complete full end-to-end scoring/provider/device
+   coverage; no production changes are needed to fix the test fixture.
+2. Live read-only verification + concrete approval: verify blakeout-darts-dev /
+   (default) deployed rules and occurrences index readiness; compare actual live
+   rules with reviewed candidate; confirm production remains separate blakeout.
+   Use APPROVAL-PROPOSAL.txt for exact scope. Do not deploy via root firebase.json.
+3. Approved live setup: populate exact board UID/authorization reference and server
+   rule role allowlists, arrange an approved custom-token provisioning service or
+   existing equivalent service, and run provisionBoard from that trusted setup.
+   This repository supplies the guarded client setup function, NOT a credential
+   minting backend. Verify wrong-token UID, revoked board, expired session and
+   re-provisioning behavior. No personal submitter authentication is required.
+   Approve rules/index/config writes separately from frontend publication; capture
+   rollback artifacts, test IDs and final rule hash after inserting real roles.
+4. Bounded real-user acceptance and frontend approval: standalone self-history and
+   shared 501/Cricket; tournament start/retry/advance/correction/undo; wrong QR
+   account/seat; ownership vs submitter; private-history/resume denials; device
+   reload/offline result retry; mobile and agreed cross-browser matrix; owner-led
+   Google/password-reset/email acceptance. Publish/activate only the reviewed DEV
+   diff after these checks and explicit approval; no production scope.
+
+CLOUD VERIFICATION
+57 Node model/adapter/DOM/lifecycle tests passed; 6 static source checks passed.
+Account, profile, feature and casual-save compatibility regression scripts passed.
+Bracket confirmation DOM suite and 7 feature-recording VM groups passed.
+Chromium: release gate/no external requests; phone consent; separate seat claim
+and history confirmation (synthetic transport). Browser bundles build successfully.
+No new Firestore enforcement executed here.
+
+UNRESOLVED BROAD TEST (not caused by this diff, still a release blocker)
+python3 dev/tests/scoring_bridge_test.py passes label/resume and tournament
+501/Cricket storage checks, then times out in casual_fixture at line375 waiting
+for 'Verified scorekeeper ID'. Same failure reproduced in detached 6e4265c baseline.
+Logs retained outside source at attribution-evidence/lifecycle-scoring.log and
+lifecycle-scoring-baseline.log. Do not report this suite as fully passing.

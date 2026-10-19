@@ -1,3 +1,4 @@
+import {isFeatureAvailable} from '../../js/feature-availability.js';
 import {HISTORY_DEV_RELEASE} from './config.mjs';
 import {DEV_ENVIRONMENT,assertAdapterEnvironment} from '../environment.mjs';
 import {assertDevConfig} from '../../js/backend-context.js';
@@ -6,8 +7,8 @@ import {pairingAdapter} from '../../qr-firebase/adapter.mjs';
 import {tournamentDevice} from '../../tournament-device/adapter.mjs';
 const SDK='https://www.gstatic.com/firebasejs/10.13.2';
 export function assertDevHistoryRoute(location) {
- if(!HISTORY_DEV_RELEASE.enabled)throw Error('History integration is not released.');
- if(location.origin!==HISTORY_DEV_RELEASE.origin||location.pathname!==HISTORY_DEV_RELEASE.path)throw Error('Unapproved DEV history route');
+ if(!HISTORY_DEV_RELEASE.enabled||!isFeatureAvailable('history'))throw Error('History integration is not released.');
+ if(location.origin!==HISTORY_DEV_RELEASE.origin||![HISTORY_DEV_RELEASE.path,'/dev/','/dev/brackets/'].includes(location.pathname))throw Error('Unapproved DEV history route');
 }
 export function adaptersForSession({db,auth,sdk,role}) {
  if(!['phone','organizer','board'].includes(role))throw Error('Unknown history role');

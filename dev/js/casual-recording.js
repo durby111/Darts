@@ -47,6 +47,11 @@ export function initCasualRecording() {
     panel.innerHTML = '<label class="casual-recording-toggle"><input type="checkbox" id="recordCasualStats"> Record verified player stats (optional)</label>' +
         '<p id="casualRecordingHint"></p><details id="casualLocalHistory"><summary>Recorded games on this device</summary><div id="casualRecoveryList"></div></details>';
     document.getElementById('playSection').before(panel);
+    if (isFeatureAvailable('history')) {
+        const label = document.createElement('label');
+        label.innerHTML = '<input type="checkbox" id="sharedHistoryRecording"> Use approved shared-tablet history (501 / Cricket)';
+        panel.append(label);
+    }
     const toggle = document.getElementById('recordCasualStats');
     if (!isFeatureAvailable('accounts')) {
         toggle.checked = false;
@@ -81,6 +86,11 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
         return { playerSeeds, teams, recording: null };
     }
     if (preparing) return null;
+    if (isFeatureAvailable('history') && document.getElementById('sharedHistoryRecording')?.checked) {
+        preparing = true;
+        try { return await (await import('../history-attribution/dev-ui/scorer.mjs')).prepareSharedCasual(playerSeeds, teams, gameType); }
+        finally { preparing = false; }
+    }
     preparing = true;
     // Slot IDs are scoped by the result ID; account identity always uses playerId.
     const sides = teams
@@ -240,11 +250,15 @@ export async function saveCasualResult() {
     const notify = message => document.dispatchEvent(new CustomEvent('casualRecordingChanged', { detail: { message } }));
     notify('Verifying and saving casual result…');
     try {
+        if (session.history) {
+            await (await import('../history-attribution/dev-ui/scorer.mjs')).saveFromScorer(session, session.pendingResult, saveActiveGame);
+        } else {
         if (!personalHistoryAllowed(session.pendingResult.gameType, session.pendingResult.participantIds, session.ownerId)) throw Object.assign(new Error('This recording stays local under the current private-history scope.'), { code: 'permission-denied' });
         const { api, account, profiles } = await verifiedProfiles(session.pendingResult.participantIds);
         if (account.uid !== session.ownerId) throw new Error('Sign in as the original verified scorekeeper to save this record.');
         if (session.pendingResult.participantIds.some(id => !profiles.some(p => p.id === id))) throw new Error('A linked player profile is no longer available.');
         await api.saveCasualResult(session.resultId, session.pendingResult, session);
+        }
         session.status = 'saved';
         game.undoHistory = [];
         game.redoHistory = [];

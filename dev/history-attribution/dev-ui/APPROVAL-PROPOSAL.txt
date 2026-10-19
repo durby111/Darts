@@ -24,29 +24,19 @@ IMPLEMENTED LOCALLY
 - dev-ui route: consent, owner grant recovery/revoke/history refresh, tournament
   desk using coherent state/revisions/audit, honest actor and affected-match review.
 - bridge.mjs exports explicit scorer submission and organizer context-preparation
-  seams. Casual scorer completion is NOT automatically wired to this API yet.
+  seams. Casual scorer completion now routes opted-in shared recordings to this API.
   Tournament source creation still uses the original tournament adapter. Context
-  preparation is a separate explicit organizer action, not automatic migration.
+  preparation follows roster lock with an explicit retry action; no migration.
 - Existing feature/provider switches remain accounts=true, brackets=false,
   Google=false, Apple=false. New HISTORY_DEV_RELEASE.enabled remains false.
   No navigation or service-worker activation; no Firebase config/rules changes.
 
-REMAINING LOCAL IMPLEMENTATION (no live permission needed)
-1. Integrate explicit scorer completion/retry with submitCasualResult and establish
-   game/seat context ownership. Preserve stable operationId and reviewed revision;
-   no automatic replay of old games or unconsented historical backfill.
-2. Integrate organizer context preparation at original tournament creation with
-   recoverable/idempotent handling if context creation fails after source creation.
-3. Complete approved shared-device provisioning/session lifecycle and phone QR
-   claim entry. Current phone casual consent requires an already claimed seat;
-   pairingAdapter exposes claim but route does not collect code/provision accounts.
-   Do not substitute personal submitter sign-in for the board credential.
-4. Add release navigation and appropriate cache/version changes only in a proposed
-   activation diff. Complete testing of the configured SDK session, physical device
-   QR flow and UI account-switch lifecycle. Cloud mocks cannot prove enforcement.
-5. Recover the complete laptop suite and rerun on final changed adapters/UI. The
-   prior 44-case evidence applies to its tested snapshot, not automatically to new
-   environment/session wiring. Preserve returned archive provenance and coverage.
+LIFECYCLE IMPLEMENTATION UPDATE
+Scorer/roster hooks, shared-game setup, QR claim UI, retry retention and guarded
+board provisioning code are now implemented. See RELEASE-CHECKLIST.txt for exact
+completed scope and the remaining four validation/live-setup/acceptance gates.
+The release still requires both history feature and entry flags, which remain
+false. This update does not authorize any live changes described below.
 
 BOUNDED LIVE APPROVAL PROPOSAL — NOT EXECUTED / NOT YET READY TO APPROVE
 Approval must name the exact target above after confirming deployed bindings.

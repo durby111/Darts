@@ -31,6 +31,7 @@ export async function mountDesk(root,session){
           const confirm=control('I confirm this tournament, match and result','checkbox',reviewPanel,'confirm-result');
           button('Confirm change',reviewPanel,async()=>{if(select.value!==id||matches.value!==m.id)throw Error('Selection changed; review again');if(!confirm.checked)throw Error('Confirm the selected tournament, match and result first');await api.submit(r);await load(id);status.textContent='Saved. Bracket updated and audit recorded.';});
         };
+        if(session.launchMatch&&m.status==='ready'){const link=el('a','Launch scorer',form);link.href=session.launchMatch(id,m.id);}
         button(m.status==='complete'?'Review correction':'Review result',form,()=>review({winnerId:Number(a.value)>Number(b.value)?m.teamA:m.teamB,scoreA:Number(a.value),scoreB:Number(b.value),forfeit:false}));
         if(m.status==='complete')button('Review undo',form,()=>review({operation:'undo'}));
       };

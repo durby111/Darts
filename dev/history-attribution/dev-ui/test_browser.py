@@ -36,6 +36,23 @@ try:
   page.get_by_role('status').filter(has_text='Attribution confirmed').wait_for()
   assert page.evaluate("testCalls.length===1 && testCalls[0].displayed.contextId==='t_synthetic-event' && testCalls[0].displayedUid==='synthetic-owner'")
   assert external==[] and errors==[]
+  page.evaluate("""async () => {
+    const {mountHistoryView}=await import('/dev/history-attribution/dev-ui/views.mjs');
+    window.claimCalls=[];window.historyConsents=[];
+    await mountHistoryView(document.querySelector('main'),{role:'phone',auth:{currentUser:{uid:'synthetic-owner'}},pairing:{inspect:async()=>({game:'demo',seat:'1'}),claim:async p=>claimCalls.push(p)},history:{
+      consentDetails:async p=>({...p,uid:'synthetic-owner',scope:'game-seat',gameId:'demo'}),confirm:async p=>historyConsents.push(p)
+    }},{view:'claim',hash:'#context=g_demo&registration=r1&seat=1&invitation='+('a'.repeat(64))});
+  }""")
+  page.get_by_label('Pairing code').fill('123456')
+  page.get_by_role('checkbox').check();page.get_by_role('button',name='Confirm seat',exact=True).click()
+  page.get_by_role('button',name='Confirm history attribution').wait_for()
+  assert page.evaluate('claimCalls.length===1 && historyConsents.length===0')
+  assert page.get_by_role('button',name='Confirm history attribution').is_disabled()
+  page.get_by_role('checkbox').check();page.get_by_role('button',name='Confirm history attribution').click()
+  page.get_by_role('status').filter(has_text='Attribution confirmed').wait_for()
+  assert page.evaluate("historyConsents.length===1 && historyConsents[0].seatId==='1'")
+  assert external==[] and errors==[]
+  print('PASS Chromium: seat claim and history consent are separate explicit confirmations (synthetic transport).')
   print('PASS Chromium: synthetic transport phone view requires checkbox and passes exact displayed scope (not enforcement).')
   print('PASS Chromium: staged DEV route disabled; no external requests; no JavaScript errors; Accounts link retained.')
   browser.close()

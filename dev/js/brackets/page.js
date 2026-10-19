@@ -1,3 +1,4 @@
+import {isFeatureAvailable} from '../feature-availability.js';
 import { BACKEND_KEY } from '../backend-context.js';
 import * as platform from '../platform.js';
 import * as engine from './engine.js';
@@ -678,6 +679,10 @@ $('startTournament').addEventListener('click', async () => {
         const saved = await platform.updateTournament(current.id, current.revision, () => structuredClone(started));
         if (!sameStartContext()) return;
         accept(saved);
+        if (!platform.LOCAL_ONLY && isFeatureAvailable('history')) {
+            location.assign(await (await import('../../history-attribution/dev-ui/scorer.mjs')).prepareRosterDesk(saved));
+            return;
+        }
         notice('Tournament started and roster locked. Select a ready match to launch the scorer.');
         $('bracketHeading').focus({ preventScroll: true });
         $('bracketHeading').scrollIntoView({ block: 'nearest' });
@@ -696,6 +701,7 @@ $('forfeit').addEventListener('change', scoreControls);
 $('resultForm').addEventListener('submit', async event => {
     event.preventDefault();
     if (busy || pendingConfirmation || needsAccountReload || !owner()) return;
+    if (!platform.LOCAL_ONLY && isFeatureAvailable('history')) { notice('Use the shared result desk for this tournament.'); return; }
     const matchId = selectedMatch;
     const forfeit = $('forfeit').checked;
     const result = { winnerId: $('winner').value, forfeit,
@@ -725,6 +731,7 @@ $('closeResult').addEventListener('click', async () => {
     controls();
 });
 $('launchScorer').addEventListener('click', async () => {
+    if (!platform.LOCAL_ONLY && isFeatureAvailable('history')) { notice('Launch from the shared result desk.'); return; }
     if (busy || pendingConfirmation || needsAccountReload || !owner()) return;
     const confirmation = resultDirty ? await confirmCurrent('Discard unsaved manual scores and launch the scorer?', { requireOwner: true })
         : { answer: true, isCurrent: captureContext({ requireOwner: true }) };
@@ -857,3 +864,9 @@ async function boot() {
     controls();
 }
 boot();
+
+if (!platform.LOCAL_ONLY && isFeatureAvailable('history')) {
+    const desk = document.createElement('button'); desk.type='button'; desk.textContent='Prepare / open shared result desk';
+    desk.onclick=()=>action(async()=>{if(!owner()||current?.status!=='live')throw new Error('Start your tournament first.');location.assign(await (await import('../../history-attribution/dev-ui/scorer.mjs')).prepareRosterDesk(current));});
+    $('startTournament').after(desk);
+}
