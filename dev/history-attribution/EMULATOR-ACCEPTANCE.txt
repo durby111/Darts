@@ -1,0 +1,87 @@
+EXACT NEXT ENFORCEMENT MATRIX — NOT EXECUTED, NOT IMPLEMENTED AS RULES YET
+
+Execution: fresh network-none unprivileged container, empty HOME, demo project,
+actual Firebase10.13.2 client SDK and pinned Firestore1.19.8. No live project,
+admin credentials, external network or real account tokens. Bootstrap fixtures
+with emulator test administration only; every operation below uses a synthetic
+client Auth identity. Run deny-all controls first to prove non-admin requests.
+Any unexpected allow, skip, unavailable assertion or access-limit failure fails
+acceptance. Retry after failure must not relax authorization assertions.
+
+Fixtures: organizer O; restricted board B; verified players A and C; verified
+outsider X; unverified A; anonymous client. Named tournament E with doubles
+roster RA=A, RC=C, two unlinked guests; separate event F. Casual501 game G and
+Cricket game H each have canonical event/roster/seat/invitation bindings. Personal
+consents and named-tournament consents are distinct documents and scopes.
+
+Existing source boundaries: tdEvents/E, state/current, audit/OP, identities/R.
+Proposed new layout (must be implemented and reviewed before running):
+  tdEvents/E/outbox/OP/players/UID: immutable validated receipt per accepted op.
+  qrGames/G/historyConsents/R: phone-authorized exact game/seat consent.
+  historyOwners/UID/events/E/matches/M: owner-only current receipt, highest revision.
+Casual result source and immutable game/roster binding must be specified before
+casual cases can run; old qrGames check-in does not confer history authority.
+
+ID | Request/action | Expected and required persisted-state assertion
+01 | A writes own named consent with server timestamp/current roster | allow
+02 | B/X writes A consent; A supplies UID=C | permission-denied; unchanged consent
+03 | Unverified/anonymous writes any consent | permission-denied
+04 | A changes event, game, seat, invitation or roster revision after phone review | deny; no consent
+05 | A writes game consent, tries to reuse it for H or named E | no attribution
+06 | A named E consent reused for F or casual G | no attribution
+07 | Missing/expired/revoked consent at server request.time | score allowed; UID null/no new receipt
+08 | Consent expiry exactly request.time | inactive; no new attribution
+09 | B submits valid result+head+audit+all required outbox in one transaction | all commit
+10 | Same transaction omits one consented player's outbox | whole transaction denied
+11 | Outbox-only, audit-only, head-only writes | denied; no partial source revision
+12 | Forged receipt UID, match, score, counters, consent snapshot or revision | denied
+13 | B submits actorUid=A/humanUid=A | denied; accepted device audit has humanUid=null
+14 | O submits valid result | actor/human UID=O; source=organizer
+15 | Two clients use same source revision | exactly one commit; stale review fails
+16 | Loser reloads and submits independent next result | next revision commits, both receipts persist
+17 | Same operation replay after connection loss | no second audit/outbox or additive counters
+18 | Same operation ID with changed result | denied
+19 | Crash immediately before commit | no source/audit/outbox survives
+20 | Crash after commit before acknowledgement | source and all outbox survive restart
+21 | Phone offline throughout result and event ending | later A query still finds own outbox
+22 | A queries inbox with UID=A filter and limit50 | allow; cursor pages complete >50
+23 | A unbounded/wrong-UID query or direct C receipt read | permission-denied
+24 | B (including verified board credential) reads any private history/resume | denied
+25 | B writes historyOwners/A or delivers A receipt | denied
+26 | A materializes own exact accepted receipt | allow; stable match key, no duplicate count
+27 | A materializes modified/unbacked receipt, C receipt or wrong destination key | denied
+28 | Repeat own delivery | idempotent; no duplicate record/counters
+29 | Deliver correction before old result | latest revision retained; stale overwrite denied/no-op
+30 | Undo after accepted result | tombstone receipt, audit preserved; current totals exclude it
+31 | Correction/undo after consent revoked | frozen accepted recipients only; no new UID assignment
+32 | Roster changes A->C after original result | original A receipt never reassigned to C
+33 | Consent granted only after original unlinked result | correction does not backfill old result
+34 | Correction with completed downstream match | denied; state/outbox unchanged
+35 | Undo descendants in reverse order | accepted sequence; affected matches shown/receipts revised
+36 | A revokes consent racing first result | only valid server ordering accepted; no TOCTOU gap
+37 | A replaces phone account while confirmation/delivery in flight | stale client response rejected; rules use current token UID
+38 | Attempt delete/change accepted audit/outbox or original consent snapshot | denied
+39 | Attempt roster payload containing email/token/private resume | denied by exact shape
+40 | Casual501/Cricket two consented players + guests | owner receipts contain only own counters
+41 | Casual other player lacks consent | scoring retained; absent player has no personal receipt
+42 | Maximum supported doubles result + correction | no 10/20 rule document-call or expression-limit failure
+43 | All original closed/public rules regressions | pass unchanged outside explicitly reviewed paths
+44 | Deny-all SDK/REST controls | known valid operations fail permission-denied, proving enforcement
+
+Required outputs: source commit/tree hashes, composed rules SHA256, dependency
+versions, synthetic role map (no secrets), per-case status and source/outbox/
+history assertions, network interface/routes, emulator logs, no skipped cases.
+Measure read/write rule-access budgets for cases09/10/31/42; do not assume cache
+reuse makes an otherwise over-budget transaction valid. Confirm SDK query/index
+requirements and quota behavior without asserting unlimited Spark capacity.
+
+2026-10-18 ENFORCEMENT DESIGN STOP:
+See ENFORCEMENT-BLOCKERS.txt. Retain all 44 required cases, but the proposed
+all-player atomic outbox layout is not implementation-ready at the current
+128-player casual capacity. Before translating the matrix into SDK operations,
+replace that unsupported dependency with individually bounded owner validation
+or explicitly approve a smaller scope. Add cases for >20 distinct consent
+owners, consent-version chronology across revoke/regrant, and the real engine
+sequence undo W2.1 -> correct W1.1 -> rerecord W2.1 with different teams. The
+new contest must never inherit old ownership; old accepted receipts remain
+correctable only within their original occurrence. No case is waived.

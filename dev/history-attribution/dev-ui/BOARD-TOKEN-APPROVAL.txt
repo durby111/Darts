@@ -1,0 +1,65 @@
+Minimal board-token service setup — proposal only, no deployed service/credentials
+
+Target: Firebase project blakeout-darts-dev, default Firestore database. Production
+blakeout is excluded. Existing client entry board-setup.mjs accepts tokenProvider;
+there is no configured endpoint, signing account or real board UID in this repo.
+
+Minimum trusted service contract
+- One authenticated HTTPS provisioning endpoint, hosted in an approved backend.
+  Verify the invoking organizer/admin identity and explicit provisioning authority
+  server-side. CORS/origin checks alone are not authorization. Do not expose a
+  public endpoint that signs whatever uid the caller supplies.
+- Server configuration pins project=blakeout-darts-dev and the one approved board
+  UID (or a reviewed per-device allowlist). Reject arbitrary project/UID input.
+  Require that the target Auth user already exists and is enabled; do not silently
+  create a user during sign-in. Account creation is a separate approved operation.
+- Use Firebase Admin SDK createCustomToken for that approved board only. Use the
+  hosting runtime's managed service identity for signing, not a downloaded JSON
+  private key in the browser/repository. Configure the exact signer service account
+  and narrowly scoped iam.serviceAccounts.signBlob permission needed by the runtime.
+  Authorization to issue this identity is privileged even without Firestore IAM:
+  a signing principal must be isolated from untrusted/public code.
+- Return only the token over authenticated TLS with Cache-Control:no-store; never
+  log tokens or persist them in URLs, game state, QR codes or repository files.
+  Audit requester/target UID, issuance time and outcome without the credential.
+  Rate-limit issuance and provide a way to disable provisioning immediately.
+- Client tokenProvider calls that endpoint under the authorized setup session;
+  provisionBoard validates dedicated app/default DEV DB before requesting token,
+  checks resulting UID, signs out on mismatch and uses browserSessionPersistence.
+  Regular shared-tablet result entry then uses the board session, not personal
+  authentication by every person entering a score.
+- The token proves identity; qrBoardUids/tdOperatorUids and source ownership rules
+  grant the actual actions. Do not add broad claims-based writes or private-history
+  access. A custom-token exchange may establish a refreshable session: custom token
+  expiry is not a device-session kill switch. Operational revocation must disable
+  issuance, revoke/disable the device identity as approved, and remove its rule
+  allowance when immediate source-write denial is needed.
+
+Exact approval package required before setup
+1. Confirm target project and deployed database/rules, signer service-account ID,
+   runtime identity, endpoint URL, region/hosting service and any costs.
+2. Approve the exact IAM binding enabling that runtime to sign as that signer;
+   separately approve narrow Auth lookup/revocation permissions if used. No broad
+   project Editor/Owner grant. Name the real board UID and authorized provisioners.
+3. Approve creation of the device Auth identity only if it does not already exist.
+   Approve server-side fixed UID allowlist and the rule/config diff adding it to
+   qrBoardUids, BOARD_SETUP.uid and BOARD_SETUP.authorizationReference. No personal
+   player UID must be substituted. Name organizer/player test identities separately.
+4. Review final rules hash, actual deployed-rule diff, index readiness and rollback
+   under APPROVAL-PROPOSAL.txt. Token-service deployment does not itself approve
+   Firestore changes, index creation, frontend publication or feature activation.
+5. Test unauthorized caller, arbitrary UID/project, missing/disabled board, replay,
+   wrong returned UID, session reload, revocation and token-free logging in isolated
+   tests then bounded approved DEV acceptance. Capture pre-change config/rules and
+   a tested disable/rollback procedure. Keep both history activation flags false
+   until separately authorized release.
+
+Unresolved values: endpoint, hosting/runtime/signer identity, actual approved board
+UID and provisioners, current Auth state and IAM bindings. None is guessed here.
+No backend service is claimed implemented or approved by the client-only helper.
+
+Primary reference (checked 2026-10-19):
+https://firebase.google.com/docs/auth/admin/create-custom-tokens
+https://firebase.google.com/docs/auth/web/custom-auth
+Firebase documents server-side token creation and client signInWithCustomToken.
+The restricted endpoint/UID/audit controls above are the proposed application design.

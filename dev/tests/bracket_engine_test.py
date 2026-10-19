@@ -457,9 +457,9 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 async def run(selected):
-    # Chrome's Unix socket paths must stay short; all scratch data remains in dev.
-    runtime = DEV_ROOT / f".be-{os.getpid()}"
-    runtime.mkdir()
+    # Deep cloud worktree paths can exceed Chrome's Unix socket path limit.
+    # Use an isolated short scratch path; the existing finally block removes it.
+    runtime = Path(tempfile.mkdtemp(prefix="bl-be-", dir="/tmp"))
     old_tempdir = tempfile.tempdir
     old_environment = {key: os.environ.get(key) for key in ("TMPDIR", "TMP", "TEMP")}
     for key in old_environment:

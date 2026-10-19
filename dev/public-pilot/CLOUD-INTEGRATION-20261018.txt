@@ -1,0 +1,60 @@
+Cloud-only integration review, 2026-10-18. No deployment or live data changes.
+
+Branch review/cloud-frontend-integration-20261018 combines seven exact frontend
+files from 1018b7b5833bfebc3d9b77b6496e146184536bff with corrected public-policy
+harness base 6ae3e8b89687fba790d6d5c3002976fc2468b0e1. Security rules and Firebase
+configuration are unchanged. Added platform/helper integration regression with
+synthetic Firebase SDK transport; this is not backend authorization acceptance.
+
+Reproducible runner defect fixed: deep cloud worktree path exceeded Chromium's
+Unix socket limit. bracket_engine_test.py now allocates a unique short /tmp
+scratch directory and retains existing finally cleanup.
+
+Cloud commands (all passed after the noted tooling correction):
+node --experimental-vm-modules dev/tests/profile_directory_test.mjs
+node --experimental-vm-modules dev/tests/profile_directory_platform_test.mjs
+BLAKEOUT_JSDOM_MODULE=/workspace/blakeout-recovery/container-build/node_modules/jsdom node --experimental-vm-modules dev/tests/casual_directory_ui_test.mjs
+node --experimental-vm-modules dev/tests/accounts_page_test.mjs
+node --experimental-vm-modules dev/tests/feature_recording_gate_test.mjs
+node --experimental-vm-modules dev/tests/result_corrections_test.mjs
+node --experimental-vm-modules dev/tests/transaction_conflict_test.mjs
+node --experimental-vm-modules dev/public-pilot/test_save_compatibility.mjs
+python3 dev/public-pilot/test_proposal.py
+python3 dev/tournament-device/test_composition.py
+python3 dev/tests/bracket_engine_test.py
+
+Results: directory 105 profiles/3 pages; real platform/helper 4 groups; real
+setup DOM; 21 account UI groups; 7 recording-gate groups; 219 corrections;
+8 transaction diagnostic groups; 3 save-compatibility cases; 5 proposal tests;
+4 composition tests with 69 production baseline files unchanged; 8 real
+Chromium engine groups including 186 tournaments for every size 2 through 32,
+upper/lower/random winner paths and both grand-final paths, plus corrections.
+Initial DOM attempt lacked the old /tmp jsdom path; retry uses cached tooling.
+Initial browser attempt failed with Socket path too long; fixed runner passed.
+Raw logs and original/retry statuses: /workspace/blakeout-recovery/cloud-integration-evidence/.
+
+Current cloud unblock:
+The permitted proxy rejected CONNECT to storage.googleapis.com with HTTP403
+(server envoy) at 2026-10-18 15:41 UTC. Command:
+curl --head --connect-timeout 15 --max-time 25 https://storage.googleapis.com/firebase-preview-drop/emulator/cloud-firestore-emulator-v1.19.8.jar
+No alternate route attempted. No matching JAR in accessible /workspace or /tmp;
+one unrelated /tmp daemon directory is unreadable and was not bypassed.
+Environment administrator can allow HTTPS CONNECT to storage.googleapis.com:443
+and GET /firebase-preview-drop/emulator/cloud-firestore-emulator-v1.19.8.jar,
+or provision that official artifact into the cloud image/workspace cache.
+Pinned firebase-tools 13.35.1 metadata specifies 63634791 bytes and MD5
+9b43a6daa590678de9b7df6d68260395. Verify metadata and record SHA256 on arrival;
+no SHA256 for the JAR has yet been established here.
+Docker --network none --cap-drop ALL --security-opt no-new-privileges with
+unprivileged UID1000 remains available; confirmed only lo, empty IPv4 routes.
+Cached node and eclipse-temurin:21-jre images, Firebase10.13.2/firebase-tools13.35.1
+and jsdom30.1.2 support local continuation. A separate container portability
+runner is in combined-review; public runner currently expects unshare and will
+need equivalent validated container isolation before its cloud emulator run.
+
+Next cloud work after provision: construct isolated QA runtime from cached
+images/tooling and verified JAR, run public rules/REST/SDK checks plus actual
+frontend-to-emulator integration. Do not expose live Firebase or reuse user auth.
+History-query compatibility and explicit self-only/consent setup remain open.
+Mike's PC is not required for this cloud test route. Personal Google-linkage
+and password-reset acceptance remain separate user-session tasks.

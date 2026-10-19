@@ -1,0 +1,51 @@
+RESOLVED BY LAPTOP RERUN: see VERIFIED-READINESS.txt; following text preserves the investigation and expected tests.
+
+Public policy case 19 investigation — source review and rerun patch
+
+Reported laptop result: original public suite stopped at case 19, after 18 passes,
+31 not reached. GET ListDocuments returned HTTP200 names. No public-policy pass.
+The fixture used a synthetic nonadmin JWT with uid alice, not Bearer owner; admin
+headers are confined to fixture writes. New guard explicitly rejects that magic
+admin header on all nonadmin request calls, and deny-all controls prove enforcement
+for the same REST/SDK principals during the next actual run.
+
+Confirmed test-endpoint mismatch: op=list sent GET ListDocuments, which has its
+own pageSize/pageToken protocol. The asserted intent was an unbounded collection
+query. Official docs distinguish this from request.query.limit constraints.
+https://firebase.google.com/docs/firestore/reference/rest/v1/projects.databases.documents/list
+https://firebase.google.com/docs/firestore/security/rules-query
+Docs do not establish the observed emulator's default page limit. HTTP200 on a
+fixture with only two names does not prove either a working bound or its bypass.
+Do not call this an authorization/rules defect or a resolved emulator quirk yet.
+
+Changes are TEST ONLY. All list operations in the matrix now issue RunQuery
+without a limit, preserving strict expected403 for unbounded directory/history.
+Original bounded/over-limit structured query cases remain. Rules unchanged:
+4052f8b618e21cc64ca3f3d8f84416493352223866eb33d173909fd18f0d3b2c.
+
+Separate REST ListDocuments probes seed 77 names: default must be denied OR
+return at most50; explicit pageSize50 must succeed with at most50; pageSize51
+must be denied. A failure stays a failure, logged for diagnosis, not changed to
+an allowed result. Same JWT under deny-all must fail document and collection GET.
+Default pagination is not called an absent-limit query or counted as a denial.
+These checks do not promise a total-user rate limit or prevent multiple pages.
+
+Nine actual full Firebase JS SDK cases use getDocsFromServer/getDocFromServer
+and connectFirestoreEmulator(mockUserToken). Only auth claims are synthetic;
+Firestore/transport/rules are real, not stubbed. Tests cover limits1/50, absent
+limit,51,unverified,anonymous,cross-user/own history and deny-all nonadmin control.
+SDK/control administration is local to demo-blakeout-public-policy. No Admin SDK,
+real credential or live endpoint; loopback transport guard and original network
+namespace remain. Exact proposed rules restored after control tests.
+
+Rerun unchanged command with additional absolute BLAKEOUT_QA_NODE and
+BLAKEOUT_QA_MODULES pointing to approved Node and firebase10.13.2 node_modules:
+  PUBLIC_POLICY_EVIDENCE=/new/outside-checkout/directory \
+    PYTHONDONTWRITEBYTECODE=1 python3 dev/public-pilot/run_tests.py
+Expected: original50 matrix/overlap +5 REST protocol/control +9 actual SDK cases.
+All must pass; if REST semantics still fail, retain logs and keep activation held.
+The 1018b7b frontend changes are NOT included. Closed59/775 and matcher24 remain
+separate regressions, not evidence for these proposed public rules.
+
+Cloud checks: five static proposal tests, Python/JS syntax, installed real SDK
+export availability. No new enforcement execution here. No deployment or grant.

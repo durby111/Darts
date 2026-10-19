@@ -1,0 +1,62 @@
+Implementation STOP checkpoint — 2026-10-18
+
+The requested paired authoritative adapter/rules implementation is NOT complete.
+Do not activate the earlier model or delivery contract. Two concrete blockers
+were established before adding any allow rules or Firebase write adapter.
+
+1. Atomic all-player mutable-consent snapshots exceed rule access limits.
+Current platform.js supports 128 distinct linked casual participants. The
+proposed contract reads a separate authoritative consent document per player
+in the same atomic result/outbox decision. At maximum capacity that is at least
+128 distinct document accesses, before reading source, roster or audit. Rules
+allow 10 document accesses per operation and 20 across an atomic transaction.
+Caching cannot turn 128 different consent paths into one. Spreading validation
+across writes does not remove the 20-call transaction ceiling. Trusting a client
+UID list or omitting checks would not implement the approved boundary.
+This is a constraint of this specific schema/transaction design, not a proof
+that Spark itself cannot support the intended product. Four-player doubles
+results do not alone establish this over-budget case.
+Official documentation:
+https://firebase.google.com/docs/firestore/security/rules-conditions#access_call_limits
+
+2. Match slot != historical contest occurrence.
+Actual engine sequence: complete W1.1 and W1.2, complete W2.1, undo W2.1,
+correct W1.1 to its other winner, record W2.1 again. The W2.1 identifier is
+unchanged but the participating team differs. Frozen recipients keyed only by
+UID/event/match either prevent legitimate rerecording or attribute changed
+contest statistics to the wrong old owner. Added fail-closed contestBinding
+checks to the disabled model, retained even through undo. This guard is not a
+complete occurrence/generation implementation. No deployed code is affected.
+
+SMALLEST ARCHITECTURE REVISION (recommended, no paid service assumed):
+- Separate canonical result commitment from owner-private materialization.
+- Give each actual contest occurrence a source-validated generation/identity;
+  corrections of that occurrence keep ownership, a replacement contest gets a
+  new occurrence and cannot inherit its recipients. Keep old tombstone/audit.
+- Store immutable phone consent versions with authoritative grantedAt,
+  expiresAt and monotonic revocation time. Do not delete the sole evidence of
+  consent that was valid when a source result committed.
+- Owner-return transaction validates only request.auth.uid's consent version,
+  immutable roster/seat binding, occurrence and authoritative source commit time.
+  Post-result revocation cannot erase already authorized attribution; pre-result
+  revocation cannot be bypassed. Later consent cannot backfill old results.
+- Tablet writes only canonical source results/audits. It has no access to private
+  receipt documents. Durable source plus immutable consent chronology replaces
+  the all-player fanout requirement. Receipt discovery/query and correction
+  semantics must be designed and proven before implementation is called ready.
+
+Alternative: explicitly constrain recorded cloud games to a measured small
+participant bound while leaving other games intact locally. This changes the
+supported cloud scope and was NOT chosen silently. A privileged fanout service
+is another architecture, but no paid plan or new service is authorized/needed
+as an assumption here. No credential or worker has been created.
+
+VERIFICATION
+node --test dev/history-attribution/test_enforcement_constraints.mjs dev/history-attribution/test_delivery_contract.mjs dev/history-attribution/test_model.mjs
+23/23 source/model/DOM/contract tests pass, zero skipped. The two new tests
+establish the capacity lower bound and actual engine slot reuse + guard.
+Log: /workspace/blakeout-recovery/attribution-evidence/enforcement-constraints.log.
+These passes DO NOT mean rules acceptance. The 44-case emulator matrix is
+retained, with the architecture preconditions noted in that file. Real
+Firestore enforcement remains blocked by the official artifact proxy403.
+No live or local candidate rules were broadened, no pushes or deployment.

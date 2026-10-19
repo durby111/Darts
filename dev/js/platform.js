@@ -1,3 +1,4 @@
+import { readProfilePage } from './profile-directory.js';
 import { explainRevisionDenial } from './transaction-conflict.js';
 import { encodeResultLedger, decodeResultLedger } from './result-payload.js';
 // Dev accounts deliberately use a named app, never the scorer's anonymous auth.
@@ -687,12 +688,38 @@ export async function getProfile() {
     return snapshot.exists() ? { id: snapshot.id, name: snapshot.data().name } : null;
 }
 
+export async function listProfilePage(cursor = null) {
+    await initPlatform();
+    const user = requireVerifiedAccount();
+    const page = await readProfilePage(db, storeSDK, COLLECTIONS.profiles, cursor);
+    requireAccountSession(user);
+    return page;
+}
+
+export async function getProfilesByIds(ids) {
+    if (!Array.isArray(ids) || ids.length > 128 || ids.some(id => typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(id))) throw new Error('Invalid linked profile IDs.');
+    await initPlatform();
+    const user = requireVerifiedAccount();
+    const snapshots = await Promise.all([...new Set(ids)].map(id => storeSDK.getDocFromServer(ref('profiles', id))));
+    requireAccountSession(user);
+    return snapshots.filter(item => item.exists()).map(item => ({ id: item.id, name: item.data().name }));
+}
+
+// Legacy bracket caller expects the complete array; every request is bounded.
+// Casual setup uses listProfilePage directly and loads more only on request.
 export async function listProfiles() {
     await initPlatform();
     const user = requireVerifiedAccount();
-    const snapshot = await storeSDK.getDocsFromServer(storeSDK.collection(db, COLLECTIONS.profiles));
-    requireAccountSession(user);
-    return snapshot.docs.map(item => ({ id: item.id, name: item.data().name }));
+    const profiles = [];
+    let cursor = null;
+    do {
+        requireAccountSession(user);
+        const page = await listProfilePage(cursor);
+        requireAccountSession(user);
+        profiles.push(...page.profiles);
+        cursor = page.nextCursor;
+    } while (cursor !== null);
+    return profiles;
 }
 
 export async function listTournaments() {
@@ -888,29 +915,63 @@ export async function saveCasualResult(resultId, result, context) {
     return decodeResult({ ...persisted, id: resultId }, 'casual');
 }
 
-export async function listMyResults() {
+// Fetch every page with a stable document cursor; never treat a limit as full history.
+async function historyPages(collectionName, filter, user) {
+    const docs = [];
+    let cursor = null;
+    do {
+        requireAccountSession(user);
+        const constraints = [filter, storeSDK.orderBy(storeSDK.documentId()), storeSDK.limit(50)];
+        if (cursor) constraints.push(storeSDK.startAfter(cursor));
+        const page = await storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db, collectionName), ...constraints));
+        requireAccountSession(user);
+        docs.push(...page.docs);
+        cursor = page.docs.length === 50 ? page.docs.at(-1) : null;
+    } while (cursor);
+    return docs;
+}
+
+export async function listMyResults({ onUnavailable } = {}) {
     await initPlatform();
     const user = requireVerifiedAccount();
+    const unavailable = [];
+    const tournament = historyPages(COLLECTIONS.results,
+        storeSDK.where('participantIds', 'array-contains', user.uid), user).catch(error => {
+        // Only an explicitly opted-in UI may show partial history. Other failures
+        // and legacy callers remain fail-closed; denial is never reported as empty.
+        if (typeof onUnavailable !== 'function' || !['permission-denied', 'firestore/permission-denied'].includes(error.code)) throw error;
+        unavailable.push('tournament');
+        return [];
+    });
     const [snapshot, receipts, owned] = await Promise.all([
-        storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db, COLLECTIONS.results),
-            storeSDK.where('participantIds', 'array-contains', user.uid))),
-        storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db, 'blakeoutDevCasualReceipts'),
-            storeSDK.where('playerId', '==', user.uid))),
-        storeSDK.getDocsFromServer(storeSDK.query(storeSDK.collection(db, COLLECTIONS.casualResults),
-            storeSDK.where('ownerId', '==', user.uid)))
+        tournament,
+        historyPages('blakeoutDevCasualReceipts', storeSDK.where('playerId', '==', user.uid), user),
+        historyPages(COLLECTIONS.casualResults, storeSDK.where('ownerId', '==', user.uid), user)
     ]);
     requireAccountSession(user);
-    const casual = new Map(owned.docs.map(item =>
+    const casual = new Map(owned.map(item =>
         [item.id, decodeResult({ ...item.data(), id: item.id }, 'casual')]));
-    const received = await Promise.all(receipts.docs.filter(receipt => !casual.has(receipt.data().resultId)).map(async receipt => {
+    for (const receipt of receipts) {
+        requireAccountSession(user);
         requireCurrentBackend(receipt.data());
-        const record = await storeSDK.getDocFromServer(ref('casualResults', receipt.data().resultId));
+        const id = receipt.data().resultId;
+        if (casual.has(id)) continue;
+        let record;
+        try { record = await storeSDK.getDocFromServer(ref('casualResults', id)); }
+        catch (error) {
+            requireAccountSession(user);
+            if (typeof onUnavailable !== 'function' || !['permission-denied', 'firestore/permission-denied'].includes(error.code)) throw error;
+            if (!unavailable.includes('linked-casual')) unavailable.push('linked-casual');
+            continue;
+        }
+        requireAccountSession(user);
         if (!record.exists()) throw new Error('A casual result receipt references a missing record.');
-        return decodeResult({ ...record.data(), id: record.id }, 'casual');
-    }));
+        casual.set(record.id, decodeResult({ ...record.data(), id: record.id }, 'casual'));
+    }
+    const results = [...snapshot.map(item => decodeResult({ ...item.data(), id: item.id })), ...casual.values()];
     requireAccountSession(user);
-    for (const record of received) casual.set(record.id, record);
-    return [...snapshot.docs.map(item => decodeResult({ ...item.data(), id: item.id })), ...casual.values()];
+    if (typeof onUnavailable === 'function') onUnavailable(unavailable);
+    return results;
 }
 
 // Importable boundary for a future adapter; this implementation never falls back
@@ -918,5 +979,5 @@ export async function listMyResults() {
 export const storage = Object.freeze({
     initPlatform, listTournaments, getTournament, createTournamentDocument,
     updateTournament, joinTournament, joinTournamentAsGuest, saveMatchResult, saveCasualResult,
-    listMyResults, saveProfile, getProfile, listProfiles
+    listMyResults, saveProfile, getProfile, listProfiles, listProfilePage, getProfilesByIds
 });

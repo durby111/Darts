@@ -1,0 +1,104 @@
+STAGED DEV HISTORY INTEGRATION — implementation, approval and acceptance
+
+TARGET (source-verified; deployed state NOT verified)
+DEV project: blakeout-darts-dev; database: (default).
+DEV web app: 1:901185136996:web:89d4f413520e66ff773271.
+Auth domain: blakeout-darts-dev.firebaseapp.com.
+Source: dev/js/firebase-config.js + dev/js/backend-context.js.
+Production scorer source uses project blakeout, app
+1:643401736684:web:99493017cdc9d07897a0c9, auth domain blakeout.firebaseapp.com.
+Therefore source configurations are separate projects, not one shared backend.
+No claim about current deployed bindings/rules can be made without a read-only
+project/database/deployed-config check. Root firebase.json points to root
+firestore.rules and is NOT a safe deployment entry for this candidate.
+
+IMPLEMENTED LOCALLY
+- environment.mjs: explicit demo and DEV profiles, default database, fixed
+  coherent-v1 namespace; unknown settings rejected. DEV validates known app ID,
+  auth domain, matching Auth app and actual SDK default database instance.
+- Three adapters accept explicit environment; omitted environment stays demo.
+- dev-ui/session.mjs: disabled release gate before any Firebase SDK/config load;
+  approved URL only after activation. Phone/organizer reuse the existing named
+  accounts app. Board requires a separate app and pre-existing approved session;
+  no personal submitter login or automatic board identity creation.
+- dev-ui route: consent, owner grant recovery/revoke/history refresh, tournament
+  desk using coherent state/revisions/audit, honest actor and affected-match review.
+- bridge.mjs exports explicit scorer submission and organizer context-preparation
+  seams. Casual scorer completion now routes opted-in shared recordings to this API.
+  Tournament source creation still uses the original tournament adapter. Context
+  preparation follows roster lock with an explicit retry action; no migration.
+- Existing feature/provider switches remain accounts=true, brackets=false,
+  Google=false, Apple=false. New HISTORY_DEV_RELEASE.enabled remains false.
+  No navigation or service-worker activation; no Firebase config/rules changes.
+
+LIFECYCLE IMPLEMENTATION UPDATE
+Scorer/roster hooks, shared-game setup, QR claim UI, retry retention and guarded
+board provisioning code are now implemented. See RELEASE-CHECKLIST.txt for exact
+completed scope and the remaining four validation/live-setup/acceptance gates.
+The release still requires both history feature and entry flags, which remain
+false. This update does not authorize any live changes described below.
+
+BOUNDED LIVE APPROVAL PROPOSAL — NOT EXECUTED / NOT YET READY TO APPROVE
+Approval must name the exact target above after confirming deployed bindings.
+A. Rules: candidate is coherent/compose_rules.py output, currently SHA256
+   638c06414c18e4620cdbe0380cb73c8774a1e0ed92c816e333bbb51adf15305b.
+   It adds hcContexts, hcBindings and hcOwners rules over the existing proposed
+   public-policy candidate. hcContexts includes canonical head/link/occurrence/
+   operation collections; atomic source writes by authorized owner/board only.
+   hcBindings/grants require explicit player identity/source scope; private owner
+   projection requires original consent, occurrence membership and increasing
+   revision. Board receives no private history or active-resume permission.
+   This candidate also allows verified non-board users to read context/link
+   metadata; that exposure must be explicitly reviewed, not called test-only.
+   Diff against ACTUAL deployed rules is required before requesting approval.
+   The tracked public-proposed file is only a review baseline, not live evidence.
+B. Role config: qrBoardUids, qrPlayerUids, tdOperatorUids and devPilotUids remain
+   empty in source candidate. No real UIDs are supplied or guessed. Approval must
+   list specific board, organizer, two consenting owner and outsider test UIDs,
+   provider/verification state and retention. Inserting UIDs changes rules hash;
+   regenerate reviewed final hash and corresponding enforcement fixture evidence.
+C. Index: occurrences, queryScope COLLECTION, participants arrayConfig CONTAINS,
+   at ASCENDING; exact JSON in coherent/indexes.candidate.json. Read current index
+   readiness first; propose creation only if missing. No live index operation now.
+   Also verify every actual operations/history/grants query with its filters/order;
+   emulator success is not evidence of production index readiness.
+D. Test data: propose a bounded 2-team doubles tournament and one 501 plus one
+   Cricket game, at most 20 result/revision operations, using approved test users.
+   Tournament ID prefix qa_history_20261019_. QR adapter generates random source
+   IDs: capture an explicit test-ID ledger rather than claim a prefix it doesn't
+   use. No real user records, existing event writes or migration/backfill.
+   Anyone using the approved board may submit; personal login is for optional
+   ownership consent, never for every tablet score submission.
+E. Frontend: separate approval to publish only the reviewed DEV route/integration
+   and activate its flag; do not flip brackets/provider switches as a side effect.
+   No production frontend or project blakeout change is included.
+F. Rollback: retain actual prior deployed rules and index/config state with hashes;
+   restore exact prior rules and disable/restore frontend on unexpected allow or
+   deny. Do not delete a shared index blindly. Stop device sessions; retain audit
+   evidence; remove only test-ID-ledger documents after explicit cleanup approval.
+
+REAL DEV ACCEPTANCE AFTER THE ABOVE APPROVAL
+- Correct phone identity/seat/tournament consent; wrong UID/seat/invitation/scope
+  denied. QR identifies ownership, not the person reporting the result.
+- Shared-board immediate score/advance; audit before/after/time/revision and null
+  human actor. Organizer actor known. Safe undo displays downstream effects.
+- Own receipt allowed; outsider/board private history and resume read/write denied;
+  malformed/forged source and receipt denied; unknown projects/database rejected.
+- Revocation/expiry/account changes; correction/undo delivery; no late-consent
+  backfill, no replacement occurrence inheriting earlier players; duplicate retry.
+- Confirm actual index readiness and query authorization, not emulator inference.
+- Owner-led real Google linkage, password reset/email acceptance, mobile QR and
+  Safari/Chrome/Firefox or agreed browser matrix. No emails triggered by this work.
+
+EVIDENCE
+Cloud: unit/DOM/source tests and Chromium staged-route checks only. No emulator
+rules run here. Laptop independently reports exact rules SHA256 638c06414c18e4620cdbe0380cb73c8774a1e0ed92c816e333bbb51adf15305b
+compiled and passed 44/44 with zero failed/skipped/unimplemented; additional checks
+and fresh combined 330 closed + 50 public REST + 5 controls + 9 SDK passed. Exact
+expiry equality observed on attempt 46 after widening scheduling window without
+changing assertions or rules; initial window failure preserved. Task
+01a153e7-e5da-7317-9429-950028a6f0e8, turn 01a15406-cbac-70e7-b061-778fc8e96279.
+This validates exact rules, not newly added UI/environment wiring. Full archive
+still untransferred (Library libfile_71bcad5042088191940e4faf6c0bd6d1). Current source
+rule correction is retained; backend permission proposal must not overstate this
+as completed real-account or newly configured-session validation.

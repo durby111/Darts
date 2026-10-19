@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "status": "proposal-not-connected-to-runtime",
+  "backendProject": "blakeout-darts-dev",
+  "additionalTesterAccessEnabled": false,
+  "onboardingMode": "public-signup",
+  "invitedTesterUids": [],
+  "publicSignupExpansionAllowed": true,
+  "requireVerifiedEmail": true,
+  "allowAnonymousPrivateData": false,
+  "allowClientMembershipEdits": false,
+  "existingOwnerPolicy": "preserve-exact-recovered-deployed-policy",
+  "authorizationAuthority": "reviewed-server-rules-required-not-client-config",
+  "proposedDataScopes": [
+    "read-verified-player-display-profiles-in-bounded-pages",
+    "write-own-display-profile",
+    "create-own-501-or-cricket-history-only",
+    "read-own-or-previously-receipted-private-history"
+  ],
+  "excludedScopes": [
+    "cloud-tournament-mutations",
+    "anonymous-online-guest-signup",
+    "private-history-for-unlinked-guests",
+    "player-qr-ownership",
+    "shared-tablet-audit-or-completed-match-undo",
+    "active-game-cloud-resume"
+  ],
+  "requiredRulesSnapshot": {
+    "path": "dev/backend-setup/firestore.isolated-candidate.rules",
+    "reportedNormalizedSha256": "171a038cc0f7442a93cd35aea8080a71ee4ccca4e9f6409a4980adfb51da5d11",
+    "verifiedLocally": false,
+    "note": "Sanitized logic recovered; exact live allowlist/config not verified"
+  },
+  "proposedTesterCap": null,
+  "acceptedGameTypes": [
+    "501",
+    "cricket"
+  ],
+  "policySelection": "Anyone who signs up; private data requires verified authenticated identity",
+  "activationRequiresSeparateConfirmation": true,
+  "otherPlayerHistoryWrites": "held-until-explicit-participant-consent-integration"
+}

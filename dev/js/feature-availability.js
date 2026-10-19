@@ -3,7 +3,8 @@
    those do not unlock authentication, cloud records or tournament writes. */
 export const FEATURE_AVAILABILITY = Object.freeze({
     brackets: false,
-    accounts: true
+    accounts: true,
+    history: false
 });
 
 export function isFeatureAvailable(feature) {

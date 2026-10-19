@@ -57,7 +57,7 @@ async def run():
                 if url.startswith('https://www.gstatic.com/firebasejs/10.13.2/') and name in modules:
                     await r.fulfill(content_type='text/javascript',body=modules[name])
                 elif name=='firebase-config.js':
-                    await r.fulfill(content_type='text/javascript',body='export const firebaseConfig='+json.dumps({'apiKey':'mock-only','projectId':project})+';')
+                    await r.fulfill(content_type='text/javascript',body='export const firebaseConfig='+json.dumps({'apiKey':'mock-only','projectId':project,'authDomain':project+'.firebaseapp.com','appId':'1:901185136996:web:89d4f413520e66ff773271'})+';')
                 elif name=='account-provider-config.js':
                     await r.fulfill(content_type='text/javascript',body="export const ACCOUNT_PROVIDER_PROJECT='blakeout-darts-dev';export const ACCOUNT_PROVIDERS="+json.dumps({'google':{'enabled':google,'redirectEnabled':redirect},'apple':{'enabled':apple,'redirectEnabled':redirect}})+';')
                 elif url.startswith(base+'/'):await r.continue_()
@@ -65,7 +65,10 @@ async def run():
             await context.route('**/*',route);await enable_future_features(context)
             page=await context.new_page();page.set_default_timeout(5000)
             await page.goto(base+'/dev/accounts/')
-            await page.wait_for_function("document.querySelector('#passwordSignIn')&&!document.querySelector('#passwordSignIn').disabled")
+            if project == 'blakeout-darts-dev':
+                await page.wait_for_function("document.querySelector('#passwordSignIn')&&!document.querySelector('#passwordSignIn').disabled")
+            else:
+                await page.wait_for_function("document.querySelector('#accountStatus').textContent.includes('isolated project')")
             return context,page
         context,page=await fixture()
         assert await page.locator('#googleSignIn').is_disabled() and await page.locator('#appleSignIn').is_disabled()
@@ -81,7 +84,9 @@ async def run():
         context,page=await fixture(google=True,project='blakeout')
         assert await page.locator('#googleSignIn').is_disabled()
         error=await page.evaluate("async()=>{try{await(await import('/dev/js/platform.js')).signInAccountProvider('google');}catch(e){return e.code;}}")
-        assert error=='auth/provider-project-mismatch' and await page.evaluate('oauthCalls.length')==0
+        assert error == 'auth/provider-failed'
+        assert await page.locator('#passwordSignIn').is_disabled()
+        assert await page.evaluate('oauthCalls.length')==0
         passed('shared production project cannot start provider auth even with Google flag enabled');await context.close()
         context,page=await fixture(google=True)
         for code in ['auth/popup-closed-by-user','auth/cancelled-popup-request','auth/popup-blocked','auth/account-exists-with-different-credential','auth/credential-already-in-use','auth/operation-not-allowed','auth/unauthorized-domain','auth/network-request-failed','unknown-secret-error']:
@@ -114,7 +119,7 @@ async def run():
         assert await page.evaluate('oauthCalls[0].scopes')==['email','name']
         passed('configured Apple requests only name/email; unverified provider cannot access private records');await context.close()
         context,page=await fixture(google=True,redirect=True)
-        await page.evaluate("() => {const original=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key==='blakeout_dev_provider_return')throw Error('Storage unavailable');return original.call(this,key,value);};}")
+        await page.evaluate("() => {const original=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key==='blakeout_darts_dev_provider_return')throw Error('Storage unavailable');return original.call(this,key,value);};}")
         error=await page.evaluate("async()=>{try{await(await import('/dev/js/platform.js')).signInAccountProvider('google','redirect');}catch(e){return e.code;}}")
         assert error=='auth/redirect-storage-unavailable' and await page.evaluate('oauthCalls.length')==0
         passed('redirect storage failure prevents navigation without requesting credentials');await context.close()
@@ -124,21 +129,21 @@ async def run():
         assert await page.evaluate('oauthCalls.length')==1
         await page.evaluate('globalThis.oauthError=null');await page.locator('#providerRedirect').click()
         await page.wait_for_function("oauthCalls.some(c=>c.mode==='redirect')")
-        marker=await page.evaluate("JSON.parse(sessionStorage.blakeout_dev_provider_return)")
+        marker=await page.evaluate("JSON.parse(sessionStorage.blakeout_darts_dev_provider_return)")
         assert set(marker)=={'provider','project','startedAt'}
         assert marker['provider']=='google' and marker['project']=='blakeout-darts-dev'
         await page.evaluate("sessionStorage.setItem('mockReturn','google.com')")
         await page.reload();await page.wait_for_function("!document.querySelector('#profilePanel').hidden")
-        assert await page.evaluate("sessionStorage.getItem('blakeout_dev_provider_return')") is None
+        assert await page.evaluate("sessionStorage.getItem('blakeout_darts_dev_provider_return')") is None
         assert await page.evaluate("oauthCalls.filter(c=>c.mode==='return').length")==1
         await page.evaluate("(async()=>await(await import('/dev/js/platform.js')).completeAccountProviderRedirect())()")
         assert await page.evaluate("oauthCalls.filter(c=>c.mode==='return').length")==1
         passed('explicit configured redirect fallback, minimal tab-scoped marker, return consumed exactly once');await context.close()
         for issue in ['expired','wrong-project','missing-result','stale-session','malformed']:
             context,page=await fixture(google=True,redirect=True)
-            await page.evaluate("issue=>{sessionStorage.setItem('blakeout_dev_provider_return',issue==='malformed'?'bad':JSON.stringify({provider:'google',project:issue==='wrong-project'?'blakeout':'blakeout-darts-dev',startedAt:issue==='expired'?0:Date.now()}));if(issue==='stale-session'){sessionStorage.setItem('mockReturn','google.com');sessionStorage.setItem('mockStale','1');}}",issue)
+            await page.evaluate("issue=>{sessionStorage.setItem('blakeout_darts_dev_provider_return',issue==='malformed'?'bad':JSON.stringify({provider:'google',project:issue==='wrong-project'?'blakeout':'blakeout-darts-dev',startedAt:issue==='expired'?0:Date.now()}));if(issue==='stale-session'){sessionStorage.setItem('mockReturn','google.com');sessionStorage.setItem('mockStale','1');}}",issue)
             await page.reload();await page.wait_for_function("document.querySelector('#passwordSignIn')&&!document.querySelector('#passwordSignIn').disabled")
-            assert await page.evaluate("sessionStorage.getItem('blakeout_dev_provider_return')") is None
+            assert await page.evaluate("sessionStorage.getItem('blakeout_darts_dev_provider_return')") is None
             if issue=='stale-session':assert await page.evaluate("(async()=>(await import('/dev/js/platform.js')).getAccount().uid)()")=='replacement'
             else:assert 'return' in (await page.locator('#accountStatus').inner_text()).lower()
             passed('redirect rejects '+issue+' without retry or linking');await context.close()

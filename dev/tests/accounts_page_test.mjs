@@ -274,4 +274,35 @@ await test('provider account still needs verified claims before profiles and rec
     assert.equal(h.calls.getProfile || 0, 0); assert.equal(h.calls.listMyResults || 0, 0);
 });
 
+for (const code of ['auth/weak-password', 'auth/password-does-not-meet-requirements']) {
+    await test(`${code} shows signup guidance without leaking password or suggesting broader permissions`, async () => {
+        const h = await harness(null);
+        h.node('accountEmail').value = 'synthetic@example.invalid';
+        h.node('accountPassword').value = 'SyntheticSecret1!';
+        h.hooks.registerAccount = async () => { throw Object.assign(new Error('raw server detail'), {code}); };
+        await h.ui.passwordAuth(true);
+        assert.match(h.status(), /10–4096/);
+        assert.match(h.status(), /uppercase, lowercase, a number and a special character/);
+        assert.doesNotMatch(h.status(), /SyntheticSecret|raw server detail|permissions/);
+        assert.equal(h.node('accountPassword').value, '');
+        assert.equal(h.calls.registerAccount, 1);
+        assert.equal(h.calls.sendAccountVerification || 0, 0);
+    });
+}
+
+await test('partial history stays visible and exports explicit availability; next account clears it', async () => {
+    const h = await harness();
+    h.hooks.listMyResults = async ({onUnavailable}) => { onUnavailable(['tournament']); return [record('accessible')]; };
+    await h.ui.refreshRecords();
+    assert.match(h.records(), /Match accessible/); assert.match(h.records(), /History incomplete/);
+    h.node('exportRecords').click();
+    const exported = JSON.parse(await h.state.exportBlob.text());
+    assert.equal(exported.historyComplete, false); assert.deepEqual(exported.unavailableSources, ['tournament']);
+    h.hooks.listMyResults = async ({onUnavailable}) => { onUnavailable([]); return []; };
+    await h.change(user('b'));
+    h.node('exportRecords').click();
+    const next = JSON.parse(await h.state.exportBlob.text());
+    assert.equal(next.playerId,'b');assert.equal(next.historyComplete,true);assert.deepEqual(next.unavailableSources,[]);
+});
+
 console.log(`\n${passed}/${passed} account UI ownership groups passed. DOM/provider fixtures are not browser or live-email proof.`);

@@ -1,0 +1,60 @@
+Cloud checkpoint: authoritative transaction/delivery contract, 2026-10-18
+
+A privileged backend is not inherently required for the owner-catch-up pattern:
+Firestore client transactions can atomically write source/head/audit/outbox, and
+rules can constrain post-write state with getAfter. The actual authorization
+must derive UID from request.auth, immutable roster binding and current consent;
+client payload identity never supplies authority. This is a feasibility inference,
+not proof that the proposed schema fits rule call/expression limits.
+
+Recommended local direction (no new billing dependency):
+- Result writer atomically creates exact scoped immutable attribution outbox
+  entries validated by source rules; it has no private history read/write access.
+- Signed-in owner fetches only own outbox and transactionally updates own current
+  per-match projection from exact accepted immutable receipt, with monotonic revision.
+- Outbox stays durable even after event end, consent expiry/revocation and tablet
+  disconnection. Phone being offline delays materialization, not retention.
+- Crash/replay cannot lose attribution: replay may emit no new receipt because
+  the original outbox is already committed. Never depend on a browser callback
+  to create the sole durable receipt after the result commit.
+- No background worker, Cloud Function, credential or paid plan added.
+  Always-running automatic materialization while all clients are closed would
+  need a worker/runtime decision; it is unnecessary for retained owner catch-up.
+
+Implemented this checkpoint: delivery-contract.mjs is an executable reference
+specification of those transactions against an in-memory database. Trusted auth
+and authoritative time are simulation inputs. It rejects forged roster identity,
+ignores forged submitter claims, atomically returns result+outbox candidate state,
+retains outbox across replay/restart, validates delivery against accepted source,
+and excludes board credentials from private interfaces even if email-verified.
+It is NOT a production adapter and provides no deployed security enforcement.
+
+Found integration mismatch: existing tournament-device tdResult/tdAttribution
+re-evaluates current consent for corrections, whereas history candidate freezes
+original accepted ownership. Both adapter and rules must be migrated together;
+using the current audit unchanged as permanent recipient authority is invalid.
+Existing undo deletes current result; a separately immutable initial ownership
+binding must survive undo/redo and event closure. Casual pairing likewise lacks
+an authoritative result/outbox linkage today. Neither is silently treated as done.
+
+Remaining implementation: draft complete scoped rules and actual demo SDK adapter
+for canonical bindings, immutable first-attribution record and source-coupled
+outbox; bound event state/operation documents; implement owner delivery/query;
+prove rule budgets and all 44 cases in EMULATOR-ACCEPTANCE.txt. No permissive
+placeholder rules or browser-trusted substitute added. Official JAR download
+remains blocked; this turn did not attempt a new route.
+
+Executed:
+node --test dev/history-attribution/test_delivery_contract.mjs dev/history-attribution/test_model.mjs
+21 tests passed, zero skipped (9 delivery-contract +12 prior model/DOM).
+Log /workspace/blakeout-recovery/attribution-evidence/contract-model-final.log.
+Crash/restart uses JSON state serialization; concurrency tests simulate competing
+revisions. These are not actual persistence or Firestore race acceptance.
+
+Official references checked:
+https://firebase.google.com/docs/firestore/manage-data/transactions
+https://firebase.google.com/docs/firestore/security/rules-conditions
+https://firebase.google.com/docs/projects/billing/firebase-pricing-plans
+Atomic getAfter validation and 10 per-operation /20 multi-operation document
+access limits must be considered. Spark quotas remain applicable. No claim of
+unlimited free capacity or demonstrated end-to-end Spark enforcement is made.

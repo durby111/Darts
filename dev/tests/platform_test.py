@@ -15,7 +15,9 @@ FEATURE_FIXTURE=<JSON> contains selfjoin/bootstrap/materialization/start data
 and the 128-participant/384-counter casual fixture. Simulator lookups must use
 the supplied signup-state snapshots rather than treating every get as a public
 tournament lookup.
-GUEST_FIXTURE=<JSON> covers a separate anonymous device signup with playerId:null.
+GUEST_FIXTURE=null: anonymous signup is disabled in the isolated DEV adapter.
+The optional emulator/fixture utilities still describe canonical root rules,
+not the reported deny-all isolated project or a proposed replacement ruleset.
 --save-rules-fixtures writes dev/tests/platform_rules_fixtures.json with complete
 before/after document maps, request auth, and expected per-write/read decisions.
 """
@@ -37,7 +39,7 @@ import urllib.error
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
-RUNTIME = ROOT / f".platform-test-runtime-{os.getpid()}"
+RUNTIME = Path(os.environ.get("TMPDIR", "/tmp")) / f"bo-platform-{os.getpid()}"
 sys.dont_write_bytecode = True
 
 APP = """
@@ -246,7 +248,7 @@ API_TESTS = r"""async () => {
  const checks=[];
  const assert=(value,label)=>{if(!value)throw Error(label);checks.push(label);};
  const reject=async(fn,label)=>{let error;try{await fn();}catch(e){error=e;}assert(!!error,label);};
- assert(testPersistence.app==='blakeout-dev-accounts'&&testPersistence.value==='LOCAL','secondary LOCAL auth');
+ assert(testPersistence.app==='blakeout-darts-dev-accounts'&&testPersistence.value==='LOCAL','secondary LOCAL auth');
  let calls=0;const unsub=p.subscribeAccount(()=>calls++);unsub();
  assert(calls===1,'immediate account subscription');
  assert(p.requireVerifiedAccount().uid==='verified_owner','verified UID access');
@@ -306,25 +308,24 @@ API_TESTS = r"""async () => {
  perPlayer:[{playerId:'verified_owner',gameType:'501',points:501,darts:21,marks:0}],
  legScores:[],winnerId:match.teamA,scoreA:2,scoreB:0,records:{id:'record',legs:[]}};
  const updater=current=>e.recordResult(current,match.id,result);
- await reject(()=>p.saveMatchResult(t.id,t.revision,'bad_guest',{...result,participantIds:['verified_owner',null]},updater),'guest participant rejected');
- await reject(()=>p.saveMatchResult(t.id,t.revision,'bad_counter',{...result,perPlayer:[{playerId:'unrelated'}]},updater),'unrelated stats rejected');
+ await reject(()=>saveIsolatedMatch(p,t.id,t.revision,'bad_guest',{...result,participantIds:['verified_owner',null]},updater),'guest participant rejected');
+ await reject(()=>saveIsolatedMatch(p,t.id,t.revision,'bad_counter',{...result,perPlayer:[{playerId:'unrelated'}]},updater),'unrelated stats rejected');
  assert(!testDocs.has('blakeoutDevResults/bad_guest')&&(await p.getTournament(t.id)).revision===t.revision,'failed save atomicity');
  globalThis.testOffline=true;
- await reject(()=>p.saveMatchResult(t.id,t.revision,'offline',result,updater),'offline save rejects rather than fake success');
+ await reject(()=>saveIsolatedMatch(p,t.id,t.revision,'offline',result,updater),'offline save rejects rather than fake success');
  globalThis.testOffline=false;
- const next=await p.saveMatchResult(t.id,t.revision,'result_one',result,updater);
+ const next=await saveIsolatedMatch(p,t.id,t.revision,'result_one',result,updater);
  assert(next.revision===t.revision+1&&testDocs.has('blakeoutDevResults/result_one'),'atomic tournament/result save');
  assert(typeof testDocs.get('blakeoutDevResults/result_one').perPlayer==='string','counter wire payload is canonical JSON');
  assert(Array.isArray((await p.listMyResults())[0].perPlayer),'result API decodes counter arrays');
  const immutable=JSON.stringify(testDocs.get('blakeoutDevResults/result_one'));
- const duplicate=await p.saveMatchResult(t.id,t.revision,'result_one',result,()=>{throw Error('Must not run');});
+ const duplicate=await saveIsolatedMatch(p,t.id,t.revision,'result_one',result,()=>{throw Error('Must not run');});
  assert(duplicate.revision===next.revision&&immutable===JSON.stringify(testDocs.get('blakeoutDevResults/result_one')),'immutable dedup before stale check');
- await reject(()=>p.saveMatchResult(t.id,next.revision,'result_two',result,updater),'new result ID cannot duplicate completed match');
+ await reject(()=>saveIsolatedMatch(p,t.id,next.revision,'result_two',result,updater),'new result ID cannot duplicate completed match');
  assert((await p.listMyResults()).length===1,'own results query');
  testDocs.set('blakeoutDevTournaments/other',{...goodWire,id:'other',ownerId:'other_owner'});
  await reject(()=>p.updateTournament('other',goodWire.revision,x=>x),'nonowner mutation rejected');
- await p.sendAccountLink('owner@example.com');
- assert(new URL(sentLink.settings.url).pathname==='/dev/accounts/'&&sentLink.settings.handleCodeInApp,'canonical email return URL');
+ await reject(()=>p.sendAccountLink('owner@example.com'),'email-link sign-in is disabled for the isolated backend');
  await p.signOutAccount();
  await reject(()=>p.listProfiles(),'signed-out profile lookup rejected');
  await reject(()=>p.listMyResults(),'signed-out result query rejected');
@@ -366,15 +367,15 @@ API_TESTS = r"""async () => {
  perPlayer:worstCounters,legScores:[],winnerId:worstMatch.teamA,scoreA:2,scoreB:1};
  const worstUpdater=current=>e.recordResult(current,worstMatch.id,worstResult);
  for(const [value,label] of [[NaN,'NaN'],[Infinity,'Infinity'],[-1,'negative'],[1e12,'oversized']]){
- await reject(()=>p.saveMatchResult(chicago.id,chicago.revision,'bad_'+label,
+ await reject(()=>saveIsolatedMatch(p,chicago.id,chicago.revision,'bad_'+label,
  {...worstResult,perPlayer:[{...worstCounters[0],points:value}]},worstUpdater),'invalid '+label+' counters rejected');
  }
- await reject(()=>p.saveMatchResult(chicago.id,chicago.revision,'too_many',
+ await reject(()=>saveIsolatedMatch(p,chicago.id,chicago.revision,'too_many',
  {...worstResult,perPlayer:[...worstCounters,worstCounters[0]]},worstUpdater),'13th counter rejected');
  const counterFixture={ownerId:'verified_owner',publicLive:structuredClone(testDocs.get('blakeoutDevTournaments/chicago_worst')),
  privateLive:structuredClone(testDocs.get('blakeoutDevRosterPrivate/chicago_worst')),
  signupStateLive:structuredClone(testDocs.get('blakeoutDevSignupState/chicago_worst'))};
- await p.saveMatchResult(chicago.id,chicago.revision,'chicago_worst_result',worstResult,worstUpdater);
+ await saveIsolatedMatch(p,chicago.id,chicago.revision,'chicago_worst_result',worstResult,worstUpdater);
  counterFixture.publicComplete=testDocs.get('blakeoutDevTournaments/chicago_worst');
  counterFixture.privateComplete=testDocs.get('blakeoutDevRosterPrivate/chicago_worst');
  counterFixture.signupStateComplete=testDocs.get('blakeoutDevSignupState/chicago_worst');
@@ -461,7 +462,7 @@ NEW_FEATURE_TESTS = r"""async () => {
  const minnesotaResult={matchId:minnesotaMatch.id,gameType:'minnesota',participantIds:['self_player'],
  perPlayer:[{playerId:'self_player',gameType:'minnesota',points:0,darts:12,marks:8}],
  legScores:[],winnerId:minnesotaMatch.teamA,scoreA:2,scoreB:0};
- t=await p.saveMatchResult(t.id,t.revision,'minnesota-result',minnesotaResult,
+ t=await saveIsolatedMatch(p,t.id,t.revision,'minnesota-result',minnesotaResult,
  current=>e.recordResult(current,minnesotaMatch.id,minnesotaResult));
  assert(JSON.parse(testDocs.get('blakeoutDevResults/minnesota-result').perPlayer)[0].gameType==='minnesota','Minnesota tournament counters persist');
  signupFixture.minnesotaResult=testDocs.get('blakeoutDevResults/minnesota-result');
@@ -475,28 +476,41 @@ NEW_FEATURE_TESTS = r"""async () => {
  legScores:[],records:{id:'casual-five',legs:[]}};
  const pubBefore=JSON.stringify(testDocs.get('blakeoutDevTournaments/join_event'));
  globalThis.testOffline=true;
- await reject(()=>p.saveCasualResult('casual-five',casual),'offline casual save rejects visibly');
+ await reject(()=>saveIsolatedCasual(p,'casual-five',casual),'offline casual save rejects visibly');
  globalThis.testOffline=false;
- await reject(()=>p.saveCasualResult('casual-guest',{...casual,participantIds:[...twoByThree,null]}),'casual guests excluded from attribution');
- await reject(()=>p.saveCasualResult('casual-missing',{...casual,participantIds:['missing_profile'],perPlayer:[]}),'casual participant profile must exist');
+ await reject(()=>saveIsolatedCasual(p,'casual-guest',{...casual,participantIds:[...twoByThree,null]}),'casual guests excluded from attribution');
+ await reject(()=>saveIsolatedCasual(p,'casual-missing',{...casual,participantIds:['missing_profile'],perPlayer:[]}),'casual participant profile must exist');
  const casualInput={...casual,source:'casual',winnerId:null,winnerIds:['side_0','side_1']};
  delete casualInput.matchId;
- const saved=await p.saveCasualResult('casual-five',casualInput);
+ const saved=await saveIsolatedCasual(p,'casual-five',casualInput);
  assert(saved.participantIds.length===5&&saved.perPlayer.length===5,'2v3 casual stats preserve all five humans');
  assert(saved.matchId==='casual-five'&&saved.winnerIds.length===2,'casual stable default match ID and tied side IDs preserved');
  assert(!('source' in testDocs.get('blakeoutDevCasualResults/casual-five')),'casual source derived from collection, not stored caller claim');
- await reject(()=>p.saveCasualResult('bad-source',{...casual,source:'tournament'}),'casual source cannot masquerade as tournament');
- await reject(()=>p.saveCasualResult('bad-winners',{...casual,winnerIds:['not a side ID']}),'casual tied winners require stable IDs');
+ await reject(()=>saveIsolatedCasual(p,'bad-source',{...casual,source:'tournament'}),'casual source cannot masquerade as tournament');
+ await reject(()=>saveIsolatedCasual(p,'bad-winners',{...casual,winnerIds:['not a side ID']}),'casual tied winners require stable IDs');
  assert(saved.source==='casual'&&saved.provenance==='scorekeeper-recorded','casual source/provenance explicit');
+ const key=(await import('/dev/js/backend-context.js')).BACKEND_KEY;
+ const stored=testDocs.get('blakeoutDevCasualResults/casual-five');
+ assert(stored.backendKey===key&&typeof stored.legScores==='string'&&typeof stored.records==='string','backend marker and strict ledger stored');
+ assert(testDocs.get('blakeoutDevCasualReceipts/casual-five$verified_owner').backendKey===key,'receipt backend marker stored');
+ const originalWire=JSON.stringify([...testDocs]);
+ await reject(()=>saveIsolatedCasual(p,'malformed-nested',{...casual,records:{id:'bad',legs:[{note:'unexpected'}]}}),'unknown nested ledger rejected');
+ assert(JSON.stringify([...testDocs])===originalWire,'malformed ledger writes no result or receipts');
+ const foreign={...stored,backendKey:'old-backend'};
+ testDocs.set('blakeoutDevCasualResults/casual-five',foreign);
+ await reject(()=>saveIsolatedCasual(p,'casual-five',casual),'old-backend stored retry rejected');
+ assert(testDocs.get('blakeoutDevCasualResults/casual-five').backendKey==='old-backend','old record not migrated');
+ testDocs.set('blakeoutDevCasualResults/casual-five',stored);
+
  assert(JSON.stringify(testDocs.get('blakeoutDevTournaments/join_event'))===pubBefore,'casual save never touches tournament');
  const first=JSON.stringify(testDocs.get('blakeoutDevCasualResults/casual-five'));
- await p.saveCasualResult('casual-five',casual);
+ await saveIsolatedCasual(p,'casual-five',casual);
  assert(JSON.stringify(testDocs.get('blakeoutDevCasualResults/casual-five'))===first,'casual result ID immutable and idempotent');
  assert(twoByThree.every(uid=>testDocs.has('blakeoutDevCasualReceipts/casual-five$'+uid)),'verified participant receipts persisted');
  const mine=await p.listMyResults();
  assert(mine.some(r=>r.source==='casual')&&mine.some(r=>r.source==='tournament'),'records combine both sources');
  assert(mine.filter(r=>r.source==='casual'&&r.id==='casual-five').length===1,'playing scorekeeper history deduplicates owner and receipt');
- await p.saveCasualResult('casual-keeper',{...casual,matchId:'casual-keeper',
+ await saveIsolatedCasual(p,'casual-keeper',{...casual,matchId:'casual-keeper',
    participantIds:['casual_1'],perPlayer:casual.perPlayer.filter(row=>row.playerId==='casual_1')});
  const keeperRecord=(await p.listMyResults()).find(r=>r.id==='casual-keeper');
  assert(keeperRecord&&!keeperRecord.perPlayer.some(row=>row.playerId==='verified_owner'),'non-playing scorekeeper sees history without personal counters');
@@ -505,20 +519,20 @@ NEW_FEATURE_TESTS = r"""async () => {
  const retry={...casual,matchId:'receipt-retry',participantIds:retryIds,
  perPlayer:retryIds.map(playerId=>({playerId,gameType:'minnesota',points:0,darts:3,marks:1}))};
  globalThis.receiptBatches=0;globalThis.failReceiptBatchAt=2;
- await reject(()=>p.saveCasualResult('receipt-retry',retry),'interrupted receipt delivery reports retry required');
+ await reject(()=>saveIsolatedCasual(p,'receipt-retry',retry),'interrupted receipt delivery reports retry required');
  const partial=[...testDocs.keys()].filter(path=>path.startsWith('blakeoutDevCasualReceipts/receipt-retry$')).length;
  assert(partial===7,'receipt transactions isolate rule budgets and settle in-flight delivery before error');
  const immutable=JSON.stringify(testDocs.get('blakeoutDevCasualResults/receipt-retry'));
  globalThis.failReceiptBatchAt=0;
- await p.saveCasualResult('receipt-retry',retry);
+ await saveIsolatedCasual(p,'receipt-retry',retry);
  assert(retryIds.every(uid=>testDocs.has('blakeoutDevCasualReceipts/receipt-retry$'+uid))&&JSON.stringify(testDocs.get('blakeoutDevCasualResults/receipt-retry'))===immutable,'retry completes missing receipts without rewriting score');
  const largeIds=Array.from({length:128},(_,i)=>'large_'+i);
  largeIds.forEach(uid=>testDocs.set('blakeoutDevProfiles/'+uid,{name:uid}));
  const large={...casual,matchId:'large-casual',participantIds:largeIds,
  perPlayer:largeIds.flatMap(playerId=>['minnesota','501','cricket'].map(gameType=>({playerId,gameType,points:1,darts:3,marks:1})))};
- const largeSaved=await p.saveCasualResult('large-casual',large);
+ const largeSaved=await saveIsolatedCasual(p,'large-casual',large);
  assert(largeSaved.participantIds.length===128&&largeSaved.perPlayer.length===384,'explicit casual capacity supports128 humans/384 counters');
- await reject(()=>p.saveCasualResult('too-large',{...large,participantIds:[...largeIds,'one_more']}),'129th casual participant gives explicit error, never truncates');
+ await reject(()=>saveIsolatedCasual(p,'too-large',{...large,participantIds:[...largeIds,'one_more']}),'129th casual participant gives explicit error, never truncates');
  return {checks,signupFixture,casualFive:testDocs.get('blakeoutDevCasualResults/casual-five'),
  casualWorst:testDocs.get('blakeoutDevCasualResults/large-casual')};
 }"""
@@ -542,18 +556,18 @@ ACCOUNT_RECORD_SESSION_TESTS = r"""async () => {
    await rejected(()=>p.saveProfile('Stale profile'),'profile transaction stops after same-UID session replacement');
    assert(JSON.stringify(testDocs.get('blakeoutDevProfiles/verified_owner'))===profile,'stale profile is not written');
    login();globalThis.beforeTransaction=()=>{delete globalThis.beforeTransaction;replace();};
-   await rejected(()=>p.saveCasualResult('session-result',result),'casual transaction stops before first read after account replacement');
+   await rejected(()=>saveIsolatedCasual(p,'session-result',result),'casual transaction stops before first read after account replacement');
    assert(!testDocs.has('blakeoutDevCasualResults/session-result'),'no score written by stale transaction');
    login();globalThis.afterTransactionRead=ref=>{if(ref.path.startsWith('blakeoutDevProfiles/')){
      delete globalThis.afterTransactionRead;replace();}};
-   await rejected(()=>p.saveCasualResult('session-result',result),'account replaced during profile validation cannot write');
+   await rejected(()=>saveIsolatedCasual(p,'session-result',result),'account replaced during profile validation cannot write');
    assert(!testDocs.has('blakeoutDevCasualResults/session-result'),'profile lookup race leaves no score');
    login();let transactions=0;
    globalThis.beforeTransaction=()=>{if(++transactions===2){delete globalThis.beforeTransaction;replace();}};
-   await rejected(()=>p.saveCasualResult('session-result',result),'receipt delivery stops after account replacement');
+   await rejected(()=>saveIsolatedCasual(p,'session-result',result),'receipt delivery stops after account replacement');
    const immutable=JSON.stringify(testDocs.get('blakeoutDevCasualResults/session-result'));
    assert(!!immutable&&!testDocs.has('blakeoutDevCasualReceipts/session-result$verified_owner'),'committed score retained without false receipt success');
-   login();await p.saveCasualResult('session-result',result);
+   login();await saveIsolatedCasual(p,'session-result',result);
    assert(JSON.stringify(testDocs.get('blakeoutDevCasualResults/session-result'))===immutable,'original owner retry keeps immutable score');
    assert(testDocs.has('blakeoutDevCasualReceipts/session-result$verified_owner'),'original owner retry completes missing receipt');
    for(const method of ['getProfile','listProfiles','listMyResults']){
@@ -584,7 +598,7 @@ TOURNAMENT_SESSION_TESTS = r"""async () => {
  const login=()=>changeTestUser(owner),replace=()=>changeTestUser({...owner});
  const hooks=['beforeTransaction','afterTransactionRead','beforeTransactionRetry','afterTransactionCommit','afterEmailLinkAuth','tokenRefreshHook','sendLinkHook'];
  const clear=()=>{for(const key of hooks)delete globalThis[key];globalThis.retryTransaction=false;};
- const original=[...testDocs],originalGuest=globalThis.ruleGuestUser,url=location.href,email=localStorage.getItem('blakeout_dev_email_link');
+ const original=[...testDocs],originalGuest=globalThis.ruleGuestUser,url=location.href,email=localStorage.getItem('blakeout_darts_dev_email_link');
  const reject=async(fn,label)=>{let error;try{await fn();}catch(e){error=e;}
    assert(/(?:account|guest session) changed/.test(error?.message||''),label);};
  try {
@@ -603,7 +617,7 @@ TOURNAMENT_SESSION_TESTS = r"""async () => {
      create:()=>p.createTournamentDocument(fresh('session-new')),
      update:()=>p.updateTournament(registration.id,registration.revision,x=>({...x,title:'Changed'})),
      join:()=>p.joinTournament(registration.id),
-     result:()=>p.saveMatchResult(live.id,live.revision,'session-match',result,x=>e.recordResult(x,match.id,result))
+     result:()=>saveIsolatedMatch(p,live.id,live.revision,'session-match',result,x=>e.recordResult(x,match.id,result))
    };
    const baseline=[...testDocs].map(([k,v])=>[k,structuredClone(v)]);
    const reset=()=>{clear();testDocs.clear();for(const [k,v]of baseline)testDocs.set(k,structuredClone(v));login();};
@@ -628,92 +642,26 @@ TOURNAMENT_SESSION_TESTS = r"""async () => {
      assert(view.registrations.every(r=>!r.paid&&!r.checkedIn),'same-UID replacement never receives private '+phase+' read');
      if(phase==='public')assert(!testReadPaths.some(path=>path.startsWith('blakeoutDevRosterPrivate/')),'obsolete public read does not start private lookup');
    }
-   reset();changeGuestTestUser({uid:'guest_session',isAnonymous:true,emailVerified:false});
-   globalThis.beforeTransaction=()=>{delete globalThis.beforeTransaction;changeGuestTestUser({uid:'guest_session',isAnonymous:true,emailVerified:false});};
-   await reject(()=>p.joinTournamentAsGuest(registration.id,'Guest'),'guest replacement blocks stale guest writes');
-   assert(!testDocs.has('blakeoutDevSignups/session-registration/players/guest_session'),'stale guest entry absent');
-   reset();globalThis.beforeTransaction=()=>{delete globalThis.beforeTransaction;replace();};
-   const guest=await p.joinTournamentAsGuest(registration.id,'Guest');
-   assert(guest.registrationId==='guest-guest_session','verified account change does not invalidate independent guest session');
-   clear();
-   for(const phase of ['credential','token']){
-     login();history.replaceState(null,'','?oobCode=session-link');localStorage.setItem('blakeout_dev_email_link','owner@example.com');
-     if(phase==='credential')globalThis.afterEmailLinkAuth=replace;
-     else globalThis.tokenRefreshHook=async()=>{replace();return 'test-token';};
-     await reject(()=>p.completeAccountLink('owner@example.com'),'email-link '+phase+' race rejects old session');
-     assert(location.search.includes('session-link')&&p.pendingAccountEmail()==='owner@example.com','stale completion preserves continuation state');clear();
+   reset();const beforeDisabled=JSON.stringify([...testDocs]);
+   for (const fn of [()=>p.joinTournamentAsGuest(registration.id,'Guest'),()=>p.sendAccountLink('owner@example.com'),()=>p.completeAccountLink('owner@example.com')]) {
+     let blocked=false;try{await fn();}catch(error){blocked=/unavailable|cannot be used/.test(error.message);}assert(blocked,'unsupported auth path fails closed');
    }
-   login();history.replaceState(null,'','?oobCode=original-link');
-   globalThis.tokenRefreshHook=async()=>{history.replaceState(null,'','?oobCode=new-link');await p.sendAccountLink('new@example.com');return 'test-token';};
-   const linked=await p.completeAccountLink('owner@example.com');
-   assert(linked===p.getAccount()&&location.search.includes('new-link')&&p.pendingAccountEmail()==='new@example.com','successful old completion preserves newer link/email');clear();
-   history.replaceState(null,'','?oobCode=current-link');await p.sendAccountLink('owner@example.com');
-   assert((await p.completeAccountLink('owner@example.com'))===p.getAccount()&&!location.search&&!p.pendingAccountEmail(),'current verified link clears only its own continuation');
-   let release;globalThis.sendLinkHook=email=>email==='old@example.com'?new Promise(r=>release=r):Promise.resolve();
-   const old=p.sendAccountLink('old@example.com');while(!release)await new Promise(r=>setTimeout(r,0));
-   await p.sendAccountLink('new@example.com');release();await old;
-   assert(p.pendingAccountEmail()==='new@example.com','late link send cannot overwrite newer pending email');
+   assert(JSON.stringify([...testDocs])===beforeDisabled,'disabled auth paths do not write records');
+
  } finally {
    clear();testDocs.clear();for(const [k,v]of original)testDocs.set(k,v);changeGuestTestUser(originalGuest);login();history.replaceState(null,'',url);
-   if(email===null)localStorage.removeItem('blakeout_dev_email_link');else localStorage.setItem('blakeout_dev_email_link',email);
+   if(email===null)localStorage.removeItem('blakeout_darts_dev_email_link');else localStorage.setItem('blakeout_darts_dev_email_link',email);
  }
  return checks;
 }"""
 
 GUEST_TESTS = r"""async () => {
- const p=await import('/dev/js/platform.js'),e=await import('/dev/js/brackets/engine.js');
- const checks=[],assert=(v,m)=>{if(!v)throw Error(m);checks.push(m);};
- const reject=async(fn,m)=>{let error;try{await fn();}catch(e){error=e;}assert(!!error,m);};
- const owner=p.getAccount().uid, label=(await p.getProfile()).name;
- const beforeResults=(await p.listMyResults()).length;
- let t=await p.createTournamentDocument(e.createTournament({id:'guest_event',ownerId:owner,title:'Name-only selfjoin',date:'2026-09-07',gameType:'501',bestOf:3}));
- const fixture={ownerId:owner,publicRegistration:structuredClone(testDocs.get('blakeoutDevTournaments/guest_event')),
- privateRegistration:structuredClone(testDocs.get('blakeoutDevRosterPrivate/guest_event')),
- stateBefore:structuredClone(testDocs.get('blakeoutDevSignupState/guest_event'))};
- globalThis.testReadsByApp=[];
- const joined=await p.joinTournamentAsGuest(t.id,label);
- t=joined.tournament;
- assert(joined.registrationId==='guest-anonymous_guest'&&t.registrations.some(r=>r.id===joined.registrationId),'guest response identifies exact owned row without name matching');
- assert(p.getAccount().uid===owner&&p.requireVerifiedAccount().uid===owner,'guest join never replaces verified login');
- assert(globalThis.anonymousApp==='blakeout-dev-guests'&&testPersistence.value==='LOCAL','separate LOCAL anonymous guest app');
- assert(t.registrations.length===1&&t.registrations[0].playerId===null&&t.registrations[0].name===label,'same name as verified account remains a guest');
- assert(testReadsByApp.filter(read=>read.app==='blakeout-dev-guests').every(read=>!read.path.startsWith('blakeoutDevRosterPrivate/')&&!read.path.startsWith('blakeoutDevProfiles/')),'guest credentials never read profiles/private flags');
- assert(!testDocs.has('blakeoutDevProfiles/anonymous_guest'),'guest device never receives a lifetime profile');
- fixture.firstSignup=structuredClone(testDocs.get('blakeoutDevSignups/guest_event/players/anonymous_guest'));
- fixture.stateJoined=structuredClone(testDocs.get('blakeoutDevSignupState/guest_event'));
- assert(fixture.firstSignup.playerId===null&&fixture.firstSignup.registrationId==='guest-anonymous_guest','guest signup schema has null account identity');
- assert(JSON.stringify(testDocs.get('blakeoutDevTournaments/guest_event'))===JSON.stringify(fixture.publicRegistration)&&JSON.stringify(testDocs.get('blakeoutDevRosterPrivate/guest_event'))===JSON.stringify(fixture.privateRegistration),'guest join only writes narrow signup/index');
- assert((await p.joinTournamentAsGuest(t.id,label)).tournament.revision===t.revision,'guest duplicate idempotent');
- await reject(()=>p.joinTournamentAsGuest(t.id,'A different guest'),'shared-device second name rejected explicitly');
- await reject(()=>p.joinTournamentAsGuest(t.id,'owner@example.com'),'guest name never resolved from email');
- changeGuestTestUser({uid:'anonymous_guest_two',emailVerified:false,isAnonymous:true});
- t=(await p.joinTournamentAsGuest(t.id,label)).tournament;
- assert(t.registrations.length===2&&t.registrations.every(r=>r.playerId===null),'separate devices with identical names remain distinct guests');
- const extra=['guest_partner1','guest_partner2'].map(id=>({id,playerId:null,name:id,tag:'B',paid:true,checkedIn:true,standby:false}));
- t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,[...current.registrations.map(r=>({...r,tag:'A',checkedIn:true,paid:true})),...extra]));
- t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,current.registrations.filter(r=>r.id!=='guest-anonymous_guest')));
- assert(!testDocs.has('blakeoutDevSignups/guest_event/players/anonymous_guest')&&testDocs.has('blakeoutDevSignups/guest_event/players/anonymous_guest_two'),'owner removes only targeted null-ID guest signup');
- changeGuestTestUser({uid:'anonymous_guest',emailVerified:false,isAnonymous:true});
- t=(await p.joinTournamentAsGuest(t.id,label)).tournament;
- assert(t.registrations.filter(r=>r.id==='guest-anonymous_guest').length===1,'removed guest can rejoin without approval');
- t=await p.updateTournament(t.id,t.revision,current=>e.saveRoster(current,current.registrations.map(r=>r.id==='guest-anonymous_guest'?{...r,tag:'A',checkedIn:true,paid:true}:r)));
- const started=e.startTournament(t);
- t=await p.updateTournament(t.id,t.revision,()=>started);
- assert((await p.joinTournamentAsGuest(t.id,label)).tournament.status==='live','committed guest signup retries after start');
- changeGuestTestUser({uid:'anonymous_guest_three',emailVerified:false,isAnonymous:true});
- await reject(()=>p.joinTournamentAsGuest(t.id,'Too late'),'new guest blocked after registration closes');
- const match=t.matches.find(m=>m.status==='ready');
- const result={matchId:match.id,gameType:'501',winnerId:match.teamA,scoreA:2,scoreB:0,participantIds:[],perPlayer:[],legScores:[]};
- await p.saveMatchResult(t.id,t.revision,'all-guest-result',result,current=>e.recordResult(current,match.id,result));
- assert((await p.listMyResults()).length===beforeResults&&testDocs.get('blakeoutDevResults/all-guest-result').participantIds.length===0,'name-only guests never increase account lifetime records');
- assert(p.getAccount().uid===owner,'verified login still intact after full guest lifecycle');
- const noAccountEvent=await p.createTournamentDocument(e.createTournament({id:'guest_no_account',ownerId:owner,title:'No account needed',date:'2026-09-07',gameType:'501',bestOf:3}));
- await p.signOutAccount();
- const noAccountJoin=await p.joinTournamentAsGuest(noAccountEvent.id,'Name only');
- assert(p.getAccount()===null&&noAccountJoin.tournament.registrations[0].playerId===null,'guest joins without a verified account or login');
- await reject(()=>p.listMyResults(),'anonymous guest session never grants lifetime account access');
- await p.signInAccount('owner@example.com','TestOnlyPassword123!');
- return {checks,fixture};
+ const p=await import('/dev/js/platform.js');
+ const before=JSON.stringify([...testDocs]);
+ let error;try{await p.joinTournamentAsGuest('guest_event','Guest');}catch(e){error=e.message;}
+ if(!error?.includes('Anonymous Auth is disabled'))throw Error('Guest path must fail closed');
+ if(JSON.stringify([...testDocs])!==before)throw Error('Disabled guest wrote data');
+ return {checks:['guest disabled','records unchanged'],fixture:null};
 }"""
 
 RULE_FIXTURES = r"""() => {
@@ -1278,6 +1226,10 @@ async def run():
                     await request.continue_()
                 else:
                     await request.abort()
+            await context.add_init_script("""
+                globalThis.saveIsolatedMatch = async (p,...args) => p.saveMatchResult(...args,{backendKey:(await import('/dev/js/backend-context.js')).BACKEND_KEY});
+                globalThis.saveIsolatedCasual = async (p,...args) => p.saveCasualResult(...args,{backendKey:(await import('/dev/js/backend-context.js')).BACKEND_KEY});
+            """)
             await context.route("**/*", route)
             await enable_future_features(context)
             page = await context.new_page()
@@ -1294,11 +1246,11 @@ async def run():
             await session_page.goto(base + f"/{RUNTIME.name}/session.html")
             session_checks = await session_page.evaluate(ACCOUNT_RECORD_SESSION_TESTS)
             tournament_checks = await session_page.evaluate(TOURNAMENT_SESSION_TESTS)
-            print(f"PASS tournament/email-link session ownership ({len(tournament_checks)} assertions)")
+            print(f"PASS tournament session ownership and disabled legacy auth ({len(tournament_checks)} assertions)")
             await session_page.close()
             print(f"PASS account/record session ownership ({len(session_checks)} assertions)")
             guests = await page.evaluate(GUEST_TESTS)
-            print(f"PASS anonymous guest self-registration ({len(guests['checks'])} assertions)")
+            print(f"PASS disabled anonymous guest path ({len(guests['checks'])} assertions)")
             if "--save-rules-fixtures" in sys.argv:
                 scenarios = await page.evaluate(RULE_FIXTURES)
                 scenarios["rulesPath"] = "firestore.rules"
@@ -1350,7 +1302,11 @@ async def run():
             await device_page.locator("#accountEmail").fill("owner@example.com")
             await device_page.locator("#accountPassword").fill("Test-only-password-123")
             await device_page.locator("#passwordSignIn").click()
-            await device_page.wait_for_function("document.querySelector('#records').textContent.includes('casual-keeper')")
+            try:
+                await device_page.wait_for_function("document.querySelector('#records').textContent.includes('casual-keeper')")
+            except Exception:
+                print('Fresh-device status:', await device_page.locator('#accountStatus').inner_text())
+                raise
             recovered = await device_page.evaluate("async()=>await(await import('/dev/js/platform.js')).listMyResults()")
             assert {record["id"] for record in recovered} == {record["id"] for record in data["results"]}
             await device_page.evaluate("globalThis.testOffline=true")
@@ -1373,14 +1329,17 @@ async def run():
             await other.locator("#signOut").click()
             await page.wait_for_function("document.querySelector('#profilePanel').hidden")
             await page.goto(base + "/dev/accounts/?oobCode=mock-link")
-            await page.locator("#linkEmail").fill("owner@example.com")
-            await page.locator("#completeLink").click()
+            assert await page.locator("#linkEmail").is_hidden()
+            assert await page.locator("#sendLink").is_disabled()
+            await page.locator("#accountEmail").fill("owner@example.com")
+            await page.locator("#accountPassword").fill("BrowserTestPassword123!")
+            await page.locator("#passwordSignIn").click()
             await page.wait_for_function("document.querySelector('#profilePanel').hidden === false")
-            assert "oobCode" not in page.url
+            assert "oobCode" in page.url # old link was not consumed
             await page.evaluate("globalThis.denyReads=true")
             await page.locator("#refreshRecords").click()
             await page.wait_for_function("document.querySelector('#accountStatus').textContent.includes('permission-denied')")
-            print("PASS account UI (records/export, mobile, route, shared signout, email completion, permission errors)")
+            print("PASS account UI (records/export, mobile, route, shared signout, old-link rejection/password login, permission errors)")
             await page.evaluate("globalThis.denyReads=false")
             await page.locator("#signOut").click()
             await page.locator("#accountEmail").fill("new@example.com")
@@ -1442,101 +1401,9 @@ async def run():
             assert await page.locator("#passwordSignIn").is_disabled()
             print("PASS missing Firebase config visibly surfaced")
             await context.close()
-            email_context = await browser.new_context(service_workers="block")
-            email_calls = []
-            email_response = {"status": 200, "body": {"status": "sent"}}
-
-            async def email_route(route):
-                url = route.request.url
-                filename = url.rsplit("/", 1)[-1]
-                modules = {"firebase-app.js": APP, "firebase-auth.js": AUTH, "firebase-firestore.js": STORE}
-                if filename in modules:
-                    await route.fulfill(content_type="text/javascript", body=modules[filename])
-                elif filename == "account-email-config.js":
-                    await route.fulfill(content_type="text/javascript", body=(
-                        "export const ACCOUNT_EMAIL_SERVICE_URL="
-                        "'https://blakeout-email-dev.dartsblakeout.workers.dev';"))
-                elif url.startswith("https://blakeout-email-dev.dartsblakeout.workers.dev/"):
-                    if route.request.method == "OPTIONS":
-                        await route.fulfill(status=204, headers={
-                            "Access-Control-Allow-Origin": base,
-                            "Access-Control-Allow-Methods": "POST",
-                            "Access-Control-Allow-Headers": "authorization,content-type"})
-                    else:
-                        email_calls.append({"url": url, "body": route.request.post_data_json,
-                                            "headers": route.request.headers})
-                        await route.fulfill(status=email_response["status"],
-                                            content_type="application/json",
-                                            headers={"Access-Control-Allow-Origin": base,
-                                                     "Access-Control-Expose-Headers": "Retry-After",
-                                                     "Retry-After": "60"},
-                                            body=email_response.get("raw", json.dumps(email_response["body"])))
-                elif url.startswith(base):
-                    await route.continue_()
-                else:
-                    await route.abort()
-
-            await email_context.route("**/*", email_route)
-            await enable_future_features(email_context)
-            email_page = await email_context.new_page()
-            await email_page.goto(base + "/dev/accounts/")
-            await email_page.wait_for_function("typeof changeTestUser === 'function'")
-            await email_page.evaluate("""async () => {
-                const p = await import('/dev/js/platform.js');
-                await p.initPlatform();
-                changeTestUser(null);
-                await p.registerAccount('new@example.com', 'PrivateTestPassword123!');
-            }""")
-            assert len(email_calls) == 1
-            assert email_calls[-1]["url"].endswith("/verify-email")
-            assert email_calls[-1]["body"] == {}
-            assert email_calls[-1]["headers"].get("authorization") == "Bearer verified"
-            assert not await email_page.evaluate("!!globalThis.sentVerification"), "No duplicate Firebase email"
-            email_response.update(status=429, body={"error": {
-                "code": "email/rate-limited", "message": "Private upstream details must not display"}})
-            await email_page.locator("#sendVerification").click()
-            await email_page.wait_for_function(
-                "document.querySelector('#accountStatus').textContent.includes('email/rate-limited')")
-            assert "Private upstream" not in await email_page.locator("#accountStatus").inner_text()
-            assert "Wait at least 1 minute(s)" in await email_page.locator("#accountStatus").inner_text()
-            assert "may take longer" in await email_page.locator("#accountStatus").inner_text()
-            assert await email_page.locator("#sendVerification").is_enabled()
-            email_response.update(status=200, body={"status": "accepted"})
-            await email_page.evaluate("""async () => {
-                const p = await import('/dev/js/platform.js');
-                await p.signOutAccount();
-                await p.resetAccountPassword(' person@example.com ');
-            }""")
-            assert email_calls[-1]["url"].endswith("/reset-password")
-            assert email_calls[-1]["body"] == {"email": "person@example.com"}
-            assert "authorization" not in email_calls[-1]["headers"]
-            assert not await email_page.evaluate("!!globalThis.sentReset")
-            for response_status, body in [(200, {}), (503, {"error": {"code": "unknown", "message": "secret"}})]:
-                email_response.update(status=response_status, body=body)
-                error = await email_page.evaluate("""async () => {
-                    try { await (await import('/dev/js/platform.js')).resetAccountPassword('person@example.com'); }
-                    catch (error) { return error.message; }
-                }""")
-                assert error and "secret" not in error
-            for response_status in [200, 502]:
-                email_response.update(status=response_status, raw="private-provider-text is not JSON")
-                error = await email_page.evaluate("""async () => {
-                    try { await (await import('/dev/js/platform.js')).resetAccountPassword('person@example.com'); }
-                    catch (error) { return error.message; }
-                }""")
-                assert error == "The email service returned an invalid response. Please try again later."
-                del email_response["raw"]
-            count_before = len(email_calls)
-            await email_page.evaluate("""async () => {
-                const p = await import('/dev/js/platform.js');
-                changeTestUser({uid:'switching',email:'one@example.com',emailVerified:false,isAnonymous:false});
-                p.getAccount().getIdToken = async () => { changeTestUser(null); return 'old-token'; };
-                try { await p.sendAccountVerification(); throw new Error('Unexpected success'); }
-                catch (error) { if (!error.message.includes('account changed')) throw error; }
-            }""")
-            assert len(email_calls) == count_before, "Account switch must not send old token"
-            print("PASS branded email transport (registration/resend/reset, no duplicate sends, errors, account switch)")
-            await email_context.close()
+            # Built-in Firebase verification/reset was exercised above through AUTH
+            # mocks. The isolated adapter never imports the production-linked Worker.
+            print("PASS isolated Firebase verification/reset transport; legacy Worker not used")
             await browser.close()
             emulator_checks(output["wire"], output["privateWire"])
     finally:

@@ -1,0 +1,64 @@
+Local enforcement evidence update — 2026-10-18
+
+Review source: 34c9be9180e007f989a3b9ae0c73e0208c668aa4 plus test-only
+matcher correction 921f7d319bf7b1b4fb6561001861853291ff5f08.
+Branch: review/combined-local-verified-20261018.
+All three message.includes('permission') predicates now use isPermissionDenied.
+Explicit Firebase denial codes or strictly delimited FirebaseError messages are
+accepted; unrelated/malformed errors are rejected. No rule changes.
+
+Laptop REAL emulator evidence (reported through parent task, not rerun in cloud)
+- 59 integration PASS groups, exit 0.
+- 775 account-rule cases, five phases, exit 0, no skips.
+- 24 matcher unit cases: seven denials accepted, seventeen other values rejected.
+- Clean environment/empty HOME, loopback-only namespace and no external routes.
+- Source hashes checked after execution; no live requests/push/deployment.
+Laptop evidence supplied by coordinator:
+/home/md/Documents/Codex/2026-10-16/task-3/evidence/cloud-combined-local/REPORT-verified.json
+/home/md/Documents/Codex/2026-10-16/task-3/evidence/cloud-combined-local/denial-matcher-hashes.json
+/home/md/Documents/Codex/2026-10-16/task-3/evidence/cloud-combined-local/denial-matcher-fix.patch
+Reported patch SHA256:
+7d9718f1f5fd54c5c3fd7654070e18e907b053d157a1c2b3f4263889f2460684
+These local files are not directly accessible from this cloud environment.
+The tested scope is the REDUCED enforcement/test tree, not the complete
+seven-file cloud artifact, complete frontend integration or real-account pilot.
+
+Fresh CLOUD checks
+- node dev/tournament-device/permission-denied.test.mjs: 24 cases PASS.
+- node --check dev/tournament-device/test_lifecycle.mjs: PASS syntax.
+- python3 dev/tournament-device/test_composition.py: four source/provenance tests
+  PASS, including six unsafe mutations and 69 production files unchanged.
+- Rules fragment and integration caller identical to 34c9be9; composed rules
+  stdout SHA256 remains 3ef922929da22711d3a24ca6bf1a9f9723f79ceebf904226912f363eb5f54737.
+No cloud emulator enforcement pass is claimed. Existing cloud provisioning
+constraints remain; successful laptop enforcement supersedes the earlier
+absence of real execution evidence only for the tested reduced tree.
+
+Cross-environment identity — VERIFIED by relayed laptop SHA256 values
+The two supplied source blocks were copied exactly with LF/final newline and
+no filename comments; test_lifecycle imports the matcher and replaces all three
+predicates. A generated git diff hash differs from the supplied laptop patch:
+cloud patch 5ac67cc570aa5f904d5e17388560f11cd9841fcd8156633e2257e3bcca99ed20.
+Patch formatting may differ, but this is not proof of identical file contents.
+Parent relayed the laptop per-file hashes; all three exactly match. Cloud SHA256:
+permission-denied.mjs:
+b73621e71f706aedc42e148321d40c54d26bab272b691f1e1fd90efbcbb4d344
+permission-denied.test.mjs:
+e5303c42bd281170b69bb51bcecf5aa08a5b64cd968321cf47ca3deb6faf71e9
+test_lifecycle.mjs:
+c4ae5357dcc0a74e943eb4d7bc8ae4b446904820943e7d260b512f1d2df368ed
+All three changed source files are byte-identical by SHA256 comparison.
+Exact compose() bytes (without print newline) also match the actual passing
+laptop run-2/candidate.rules:
+283f98856f5a93a6f8cecd19e54ab409799e49802afb1a99308a8b4f57ca5a1a.
+Different patch hashes do not indicate a source mismatch in these verified files.
+Cloud logs and source-hashes.json:
+/workspace/blakeout-recovery/local-verified-evidence/
+
+Release readiness
+Improved: real reported enforcement evidence for reduced combined rules/tests,
+strict test error matching, unchanged closed role lists/security rules.
+Still pending: scoped main runtime integration and full merged
+regression; exact live policy/config recovery; signup choice; Google/reset and
+real-player/multi-device acceptance. No tester enablement or deployment approval.
+Original backups, combined candidate and portability review commits preserved.

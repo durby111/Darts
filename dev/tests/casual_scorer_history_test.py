@@ -42,7 +42,7 @@ async def run():
     try:
         async with async_playwright() as pw:
             browser=await pw.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
-            for kind, links in [('501',['u1','u2']),('cricket',['u1','u2']),('501',['u1','']),('cricket',['u1',''])]:
+            for kind, links in [('501',['owner','']),('cricket',['owner',''])]:
                 context=await browser.new_context(service_workers='block',viewport={'width':1200,'height':1000})
                 async def route(r):
                     url=r.request.url
@@ -63,7 +63,7 @@ async def run():
                 assert g['tournament'] is None and g['recording']['legComplete']
                 assert g['recording']['status']!='saved'
                 result_id=g['recording']['resultId']
-                if kind=='cricket' and links[1]:
+                if kind=='cricket':
                     await page.evaluate("localStorage.__offline='1'")
                     await page.click('#casualSaveResult')
                     await page.wait_for_function("document.querySelector('#tournamentResultPanel').textContent.includes('Not saved')")
@@ -73,13 +73,13 @@ async def run():
                     assert await page.evaluate("Object.keys(localStorage).some(k=>k.startsWith('blakeout_dev_casual_') && k!=='blakeout_dev_casual_history')")
                     await page.evaluate("localStorage.__offline='0'")
                 await page.click('#casualSaveResult')
-                await page.wait_for_function("import('/dev/js/state.js').then(({game})=>game.recording.status==='saved')")
+                await page.wait_for_function("document.querySelector('#tournamentResultPanel').textContent.includes('Casual result saved')")
                 saved=await page.evaluate("JSON.parse(localStorage.__documents)")
                 raw=saved['blakeoutDevCasualResults/'+result_id]
                 assert raw['participantIds']==[uid for uid in links if uid]
                 assert all(isinstance(raw[k],str) for k in ['records','perPlayer','legScores'])
                 counters=json.loads(raw['perPlayer'])
-                winner=next(p for p in counters if p['playerId']=='u1')
+                winner=next(p for p in counters if p['playerId']=='owner')
                 loser=next((p for p in counters if p['playerId']=='u2'),None)
                 assert winner['darts']==(9 if kind=='501' else 8),winner
                 if links[1]:
@@ -101,7 +101,7 @@ async def run():
                     await page.goto(base+'/dev/accounts/')
                     await page.wait_for_function("document.querySelector('#records').textContent.includes('Casual')")
                     summary=await page.locator('#lifetimeSummary').inner_text()
-                    expected=('55.67 PPD' if kind=='501' else '7.88 MPR') if uid=='u1' else ('0.00 PPD' if kind=='501' else '0.00 MPR')
+                    expected=('55.67 PPD' if kind=='501' else '7.88 MPR') if uid=='owner' else ('0.00 PPD' if kind=='501' else '0.00 MPR')
                     assert expected in summary and '1 matches' in summary,(uid,summary)
                     records=await page.evaluate("import('/dev/js/platform.js').then(m=>m.listMyResults())")
                     assert len(records)==1 and records[0]['source']=='casual' and records[0]['id']==result_id

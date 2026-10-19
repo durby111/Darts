@@ -84,6 +84,16 @@ function recoverMatch(tournamentId, matchId) {
 }
 
 export async function launchRequestedMatch() {
+    if (new URLSearchParams(location.search).get('historyMatch') === '1') {
+        try {
+            if (!isFeatureAvailable('history')) throw new Error('Shared history is not released.');
+            if (game.players.length && !confirm('Replace the current scorer with this shared tournament match?')) return;
+            const recording = await (await import('../history-attribution/dev-ui/scorer.mjs')).launchFromScorerURL();
+            launchTournamentScorer(recording); renderTournamentControls();
+        } catch (error) { note(error.message); }
+        return;
+    }
+    if (!LOCAL_TOURNAMENT && isFeatureAvailable('history')) { note('Launch shared tournaments from the shared result desk.'); return; }
     if (!LOCAL_TOURNAMENT && (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts'))) {
         note(SAVE_NOTICE + ' Use Resume to continue a saved game.');
         return;
@@ -161,6 +171,10 @@ function button(label, id, handler) {
 }
 
 function returnToBrackets() {
+    if (game.tournament?.history) {
+        if (!saveActiveGame() || !confirm('Return to the shared desk? Local scoring is retained.')) return;
+        location.href=new URL('../history-attribution/dev-ui/#view=desk&role='+game.tournament.history.role,import.meta.url).href;return;
+    }
     if (!LOCAL_TOURNAMENT && !isFeatureAvailable('brackets')) {
         renderTournamentControls(BRACKETS_NOTICE);
         return;
@@ -188,6 +202,19 @@ function nextLeg() {
 }
 
 export async function saveTournamentResult() {
+    if (game.tournament?.history) {
+        if (!seriesComplete() || saving || game.tournament.status === 'saved') return;
+        if (!confirm('Save this shared-tablet result and advance the bracket?')) return;
+        saving = true;
+        try {
+            const r = game.tournament;
+            await (await import('../history-attribution/dev-ui/scorer.mjs')).saveFromScorer(r, {...scoringResult(), winnerId:r.teams[r.winnerIndex].id, scoreA:r.legWins[0], scoreB:r.legWins[1]}, saveActiveGame);
+            renderTournamentControls('Result saved; shared bracket advanced.');
+        } catch (error) { renderTournamentControls('Not saved: '+error.message); }
+        finally { saving = false; }
+        return;
+    }
+    if (!LOCAL_TOURNAMENT && isFeatureAvailable('history')) { renderTournamentControls('Legacy result retained locally. Use a reviewed migration before entering this event in shared history.'); return; }
     if (!LOCAL_TOURNAMENT && (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts'))) {
         renderTournamentControls(SAVE_NOTICE);
         return;
@@ -237,7 +264,7 @@ export async function saveTournamentResult() {
     } finally {
         saving = false;
         const save = document.getElementById('tournamentSaveResult');
-        if (save) save.disabled = (!LOCAL_TOURNAMENT && (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts'))) || session.status === 'saved';
+        if (save) save.disabled = (session.history ? !isFeatureAvailable('history') : (!LOCAL_TOURNAMENT && (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts')))) || session.status === 'saved';
     }
 }
 
@@ -273,7 +300,7 @@ export function renderTournamentControls(message = '') {
         document.querySelector('#gameMenuModal h2').after(returnButton);
     }
     returnButton.hidden = !game.tournament;
-    returnButton.disabled = !LOCAL_TOURNAMENT && !isFeatureAvailable('brackets');
+    returnButton.disabled = session?.history ? !isFeatureAvailable('history') : !LOCAL_TOURNAMENT && !isFeatureAvailable('brackets');
     returnButton.textContent = returnButton.disabled ? 'Return to tournament brackets · Cloud off' : 'Return to tournament brackets';
     returnButton.title = returnButton.disabled ? BRACKETS_NOTICE : '';
     if (!session) return;
@@ -327,7 +354,7 @@ export function renderTournamentControls(message = '') {
     const text = document.createElement('p');
     text.setAttribute('role', 'status');
     text.textContent = message || `${casual ? 'Scorekeeper-declared casual record.' : 'Series: ' + session.legWins.join(' – ') + '.'} ${session.status === 'saved' ? 'Saved.' : 'Not yet sent.'}`;
-    const cloudSaveAvailable = (!casual && LOCAL_TOURNAMENT) || isFeatureAvailable('accounts') && (casual || isFeatureAvailable('brackets'));
+    const cloudSaveAvailable = session.history ? isFeatureAvailable('history') : ((!casual && LOCAL_TOURNAMENT) || isFeatureAvailable('accounts') && (casual || isFeatureAvailable('brackets')));
     if (!cloudSaveAvailable && !message) text.textContent += ' ' + (casual
         ? 'DEV uses sample Players & Records. Cloud saving is unavailable; your recorded game and results stay on this device.'
         : SAVE_NOTICE);
@@ -354,7 +381,7 @@ export function renderTournamentControls(message = '') {
     }
     if (!casual) {
         const returnResult = button('Return to brackets', 'tournamentResultReturn', returnToBrackets);
-        returnResult.disabled = !LOCAL_TOURNAMENT && !isFeatureAvailable('brackets');
+        returnResult.disabled = session.history ? !isFeatureAvailable('history') : !LOCAL_TOURNAMENT && !isFeatureAvailable('brackets');
         if (returnResult.disabled) {
             returnResult.textContent += ' · Cloud off';
             returnResult.title = BRACKETS_NOTICE;

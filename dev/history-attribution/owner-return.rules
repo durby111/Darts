@@ -1,0 +1,77 @@
+// Standalone disabled enforcement candidate. NOT composed into any release rules.
+// Canonical occurrences/results are deliberately deny-write here. An adapter
+// must not fabricate these documents; see OWNER-RETURN-ANALYSIS.txt.
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function boards() { return []; }
+  function player() {
+   return request.auth != null && !(request.auth.uid in boards())
+    && request.auth.token.get('email_verified',false) == true
+    && request.auth.token.get('firebase',{}).get('sign_in_provider','') in ['password','google.com'];
+  }
+  function grant(u,g) { return get(/databases/$(database)/documents/haOwners/$(u)/consents/$(g)).data; }
+  function occurrence(o) { return get(/databases/$(database)/documents/haOccurrences/$(o)).data; }
+  function liveAt(u,g,t) {
+   let revoked = /databases/$(database)/documents/haOwners/$(u)/revocations/$(g);
+   let c = grant(u,g);
+   return c.at < t && t < c.expires && (!exists(revoked) || get(revoked).data.at > t);
+  }
+  function entitled(u,g,o) {
+   let c = grant(u,g);
+   let first = occurrence(o);
+   return c.uid == u && first.members[u] == c.binding
+    && c.contextId == first.contextId && liveAt(u,g,first.at);
+  }
+  match /haOwners/{u}/consents/{g} {
+   allow read: if player() && request.auth.uid == u;
+   allow create: if player() && request.auth.uid == u
+    && request.resource.data.keys().hasOnly(['uid','contextId','binding','scope','at','expires'])
+    && request.resource.data.uid == u
+    && request.resource.data.at == request.time
+    && request.resource.data.expires > request.time
+    && request.resource.data.expires <= request.time + duration.value(12,'h')
+    && request.resource.data.scope in ['game-seat','named-tournament']
+    && get(/databases/$(database)/documents/haBindings/$(request.resource.data.binding)).data
+       == {'uid':u,'contextId':request.resource.data.contextId,'scope':request.resource.data.scope};
+   allow update,delete: if false;
+  }
+  match /haOwners/{u}/revocations/{g} {
+   allow read: if player() && request.auth.uid == u;
+   allow create: if player() && request.auth.uid == u
+    && grant(u,g).uid == u
+    && request.resource.data == {'at':request.time};
+   allow update,delete: if false;
+  }
+  match /haOwners/{u}/history/{o} {
+   allow read: if player() && request.auth.uid == u;
+   allow create,update: if player() && request.auth.uid == u
+    && request.resource.data.keys().hasOnly(['uid','occurrenceId','consentId','operationId','revision','status','counter','at'])
+    && request.resource.data.uid == u && request.resource.data.occurrenceId == o
+    && entitled(u,request.resource.data.consentId,o)
+    && validProjection(u,o,request.resource.data)
+    && (!exists(/databases/$(database)/documents/haOwners/$(u)/history/$(o))
+       || request.resource.data.revision > resource.data.revision);
+   allow delete: if false;
+  }
+  function validProjection(u,o,d) {
+   let op = get(/databases/$(database)/documents/haOccurrences/$(o)/operations/$(d.operationId)).data;
+   return op.occurrenceId == o && d.revision == op.revision && d.status == op.status
+    && d.counter == op.counters[u] && d.at == op.at
+    && d.status in ['active','undone'];
+  }
+  match /haBindings/{b} {
+   allow get: if player() && resource.data.uid == request.auth.uid;
+   allow list,write: if false;
+  }
+  match /haOccurrences/{o} {
+   allow get: if player() && request.auth.uid in resource.data.members;
+   allow list,write: if false;
+   match /operations/{op} {
+    allow get: if player() && request.auth.uid in occurrence(o).members;
+    allow list,write: if false;
+   }
+  }
+  match /{document=**} { allow read,write: if false; }
+ }
+}

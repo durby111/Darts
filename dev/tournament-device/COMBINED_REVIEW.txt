@@ -1,0 +1,66 @@
+Combined QR + latest resume lifecycle rules REVIEW CANDIDATE ONLY
+
+Base: recovered QR snapshot 44c0d0a1e73cd031f24d87f7f9579ce7867defa4.
+Lifecycle source: 3ecfddb5d931a8ac57c1aa984c995217f8185b93,
+  dev/backend-setup/firestore.cloud-resume-candidate.rules.
+The collection block is copied byte-for-byte; lifecycle-provenance.json pins
+source and fragment SHA256 values. Composition retains !qrBoard() in devVerified,
+owner UID checks, backend binding, deny fallback and ALL EMPTY role lists.
+No account UI/resume runtime integration, invitation policy choice, allowlist
+configuration, production change or deployment is included. Original recovered
+worktrees and the f08d4d1 pilot review commit remain unchanged.
+
+Changed behavior of review-only composed rules
+Owner-private active game writes require server timestamps, active/archived/
+discarded state, monotonic revision, archive/restore preserving payload, and
+30-day archived retention before blanking payload into a permanent tombstone.
+Tablet roles remain excluded even if they overlap with pilot membership. QR
+consent/audit remains separate from private history and scorer session ownership.
+This is source composition, not a claim of newly verified rule enforcement.
+
+Regression coverage and fresh outcomes
+PYTHONDONTWRITEBYTECODE=1 python3 dev/tournament-device/test_composition.py
+  PASS 4 tests: exact recovered source/hash, closed composition, six unsafe
+  source mutations rejected, all 69 non-DEV baseline files match e731a77339303bea6e349f60ace7730cbc754142.
+node --check dev/tournament-device/test_lifecycle.mjs
+node --check dev/tournament-device/test_integration.mjs
+  PASS JavaScript syntax only.
+PYTHONDONTWRITEBYTECODE=1 python3 dev/tournament-device/compose_rules.py
+  Generates combined rules; this is NOT Firestore compilation.
+PYTHONDONTWRITEBYTECODE=1 python3 dev/tournament-device/run_tests.py
+  BLOCKED exit 1 before emulators: unshare: cannot open /proc/self/uid_map:
+  Read-only file system.
+
+New real-SDK test_lifecycle.mjs is wired into the existing synthetic emulator
+suite. It covers valid save/archive/restore/aged discard; invalid revisions,
+backend/timestamp, archive payload mutation, early discard, resurrection/delete,
+other-owner reads and tablet creation of private sessions despite overlapping
+membership. Existing private-session fixture is updated to the lifecycle schema.
+These new enforcement assertions have NOT RUN here. Existing tournament/audit
+and 775 account-matrix regressions also await a successful runner.
+
+Harness review and stop condition
+unshare is an intentional isolation boundary, not merely a tool-path dependency:
+the runner requires exactly loopback and records network interfaces/routes. It
+contains browser/emulator process traffic, beyond browser request interception.
+No host-network fallback, privileged attempt or sandbox bypass was added.
+Prerequisite: an execution environment permitting unprivileged user/network
+namespaces (unshare -Urn), ip loopback setup, plus the runner's explicitly
+configured local Node/Firebase SDK+esbuild, Java/Firestore emulator JAR,
+Playwright and Chromium tooling. Then run the unchanged isolated run_tests.py,
+review compilation, new lifecycle assertions, existing tournament integration
+and account matrix, and preserve exact logs/source hashes. Fix any failures
+before runtime integration. This bounded pass stops because meaningful
+Firestore enforcement validation cannot run in the current environment.
+
+Provenance gap
+Historical laptop commit 3011d48 remains unavailable and was NOT fabricated or
+silently substituted in its old test. test_composition.py instead explicitly
+checks the independently verified CURRENT released main e731a77, including all
+69 non-DEV files. This establishes current production invariance only, not the
+missing historical comparison or a full old production test pass.
+
+Exact live allowlist remains unavailable; sanitized lists remain empty.
+Invited-only versus public signup remains OPEN. No users, settings, credentials,
+billing, Firebase resources, pushes or deployments changed. This candidate is
+not ready for activation. Keep original release packet and snapshots preserved.
