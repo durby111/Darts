@@ -1,0 +1,59 @@
+Scoped participant-order correction and remaining release work — 2026-10-19
+
+SOURCE CHANGE
+Casual occurrence participants must have the same count and set membership as
+perPlayer keys. Firestore map-key ordering is not an identity contract. Both
+checks are required: set equality alone would permit duplicate participant IDs.
+Tournament ordered comparison and all other permissions remain unchanged.
+
+EVIDENCE BOUNDARY
+Cloud: 40 supporting Node tests and 6 static source-contract checks passed.
+These tests do not execute Firestore rules. The new static check protects the
+composed conditional; it is not evidence of server enforcement.
+Local review separately reports 44/44 mapped enforcement cases, zero skipped,
+128-owner coverage, prior regressions, and 354 manifest files verified against
+returned archive. Full archive/test implementation remains unavailable here due
+to Library transfer proxy403. Do not describe that suite as transferred or rerun
+in cloud. The exact one-line product fix was supplied directly and applied here.
+Retain the original evidence Library ID libfile_71bcad5042088191940e4faf6c0bd6d1
+and archive SHA256 a1780883e43d923fc656cc7d5fe3b44db16aab2a52cabff9b828b085c25b5bf9.
+
+IMPLEMENTATION WORK — LOCAL, NO LIVE PERMISSIONS REQUIRED
+1. Recover and retain executable enforcement tests/patch/report from Library;
+   verify archive checksum, inspect per-case assertions, compare tested composed
+   rules hash with this tree. Preserve old-policy vs combined-policy coverage.
+2. Replace synthetic-demo-only integration deliberately: coherent/adapter.mjs,
+   tournament-device/adapter.mjs and qr-firebase/adapter.mjs currently require
+   demo-blakeout-adapter-task3. Add an explicitly scoped real-DEV configuration
+   path with matching Auth/Firestore apps and rejection tests for wrong projects;
+   keep emulator configuration isolated. Do not simply remove the project guard.
+3. Wire coherent/phone.mjs consent and coherent/adapter.mjs producer/owner-return
+   APIs into actual DEV QR, scorer/tournament and account-history UI. Retain
+   immediate shared-tablet entry, honest actor audit, downstream undo review,
+   occurrence identity, no unconsented backfill, private history/resume isolation.
+   Stage these changes locally with route/feature tests and no live publication.
+4. Prepare reproducible deployment diff, candidate rules/index hashes, synthetic
+   role fixtures for tests, actual DEV acceptance script, and rollback artifacts.
+   Emulator query success does not establish real composite-index readiness.
+
+LIVE READINESS AND APPROVAL — SEPARATE FROM IMPLEMENTATION
+A. Read-only verification: confirm actual target project/database and deployed
+   rules/index state. Source config points to blakeout-darts-dev; default database
+   is the candidate rules target. Source config is not proof of live deployment.
+   Check occurrences COLLECTION index: participants CONTAINS + at ASCENDING.
+B. Before any backend change, present the exact rules permission diff, index
+   creation/change, approved role/identity scope, bounded test-data identifiers,
+   cleanup and rollback plan. Obtain explicit security-setting approval for that
+   concrete change. Do not infer backend authorization from DEV frontend approval.
+C. Publish DEV frontend only after separate release authorization and test evidence.
+   Current source feature switches: accounts=true, brackets=false. Google/Apple
+   provider switches disabled. Do not claim all gates are off or flip them broadly.
+D. Run bounded real-DEV positive/negative acceptance using approved identities:
+   own/foreign history, tablet private-history/resume denial, wrong QR seat/account,
+   revoked/expired consent, corrections/undo and downstream impacts. If a failure
+   occurs, preserve evidence and use approved rollback; do not relax permissions.
+E. Real account/provider/email, mobile and cross-browser acceptance remains.
+   Google linkage and password reset need the user's own acceptance session;
+   this handoff authorizes neither emails nor access to personal browser sessions.
+
+No push, deployment, live rules/index changes or role expansion accompanies this fix.

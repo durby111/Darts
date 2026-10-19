@@ -41,7 +41,7 @@ function hcOccurrenceValid(c,d,h,p,o) {
   && o.contextId == c && o.matchId == p.matchId && o.firstOp == p.occurrenceId
   && o.at == request.time && o.members is map && o.members.size() <= 128
   && o.members == get(/databases/$(database)/documents/hcContexts/$(c)/links/current).data.members
-  && (d.kind == 'tournament' ? o.participants == hcParticipants(d,p.after) : o.participants == p.after.perPlayer.keys())
+  && (d.kind == 'tournament' ? o.participants == hcParticipants(d,p.after) : (o.participants.size() == p.after.perPlayer.size() && o.participants.toSet() == p.after.perPlayer.keys().toSet()))
   && (d.kind == 'tournament' ? o.registrations == hcRoster(d,p.after) : o.registrations == []);
 }
 function hcAfterValid(c,d,h,p) {

@@ -15,6 +15,12 @@ class SourceContract(unittest.TestCase):
   s=(HERE/'candidate.fragment.rules').read_text()
   for required in ['hcTransition(c,resource.data','hcOccurrenceValid','getAfter(','grant.at < first.at','get(revoked).data.at > first.at','allow update,delete: if false','request.resource.data.uid == u','hcCounter(u,context.gameType','p.actorUid == request.auth.uid']:
    self.assertIn(required,s)
+ def test_casual_participant_guard_is_order_independent(self):
+  # Source contract only. Actual Firestore evaluation is covered by the
+  # separately reported laptop enforcement run, not this static assertion.
+  s=m.compose()
+  self.assertIn("(d.kind == 'tournament' ? o.participants == hcParticipants(d,p.after) : (o.participants.size() == p.after.perPlayer.size() && o.participants.toSet() == p.after.perPlayer.keys().toSet()))",s)
+  self.assertNotIn('o.participants == p.after.perPlayer.keys()',s)
  def test_owner_projection_not_tablet_history(self):
   s=(HERE/'candidate.fragment.rules').read_text();block=s[s.index('match /contexts/{c}/history/{o}'):]
   self.assertIn('hcPlayer() && request.auth.uid == u',block);self.assertNotIn('hcWriter',block)
