@@ -9,6 +9,7 @@ import { registrationLabels } from './brackets/labels.js';
 import { isFeatureAvailable } from './feature-availability.js';
 import { matchFormat } from './brackets/engine.js';
 import { BUILD_STORAGE, LOCAL_TOURNAMENT } from './build-context.js';
+import { confirmAction } from './confirm-action.js';
 
 const LAUNCH_KEY = BUILD_STORAGE.matchRecoveryPrefix + 'launch';
 const SUPPORTED = RECORDING_GAMES;
@@ -17,6 +18,27 @@ const SAVE_NOTICE = 'DEV uses sample Brackets and Players & Records. Cloud savin
 let saving = false;
 let initialized = false;
 let lastControlAction = 0;
+let controlPending = false;
+
+// Hold the guard across both the asynchronous question and the resulting write.
+// A second Save/Return/Next leg must never run behind an open confirmation.
+async function exclusiveControl(action) {
+    if (controlPending || saving) return;
+    controlPending = true;
+    try { return await action(); }
+    finally { controlPending = false; }
+}
+
+async function confirmCurrentMatch(message, options) {
+    const session = game.tournament;
+    const snapshot = JSON.stringify([session, game.scoringRecords]);
+    if (!await confirmAction(message, options)) return false;
+    if (game.tournament !== session || snapshot !== JSON.stringify([game.tournament, game.scoringRecords])) {
+        renderTournamentControls('The match changed while confirmation was open. Review it before continuing.');
+        return false;
+    }
+    return true;
+}
 
 async function platform() {
     if (!LOCAL_TOURNAMENT && (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts'))) throw new Error(SAVE_NOTICE);
@@ -170,23 +192,25 @@ function button(label, id, handler) {
     return node;
 }
 
-function returnToBrackets() {
+function returnToBrackets() { return exclusiveControl(returnToBracketsConfirmed); }
+
+async function returnToBracketsConfirmed() {
     if (game.tournament?.history) {
-        if (!saveActiveGame() || !confirm('Return to the shared desk? Local scoring is retained.')) return;
+        if (!await confirmCurrentMatch('Return to the shared desk? Local scoring is retained.', { title: 'Return to shared desk?', confirmLabel: 'Return to desk' }) || !saveActiveGame()) return;
         location.href=new URL('../history-attribution/dev-ui/#view=desk&role='+game.tournament.history.role,import.meta.url).href;return;
     }
     if (!LOCAL_TOURNAMENT && !isFeatureAvailable('brackets')) {
         renderTournamentControls(BRACKETS_NOTICE);
         return;
     }
-    if (!saveActiveGame() || !confirm('Return to brackets? Unsaved scoring stays on this device; no result will be sent.')) return;
+    if (!await confirmCurrentMatch('Return to brackets? Unsaved scoring stays on this device; no result will be sent.', { title: 'Return to brackets?', confirmLabel: 'Return to brackets' }) || !saveActiveGame()) return;
     const url = new URL(LOCAL_TOURNAMENT ? '../local/brackets/' : '../brackets/', import.meta.url);
     url.searchParams.set('id', game.tournament.tournamentId);
     location.href = url.href;
 }
 
 function nextLeg() {
-    if (!game.tournament?.legComplete || seriesComplete() || saving) return;
+    if (!game.tournament?.legComplete || seriesComplete() || saving || controlPending) return;
     if (!confirm('Confirm this leg and start the next leg? Previous legs will be retained.')) return;
     if (!saveActiveGame()) return;
     const tournament = game.tournament;
@@ -202,9 +226,13 @@ function nextLeg() {
 }
 
 export async function saveTournamentResult() {
+    return exclusiveControl(saveTournamentResultConfirmed);
+}
+
+async function saveTournamentResultConfirmed() {
     if (game.tournament?.history) {
         if (!seriesComplete() || saving || game.tournament.status === 'saved') return;
-        if (!confirm('Save this shared-tablet result and advance the bracket?')) return;
+        if (!await confirmCurrentMatch('Save this shared-tablet result and advance the bracket?', { title: 'Save match result?', confirmLabel: 'Save result' })) return;
         saving = true;
         try {
             const r = game.tournament;
@@ -223,7 +251,7 @@ export async function saveTournamentResult() {
     if (!LOCAL_TOURNAMENT) {
         try { requireCurrentBackend(game.tournament); } catch (error) { renderTournamentControls(error.message); return; }
     }
-    if (!confirm(LOCAL_TOURNAMENT ? 'Save this match result and its scoring record in this browser? No account statistics or cloud data will be sent.' : 'Save this tournament result and the registered players’ actual dart statistics?')) return;
+    if (!await confirmCurrentMatch(LOCAL_TOURNAMENT ? 'Save this match result and its scoring record in this browser? No account statistics or cloud data will be sent.' : 'Save this tournament result and the registered players’ actual dart statistics?', { title: 'Save match result?', confirmLabel: 'Save result' })) return;
     const session = game.tournament;
     const winnerId = session.teams[session.winnerIndex].id;
     session.pendingResult ||= {

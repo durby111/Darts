@@ -4,6 +4,7 @@ import { showModal, hideModal } from './ui.js';
 import { RECORDING_GAMES, newRecordId, recordingComplete, recordingWinnerIds, scoringResult } from './scoring-records.js';
 import { isFeatureAvailable } from './feature-availability.js';
 import { BUILD_STORAGE } from './build-context.js';
+import { recordingStartProblem } from './recording-start-state.js';
 
 const HISTORY_KEY = BUILD_STORAGE.casualRecoveryPrefix + 'history';
 const ACCOUNTS_NOTICE = 'DEV uses sample Players & Records. Cloud saving is unavailable; your recorded games and results stay on this device. Use Resume to continue local scoring.';
@@ -129,11 +130,21 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
     let nextCursor = null;
     let loading = false;
     const known = new Map();
+    let start, starting = false;
+    const startProblem = () => recordingStartProblem({ loading, ownerId: verifiedOwner, profileIds: known,
+        selectedIds: selectors.map(select => select.value) });
+    const updateStart = (announce = false) => {
+        const problem = startProblem();
+        if (start) { start.disabled = starting || !!problem; start.title = problem; }
+        if (announce) status.textContent = problem || 'Ready to start. Selected profiles will be verified again before recording.';
+    };
+    selectors.forEach(select => select.addEventListener('change', () => updateStart(true)));
     const more = button('Load more verified profiles', 'casualLinkMore', () => load(true));
     more.hidden = true;
     const load = async (append = false) => {
         if (loading) return;
         loading = true;
+        updateStart();
         more.disabled = true;
         status.textContent = 'Loading verified profiles online…';
         try {
@@ -153,7 +164,10 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
         } catch (error) {
             verifiedOwner = null;
             status.textContent = `${error.message} You can retry, or play normally without recording.`;
-        } finally { loading = false; more.disabled = false; }
+        } finally {
+            loading = false; more.disabled = false; updateStart();
+            if (verifiedOwner && startProblem()) status.textContent = startProblem();
+        }
     };
     const prepared = new Promise(resolve => {
         let finished = false;
@@ -164,8 +178,12 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
             preparing = false;
             resolve(value);
         };
-        const start = button('Start recorded game', 'casualLinkStart', async () => {
-            start.disabled = true;
+        start = button('Start recorded game', 'casualLinkStart', async () => {
+            if (finished || starting) return;
+            const problem = startProblem();
+            if (problem) { status.textContent = problem; updateStart(); return; }
+            starting = true; updateStart();
+            status.textContent = 'Verifying selected profiles before starting…';
             try {
                 const { account, profiles } = await verifiedProfiles(selectors.map(s => s.value).filter(Boolean));
                 if (!verifiedOwner || account.uid !== verifiedOwner) throw new Error('Reload profiles for the current verified scorekeeper.');
@@ -189,9 +207,11 @@ export async function prepareCasualRecording(playerSeeds, teams, force = false) 
             } catch (error) {
                 status.textContent = error.message;
             } finally {
-                start.disabled = false;
+                starting = false; updateStart();
             }
         });
+        start.setAttribute('aria-describedby', 'casualLinkStatus');
+        updateStart();
         content.querySelector('#casualLinkActions').append(
             start,
             button('Reload verified profiles', 'casualLinkReload', () => load(false)),
