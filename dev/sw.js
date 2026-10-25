@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v74-core-flow-20261025';
+const CACHE_NAME = 'blakeout-dev-v75-bracket-fit-20261025';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -59,6 +59,7 @@ const ASSETS = [
     './js/brackets/engine.js',
     './js/brackets/diagram.js',
     './js/brackets/viewport.js',
+    './js/brackets/zoom-steps.js',
     './js/brackets/labels.js',
     './js/brackets/page.js',
     './js/brackets/scorer-status.js',
@@ -104,7 +105,7 @@ const ASSETS = [
 // Same-origin app code has no version query string, and ES module imports
 // (app.js -> x01.js -> ...) can't get one without rewriting every import.
 // GitHub Pages serves these with max-age, so a plain fetch can hand back a
-// stale file for minutes after a deploy — which shows up as a fresh
+// stale file for minutes after a deploy - which shows up as a fresh
 // index.html running old CSS/JS. Force a revalidation for them instead;
 // unchanged files still come back as a cheap 304.
 const REVALIDATE = /\.(?:js|css|json)$/i;
@@ -123,7 +124,7 @@ self.addEventListener('install', (event) => {
             ASSETS.map((url) => new Request(url, { cache: 'reload' }))
         ))
     );
-    // Activate immediately — don't wait for old SW to release
+    // Activate immediately - don't wait for old SW to release
     self.skipWaiting();
 });
 

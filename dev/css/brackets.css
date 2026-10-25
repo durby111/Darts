@@ -37,6 +37,10 @@
 #diagramZoomLabel { align-self: center; min-width: 5.5rem; font-variant-numeric: tabular-nums; }
 .diagram-instructions { font-size: .85rem; margin: .75rem 0; }
 .diagram-viewport { width: 100%; height: clamp(260px, 70vh, 800px); height: clamp(260px, 70dvh, 800px); overflow: auto; overscroll-behavior: contain; touch-action: none; cursor: grab; background: var(--color-bg); border: 1px solid var(--color-border-light); border-radius: var(--platform-panel-radius); padding: 0; }
+/* Fit already contains the whole canvas. Suppress overflow bars in this mode:
+   fractional CSS pixels can round clientHeight up, causing bars to toggle and
+   ResizeObserver to alternate between two fit scales (notably at 125% DPI). */
+.diagram-viewport[data-fit-mode="true"] { overflow: hidden; }
 .diagram-viewport:focus-visible { outline: 3px solid var(--platform-focus, var(--color-text)); outline-offset: 3px; }
 .diagram-viewport.is-panning, .diagram-viewport.is-panning * { cursor: grabbing; }
 .diagram-viewport .diagram-spacer { user-select: none; -webkit-user-select: none; }
