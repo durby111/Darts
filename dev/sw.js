@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v74-core-flow-20261025';
+const CACHE_NAME = 'blakeout-dev-v75-bracket-fit-20261025';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -59,6 +59,7 @@ const ASSETS = [
     './js/brackets/engine.js',
     './js/brackets/diagram.js',
     './js/brackets/viewport.js',
+    './js/brackets/zoom-steps.js',
     './js/brackets/labels.js',
     './js/brackets/page.js',
     './js/brackets/scorer-status.js',

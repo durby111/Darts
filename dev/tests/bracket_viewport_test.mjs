@@ -222,7 +222,22 @@ await test('Empty diagrams disable controls and recover on new content', ({ rend
     for (const control of Object.values(controls)) if ('disabled' in control) assert.equal(control.disabled, true);
     assert.equal(host.dataset.zoom, undefined); render(tournament); assert.equal(controls.zoomIn.disabled, false);
 });
+await test('Fit-only scrollbar mode switches off for manual zoom and clears with empty content', ({host,controller,render,tournament}) => {
+    assert.equal(host.dataset.fitMode,'true'); controller.zoomTo(.58); assert.equal(host.dataset.zoom,'0.5'); assert.equal(host.dataset.fitMode,'false');
+    controller.zoomTo('fit'); assert.equal(host.dataset.fitMode,'true'); render({...tournament,matches:[]}); assert.equal(host.dataset.fitMode,undefined);
+});
+await test('Preset animation keeps its anchor, reverses without stale frames and settles exactly', ({w,host,controller,zoom,world}) => {
+    let next=0,clock=0;const frames=new Map();let reduce=false;w.performance.now=()=>clock;
+    w.matchMedia=()=>({matches:reduce});w.requestAnimationFrame=fn=>{frames.set(++next,fn);return next;};w.cancelAnimationFrame=id=>frames.delete(id);
+    const frame=time=>{clock=time;const pending=[...frames.values()];frames.clear();pending.forEach(fn=>fn(time));};
+    controller.zoomTo(1,undefined,false);host.scrollLeft=600;host.scrollTop=800;
+    const before=world(450,300);controller.zoomTo(1.48);frame(0);frame(90);assert(zoom()>1&&zoom()<1.5);near(world(450,300).x,before.x,'animated anchor x');
+    const middle=zoom();controller.zoomTo(.76);near(zoom(),middle,'reversal starts at current scale');frame(100);assert(zoom()<middle);frame(280);assert.equal(zoom(),.75);assert.equal(frames.size,0);
+    controller.zoomTo(2);frame(300);frame(390);reduce=true;frame(400);assert.equal(zoom(),2);assert.equal(frames.size,0);
+    controller.zoomTo(.52);assert.equal(zoom(),.5);assert.equal(frames.size,0);
+});
 const css = fs.readFileSync(path.join(root, 'css/brackets.css'), 'utf8');
+assert.match(css, /\.diagram-viewport\[data-fit-mode="true"\]\s*\{\s*overflow: hidden/);
 assert.match(css, /touch-action: none/); assert.match(css, /\.diagram-spacer \{[^}]*overflow: hidden/);
 assert.match(css, /min-width: 44px; min-height: 44px/); assert.match(css, /\.diagram-viewport:focus-visible/);
 assert.ok(fs.readFileSync(path.join(root, 'sw.js'), 'utf8').includes("'./js/brackets/viewport.js'"));

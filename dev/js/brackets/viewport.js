@@ -1,3 +1,4 @@
+import { ZOOM_STEPS, nearestZoom, adjacentZoom } from './zoom-steps.js';
 // View-only interaction. The browser's scroll range keeps the bracket in bounds.
 const views = new WeakMap();
 const MAX_SCALE = 2.5, PADDING = 16, DRAG_THRESHOLD = 5;
@@ -7,7 +8,8 @@ export function diagramViewport(host) {
     let canvas, spacer, width = 0, height = 0, key;
     let scale = 1, fitMode = true, offsetX = PADDING, offsetY = PADDING;
     let controls = {}, dragging = false, suppressClickUntil = 0, savedWorld;
-    let panPosition;
+    let panPosition, animation, pinchScale;
+    let wheelTime = -Infinity, wheelDirection = 0;
     const pointers = new Map();
     const size = () => ({ width: host.clientWidth, height: host.clientHeight });
     const fitScale = () => {
@@ -33,13 +35,14 @@ export function diagramViewport(host) {
         if (controls.zoomIn) controls.zoomIn.disabled = empty || scale >= MAX_SCALE - .0001;
         if (controls.label) controls.label.textContent = empty ? 'No bracket' : `${Math.round(scale * 100)}%${fitMode ? ' · fit' : ''}`;
         if (controls.select) {
+            const displayScale = animation?.target ?? scale;
             const custom = controls.select.querySelector('[data-custom-scale]');
             if (custom) custom.remove();
-            const value = fitMode ? 'fit' : String(scale);
-            if (![...controls.select.options].some(option => Number(option.value) === scale) && !fitMode) {
+            const value = fitMode ? 'fit' : String(displayScale);
+            if (![...controls.select.options].some(option => Number(option.value) === displayScale) && !fitMode) {
                 const option = document.createElement('option');
                 option.value = value;
-                option.textContent = `${Math.round(scale * 100)}%`;
+                option.textContent = `${Math.round(displayScale * 100)}%`;
                 option.dataset.customScale = '';
                 controls.select.append(option);
             }
@@ -59,21 +62,41 @@ export function diagramViewport(host) {
         canvas.style.transform = `scale(${scale})`;
         canvas.style.setProperty('--diagram-scale', String(scale));
         host.dataset.zoom = String(scale);
+        host.dataset.fitMode = String(fitMode);
         updateControls();
     };
-    const zoomTo = (value, anchor = center()) => {
+    const cancelAnimation = () => {
+        if (animation) window.cancelAnimationFrame(animation.frame);
+        animation = null;
+    };
+    const zoomTo = (value, anchor = center(), animate = true) => {
         if (!canvas) return;
-        const world = worldPoint(anchor);
         const nextFit = value === 'fit';
         const requested = nextFit ? fitScale() : Number(value);
         if (!Number.isFinite(requested) || requested <= 0) return;
-        fitMode = nextFit;
-        scale = Math.max(minimumScale(), Math.min(MAX_SCALE, requested));
-        layout();
-        host.scrollLeft = fitMode ? 0 : world.x * scale + offsetX - anchor.x;
-        host.scrollTop = fitMode ? 0 : world.y * scale + offsetY - anchor.y;
+        const target = nextFit ? requested : nearestZoom(requested, minimumScale());
+        if (animation?.target === target && !nextFit) return;
+        const world = worldPoint(anchor), from = scale;
+        cancelAnimation(); fitMode = nextFit;
+        const apply = next => {
+            scale = next; layout();
+            host.scrollLeft = fitMode ? 0 : world.x * scale + offsetX - anchor.x;
+            host.scrollTop = fitMode ? 0 : world.y * scale + offsetY - anchor.y;
+        };
+        const smooth = animate && !nextFit && Math.abs(target-from)>.0001 &&
+            typeof window.matchMedia === 'function' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!smooth) { apply(target); return; }
+        const state = animation = { target, world, frame: 0, start: window.performance.now() };
+        const tick = time => {
+            if (animation !== state) return;
+            const progress = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : Math.min(1, (time-state.start)/180);
+            apply(from+(target-from)*(1-Math.pow(1-progress,3)));
+            if (progress < 1) state.frame = window.requestAnimationFrame(tick);
+            else { animation = null; apply(target); }
+        };
+        state.frame = window.requestAnimationFrame(tick);
     };
-    const zoomBy = (factor, anchor) => zoomTo(scale * factor, anchor);
+    const stepZoom = (direction, anchor) => zoomTo(adjacentZoom(animation?.target ?? scale, direction, minimumScale()), anchor);
     const pan = (x, y) => {
         // Retain fractional movement instead of adding to the browser's rounded
         // scroll offsets on every event. Native scrolling resets the baseline;
@@ -82,8 +105,13 @@ export function diagramViewport(host) {
         const top = panPosition?.actualY === host.scrollTop ? panPosition.y : host.scrollTop;
         const nextX = Math.max(0, Math.min(left + x, host.scrollWidth - host.clientWidth));
         const nextY = Math.max(0, Math.min(top + y, host.scrollHeight - host.clientHeight));
+        const beforeX = host.scrollLeft, beforeY = host.scrollTop;
         host.scrollLeft = nextX;
         host.scrollTop = nextY;
+        if (animation) {
+            animation.world.x += (host.scrollLeft-beforeX)/scale;
+            animation.world.y += (host.scrollTop-beforeY)/scale;
+        }
         panPosition = { x: nextX, y: nextY, actualX: host.scrollLeft, actualY: host.scrollTop };
     };
     const reveal = target => {
@@ -98,6 +126,7 @@ export function diagramViewport(host) {
     const endGesture = event => {
         if (!pointers.has(event.pointerId)) return;
         pointers.delete(event.pointerId);
+        pinchScale = null;
         if (host.hasPointerCapture?.(event.pointerId)) host.releasePointerCapture(event.pointerId);
         if (dragging) suppressClickUntil = Date.now() + 500;
         if (!pointers.size) {
@@ -111,7 +140,7 @@ export function diagramViewport(host) {
     };
     host.addEventListener('pointerdown', event => {
         if (!canvas || (event.pointerType !== 'touch' && event.button !== 0)) return;
-        if (!pointers.size) panPosition = null;
+        if (!pointers.size) { panPosition = null; pinchScale = null; }
         const position = point(event);
         pointers.set(event.pointerId, { ...position, startX: position.x, startY: position.y });
         if (pointers.size > 1) {
@@ -130,7 +159,10 @@ export function diagramViewport(host) {
             const midpoint = points => ({ x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 });
             const distance = points => Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
             const oldCenter = midpoint(before), newCenter = midpoint(after), oldDistance = distance(before);
-            if (oldDistance > 0) zoomBy(distance(after) / oldDistance, oldCenter);
+            if (oldDistance > 0) {
+                pinchScale = (pinchScale ?? animation?.target ?? scale) * distance(after) / oldDistance;
+                zoomTo(pinchScale, oldCenter);
+            }
             pan(oldCenter.x - newCenter.x, oldCenter.y - newCenter.y);
         } else {
             if (!dragging && Math.hypot(position.x - previous.startX, position.y - previous.startY) < DRAG_THRESHOLD) return;
@@ -150,8 +182,8 @@ export function diagramViewport(host) {
         // The child's bubbled loss is not loss of the host's active gesture.
         if (event.target === host) endGesture(event);
     });
-    window.addEventListener('blur', cancelGesture);
-    window.addEventListener('pagehide', cancelGesture);
+    window.addEventListener('blur', () => { if (animation) zoomTo(animation.target, center(), false); cancelGesture(); });
+    window.addEventListener('pagehide', () => { cancelAnimation(); cancelGesture(); });
     host.addEventListener('dragstart', event => event.preventDefault());
     host.addEventListener('click', event => {
         if (dragging || (event.detail !== 0 && Date.now() < suppressClickUntil)) {
@@ -164,12 +196,17 @@ export function diagramViewport(host) {
         if (!canvas || (!event.ctrlKey && !event.metaKey)) return;
         event.preventDefault();
         const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? host.clientHeight : 1);
-        zoomBy(Math.exp(-Math.max(-100, Math.min(100, delta)) * .01), point(event));
+        const direction = delta < 0 ? 1 : delta > 0 ? -1 : 0;
+        if (!direction) return;
+        const now = Date.now();
+        if (direction === wheelDirection && now-wheelTime < 80) return;
+        wheelTime = now; wheelDirection = direction;
+        stepZoom(direction, point(event));
     }, { passive: false });
     host.addEventListener('keydown', event => {
         if (event.target !== host || event.altKey || event.ctrlKey || event.metaKey) return;
         const actions = {
-            '+': () => zoomBy(1.25), '=': () => zoomBy(1.25), '-': () => zoomBy(.8),
+            '+': () => stepZoom(1), '=': () => stepZoom(1), '-': () => stepZoom(-1),
             '0': () => zoomTo('fit'), '1': () => zoomTo(1),
             ArrowLeft: () => pan(-80, 0), ArrowRight: () => pan(80, 0),
             ArrowUp: () => pan(0, -80), ArrowDown: () => pan(0, 80),
@@ -189,9 +226,17 @@ export function diagramViewport(host) {
     const api = {
         configure(next) {
             controls = next;
+            if (controls.select) {
+                controls.select.replaceChildren();
+                for (const value of ['fit', ...ZOOM_STEPS]) {
+                    const option = document.createElement('option'); option.value = String(value);
+                    option.textContent = value === 'fit' ? 'Fit entire bracket' : `${Math.round(value*100)}%${value===1?' · readable':''}`;
+                    controls.select.append(option);
+                }
+            }
             controls.select?.addEventListener('change', () => zoomTo(controls.select.value));
-            controls.zoomOut?.addEventListener('click', () => zoomBy(.8));
-            controls.zoomIn?.addEventListener('click', () => zoomBy(1.25));
+            controls.zoomOut?.addEventListener('click', () => stepZoom(-1));
+            controls.zoomIn?.addEventListener('click', () => stepZoom(1));
             controls.fit?.addEventListener('click', () => zoomTo('fit'));
             controls.reset?.addEventListener('click', () => zoomTo(1));
             controls.left?.addEventListener('click', () => pan(-host.clientWidth * .7, 0));
@@ -202,6 +247,8 @@ export function diagramViewport(host) {
         setContent(nextCanvas, nextSpacer, dimensions, nextKey, requestedScale) {
             const anchor = center(), world = savedWorld || worldPoint(anchor), changed = key !== nextKey;
             savedWorld = null;
+            const settledTarget = animation?.target; cancelAnimation();
+            if (settledTarget !== undefined) scale = settledTarget;
             if (changed) cancelGesture();
             canvas = nextCanvas; spacer = nextSpacer;
             width = dimensions.width; height = dimensions.height; key = nextKey;
@@ -210,14 +257,14 @@ export function diagramViewport(host) {
                 fitMode = requestedScale === 'fit';
                 if (!fitMode && Number.isFinite(Number(requestedScale))) scale = Number(requestedScale);
             }
-            scale = fitMode ? fitScale() : Math.max(minimumScale(), Math.min(MAX_SCALE, scale));
+            scale = fitMode ? fitScale() : nearestZoom(scale, minimumScale());
             layout();
             host.scrollLeft = fitMode ? 0 : world.x * scale + offsetX - anchor.x;
             host.scrollTop = fitMode ? 0 : world.y * scale + offsetY - anchor.y;
         },
         clear() {
-            cancelGesture(); savedWorld = null; canvas = null; spacer = null; width = height = 0;
-            host.removeAttribute('data-zoom'); updateControls();
+            cancelAnimation(); cancelGesture(); savedWorld = null; canvas = null; spacer = null; width = height = 0;
+            host.removeAttribute('data-zoom'); host.removeAttribute('data-fit-mode'); updateControls();
         },
         zoomTo, reveal,
     };
