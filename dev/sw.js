@@ -105,7 +105,7 @@ const ASSETS = [
 // Same-origin app code has no version query string, and ES module imports
 // (app.js -> x01.js -> ...) can't get one without rewriting every import.
 // GitHub Pages serves these with max-age, so a plain fetch can hand back a
-// stale file for minutes after a deploy - which shows up as a fresh
+// stale file for minutes after a deploy — which shows up as a fresh
 // index.html running old CSS/JS. Force a revalidation for them instead;
 // unchanged files still come back as a cheap 304.
 const REVALIDATE = /\.(?:js|css|json)$/i;
@@ -124,7 +124,7 @@ self.addEventListener('install', (event) => {
             ASSETS.map((url) => new Request(url, { cache: 'reload' }))
         ))
     );
-    // Activate immediately - don't wait for old SW to release
+    // Activate immediately — don't wait for old SW to release
     self.skipWaiting();
 });
 

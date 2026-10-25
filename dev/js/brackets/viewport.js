@@ -33,7 +33,7 @@ export function diagramViewport(host) {
         for (const control of Object.values(controls)) if (control && 'disabled' in control) control.disabled = empty;
         if (controls.zoomOut) controls.zoomOut.disabled = empty || scale <= minimumScale() + .0001;
         if (controls.zoomIn) controls.zoomIn.disabled = empty || scale >= MAX_SCALE - .0001;
-        if (controls.label) controls.label.textContent = empty ? 'No bracket' : `${Math.round(scale * 100)}%${fitMode ? ' � fit' : ''}`;
+        if (controls.label) controls.label.textContent = empty ? 'No bracket' : `${Math.round(scale * 100)}%${fitMode ? ' · fit' : ''}`;
         if (controls.select) {
             const displayScale = animation?.target ?? scale;
             const custom = controls.select.querySelector('[data-custom-scale]');
@@ -230,7 +230,7 @@ export function diagramViewport(host) {
                 controls.select.replaceChildren();
                 for (const value of ['fit', ...ZOOM_STEPS]) {
                     const option = document.createElement('option'); option.value = String(value);
-                    option.textContent = value === 'fit' ? 'Fit entire bracket' : `${Math.round(value*100)}%${value===1?' � readable':''}`;
+                    option.textContent = value === 'fit' ? 'Fit entire bracket' : `${Math.round(value*100)}%${value===1?' · readable':''}`;
                     controls.select.append(option);
                 }
             }
