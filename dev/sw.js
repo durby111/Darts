@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v73-frontend-history-20261019';
+const CACHE_NAME = 'blakeout-dev-v74-core-flow-20261025';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -63,6 +63,8 @@ const ASSETS = [
     './js/brackets/page.js',
     './js/brackets/scorer-status.js',
     './js/tournament-bridge.js',
+    './js/confirm-action.js',
+    './js/recording-start-state.js',
     './js/casual-recording.js',
     './js/scoring-records.js',
     './js/teams.js',
