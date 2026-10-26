@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v75-bracket-fit-20261025';
+const CACHE_NAME = 'blakeout-dev-v77-shared-player-20261026';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -41,6 +41,10 @@ const ASSETS = [
     './local/brackets.js',
     './local/platform.js',
     './js/platform-nav.js',
+    './js/home-account.js',
+    './js/shared-player-auth.js',
+    './js/shared-player-dialog.js',
+    './js/shared-player-list.js',
     './js/feature-availability.js',
     './js/score-appearance.js',
     './js/feature-appearance.js',

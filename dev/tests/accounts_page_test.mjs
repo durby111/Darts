@@ -305,4 +305,52 @@ await test('partial history stays visible and exports explicit availability; nex
     assert.equal(next.playerId,'b');assert.equal(next.historyComplete,true);assert.deepEqual(next.unavailableSources,[]);
 });
 
+await test('remember choice is explicit for sign-in and registration', async () => {
+    for (const create of [false, true]) for (const remember of [false, true]) {
+        const h = await harness(null);
+        h.node('accountEmail').value = 'synthetic@example.invalid';
+        h.node('accountPassword').value = 'SyntheticSecret1!';
+        h.node('rememberAccount').checked = remember;
+        let choice;
+        h.hooks[create ? 'registerAccount' : 'signInAccount'] = async (email, password, options) => { choice = options.remember; };
+        await h.ui.passwordAuth(create);
+        assert.equal(choice, remember);
+        assert.equal(h.node('accountPassword').value, '');
+    }
+});
+
+await test('sign-out clears rendered private data and blocks late records/export', async () => {
+    const h = await harness(), delayed = deferred();
+    h.hooks.listMyResults = async () => [record('private-before-signout')];
+    await h.ui.refreshRecords();
+    assert.match(h.records(), /private-before-signout/);
+    h.hooks.listMyResults = () => delayed.promise;
+    const pending = h.ui.refreshRecords();
+    h.hooks.signOutAccount = async () => h.change(null);
+    await h.node('signOut').click();
+    delayed.resolve([record('private-late')]); await pending;
+    assert.equal(h.node('identity').textContent, '');
+    assert.equal(h.node('displayName').value, '');
+    assert.equal(h.node('accountPassword').value, '');
+    assert.equal(h.node('recordsPanel').hidden, true);
+    assert.equal(h.records(), '');
+    h.node('exportRecords').click(); assert.equal(h.state.exportBlob, null);
+});
+
+await test('Back-cache lifecycle clears old private UI and rereads the current account', async () => {
+    const h = await harness();
+    h.hooks.listMyResults = async () => [record('private-cached')];
+    await h.ui.refreshRecords(); assert.match(h.records(), /private-cached/);
+    assert.equal(typeof h.windowListeners.pagehide, 'function');
+    await h.windowListeners.pagehide({persisted:true});
+    assert.equal(h.records(), ''); assert.equal(h.node('identity').textContent, '');
+    h.state.user = null; // Another tab signs out while this document is frozen.
+    await h.windowListeners.pageshow({persisted:true});
+    assert.equal(h.node('signInPanel').hidden, false); assert.equal(h.records(), '');
+    h.state.user = user('new-owner'); h.hooks.listMyResults = async () => [record('new-private')];
+    await h.windowListeners.pageshow({persisted:true});
+    assert.match(h.node('identity').textContent, /new-owner/); assert.match(h.records(), /new-private/);
+    assert.doesNotMatch(h.records(), /private-cached/);
+});
+
 console.log(`\n${passed}/${passed} account UI ownership groups passed. DOM/provider fixtures are not browser or live-email proof.`);
