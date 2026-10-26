@@ -49,7 +49,7 @@ export async function initPlatform() {
             authSDK = authentication;
             storeSDK = firestore;
             auth = authentication.getAuth(app);
-            await authentication.setPersistence(auth, authentication.browserLocalPersistence);
+            // Restore the existing Firebase session without promoting tab-only sessions to persistent ones.
             db = firestore.getFirestore(app);
             await new Promise((resolve, reject) => {
                 authentication.onAuthStateChanged(auth, user => {
@@ -118,9 +118,16 @@ export function validateSignupPassword(password) {
     }
 }
 
-export async function registerAccount(email, password) {
+async function signInPersistence(options) {
+    // Older callers retain their behavior; the Accounts UI always supplies an explicit choice.
+    if (typeof options?.remember !== 'boolean') return;
+    await authSDK.setPersistence(auth, options.remember ? authSDK.browserLocalPersistence : authSDK.browserSessionPersistence);
+}
+
+export async function registerAccount(email, password, options) {
     validateSignupPassword(password);
     await initPlatform();
+    await signInPersistence(options);
     const credential = await authSDK.createUserWithEmailAndPassword(auth, accountEmail(email), password);
     requireAccountSession(credential.user);
     publishAccount(credential.user);
@@ -128,9 +135,10 @@ export async function registerAccount(email, password) {
     return credential.user;
 }
 
-export async function signInAccount(email, password) {
+export async function signInAccount(email, password, options) {
     await initPlatform();
     if (typeof password !== 'string' || !password) throw new Error('Enter your password.');
+    await signInPersistence(options);
     const credential = await authSDK.signInWithEmailAndPassword(auth, accountEmail(email), password);
     requireAccountSession(credential.user);
     publishAccount(credential.user);
@@ -191,7 +199,7 @@ function providerCredential(credential, name) {
     return credential.user;
 }
 
-export async function signInAccountProvider(name, mode = 'popup') {
+export async function signInAccountProvider(name, mode = 'popup', options) {
     if (providerBusy) throw oauthError('auth/provider-busy');
     providerBusy = true;
     try {
@@ -199,6 +207,7 @@ export async function signInAccountProvider(name, mode = 'popup') {
         if (mode !== 'popup' && mode !== 'redirect') throw oauthError('auth/redirect-unavailable');
         const provider = configuredProvider(name, mode === 'redirect');
         if (getAccount()) throw oauthError('auth/provider-account-present');
+        await signInPersistence(options);
         if (mode === 'popup') return providerCredential(await authSDK.signInWithPopup(auth, provider), name);
         try {
             sessionStorage.setItem(PROVIDER_RETURN_KEY, JSON.stringify({ provider: name, project: ACCOUNT_PROVIDER_PROJECT, startedAt: Date.now() }));

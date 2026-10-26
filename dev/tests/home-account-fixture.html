@@ -1,0 +1,9 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="connect-src 'none'; script-src 'self'; img-src 'self' data:">
+<title>Isolated home account controls</title>
+<link rel="stylesheet" href="../css/variables.css"><link rel="stylesheet" href="../css/setup.css"><link rel="stylesheet" href="../css/platform-nav.css">
+<h1>Home account controls — synthetic test</h1><p>No Firebase connection or saved game data. Player authentication is simulated. Use synthetic@example.invalid and any dummy password; never enter real credentials in this fixture.</p>
+<header class="setup-header"><div class="setup-header-text"><h2>BlakeOut</h2></div><div class="setup-header-side"><a id="homeAccountLink" class="home-account-link" href="../accounts/">Login</a><button>Customize</button></div></header>
+<p><button id="guest">Simulate guest</button> <button id="unverified">Simulate unverified</button> <button id="verified">Simulate verified</button></p>
+<label><input id="recordCasualStats" type="checkbox">Record verified player stats</label>
+<script type="module" src="./home-account-fixture.mjs"></script>

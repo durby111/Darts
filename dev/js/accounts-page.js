@@ -194,10 +194,10 @@ async function passwordAuth(create) {
     if (!operation) return;
     try {
         if (create) {
-            await registerAccount(email, $('accountPassword').value);
+            await registerAccount(email, $('accountPassword').value, { remember: $('rememberAccount').checked === true });
             if (isCurrentOperation(operation)) status('Account created. Check your verification email, then return here. Private features remain locked until verification.');
         } else {
-            await signInAccount(email, $('accountPassword').value);
+            await signInAccount(email, $('accountPassword').value, { remember: $('rememberAccount').checked === true });
         }
     } catch (error) { if (isCurrentOperation(operation)) showError(error); }
     finally {
@@ -229,7 +229,7 @@ async function providerAuth(name, mode = 'popup') {
     $('providerRedirect').hidden = true;
     try {
         status(mode === 'redirect' ? 'Opening provider sign-in in this tab…' : 'Complete sign-in in the provider window.');
-        await signInAccountProvider(name, mode);
+        await signInAccountProvider(name, mode, { remember: $('rememberAccount').checked === true });
     } catch (error) {
         if (isCurrentOperation(operation)) {
             const canceled = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request'].includes(error.code);
@@ -280,6 +280,10 @@ $('sendVerification').addEventListener('click', () => action($('sendVerification
 }));
 $('refreshVerification').addEventListener('click', () => action($('refreshVerification'), refreshAccount));
 window.addEventListener('focus', refreshVerificationOnReturn);
+// A frozen Back-cache document must not retain another account's private UI.
+// Only presentation is cleared; Firebase persistence and saved games are untouched.
+window.addEventListener('pagehide', () => renderAccount(null));
+window.addEventListener('pageshow', () => renderAccount(getAccount()));
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') refreshVerificationOnReturn();
 });
