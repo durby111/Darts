@@ -225,7 +225,7 @@
             <datalist id="rosterDatalist"></datalist>
 
             <section class="setup-section setup-panel" id="playersSection">
-                <div class="setup-section-label">Players</div>
+                <div class="setup-section-label">Players</div><p>BotBlake: X01, Cricket, Spanish, and Cutthroat, including teams. Auto lets a human start and follows the running human average. Bot matches are local practice.</p>
                 <div class="form-group" id="numPlayersGroup">
                     <label for="numPlayers">Players at the board</label>
                     <select id="numPlayers">
@@ -250,6 +250,7 @@
 
                 <div class="player-order-list" id="playerOrderList">
                 <div class="player-row" id="player1Group" data-player-index="0">
+                    <label class="bot-skill-label">Skill level<select id="player1Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
                     <button type="button" class="player-order-drag" data-player-drag-index="0" aria-label="Drag first player">☰</button>
                     <label for="player1" data-player-order-label>Throws 1st</label>
                     <input type="text" id="player1" value="Home" list="rosterDatalist" autocomplete="off">
@@ -259,6 +260,7 @@
                     </span>
                 </div>
                 <div class="player-row" id="player2Group" data-player-index="1">
+                    <label class="bot-skill-label">Skill level<select id="player2Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
                     <button type="button" class="player-order-drag" data-player-drag-index="1" aria-label="Drag second player">☰</button>
                     <label for="player2" data-player-order-label>Throws 2nd</label>
                     <input type="text" id="player2" value="Away" list="rosterDatalist" autocomplete="off">
@@ -268,6 +270,7 @@
                     </span>
                 </div>
                 <div class="player-row hidden" id="player3Group" data-player-index="2">
+                    <label class="bot-skill-label">Skill level<select id="player3Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
                     <button type="button" class="player-order-drag" data-player-drag-index="2" aria-label="Drag third player">☰</button>
                     <label for="player3" data-player-order-label>Throws 3rd</label>
                     <input type="text" id="player3" value="Player 3" list="rosterDatalist" autocomplete="off">
@@ -277,6 +280,7 @@
                     </span>
                 </div>
                 <div class="player-row hidden" id="player4Group" data-player-index="3">
+                    <label class="bot-skill-label">Skill level<select id="player4Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
                     <button type="button" class="player-order-drag" data-player-drag-index="3" aria-label="Drag fourth player">☰</button>
                     <label for="player4" data-player-order-label>Throws 4th</label>
                     <input type="text" id="player4" value="Player 4" list="rosterDatalist" autocomplete="off">
@@ -372,7 +376,7 @@
                 <div class="team-section-label">Available Players</div>
                 <div class="team-tray" id="teamTray"></div>
                 <div class="team-add-row">
-                    <input type="text" id="teamAddName" placeholder="Add ad-hoc player" list="rosterDatalist" autocomplete="off">
+                    <label>Bot skill level<select id="teamBotSkill"><option value="auto">Auto</option><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="expert">Expert</option></select></label><button class="btn btn--md btn--neutral" id="teamAddBotBtn">Add BotBlake</button><input type="text" id="teamAddName" placeholder="Add ad-hoc player" list="rosterDatalist" autocomplete="off">
                     <button class="btn btn--md btn--primary" id="teamAddBtn">Add</button>
                 </div>
             </div>

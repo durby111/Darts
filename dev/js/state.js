@@ -436,8 +436,8 @@ export function saveActiveGame() {
         x01Input: game.x01Input ? deepClone(game.x01Input) : null,
         minnesotaPlaces: game.minnesotaPlaces ? deepClone(game.minnesotaPlaces) : null,
         minnesotaInput: game.minnesotaInput ? deepClone(game.minnesotaInput) : null,
-        undoHistory: (recordingSession() || game.minnesotaPlaces) ? game.undoHistory : [],
-        redoHistory: (recordingSession() || game.minnesotaPlaces) ? game.redoHistory : [],
+        undoHistory: (recordingSession() || game.minnesotaPlaces || (game.players.some(p => p.bot) || game.teams?.some(t => t.members.some(m => m.bot)))) ? game.undoHistory : [],
+        redoHistory: (recordingSession() || game.minnesotaPlaces || (game.players.some(p => p.bot) || game.teams?.some(t => t.members.some(m => m.bot)))) ? game.redoHistory : [],
         timestamp: Date.now()
     };
     try {
@@ -579,6 +579,7 @@ export function saveConfigs(configs) {
 
 export function getCurrentConfig() {
     return {
+        playerSkills: [1,2,3,4].map(i => document.getElementById(`player${i}Skill`)?.value || 'off'),
         gameType: document.getElementById('gameType').value,
         finishType: document.getElementById('finishType').value,
         numPlayers: document.getElementById('numPlayers').value,
@@ -602,6 +603,7 @@ export function getCurrentConfig() {
 }
 
 export function applyConfig(config) {
+    [1,2,3,4].forEach(i => { const el = document.getElementById(`player${i}Skill`); if (el) el.value = config.playerSkills?.[i-1] || 'off'; });
     document.getElementById('gameType').value = config.gameType || '501';
     document.getElementById('finishType').value = config.finishType || 'double-out';
     document.getElementById('numPlayers').value = config.numPlayers || '2';

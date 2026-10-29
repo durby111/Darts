@@ -14,9 +14,11 @@
 
 import { game } from './state.js';
 import { getRosterCache, findPlayerByName } from './firebase.js';
+import { supportsBot } from './botblake-engine.js';
 import { getGame } from './registry.js';
 
-const STORAGE_KEY = 'blakeout_last_team_setup';
+const STORAGE_KEY = 'blakeout_dev_last_team_setup';
+const LEGACY_STORAGE_KEY = 'blakeout_last_team_setup';
 
 let onTeamsConfirmed = null;
 let trayPeople = [];        // chips not yet assigned: [{name, rosterEmail, id}]
@@ -87,6 +89,7 @@ function memberChipHtml(p, order, zoneIdx, isFirst, isLast) {
             <span class="team-zone-member-name">
                 <span class="team-chip-order">${order + 1}.</span>${escapeHtml(p.name)}
             </span>
+            ${p.bot ? `<label>Skill level<select data-bot-skill="${p.id}">${['auto','easy','medium','hard','expert'].map(skill => `<option value="${skill}" ${p.bot.skill === skill ? 'selected' : ''}>${skill}</option>`).join('')}</select></label>` : ''}
             <button class="team-zone-member-swap-btn" data-member-action="swap" data-member-id="${p.id}" data-zone-idx="${zoneIdx}">⇄</button>
             <span class="team-zone-member-order-btns">
                 <button data-member-action="up" data-member-id="${p.id}" data-zone-idx="${zoneIdx}"${isFirst ? ' disabled' : ''}>▲</button>
@@ -401,14 +404,14 @@ function randomizeTeamOrder() {
 // --- Persistence ---
 
 function hasSavedSetup() {
-    try { return !!localStorage.getItem(STORAGE_KEY); } catch { return false; }
+    try { return !!(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY)); } catch { return false; }
 }
 
 function saveSetup() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
             teams: teamMembers.map(zone => zone.map(p => ({
-                name: p.name, rosterEmail: p.rosterEmail || null
+                name: p.name, rosterEmail: p.rosterEmail || null, bot: p.bot, id: p.id
             }))),
             firstTeam
         }));
@@ -417,15 +420,16 @@ function saveSetup() {
 
 function loadSavedSetup() {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
         if (!raw) return;
         const saved = JSON.parse(raw);
         if (!saved || !Array.isArray(saved.teams) || saved.teams.length !== 2) return;
-        // Re-hydrate with fresh ids, push everything to zones (NOT tray).
+        // Preserve valid instance IDs; older setups receive new IDs.
         teamMembers = saved.teams.map(zone => zone.map(p => ({
             name: p.name,
             rosterEmail: p.rosterEmail || null,
-            id: makeId()
+            id: /^[a-zA-Z0-9-]{1,64}$/.test(p.id || '') ? p.id : makeId(),
+            ...(p.bot ? { bot: { skill: p.bot.skill } } : {})
         })));
         // Remove from tray any roster entries that are now in zones (by name).
         const inZone = new Set();
@@ -459,13 +463,25 @@ function confirmTeams() {
 }
 
 function stripId(p) {
-    return { id: p.id || null, playerId: p.playerId || null, name: p.name, rosterEmail: p.rosterEmail || null };
+    return { id: p.id || null, playerId: p.playerId || null, name: p.name, rosterEmail: p.rosterEmail || null, ...(p.bot ? { bot: { skill: p.bot.skill } } : {}) };
 }
 
 export function initTeamBuilder() {
     if (controlsInitialized) return;
     controlsInitialized = true;
 
+    document.getElementById('teamAddBotBtn')?.addEventListener('click', () => {
+        if (!supportsBot(document.getElementById('gameType').value)) { alert('BotBlake supports X01, Cricket, Spanish, and Cutthroat.'); return; }
+        const people = [...trayPeople, ...teamMembers.flat()];
+        let number = 1; while (people.some(p => p.name === `BotBlake ${number}`)) number++;
+        trayPeople.push({ id: makeId(), name: `BotBlake ${number}`, rosterEmail: null, bot: { skill: document.getElementById('teamBotSkill').value } });
+        render();
+    });
+    document.getElementById('teamBuilderScreen')?.addEventListener('change', e => {
+        const id = e.target.dataset.botSkill;
+        const member = teamMembers.flat().find(p => p.id === id);
+        if (member?.bot) member.bot.skill = e.target.value;
+    });
     const tray = document.getElementById('teamTray');
     if (tray) {
         tray.addEventListener('pointerdown', (e) => {
@@ -480,6 +496,7 @@ export function initTeamBuilder() {
         const zone = document.getElementById(`teamZone${idx}`);
         if (!zone) return;
         zone.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('[data-bot-skill]')) return;
             // Reorder / swap buttons handled first — they shouldn't start a drag.
             const action = e.target.closest('[data-member-action]');
             if (action) {
