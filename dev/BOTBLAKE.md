@@ -51,6 +51,7 @@ node dev/tests/botblake_test.mjs
 python3 dev/tests/botblake_ui_test.py
 python3 dev/tests/botblake_edges_test.py
 python3 dev/tests/botblake_team_mix_test.py
+python3 dev/tests/botblake_review_test.py
 node --experimental-vm-modules dev/tests/production_release_test.mjs
 ```
 
@@ -73,3 +74,25 @@ an isolated virtual environment, that check passed (57/57 combined). Source/DOM
 suites: 34/35 passed, with only the baseline appearance assertion failing. The
 production artifact test now pins released scorer files rather than requiring
 DEV/production equality for modules that deliberately gained BotBlake.
+
+## Follow-up local review
+
+The October 29 review reproduced and corrected bot moves behind Visual Settings,
+keyboard input being blocked while building a new team over an old bot turn, and
+Tab focus being trapped by the scoring guard. All visible app dialogs and setup
+screens now suspend automation; pointer/click scoring guards still prevent manual
+bot moves, including keyboard button activation, without intercepting typing or
+Tab navigation.
+
+Three-side Cutthroat planning now targets a lower-scoring opponent who can
+actually receive the penalty. It projects scores between darts and returns to
+closing targets after catching up, avoiding repeated scoring against an opponent
+who is already behind. Planning never mutates the real scorer state.
+
+The review suite covers every supported mode, Auto individual ordering and saved
+skills, team human-average undo/redo/reload, the Cutthroat fixture through the real
+scorer, and both navigation regressions plus keyboard focus. Original BotBlake
+browser suites, deterministic simulations, the offline module graph and the
+production isolation audit were rerun successfully. Before/after evidence for
+this review is in `/workspace/scratch/botblake-review-20261029/`. Physical-device,
+Safari, backend and deployment limits above still apply.

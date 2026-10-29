@@ -17,16 +17,20 @@ export function initBotBlake() {
     resume.addEventListener('click', () => { paused = false; key = ''; });
     document.addEventListener('botMatchStarted', () => { paused = false; key = ''; });
     document.addEventListener('scorerRestored', () => { paused = !!activeBot(game); key = ''; });
-    const visible = id => { const el = document.getElementById(id); return el && getComputedStyle(el).display !== 'none'; };
-    const eligible = () => !document.hidden && hasBots(game) && supportsBot(game.type) && !game.recording && !game.tournament && activeBot(game) && visible('gameScreen') && !['setupScreen','teamBuilderScreen','winnerModal','gameMenuModal'].some(visible) && !game.players.some(p => SUPPORTED_CRICKET.includes(game.type) ? game.cricketTargets.every(t => p.cricketData[t].closed) && (!game.cricketPoints || game.players.every(q => game.type === 'cutthroat' ? p.score <= q.score : p.score >= q.score)) : p.score === 0);
+    const isVisible = el => el && getComputedStyle(el).display !== 'none';
+    const visible = id => isVisible(document.getElementById(id));
+    const overlayVisible = () => visible('setupScreen') || visible('teamBuilderScreen') ||
+        Array.from(document.querySelectorAll('.modal, dialog[open]')).some(isVisible);
+    const eligible = () => !document.hidden && hasBots(game) && supportsBot(game.type) && !game.recording && !game.tournament && activeBot(game) && visible('gameScreen') && !overlayVisible() && !game.players.some(p => SUPPORTED_CRICKET.includes(game.type) ? game.cricketTargets.every(t => p.cricketData[t].closed) && (!game.cricketPoints || game.players.every(q => game.type === 'cutthroat' ? p.score <= q.score : p.score >= q.score)) : p.score === 0);
     // Prevent manual scoring while the bot owns the board; keep menu/undo usable.
     const guard = e => {
-        if (!hasBots(game) || !activeBot(game) || !visible('gameScreen') || visible('setupScreen')) return;
+        if (!hasBots(game) || !activeBot(game) || !visible('gameScreen') || overlayVisible()) return;
         const target = e.target;
         if (target.closest('#botStatus, [id*="undo" i], [id*="redo" i], #menuBtn, #gameMenuModal, #winnerModal')) return;
-        if (e.type === 'keydown' || target.closest('#x01Controls, #cricketControls, #cricketMain, #scoreHeader')) { e.preventDefault(); e.stopImmediatePropagation(); }
+        if (target.closest('#x01Controls, #cricketControls, #cricketMain, #scoreHeader')) { e.preventDefault(); e.stopImmediatePropagation(); }
     };
-    ['pointerdown','click','keydown'].forEach(type=>document.addEventListener(type,guard,true));
+    // Keyboard activation produces click; do not trap Tab or typing elsewhere.
+    ['pointerdown','click'].forEach(type=>document.addEventListener(type,guard,true));
     setInterval(() => {
         if (game.players !== lastPlayers) { lastPlayers = game.players; key = ''; }
         const ready = eligible();

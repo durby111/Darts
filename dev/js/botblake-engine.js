@@ -64,16 +64,29 @@ export function cricketTurn(state, rng = Math.random, bot = activeBot(state)) {
     const player = state.players[state.currentPlayer];
     const marks = Object.fromEntries(state.cricketTargets.map(t=>[t,player.cricketData[t].marks]));
     const skill = strength(state,bot), darts=[];
-    const opponents = state.players.filter(p=>p!==player);
-    const behind = state.cricketPoints && (state.type==='cutthroat' ? opponents.some(p=>p.score<player.score) : opponents.some(p=>p.score>player.score));
+    // Planning uses projected scores, leaving actual scoring to cricket.js.
+    const opponents = state.players.filter(p=>p!==player).map(p=>({ score:p.score, cricketData:p.cricketData }));
+    let projectedScore = player.score;
+    const cutthroat = state.type === 'cutthroat';
     for(let i=0;i<3;i++) {
-        const scoring = state.cricketTargets.find(t=>marks[t]>=3 && opponents.some(p=>!p.cricketData[t].closed));
+        const behind = state.cricketPoints && opponents.some(p=>cutthroat ? p.score<projectedScore : p.score>projectedScore);
+        const scoring = state.cricketTargets.find(t=>marks[t]>=3 && opponents.some(p=>
+            !p.cricketData[t].closed && (!cutthroat || !behind || p.score<projectedScore)));
         const target = (behind && scoring) || state.cricketTargets.find(t=>marks[t]<3) || scoring;
         if (!target) break;
         const d=throwDart({n:target==='Bull'?25:Number(target),m:target==='Bull'?2:3},skill,rng);
         const landed = d.n === 25 ? 'Bull' : String(d.n);
         darts.push({target:state.cricketTargets.includes(landed)?landed:'MISS',multiplier:d.m});
-        if(state.cricketTargets.includes(landed)) marks[landed]+=d.m;
+        if(state.cricketTargets.includes(landed)) {
+            const before = marks[landed];
+            marks[landed] += d.m;
+            const excess = Math.max(0,marks[landed]-3)-Math.max(0,before-3);
+            if (state.cricketPoints && excess) {
+                const points = excess * d.n;
+                if (cutthroat) opponents.forEach(p=>{ if (!p.cricketData[landed].closed) p.score+=points; });
+                else if (opponents.some(p=>!p.cricketData[landed].closed)) projectedScore+=points;
+            }
+        }
     }
     return darts;
 }
