@@ -1,3 +1,4 @@
+import { initBotBlake } from './botblake.js';
 /* ============================================
    App Entry Point
    Screen routing, display dispatcher, PWA
@@ -390,6 +391,7 @@ function safeInit(name, fn) {
 
 document.addEventListener('DOMContentLoaded', () => {
     safeInit('setup', initSetupControls);
+    safeInit('botBlake', initBotBlake);
     safeInit('teams', initTeamBuilder);
     safeInit('cricket', initCricketControls);
     safeInit('x01', initX01Controls);

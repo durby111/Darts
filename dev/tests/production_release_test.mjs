@@ -31,7 +31,9 @@ for(const feature of ['accounts','brackets']){
  assert.ok(!/href="(?!\.\.\/|\.\.\/css\/)[^\"]+"/.test(page));
 }
 pass('production identity retained; both direct feature routes are static disabled shells without account apps');
-for(const rel of ['js/state.js','js/app.js','js/scoring-records.js'])assert.equal(read(rel),read('dev/'+rel),rel);
+// BotBlake is DEV-only; pin released scorer source instead of requiring DEV parity.
+for(const rel of ['js/state.js','js/app.js','js/setup.js','js/teams.js','js/x01.js','js/cricket.js']) assert.equal(read(rel),execFileSync('git',['show','e2a5a48:'+rel],{cwd:root,encoding:'utf8'}),rel);
+assert.equal(read('js/scoring-records.js'),read('dev/js/scoring-records.js'));
 // The isolated DEV backend now adds origin guards to its casual-recording path.
 // Production must remain exactly the approved baseline, not acquire DEV transport.
 assert.equal(read('js/casual-recording.js'),execFileSync('git',['show','bed1772:js/casual-recording.js'],{cwd:root,encoding:'utf8'}));
@@ -42,7 +44,7 @@ assert.ok(!fs.existsSync(path.join(root,'js/platform.js')));assert.ok(!fs.exists
 for (const file of ['js/build-context.js','js/tournament-bridge.js','js/firebase.js']) {
  assert.equal(read(file),execFileSync('git',['show','8a1d7d7:'+file],{cwd:root,encoding:'utf8'}),file);
 }
-pass('shared scorer modules match; intentionally divergent DEV tournament modules leave released production unchanged; account transport not promoted');
+pass('released scorer modules preserved; intentionally divergent DEV tournament modules leave released production unchanged; account transport not promoted');
 for(const build of ['','dev/']){
  const href='https://example.test/'+build+'sw.js';const ctx=vm.createContext({URL,self:{location:{href,origin:'https://example.test'},addEventListener(){}}});
  vm.runInContext(read(build+'sw.js')+'\nthis.audit={CACHE_NAME,ASSETS,isOwnCache,isOwnPath};',ctx);const a=ctx.audit;

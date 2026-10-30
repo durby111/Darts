@@ -47,3 +47,9 @@ Earlier cache versions, temporary browser blockers and unpublished statuses are
 preserved in [readiness history](FEATURE_READINESS_HISTORY.md) and
 [development notes](DEV_NOTES.md). They describe their dated milestones, not the
 current status above. [Backlog](BACKLOG.md) tracks remaining work.
+
+## BotBlake implementation (local branch, not published)
+
+See [BotBlake](BOTBLAKE.md) for independently configurable skill levels, Auto,
+individual and team setup, supported modes, saved-game behavior, and local tests.
+Production is unchanged; this entry is not a deployment claim.

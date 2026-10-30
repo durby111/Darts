@@ -25,6 +25,7 @@ import { initTeamCricketState } from './teamcricket.js';
 import { initThemePickerUI } from './theme.js';
 import { getGame, isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
+import { supportsBot } from './botblake-engine.js';
 import { resetX01Input } from './x01.js';
 
 let onGameStart = null;
@@ -81,12 +82,13 @@ function movePlayerInOrder(fromIndex, toIndex) {
     }
 
     const values = Array.from({ length: count }, (_, index) =>
-        document.getElementById(`player${index + 1}`).value
+        ({ name: document.getElementById(`player${index + 1}`).value, skill: document.getElementById(`player${index + 1}Skill`).value })
     );
     const [moved] = values.splice(fromIndex, 1);
     values.splice(toIndex, 0, moved);
     values.forEach((value, index) => {
-        document.getElementById(`player${index + 1}`).value = value;
+        document.getElementById(`player${index + 1}`).value = value.name;
+        document.getElementById(`player${index + 1}Skill`).value = value.skill;
     });
     renderPlayerOrderControls();
 }
@@ -95,7 +97,7 @@ function shufflePlayerOrder() {
     const count = playerCount();
     if (count < 2) return;
     const values = Array.from({ length: count }, (_, index) =>
-        document.getElementById(`player${index + 1}`).value
+        ({ name: document.getElementById(`player${index + 1}`).value, skill: document.getElementById(`player${index + 1}Skill`).value })
     );
     const original = values.slice();
     for (let i = values.length - 1; i > 0; i--) {
@@ -108,7 +110,8 @@ function shufflePlayerOrder() {
         values.push(values.shift());
     }
     values.forEach((value, index) => {
-        document.getElementById(`player${index + 1}`).value = value;
+        document.getElementById(`player${index + 1}`).value = value.name;
+        document.getElementById(`player${index + 1}Skill`).value = value.skill;
     });
     renderPlayerOrderControls();
 }
@@ -650,7 +653,8 @@ async function startGame() {
     for (let i = 1; i <= numPlayers; i++) {
         const name = document.getElementById(`player${i}`).value || `Player ${i}`;
         const rosterMatch = findPlayerByName(name);
-        players.push({ name, rosterEmail: rosterMatch ? rosterMatch.email : null });
+        const skill = document.getElementById(`player${i}Skill`).value;
+        players.push(skill === 'off' ? { name, rosterEmail: rosterMatch ? rosterMatch.email : null } : { id: crypto.randomUUID(), name: `BotBlake ${i}`, bot: { skill } });
     }
     await beginOptionalMatch(players, null);
 }
@@ -664,6 +668,18 @@ async function beginMatchFromTeams(teams) {
 
 async function beginOptionalMatch(playerSeeds, teams, force = false) {
     try {
+        const members = teams ? teams.flatMap(t => t.members) : playerSeeds;
+        if (members.some(p => p.bot)) {
+            if (!supportsBot(document.getElementById('gameType').value)) { alert('BotBlake supports X01, Cricket, Spanish, and Cutthroat. Choose a supported game or human players.'); document.getElementById('setupScreen').style.display = 'flex'; return; }
+            if (!members.some(p => !p.bot)) { alert('Add at least one human player for BotBlake practice.'); document.getElementById('setupScreen').style.display = 'flex'; return; }
+            if (members.some(p => p.bot?.skill === 'auto')) {
+                if (teams) {
+                    teams.forEach(t => { const i = t.members.findIndex(p => !p.bot); if (i > 0) t.members.unshift(t.members.splice(i, 1)[0]); });
+                    if (teams[0].members[0].bot) { teams.reverse(); playerSeeds.reverse(); }
+                } else { const i = playerSeeds.findIndex(p => !p.bot); if (i > 0) playerSeeds.unshift(playerSeeds.splice(i, 1)[0]); }
+            }
+            beginMatch(playerSeeds, teams); return;
+        }
         const prepared = await prepareCasualRecording(playerSeeds, teams, force);
         if (prepared) beginMatch(prepared.playerSeeds, prepared.teams, null, null, prepared.recording);
         else document.getElementById('setupScreen').style.display = 'flex';
@@ -768,7 +784,8 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
             name: t.name,
             members: t.members.map(m => ({
                 id: m.id || null, playerId: m.playerId || null,
-                name: m.name, rosterEmail: m.rosterEmail || null
+                name: m.name, rosterEmail: m.rosterEmail || null,
+                ...(m.bot ? { bot: { skill: m.bot.skill } } : {})
             })),
             rotationIndex: 0
         })) : null
@@ -777,6 +794,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
     playerSeeds.forEach(seed => {
         const player = {
             name: seed.name,
+            ...(seed.bot ? { bot: { skill: seed.bot.skill } } : {}),
             id: seed.id || null,
             playerId: seed.playerId || null,
             rosterEmail: seed.rosterEmail || null,
@@ -815,6 +833,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
         });
     }
 
+    document.dispatchEvent(new CustomEvent('botMatchStarted'));
     recordRecentGame(gameType);
     refreshPicker();
 
@@ -899,7 +918,7 @@ export async function playAgain() {
     }
 
     document.getElementById('minnesotaCutthroat').checked = game.type === 'minnesota' && game.minnesotaCutthroat === true;
-    const seeds = game.players.map(p => ({ id: p.id, playerId: p.playerId, name: p.name, rosterEmail: p.rosterEmail || null }));
+    const seeds = game.players.map(p => ({ id: p.id, playerId: p.playerId, name: p.name, rosterEmail: p.rosterEmail || null, bot: p.bot }));
 
     // Preserve team mode + reset rotation so "Play Again" starts each team
     // from member 0.
