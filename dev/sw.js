@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v78-botblake-20261029';
+const CACHE_NAME = 'blakeout-dev-v80-player-setup-20261101';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -81,6 +81,7 @@ const ASSETS = [
     './js/state.js',
     './js/ui.js',
     './js/setup.js',
+    './js/player-names.js',
     './js/registry.js',
     './js/picker.js',
     './js/cricket.js',
