@@ -27,12 +27,17 @@ import { getGame, isCricketGame, isX01Game, isScoreGame, isTargetGame } from './
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
 import { supportsBot } from './botblake-engine.js';
 import { resetX01Input } from './x01.js';
+import { getRecentNames, rememberNames, clearRecentNames, suggestNames, isDefaultPlayerName } from './player-names.js';
 
 let onGameStart = null;
 let overlayMode = false;
 
 const PLAYER_ORDER_DRAG_THRESHOLD = 8;
 let playerOrderDrag = null;
+// Tap-to-move: a tap on a ☰ handle picks that player up; a tap on another
+// handle drops them there. Mirrors drag for people who tap instead of drag.
+let pickedPlayerIndex = null;
+let suppressHandleClick = false;
 
 function playerCount() {
     const raw = parseInt(document.getElementById('numPlayers')?.value || '2');
@@ -52,10 +57,20 @@ function renderPlayerOrderControls() {
 
         const label = row.querySelector('[data-player-order-label]');
         if (label) label.textContent = `Throws ${ordinal(index + 1)}`;
+        const number = row.querySelector('[data-player-order-number]');
+        if (number) number.textContent = ordinal(index + 1);
 
         const displayName = input.value.trim() || `Player ${index + 1}`;
         const handle = row.querySelector('[data-player-drag-index]');
-        if (handle) handle.setAttribute('aria-label', `Drag ${displayName} in throw order`);
+        if (handle) {
+            const picked = pickedPlayerIndex !== null && pickedPlayerIndex < count;
+            handle.setAttribute('aria-label', picked
+                ? (pickedPlayerIndex === index ? `Cancel moving ${displayName}` : `Move picked player to throw ${ordinal(index + 1)}`)
+                : `Drag ${displayName} in throw order, or tap to pick up`);
+            handle.setAttribute('aria-pressed', String(pickedPlayerIndex === index));
+        }
+        row.classList.toggle('player-row--picked', pickedPlayerIndex === index);
+        row.classList.toggle('player-row--drop-choice', pickedPlayerIndex !== null && pickedPlayerIndex !== index && index < count);
 
         const up = row.querySelector('[data-player-order-action="up"]');
         const down = row.querySelector('[data-player-order-action="down"]');
@@ -71,6 +86,33 @@ function renderPlayerOrderControls() {
 
     const randomize = document.getElementById('randomizePlayersBtn');
     if (randomize) randomize.disabled = count < 2;
+
+    const hint = document.querySelector('#playerOrderControls .player-order-hint');
+    if (hint) {
+        hint.innerHTML = pickedPlayerIndex !== null
+            ? '<strong>Throw order</strong> Tap the spot where they should throw'
+            : '<strong>Throw order</strong> Drag ☰ or tap ▲ ▼';
+    }
+}
+
+function setPickedPlayer(index) {
+    pickedPlayerIndex = index;
+    renderPlayerOrderControls();
+}
+
+function onPlayerHandleTap(index) {
+    if (playerCount() < 2) return;
+    if (pickedPlayerIndex === null) {
+        setPickedPlayer(index);
+        return;
+    }
+    const from = pickedPlayerIndex;
+    pickedPlayerIndex = null;
+    if (from === index) {
+        renderPlayerOrderControls();
+        return;
+    }
+    movePlayerInOrder(from, index);
 }
 
 function movePlayerInOrder(fromIndex, toIndex) {
@@ -174,6 +216,10 @@ function finishPlayerOrderDrag(event, cancelled = false) {
     document.removeEventListener('pointercancel', onPlayerOrderPointerCancel);
     clearPlayerOrderDragClasses();
     if (!cancelled && finished.dragging) {
+        // The pointer-up that ends a drag must not also count as a tap.
+        suppressHandleClick = true;
+        setTimeout(() => { suppressHandleClick = false; }, 0);
+        pickedPlayerIndex = null;
         movePlayerInOrder(finished.fromIndex, finished.toIndex);
     }
 }
@@ -205,18 +251,123 @@ function initPlayerOrderControls() {
         });
     });
 
+    document.querySelectorAll('[data-player-drag-index]').forEach(handle => {
+        handle.addEventListener('click', () => {
+            if (suppressHandleClick) return;
+            onPlayerHandleTap(parseInt(handle.dataset.playerDragIndex));
+        });
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && pickedPlayerIndex !== null) setPickedPlayer(null);
+    });
+
     document.querySelectorAll('[data-player-order-action]').forEach(button => {
         button.addEventListener('click', () => {
             const index = parseInt(button.dataset.playerIndex);
             const offset = button.dataset.playerOrderAction === 'up' ? -1 : 1;
+            pickedPlayerIndex = null;
             movePlayerInOrder(index, index + offset);
         });
     });
-    document.getElementById('randomizePlayersBtn')?.addEventListener('click', shufflePlayerOrder);
+    document.getElementById('randomizePlayersBtn')?.addEventListener('click', () => {
+        pickedPlayerIndex = null;
+        shufflePlayerOrder();
+    });
     for (let index = 1; index <= 4; index++) {
         document.getElementById(`player${index}`)?.addEventListener('input', renderPlayerOrderControls);
     }
+    initPlayerNameSuggestions();
     renderPlayerOrderControls();
+}
+
+// --- Player name suggestions ---
+// Quiet inline chips under the focused name field, never a floating popup.
+// Only names entered for classic human games on this device are suggested.
+// Existing presets, cloud roster caches and account profiles are not sources.
+function suggestionPool() { return getRecentNames(); }
+
+function hidePlayerSuggestions(index) {
+    const strip = document.getElementById(`player${index + 1}Suggestions`);
+    if (strip) { strip.hidden = true; strip.innerHTML = ''; }
+}
+
+function renderPlayerSuggestions(index) {
+    const input = document.getElementById(`player${index + 1}`);
+    const strip = document.getElementById(`player${index + 1}Suggestions`);
+    if (!input || !strip) return;
+    const isBot = document.getElementById(`player${index + 1}Skill`)?.value !== 'off';
+    const query = isDefaultPlayerName(input.value) ? '' : input.value;
+    const exclude = Array.from({ length: playerCount() }, (_, other) => other)
+        .filter(other => other !== index)
+        .map(other => document.getElementById(`player${other + 1}`)?.value || '');
+    const names = isBot ? [] : suggestNames(query, suggestionPool(), { exclude, limit: 4 });
+    strip.innerHTML = names.map(name =>
+        `<button type="button" class="player-name-chip" data-suggested-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`
+    ).join('');
+    strip.hidden = names.length === 0;
+}
+
+function focusNextDefaultName(index) {
+    for (let next = index + 1; next < playerCount(); next++) {
+        const input = document.getElementById(`player${next + 1}`);
+        if (input && document.getElementById(`player${next + 1}Skill`)?.value === 'off' && isDefaultPlayerName(input.value)) {
+            input.focus();
+            return;
+        }
+    }
+    document.getElementById(`player${index + 1}`)?.blur();
+}
+
+function initPlayerNameSuggestions() {
+    for (let index = 0; index < 4; index++) {
+        const input = document.getElementById(`player${index + 1}`);
+        const strip = document.getElementById(`player${index + 1}Suggestions`);
+        if (!input || !strip) continue;
+        input.addEventListener('focus', () => {
+            // "Home", "Away", "Player 3": typing replaces the placeholder name.
+            if (isDefaultPlayerName(input.value)) setTimeout(() => { if (document.activeElement === input && isDefaultPlayerName(input.value)) input.select(); }, 0);
+            renderPlayerSuggestions(index);
+        });
+        input.addEventListener('input', () => renderPlayerSuggestions(index));
+        const row = document.getElementById(`player${index + 1}Group`);
+        row.addEventListener('focusout', event => {
+            if (!row.contains(event.relatedTarget)) hidePlayerSuggestions(index);
+        });
+        strip.addEventListener('keydown', event => {
+            if (event.key === 'Escape') { event.preventDefault(); input.focus(); hidePlayerSuggestions(index); }
+        });
+        document.getElementById(`player${index + 1}Skill`)?.addEventListener('change', () => hidePlayerSuggestions(index));
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                hidePlayerSuggestions(index);
+                focusNextDefaultName(index);
+            } else if (event.key === 'Escape') {
+                hidePlayerSuggestions(index);
+            }
+        });
+        // Keep focus in the field while a chip is pressed so blur does not
+        // remove the chip before its click lands.
+        strip.addEventListener('pointerdown', event => {
+            if (event.target.closest('[data-suggested-name]')) event.preventDefault();
+        });
+        strip.addEventListener('click', event => {
+            const chip = event.target.closest('[data-suggested-name]');
+            if (!chip) return;
+            input.value = chip.dataset.suggestedName;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            hidePlayerSuggestions(index);
+            focusNextDefaultName(index);
+        });
+    }
+
+    const clearBtn = document.getElementById('clearRecentNamesBtn');
+    clearBtn?.addEventListener('click', () => {
+        const cleared = clearRecentNames();
+        for (let index = 0; index < 4; index++) hidePlayerSuggestions(index);
+        const status = document.getElementById('clearRecentNamesStatus');
+        if (status) status.textContent = cleared ? 'Recent names cleared on this device. Saved presets keep their names.' : 'Could not clear recent names. Browser storage is unavailable; please try again.';
+    });
 }
 
 export function setGameStartCallback(callback) {
@@ -234,6 +385,7 @@ export function initSetupControls() {
         document.getElementById('player2Group').classList.toggle('hidden', count < 2);
         document.getElementById('player3Group').classList.toggle('hidden', count < 3);
         document.getElementById('player4Group').classList.toggle('hidden', count < 4);
+        pickedPlayerIndex = null;
         renderPlayerOrderControls();
     });
 
@@ -591,6 +743,8 @@ function applyGameTypeScale() {
 }
 
 function applyTeamModeVisibility() {
+    pickedPlayerIndex = null;
+    for (let index = 0; index < 4; index++) hidePlayerSuggestions(index);
     const on = document.getElementById('teamMode')?.checked;
     document.getElementById('numPlayersGroup').classList.toggle('hidden', !!on);
     document.getElementById('playerOrderControls')?.classList.toggle('hidden', !!on);
@@ -656,6 +810,7 @@ async function startGame() {
         const skill = document.getElementById(`player${i}Skill`).value;
         players.push(skill === 'off' ? { name, rosterEmail: rosterMatch ? rosterMatch.email : null } : { id: crypto.randomUUID(), name: `BotBlake ${i}`, bot: { skill } });
     }
+    rememberNames(players.filter(player => !player.bot).map(player => player.name));
     await beginOptionalMatch(players, null);
 }
 

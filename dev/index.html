@@ -244,50 +244,54 @@
                 </div>
 
                 <div class="player-order-toolbar" id="playerOrderControls">
-                    <div class="player-order-hint">Throw order</div>
+                    <div class="player-order-hint"><strong>Throw order</strong> Drag ☰ or tap ▲ ▼</div>
                     <button type="button" class="btn btn--sm btn--neutral" id="randomizePlayersBtn">🎲 Randomize</button>
                 </div>
 
                 <div class="player-order-list" id="playerOrderList">
                 <div class="player-row" id="player1Group" data-player-index="0">
-                    <label class="bot-skill-label">Skill level<select id="player1Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
-                    <button type="button" class="player-order-drag" data-player-drag-index="0" aria-label="Drag first player">☰</button>
-                    <label for="player1" data-player-order-label>Throws 1st</label>
-                    <input type="text" id="player1" value="Home" list="rosterDatalist" autocomplete="off">
+                    <button type="button" class="player-order-drag" data-player-drag-index="0" aria-label="Drag first player"><span class="player-order-number" data-player-order-number aria-hidden="true">1</span><span class="player-order-grip" aria-hidden="true">☰</span></button>
+                    <label for="player1" class="player-order-label" data-player-order-label>Throws 1st</label>
+                    <input type="text" id="player1" value="Home" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-controls="player1Suggestions">
                     <span class="player-order-stepper">
                         <button type="button" data-player-order-action="up" data-player-index="0" aria-label="Move first player earlier" disabled>▲</button>
                         <button type="button" data-player-order-action="down" data-player-index="0" aria-label="Move first player later">▼</button>
                     </span>
+                    <label class="bot-skill-label"><span class="visually-hidden">Skill level</span><select id="player1Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
+                    <div class="player-name-suggestions" id="player1Suggestions" data-player-suggestions="0" role="group" aria-label="Recent names for throw 1st" hidden></div>
                 </div>
                 <div class="player-row" id="player2Group" data-player-index="1">
-                    <label class="bot-skill-label">Skill level<select id="player2Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
-                    <button type="button" class="player-order-drag" data-player-drag-index="1" aria-label="Drag second player">☰</button>
-                    <label for="player2" data-player-order-label>Throws 2nd</label>
-                    <input type="text" id="player2" value="Away" list="rosterDatalist" autocomplete="off">
+                    <button type="button" class="player-order-drag" data-player-drag-index="1" aria-label="Drag second player"><span class="player-order-number" data-player-order-number aria-hidden="true">2</span><span class="player-order-grip" aria-hidden="true">☰</span></button>
+                    <label for="player2" class="player-order-label" data-player-order-label>Throws 2nd</label>
+                    <input type="text" id="player2" value="Away" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-controls="player2Suggestions">
                     <span class="player-order-stepper">
                         <button type="button" data-player-order-action="up" data-player-index="1" aria-label="Move second player earlier">▲</button>
                         <button type="button" data-player-order-action="down" data-player-index="1" aria-label="Move second player later" disabled>▼</button>
                     </span>
+                    <label class="bot-skill-label"><span class="visually-hidden">Skill level</span><select id="player2Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
+                    <div class="player-name-suggestions" id="player2Suggestions" data-player-suggestions="1" role="group" aria-label="Recent names for throw 2nd" hidden></div>
                 </div>
                 <div class="player-row hidden" id="player3Group" data-player-index="2">
-                    <label class="bot-skill-label">Skill level<select id="player3Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
-                    <button type="button" class="player-order-drag" data-player-drag-index="2" aria-label="Drag third player">☰</button>
-                    <label for="player3" data-player-order-label>Throws 3rd</label>
-                    <input type="text" id="player3" value="Player 3" list="rosterDatalist" autocomplete="off">
+                    <button type="button" class="player-order-drag" data-player-drag-index="2" aria-label="Drag third player"><span class="player-order-number" data-player-order-number aria-hidden="true">3</span><span class="player-order-grip" aria-hidden="true">☰</span></button>
+                    <label for="player3" class="player-order-label" data-player-order-label>Throws 3rd</label>
+                    <input type="text" id="player3" value="Player 3" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-controls="player3Suggestions">
                     <span class="player-order-stepper">
                         <button type="button" data-player-order-action="up" data-player-index="2" aria-label="Move third player earlier">▲</button>
                         <button type="button" data-player-order-action="down" data-player-index="2" aria-label="Move third player later" disabled>▼</button>
                     </span>
+                    <label class="bot-skill-label"><span class="visually-hidden">Skill level</span><select id="player3Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
+                    <div class="player-name-suggestions" id="player3Suggestions" data-player-suggestions="2" role="group" aria-label="Recent names for throw 3rd" hidden></div>
                 </div>
                 <div class="player-row hidden" id="player4Group" data-player-index="3">
-                    <label class="bot-skill-label">Skill level<select id="player4Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
-                    <button type="button" class="player-order-drag" data-player-drag-index="3" aria-label="Drag fourth player">☰</button>
-                    <label for="player4" data-player-order-label>Throws 4th</label>
-                    <input type="text" id="player4" value="Player 4" list="rosterDatalist" autocomplete="off">
+                    <button type="button" class="player-order-drag" data-player-drag-index="3" aria-label="Drag fourth player"><span class="player-order-number" data-player-order-number aria-hidden="true">4</span><span class="player-order-grip" aria-hidden="true">☰</span></button>
+                    <label for="player4" class="player-order-label" data-player-order-label>Throws 4th</label>
+                    <input type="text" id="player4" value="Player 4" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-controls="player4Suggestions">
                     <span class="player-order-stepper">
                         <button type="button" data-player-order-action="up" data-player-index="3" aria-label="Move fourth player earlier">▲</button>
                         <button type="button" data-player-order-action="down" data-player-index="3" aria-label="Move fourth player later" disabled>▼</button>
                     </span>
+                    <label class="bot-skill-label"><span class="visually-hidden">Skill level</span><select id="player4Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
+                    <div class="player-name-suggestions" id="player4Suggestions" data-player-suggestions="3" role="group" aria-label="Recent names for throw 4th" hidden></div>
                 </div>
                 </div>
             </section>
@@ -316,6 +320,8 @@
                 <div class="setup-section-label">App Maintenance</div>
                 <button class="btn btn--md btn--neutral btn--block" id="updateAppBtn">Check for Updates</button>
                 <div id="updateStatus" style="text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);margin-top:var(--space-xs);"></div>
+                <button type="button" class="btn btn--md btn--neutral btn--block setup-forget-names" id="clearRecentNamesBtn">Clear recent player names</button>
+                <div class="setup-forget-names-status" id="clearRecentNamesStatus" aria-live="polite"></div>
             </section>
 
             <!-- Roster manager — collapsible. Players added here sync to

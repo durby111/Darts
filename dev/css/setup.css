@@ -143,13 +143,65 @@
 .setup-screen .form-group { margin-bottom: 12px; }
 .setup-screen .form-group label { font-size: 13px; }
 .setup-screen select, .setup-screen input { border-radius: 6px; }
-.setup-screen .player-order-list { grid-template-columns: 1fr; gap: 8px; }
-.setup-screen .player-row { border-radius: 0; background: none; border: 0; border-left: 3px solid var(--color-primary-light); padding: 4px 8px; gap: 3px 8px; }
+/* Player rows: one card per throw position. A large numbered ☰ handle on the
+   left (drag it, or tap it then tap a destination), the name on top, the
+   Human/BotBlake choice under it, and 44px ▲/▼ buttons on the right. Every
+   touch target is at least 44px; the row is two lines instead of three. */
+.setup-screen .player-order-list { grid-template-columns: 1fr; gap: 10px; }
+.setup-screen .player-row {
+    grid-template-columns: 52px minmax(0, 1fr) 44px;
+    grid-template-rows: auto auto auto;
+    grid-template-areas: 'handle name up' 'handle skill down' 'suggest suggest suggest';
+    gap: 6px 8px;
+    padding: 8px;
+    border-radius: 6px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-primary-light);
+}
 .setup-screen .player-row:nth-child(even) { border-left-color: var(--color-success); }
-.setup-screen .player-row input { grid-column: 2; padding: 8px; font-size: 16px; min-height: 40px; }
-.setup-screen .player-order-drag, .setup-screen .player-order-stepper { grid-row: 1 / 3; }
+.setup-screen .player-row input { grid-area: name; padding: 10px 12px; font-size: 18px; font-weight: 700; min-height: 48px; }
+.setup-screen .player-row .player-order-label {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+.setup-screen .player-order-drag {
+    grid-area: handle;
+
+    width: 52px; height: 100%; min-height: 98px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    padding: 0;
+    border-radius: 6px;
+    background: var(--color-surface-alt);
+    color: var(--color-text);
+}
+.setup-screen .player-order-number { font-family: Impact, 'DejaVu Sans Condensed', sans-serif; font-size: 22px; line-height: 1; }
+.setup-screen .player-order-grip { font-size: 20px; line-height: 1; color: var(--color-text-muted); }
+.setup-screen .player-order-stepper { display: contents; }
+.setup-screen .player-order-stepper button { width: 44px; height: 100%; min-height: 44px; font-size: 18px; border-radius: 6px; }
+.setup-screen .player-order-stepper [data-player-order-action='up'] { grid-area: up; }
+.setup-screen .player-order-stepper [data-player-order-action='down'] { grid-area: down; }
+.setup-screen .player-order-stepper button:disabled { opacity: 0.2; }
+.setup-screen .player-row--dragging { opacity: 0.6; outline: 2px dashed var(--color-primary-light); outline-offset: 2px; }
+.setup-screen .player-row--drop-target { box-shadow: inset 0 0 0 2px var(--color-primary-light); }
+.setup-screen .player-row--picked { box-shadow: inset 0 0 0 2px var(--color-primary-light); background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface)); }
+.setup-screen .player-row--picked .player-order-drag { background: var(--color-primary); color: var(--color-on-primary); }
+.setup-screen .player-row--drop-choice .player-order-drag { outline: 2px dashed var(--color-primary-light); outline-offset: -4px; }
+.setup-screen .player-name-suggestions { grid-area: suggest; display: flex; flex-wrap: wrap; gap: 6px; }
+.setup-screen .player-name-suggestions[hidden] { display: none; }
+.setup-screen .player-name-chip {
+    min-height: 44px; padding: 8px 14px;
+    border: 1px solid var(--color-border-light); border-radius: 22px;
+    background: var(--color-bg); color: var(--color-text);
+    font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.setup-screen .player-name-chip:active { background: var(--color-primary); color: var(--color-on-primary); }
+.setup-screen .setup-forget-names { margin-top: 10px; }
+.setup-screen .setup-forget-names-status { text-align: center; font-size: 12px; color: var(--color-text-muted); margin-top: 4px; }
 .setup-screen .player-order-toolbar { align-items: center; gap: 8px; }
-.setup-screen .player-order-hint { font-size: 12px; }
+.setup-screen #randomizePlayersBtn { min-height: 44px; }
+.setup-screen .player-order-hint { font-size: 13px; color: var(--color-text-muted); }
+.setup-screen .player-order-hint strong { color: var(--color-text); margin-right: 6px; }
 .setup-screen #playSection { display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, 1.2fr); align-items: center; gap: 12px; }
 /* Keep Start/Resume reachable when the setup column exceeds the viewport.
    Sticky retains the panel's space, so every setup field can scroll above it. */
@@ -210,8 +262,8 @@
 }
 
 /* Each position has its own human/BotBlake skill selection. */
-.setup-screen .player-row .bot-skill-label { grid-column: 2; grid-row: 3; min-width: 0; }
-.setup-screen .bot-skill-label select { width: 100%; min-height: 40px; font-size: 16px; }
+.setup-screen .player-row .bot-skill-label { grid-area: skill; min-width: 0; margin: 0; }
+.setup-screen .bot-skill-label select { width: 100%; min-height: 44px; font-size: 16px; }
 .team-add-row { flex-wrap: wrap; }
 .team-zone-member { flex-wrap: wrap; }
 .team-zone-member select { max-width: 130px; min-height: 40px; }
