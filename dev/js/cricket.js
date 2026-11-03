@@ -457,6 +457,8 @@ function finishQuickieAtLimit() {
 // --- Exported Functions ---
 
 export function updateCricketDisplay() {
+    const brisketCredit = document.getElementById('brisketGameCredit');
+    if (brisketCredit) brisketCredit.hidden = game.type !== 'brisket';
     let mode = document.getElementById('minnesotaModeNotice');
     if (!mode) {
         mode = document.createElement('p'); mode.id = 'minnesotaModeNotice'; mode.style.overflowWrap = 'anywhere';
