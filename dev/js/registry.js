@@ -38,6 +38,13 @@ export const CATEGORIES = [
 
 export const GAME_REGISTRY = [
     {
+        id: 'brisket', label: 'Brisket', sub: '1–6 + Bull', icon: '♥',
+        engine: 'cricket', category: 'cricket', isNew: true,
+        tags: ['cricket', 'brisket', 'burt', 'six'],
+        desc: 'Burt’s idea: Cricket on 1–6 plus Bull, with points. Choose another six-number range or turn Bull off.',
+        rules: 'Default: 1–6 plus Bull with points. Pick a start from 1 to 15 for six consecutive targets (for example 7–12, 13–18 or 15–20), with optional Bull. Three marks close a target; excess marks score its face value while an opponent remains open. Close everything with equal or more points to win. Points can be disabled for a closure race.'
+    },
+    {
         id: '301', label: '301', sub: 'Double out', icon: '🎯',
         engine: 'x01', category: 'x01',
         tags: ['x01', 'countdown', 'classic', 'quick'],

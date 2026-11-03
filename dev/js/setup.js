@@ -408,7 +408,13 @@ export function initSetupControls() {
     });
 
     // Game type change — option-panel visibility is registry-driven.
-    document.getElementById('gameType').addEventListener('change', function () {
+    let previousGameType = document.getElementById('gameType').value;
+    document.getElementById('gameType').addEventListener('change', function (event) {
+        const brisketCredit = document.getElementById('brisketSetupCredit');
+        if (brisketCredit) brisketCredit.hidden = this.value !== 'brisket';
+        document.getElementById('brisketOptions')?.classList.toggle('hidden', this.value !== 'brisket');
+        if (this.value === 'brisket' && previousGameType !== 'brisket' && !event.detail?.restoringConfig) document.getElementById('cricketPoints').checked = true;
+        previousGameType = this.value;
         const isCricket = isCricketGame(this.value);
         const isX01 = isX01Game(this.value);
         const isChicago = this.value === 'chicago';
@@ -853,6 +859,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
         : document.getElementById('cricketPoints').checked;
     const finishType = document.getElementById('finishType').value;
     const includeBulls = document.getElementById('spanishBulls').checked;
+    const brisketOptions = { start: Number(document.getElementById('brisketStart')?.value || 1), bull: document.getElementById('brisketBulls')?.checked !== false };
 
     const isChicago = gameType === 'chicago';
     const is121 = gameType === '121';
@@ -972,7 +979,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
         } else if (isTargetGame(gameType) || isTicTacToe || isDoubleDown || isTeamCricket) {
             // score stays at 0; target games accumulate runs/points/strokes
         } else {
-            player.cricketData = initCricket(gameType, includeBulls);
+            player.cricketData = initCricket(gameType, includeBulls, brisketOptions);
         }
 
         game.players.push(player);
