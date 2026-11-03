@@ -25,13 +25,19 @@ import { initTeamCricketState } from './teamcricket.js';
 import { initThemePickerUI } from './theme.js';
 import { getGame, isCricketGame, isX01Game, isScoreGame, isTargetGame } from './registry.js';
 import { initGamePicker, refreshPicker, recordRecentGame } from './picker.js';
+import { supportsBot } from './botblake-engine.js';
 import { resetX01Input } from './x01.js';
+import { getRecentNames, rememberNames, clearRecentNames, suggestNames, isDefaultPlayerName } from './player-names.js';
 
 let onGameStart = null;
 let overlayMode = false;
 
 const PLAYER_ORDER_DRAG_THRESHOLD = 8;
 let playerOrderDrag = null;
+// Tap-to-move: a tap on a ☰ handle picks that player up; a tap on another
+// handle drops them there. Mirrors drag for people who tap instead of drag.
+let pickedPlayerIndex = null;
+let suppressHandleClick = false;
 
 function playerCount() {
     const raw = parseInt(document.getElementById('numPlayers')?.value || '2');
@@ -51,10 +57,20 @@ function renderPlayerOrderControls() {
 
         const label = row.querySelector('[data-player-order-label]');
         if (label) label.textContent = `Throws ${ordinal(index + 1)}`;
+        const number = row.querySelector('[data-player-order-number]');
+        if (number) number.textContent = ordinal(index + 1);
 
         const displayName = input.value.trim() || `Player ${index + 1}`;
         const handle = row.querySelector('[data-player-drag-index]');
-        if (handle) handle.setAttribute('aria-label', `Drag ${displayName} in throw order`);
+        if (handle) {
+            const picked = pickedPlayerIndex !== null && pickedPlayerIndex < count;
+            handle.setAttribute('aria-label', picked
+                ? (pickedPlayerIndex === index ? `Cancel moving ${displayName}` : `Move picked player to throw ${ordinal(index + 1)}`)
+                : `Drag ${displayName} in throw order, or tap to pick up`);
+            handle.setAttribute('aria-pressed', String(pickedPlayerIndex === index));
+        }
+        row.classList.toggle('player-row--picked', pickedPlayerIndex === index);
+        row.classList.toggle('player-row--drop-choice', pickedPlayerIndex !== null && pickedPlayerIndex !== index && index < count);
 
         const up = row.querySelector('[data-player-order-action="up"]');
         const down = row.querySelector('[data-player-order-action="down"]');
@@ -70,6 +86,33 @@ function renderPlayerOrderControls() {
 
     const randomize = document.getElementById('randomizePlayersBtn');
     if (randomize) randomize.disabled = count < 2;
+
+    const hint = document.querySelector('#playerOrderControls .player-order-hint');
+    if (hint) {
+        hint.innerHTML = pickedPlayerIndex !== null
+            ? '<strong>Throw order</strong> Tap the spot where they should throw'
+            : '<strong>Throw order</strong> Drag ☰ or tap ▲ ▼';
+    }
+}
+
+function setPickedPlayer(index) {
+    pickedPlayerIndex = index;
+    renderPlayerOrderControls();
+}
+
+function onPlayerHandleTap(index) {
+    if (playerCount() < 2) return;
+    if (pickedPlayerIndex === null) {
+        setPickedPlayer(index);
+        return;
+    }
+    const from = pickedPlayerIndex;
+    pickedPlayerIndex = null;
+    if (from === index) {
+        renderPlayerOrderControls();
+        return;
+    }
+    movePlayerInOrder(from, index);
 }
 
 function movePlayerInOrder(fromIndex, toIndex) {
@@ -81,12 +124,13 @@ function movePlayerInOrder(fromIndex, toIndex) {
     }
 
     const values = Array.from({ length: count }, (_, index) =>
-        document.getElementById(`player${index + 1}`).value
+        ({ name: document.getElementById(`player${index + 1}`).value, skill: document.getElementById(`player${index + 1}Skill`).value })
     );
     const [moved] = values.splice(fromIndex, 1);
     values.splice(toIndex, 0, moved);
     values.forEach((value, index) => {
-        document.getElementById(`player${index + 1}`).value = value;
+        document.getElementById(`player${index + 1}`).value = value.name;
+        document.getElementById(`player${index + 1}Skill`).value = value.skill;
     });
     renderPlayerOrderControls();
 }
@@ -95,7 +139,7 @@ function shufflePlayerOrder() {
     const count = playerCount();
     if (count < 2) return;
     const values = Array.from({ length: count }, (_, index) =>
-        document.getElementById(`player${index + 1}`).value
+        ({ name: document.getElementById(`player${index + 1}`).value, skill: document.getElementById(`player${index + 1}Skill`).value })
     );
     const original = values.slice();
     for (let i = values.length - 1; i > 0; i--) {
@@ -108,7 +152,8 @@ function shufflePlayerOrder() {
         values.push(values.shift());
     }
     values.forEach((value, index) => {
-        document.getElementById(`player${index + 1}`).value = value;
+        document.getElementById(`player${index + 1}`).value = value.name;
+        document.getElementById(`player${index + 1}Skill`).value = value.skill;
     });
     renderPlayerOrderControls();
 }
@@ -171,6 +216,10 @@ function finishPlayerOrderDrag(event, cancelled = false) {
     document.removeEventListener('pointercancel', onPlayerOrderPointerCancel);
     clearPlayerOrderDragClasses();
     if (!cancelled && finished.dragging) {
+        // The pointer-up that ends a drag must not also count as a tap.
+        suppressHandleClick = true;
+        setTimeout(() => { suppressHandleClick = false; }, 0);
+        pickedPlayerIndex = null;
         movePlayerInOrder(finished.fromIndex, finished.toIndex);
     }
 }
@@ -202,18 +251,123 @@ function initPlayerOrderControls() {
         });
     });
 
+    document.querySelectorAll('[data-player-drag-index]').forEach(handle => {
+        handle.addEventListener('click', () => {
+            if (suppressHandleClick) return;
+            onPlayerHandleTap(parseInt(handle.dataset.playerDragIndex));
+        });
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && pickedPlayerIndex !== null) setPickedPlayer(null);
+    });
+
     document.querySelectorAll('[data-player-order-action]').forEach(button => {
         button.addEventListener('click', () => {
             const index = parseInt(button.dataset.playerIndex);
             const offset = button.dataset.playerOrderAction === 'up' ? -1 : 1;
+            pickedPlayerIndex = null;
             movePlayerInOrder(index, index + offset);
         });
     });
-    document.getElementById('randomizePlayersBtn')?.addEventListener('click', shufflePlayerOrder);
+    document.getElementById('randomizePlayersBtn')?.addEventListener('click', () => {
+        pickedPlayerIndex = null;
+        shufflePlayerOrder();
+    });
     for (let index = 1; index <= 4; index++) {
         document.getElementById(`player${index}`)?.addEventListener('input', renderPlayerOrderControls);
     }
+    initPlayerNameSuggestions();
     renderPlayerOrderControls();
+}
+
+// --- Player name suggestions ---
+// Quiet inline chips under the focused name field, never a floating popup.
+// Only names entered for classic human games on this device are suggested.
+// Existing presets, cloud roster caches and account profiles are not sources.
+function suggestionPool() { return getRecentNames(); }
+
+function hidePlayerSuggestions(index) {
+    const strip = document.getElementById(`player${index + 1}Suggestions`);
+    if (strip) { strip.hidden = true; strip.innerHTML = ''; }
+}
+
+function renderPlayerSuggestions(index) {
+    const input = document.getElementById(`player${index + 1}`);
+    const strip = document.getElementById(`player${index + 1}Suggestions`);
+    if (!input || !strip) return;
+    const isBot = document.getElementById(`player${index + 1}Skill`)?.value !== 'off';
+    const query = isDefaultPlayerName(input.value) ? '' : input.value;
+    const exclude = Array.from({ length: playerCount() }, (_, other) => other)
+        .filter(other => other !== index)
+        .map(other => document.getElementById(`player${other + 1}`)?.value || '');
+    const names = isBot ? [] : suggestNames(query, suggestionPool(), { exclude, limit: 4 });
+    strip.innerHTML = names.map(name =>
+        `<button type="button" class="player-name-chip" data-suggested-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`
+    ).join('');
+    strip.hidden = names.length === 0;
+}
+
+function focusNextDefaultName(index) {
+    for (let next = index + 1; next < playerCount(); next++) {
+        const input = document.getElementById(`player${next + 1}`);
+        if (input && document.getElementById(`player${next + 1}Skill`)?.value === 'off' && isDefaultPlayerName(input.value)) {
+            input.focus();
+            return;
+        }
+    }
+    document.getElementById(`player${index + 1}`)?.blur();
+}
+
+function initPlayerNameSuggestions() {
+    for (let index = 0; index < 4; index++) {
+        const input = document.getElementById(`player${index + 1}`);
+        const strip = document.getElementById(`player${index + 1}Suggestions`);
+        if (!input || !strip) continue;
+        input.addEventListener('focus', () => {
+            // "Home", "Away", "Player 3": typing replaces the placeholder name.
+            if (isDefaultPlayerName(input.value)) setTimeout(() => { if (document.activeElement === input && isDefaultPlayerName(input.value)) input.select(); }, 0);
+            renderPlayerSuggestions(index);
+        });
+        input.addEventListener('input', () => renderPlayerSuggestions(index));
+        const row = document.getElementById(`player${index + 1}Group`);
+        row.addEventListener('focusout', event => {
+            if (!row.contains(event.relatedTarget)) hidePlayerSuggestions(index);
+        });
+        strip.addEventListener('keydown', event => {
+            if (event.key === 'Escape') { event.preventDefault(); input.focus(); hidePlayerSuggestions(index); }
+        });
+        document.getElementById(`player${index + 1}Skill`)?.addEventListener('change', () => hidePlayerSuggestions(index));
+        input.addEventListener('keydown', event => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                hidePlayerSuggestions(index);
+                focusNextDefaultName(index);
+            } else if (event.key === 'Escape') {
+                hidePlayerSuggestions(index);
+            }
+        });
+        // Keep focus in the field while a chip is pressed so blur does not
+        // remove the chip before its click lands.
+        strip.addEventListener('pointerdown', event => {
+            if (event.target.closest('[data-suggested-name]')) event.preventDefault();
+        });
+        strip.addEventListener('click', event => {
+            const chip = event.target.closest('[data-suggested-name]');
+            if (!chip) return;
+            input.value = chip.dataset.suggestedName;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            hidePlayerSuggestions(index);
+            focusNextDefaultName(index);
+        });
+    }
+
+    const clearBtn = document.getElementById('clearRecentNamesBtn');
+    clearBtn?.addEventListener('click', () => {
+        const cleared = clearRecentNames();
+        for (let index = 0; index < 4; index++) hidePlayerSuggestions(index);
+        const status = document.getElementById('clearRecentNamesStatus');
+        if (status) status.textContent = cleared ? 'Recent names cleared on this device. Saved presets keep their names.' : 'Could not clear recent names. Browser storage is unavailable; please try again.';
+    });
 }
 
 export function setGameStartCallback(callback) {
@@ -231,6 +385,7 @@ export function initSetupControls() {
         document.getElementById('player2Group').classList.toggle('hidden', count < 2);
         document.getElementById('player3Group').classList.toggle('hidden', count < 3);
         document.getElementById('player4Group').classList.toggle('hidden', count < 4);
+        pickedPlayerIndex = null;
         renderPlayerOrderControls();
     });
 
@@ -253,7 +408,13 @@ export function initSetupControls() {
     });
 
     // Game type change — option-panel visibility is registry-driven.
-    document.getElementById('gameType').addEventListener('change', function () {
+    let previousGameType = document.getElementById('gameType').value;
+    document.getElementById('gameType').addEventListener('change', function (event) {
+        const brisketCredit = document.getElementById('brisketSetupCredit');
+        if (brisketCredit) brisketCredit.hidden = this.value !== 'brisket';
+        document.getElementById('brisketOptions')?.classList.toggle('hidden', this.value !== 'brisket');
+        if (this.value === 'brisket' && previousGameType !== 'brisket' && !event.detail?.restoringConfig) document.getElementById('cricketPoints').checked = true;
+        previousGameType = this.value;
         const isCricket = isCricketGame(this.value);
         const isX01 = isX01Game(this.value);
         const isChicago = this.value === 'chicago';
@@ -584,6 +745,8 @@ function applyGameTypeScale() {
 }
 
 function applyTeamModeVisibility() {
+    pickedPlayerIndex = null;
+    for (let index = 0; index < 4; index++) hidePlayerSuggestions(index);
     const on = document.getElementById('teamMode')?.checked;
     document.getElementById('numPlayersGroup').classList.toggle('hidden', !!on);
     document.getElementById('playerOrderControls')?.classList.toggle('hidden', !!on);
@@ -646,8 +809,10 @@ async function startGame() {
     for (let i = 1; i <= numPlayers; i++) {
         const name = document.getElementById(`player${i}`).value || `Player ${i}`;
         const rosterMatch = findPlayerByName(name);
-        players.push({ name, rosterEmail: rosterMatch ? rosterMatch.email : null });
+        const skill = document.getElementById(`player${i}Skill`).value;
+        players.push(skill === 'off' ? { name, rosterEmail: rosterMatch ? rosterMatch.email : null } : { id: crypto.randomUUID(), name: `BotBlake ${i}`, bot: { skill } });
     }
+    rememberNames(players.filter(player => !player.bot).map(player => player.name));
     await beginOptionalMatch(players, null);
 }
 
@@ -660,6 +825,18 @@ async function beginMatchFromTeams(teams) {
 
 async function beginOptionalMatch(playerSeeds, teams, force = false) {
     try {
+        const members = teams ? teams.flatMap(t => t.members) : playerSeeds;
+        if (members.some(p => p.bot)) {
+            if (!supportsBot(document.getElementById('gameType').value)) { alert('BotBlake supports X01, Cricket, Spanish, and Cutthroat. Choose a supported game or human players.'); document.getElementById('setupScreen').style.display = 'flex'; return; }
+            if (!members.some(p => !p.bot)) { alert('Add at least one human player for BotBlake practice.'); document.getElementById('setupScreen').style.display = 'flex'; return; }
+            if (members.some(p => p.bot?.skill === 'auto')) {
+                if (teams) {
+                    teams.forEach(t => { const i = t.members.findIndex(p => !p.bot); if (i > 0) t.members.unshift(t.members.splice(i, 1)[0]); });
+                    if (teams[0].members[0].bot) { teams.reverse(); playerSeeds.reverse(); }
+                } else { const i = playerSeeds.findIndex(p => !p.bot); if (i > 0) playerSeeds.unshift(playerSeeds.splice(i, 1)[0]); }
+            }
+            beginMatch(playerSeeds, teams); return;
+        }
         const prepared = await prepareCasualRecording(playerSeeds, teams, force);
         if (prepared) beginMatch(prepared.playerSeeds, prepared.teams, null, null, prepared.recording);
         else document.getElementById('setupScreen').style.display = 'flex';
@@ -678,6 +855,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
         : document.getElementById('cricketPoints').checked;
     const finishType = document.getElementById('finishType').value;
     const includeBulls = document.getElementById('spanishBulls').checked;
+    const brisketOptions = { start: Number(document.getElementById('brisketStart')?.value || 1), bull: document.getElementById('brisketBulls')?.checked !== false };
 
     const isChicago = gameType === 'chicago';
     const is121 = gameType === '121';
@@ -764,7 +942,8 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
             name: t.name,
             members: t.members.map(m => ({
                 id: m.id || null, playerId: m.playerId || null,
-                name: m.name, rosterEmail: m.rosterEmail || null
+                name: m.name, rosterEmail: m.rosterEmail || null,
+                ...(m.bot ? { bot: { skill: m.bot.skill } } : {})
             })),
             rotationIndex: 0
         })) : null
@@ -773,6 +952,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
     playerSeeds.forEach(seed => {
         const player = {
             name: seed.name,
+            ...(seed.bot ? { bot: { skill: seed.bot.skill } } : {}),
             id: seed.id || null,
             playerId: seed.playerId || null,
             rosterEmail: seed.rosterEmail || null,
@@ -795,7 +975,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
         } else if (isTargetGame(gameType) || isTicTacToe || isDoubleDown || isTeamCricket) {
             // score stays at 0; target games accumulate runs/points/strokes
         } else {
-            player.cricketData = initCricket(gameType, includeBulls);
+            player.cricketData = initCricket(gameType, includeBulls, brisketOptions);
         }
 
         game.players.push(player);
@@ -811,6 +991,7 @@ function beginMatch(playerSeeds, teams, tournament = null, scoringRecords = null
         });
     }
 
+    document.dispatchEvent(new CustomEvent('botMatchStarted'));
     recordRecentGame(gameType);
     refreshPicker();
 
@@ -895,7 +1076,7 @@ export async function playAgain() {
     }
 
     document.getElementById('minnesotaCutthroat').checked = game.type === 'minnesota' && game.minnesotaCutthroat === true;
-    const seeds = game.players.map(p => ({ id: p.id, playerId: p.playerId, name: p.name, rosterEmail: p.rosterEmail || null }));
+    const seeds = game.players.map(p => ({ id: p.id, playerId: p.playerId, name: p.name, rosterEmail: p.rosterEmail || null, bot: p.bot }));
 
     // Preserve team mode + reset rotation so "Play Again" starts each team
     // from member 0.

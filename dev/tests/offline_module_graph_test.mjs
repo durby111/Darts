@@ -6,8 +6,8 @@ import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const base = 'https://offline.example/dev/';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), process.env.BLAKEOUT_BUILD === 'production' ? '../..' : '..');
+const base = process.env.BLAKEOUT_BUILD === 'production' ? 'https://offline.example/' : 'https://offline.example/dev/';
 const context = vm.createContext({
     URL,
     self: { location: new URL('sw.js', base), addEventListener() {} },

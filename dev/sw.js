@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v82-brisket-candidate-20261103';
+const CACHE_NAME = 'blakeout-dev-v84-static-retry-20261103';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -158,6 +158,28 @@ function isCacheable(request) {
     return url.origin === SDK_ORIGIN && url.pathname.startsWith('/firebasejs/');
 }
 
+// Retry a transient HTTP failure once for a known, query-free static asset.
+// Never substitute an older cached module for an HTTP error: the rest of the
+// module graph may already have loaded from the current network release.
+const RETRY_ASSETS = new Set(ASSETS.filter(asset => /\.(?:js|css)$/.test(asset))
+    .map(asset => new URL(asset, self.location.href).href));
+const RETRY_STATUSES = new Set([404, 502, 503, 504]);
+
+async function fetchStaticWithRetry(request) {
+    const response = await fetch(request);
+    const url = new URL(request.url);
+    if (request.method !== 'GET' || !isOwnPath(url) || url.search
+        || !RETRY_ASSETS.has(url.href) || !RETRY_STATUSES.has(response.status)) return response;
+    await new Promise(resolve => setTimeout(resolve, 250));
+    try {
+        // Preserve the original credentials/mode; only bypass HTTP cache.
+        return await fetch(new Request(request, { cache: 'reload' }));
+    } catch {
+        // A failed retry must not turn a real HTTP error into cached success.
+        return response;
+    }
+}
+
 self.addEventListener('fetch', (event) => {
     // Network-first: always try network, fall back to cache offline
     const request = event.request;
@@ -165,7 +187,7 @@ self.addEventListener('fetch', (event) => {
         ? new Request(request.url, { cache: 'no-cache', credentials: 'same-origin' })
         : request;
     event.respondWith(
-        fetch(networkRequest).then((response) => {
+        fetchStaticWithRetry(networkRequest).then((response) => {
             if (response.ok && request.method === 'GET' && isCacheable(request)) {
                 const clone = response.clone();
                 caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));

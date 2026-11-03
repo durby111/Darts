@@ -221,10 +221,19 @@ export function createCricketTargetState() {
     };
 }
 
-export function initCricket(type, includeBulls = false) {
+// Brisket's confirmed rule: six consecutive numbered targets, optional Bull.
+export function brisketTargets(start = 1, bull = true) {
+    if (!Number.isInteger(start) || start < 1 || start > 15) throw new RangeError('Brisket starts from 1 to 15: six targets within 1–20.');
+    const targets = Array.from({ length: 6 }, (_, index) => String(start + index));
+    return bull ? [...targets, 'Bull'] : targets;
+}
+
+export function initCricket(type, includeBulls = false, brisketOptions = {}) {
     let targets;
     if (type === 'cricket' || type === 'quickie' || type === 'cutthroat') {
         targets = ['20', '19', '18', '17', '16', '15', 'Bull'];
+    } else if (type === 'brisket') {
+        targets = brisketTargets(brisketOptions.start ?? 1, brisketOptions.bull !== false);
     } else if (type === 'spanish') {
         targets = includeBulls
             ? ['20', '19', '18', '17', '16', '15', '14', '13', '12', '11', '10', 'Bull']
@@ -436,8 +445,8 @@ export function saveActiveGame() {
         x01Input: game.x01Input ? deepClone(game.x01Input) : null,
         minnesotaPlaces: game.minnesotaPlaces ? deepClone(game.minnesotaPlaces) : null,
         minnesotaInput: game.minnesotaInput ? deepClone(game.minnesotaInput) : null,
-        undoHistory: (recordingSession() || game.minnesotaPlaces) ? game.undoHistory : [],
-        redoHistory: (recordingSession() || game.minnesotaPlaces) ? game.redoHistory : [],
+        undoHistory: (recordingSession() || game.minnesotaPlaces || (game.players.some(p => p.bot) || game.teams?.some(t => t.members.some(m => m.bot)))) ? game.undoHistory : [],
+        redoHistory: (recordingSession() || game.minnesotaPlaces || (game.players.some(p => p.bot) || game.teams?.some(t => t.members.some(m => m.bot)))) ? game.redoHistory : [],
         timestamp: Date.now()
     };
     try {
@@ -579,6 +588,7 @@ export function saveConfigs(configs) {
 
 export function getCurrentConfig() {
     return {
+        playerSkills: [1,2,3,4].map(i => document.getElementById(`player${i}Skill`)?.value || 'off'),
         gameType: document.getElementById('gameType').value,
         finishType: document.getElementById('finishType').value,
         numPlayers: document.getElementById('numPlayers').value,
@@ -589,6 +599,8 @@ export function getCurrentConfig() {
         cricketPoints: document.getElementById('cricketPoints').checked,
         minnesotaCutthroat: document.getElementById('gameType').value === 'minnesota' && document.getElementById('minnesotaCutthroat')?.checked === true,
         spanishBulls: document.getElementById('spanishBulls').checked,
+        brisketStart: Number(document.getElementById('brisketStart')?.value || 1),
+        brisketBulls: document.getElementById('brisketBulls')?.checked !== false,
         dartsPerLeg: document.getElementById('dartsPerLeg').value,
         totalLegs121: document.getElementById('totalLegs121').value,
         baseballVariant: document.getElementById('baseballVariant')?.value,
@@ -602,6 +614,7 @@ export function getCurrentConfig() {
 }
 
 export function applyConfig(config) {
+    [1,2,3,4].forEach(i => { const el = document.getElementById(`player${i}Skill`); if (el) el.value = config.playerSkills?.[i-1] || 'off'; });
     document.getElementById('gameType').value = config.gameType || '501';
     document.getElementById('finishType').value = config.finishType || 'double-out';
     document.getElementById('numPlayers').value = config.numPlayers || '2';
@@ -612,6 +625,10 @@ export function applyConfig(config) {
     document.getElementById('cricketPoints').checked = config.cricketPoints !== false;
     if (document.getElementById('minnesotaCutthroat')) document.getElementById('minnesotaCutthroat').checked = config.gameType === 'minnesota' && config.minnesotaCutthroat === true;
     document.getElementById('spanishBulls').checked = config.spanishBulls || false;
+    const brisketStart = document.getElementById('brisketStart');
+    if (brisketStart) brisketStart.value = String(Number.isInteger(Number(config.brisketStart)) && Number(config.brisketStart) >= 1 && Number(config.brisketStart) <= 15 ? Number(config.brisketStart) : 1);
+    const brisketBulls = document.getElementById('brisketBulls');
+    if (brisketBulls) brisketBulls.checked = config.brisketBulls !== false;
     if (config.dartsPerLeg) document.getElementById('dartsPerLeg').value = config.dartsPerLeg;
     if (config.totalLegs121) document.getElementById('totalLegs121').value = config.totalLegs121;
     const variantMap = {
@@ -636,5 +653,5 @@ export function applyConfig(config) {
 
     // Trigger change events to update visibility
     document.getElementById('numPlayers').dispatchEvent(new Event('change'));
-    document.getElementById('gameType').dispatchEvent(new Event('change'));
+    document.getElementById('gameType').dispatchEvent(new CustomEvent('change', { detail: { restoringConfig: true } }));
 }

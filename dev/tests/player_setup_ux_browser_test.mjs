@@ -1,3 +1,4 @@
+const build = process.env.BLAKEOUT_BUILD === 'production' ? '' : 'dev/';
 // Isolated rendered DEV regression checks; no real accounts, backend or user profile.
 // Node equivalent of dev_test.py setup_throw_order and relevant BotBlake review flows.
 import assert from 'node:assert/strict';
@@ -7,14 +8,14 @@ import { createServer } from 'node:http';
 import { readFile, stat, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 const { chromium } = createRequire(import.meta.url)(process.env.BLAKEOUT_PLAYWRIGHT_MODULE || 'playwright');
-const root = fileURLToPath(new URL('../../', import.meta.url));
+const root = path.resolve(fileURLToPath(new URL('../../', import.meta.url)));
 const output = process.env.BLAKEOUT_QA_OUTPUT;
 if(output) await mkdir(output,{recursive:true});
 const types = { '.html':'text/html', '.js':'text/javascript', '.css':'text/css', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.jpg':'image/jpeg' };
 const server = createServer(async (req,res) => {
     try {
         let file = path.resolve(root, '.' + decodeURIComponent(new URL(req.url,'http://localhost').pathname));
-        if (!file.startsWith(root)) { res.writeHead(403).end(); return; }
+        if (file !== root && !file.startsWith(root + path.sep)) { res.writeHead(403).end(); return; }
         if ((await stat(file)).isDirectory()) file = path.join(file, 'index.html');
         res.setHeader('Content-Type', types[path.extname(file)] || 'application/octet-stream');
         res.end(await readFile(file));
@@ -27,7 +28,7 @@ const results = [];
 const names = p => p.locator('[id^=player][id$=Group] input').evaluateAll(els => els.map(e=>e.value));
 const state = p => p.evaluate(async () => JSON.parse(JSON.stringify((await import('./js/state.js')).game)));
 const score = async (p,n=60) => { await p.waitForTimeout(750); for(const digit of String(n))await p.locator(`[data-digit="${digit}"]`).click();await p.click('#x01EnterBtn'); };
-const start = async (p,mode='501',skill='expert') => {await p.goto(base+'/dev/');await p.selectOption('#gameType',mode);await p.selectOption('#player2Skill',skill);await p.click('#startGameBtn');await p.locator('#gameScreen').waitFor({state:'visible'});};
+const start = async (p,mode='501',skill='expert') => {await p.goto(base+'/'+build);await p.selectOption('#gameType',mode);await p.selectOption('#player2Skill',skill);await p.click('#startGameBtn');await p.locator('#gameScreen').waitFor({state:'visible'});};
 async function add(p,name,zone,skill) {if(skill){await p.selectOption('#teamBotSkill',skill);await p.click('#teamAddBotBtn');}else{await p.fill('#teamAddName',name);await p.click('#teamAddBtn');}await p.locator('#teamTray [data-chip-id]').last().click();await p.locator(`#teamZone${zone}`).click({position:{x:10,y:10}});}
 async function run(name, fn, options={}) {
     if(process.argv.length>2 && !process.argv.slice(2).some(filter=>name.includes(filter))) return;
@@ -36,7 +37,7 @@ async function run(name, fn, options={}) {
     const p = await ctx.newPage(), errors=[];
     p.on('pageerror', error => errors.push(error.message));
     p.on('dialog', d => d.accept());
-    try { await p.goto(base+'/dev/'); await p.locator('#player1').waitFor(); await fn(p); assert.deepEqual(errors,[]); results.push({name,pass:true}); console.log('PASS',name); }
+    try { await p.goto(base+'/'+build); await p.locator('#player1').waitFor(); await fn(p); assert.deepEqual(errors,[]); results.push({name,pass:true}); console.log('PASS',name); }
     catch(error) { results.push({name,pass:false,error:String(error)}); console.error('FAIL',name,String(error)); }
     finally { await ctx.close(); }
 }
@@ -69,7 +70,7 @@ try {
         await p.evaluate(async()=>{(await import('./js/setup.js')).playAgain();});assert.deepEqual((await state(p)).players.map(x=>x.name),expected);
     });
     await run('keyboard suggestions, Escape, clear, no preset/roster suggestions', async p => {
-        await p.evaluate(()=>{localStorage.setItem('blakeout_dev_recent_player_names',JSON.stringify(['Alpha','Alice']));localStorage.setItem('blakeout_configs',JSON.stringify({lastConfig:{player1:'Preset only'},savedConfigs:[]}));});
+        await p.evaluate(()=>{localStorage.setItem((location.pathname.startsWith('/dev/') ? 'blakeout_dev_recent_player_names' : 'blakeout_recent_player_names'),JSON.stringify(['Alpha','Alice']));localStorage.setItem('blakeout_configs',JSON.stringify({lastConfig:{player1:'Preset only'},savedConfigs:[]}));});
         await p.locator('#player1').focus(); await p.fill('#player1','Al');
         assert.deepEqual(await p.locator('#player1Suggestions button').allTextContents(),['Alpha','Alice']);
         // Follow actual Tab order through existing arrows/skill until chips.
@@ -86,7 +87,7 @@ try {
         await p.locator('[data-player-drag-index="1"]').tap();await p.locator('[data-player-drag-index="0"]').tap();
         assert.deepEqual((await names(p)).slice(0,2),['Bravo','Alpha']);assert.equal(await p.inputValue('#player1Skill'),'hard');
         await p.locator('[data-player-drag-index="0"]').tap();await p.locator('[data-player-drag-index="0"]').tap();assert.equal(await p.locator('.player-row--picked').count(),0);
-        await p.evaluate(()=>localStorage.setItem('blakeout_dev_recent_player_names','["Alicia"]'));
+        await p.evaluate(()=>localStorage.setItem((location.pathname.startsWith('/dev/') ? 'blakeout_dev_recent_player_names' : 'blakeout_recent_player_names'),'["Alicia"]'));
         await p.locator('#player2').tap();await p.fill('#player2','Ali');await p.locator('#player2Suggestions button').tap();assert.equal(await p.inputValue('#player2'),'Alicia');
     },{hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
     await run('BotBlake first-player adjustment, saved config and reorder preserve skills', async p => {
