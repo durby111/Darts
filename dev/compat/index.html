@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BlakeOut — simple scoring DEV</title>
+<style>
+body{margin:0;background:#151515;color:#fff;font:18px/1.5 sans-serif}main{max-width:640px;margin:auto;padding:16px}h1{font-size:26px}label{display:block;margin:12px 0}input,select,button{font:inherit;box-sizing:border-box;min-height:48px;max-width:100%;padding:8px}input[type=text],input[type=number],select{width:100%}button{margin:6px 6px 6px 0;background:#eee;color:#111;border:2px solid #888;border-radius:4px}button:focus,input:focus,select:focus{outline:3px solid #ffbf47}button:disabled{opacity:.5}li{padding:8px;border-bottom:1px solid #666}#message,#storageWarning{color:#ffda7b}#confirmReset{border:2px solid #ffbf47;padding:12px}a{color:#8bd5ff}[hidden]{display:none!important}
+</style></head><body><main>
+<h1>BlakeOut simple scoring <small>DEV</small></h1>
+<p>301, 501 or Minnesota, one to four players. Local scores only: no accounts, bots, teams, sharing or private history. Modern saved games stay separate.</p>
+<p id="boot" role="status">Waiting for simple scoring to start. If this remains, JavaScript or required app code is unavailable. Do not clear website data.</p>
+<noscript><p>JavaScript is required for scoring. Your saved games have not been removed.</p></noscript>
+<p id="storageWarning" role="status"></p>
+<div id="setup">
+<label>Game <select id="distance"><option>501</option><option>301</option><option value="minnesota">Minnesota</option></select></label>
+<label id="mnStyleLabel" hidden>Minnesota scoring <select id="mnStyle"><option value="normal">Normal — highest score</option><option value="cutthroat">Cutthroat — lowest score (2+ players)</option></select></label>
+<label>Finish <select id="finish"><option value="open">Straight out</option><option value="double">Double out (confirm last dart)</option></select></label>
+<label>Players <select id="count"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+<label>Player 1 <input id="name0" type="text" maxlength="40" value="Player 1"></label>
+<label>Player 2 <input id="name1" type="text" maxlength="40" value="Player 2"></label>
+<label>Player 3 <input id="name2" type="text" maxlength="40" value="Player 3"></label>
+<label>Player 4 <input id="name3" type="text" maxlength="40" value="Player 4"></label>
+<button id="start" type="button">Start new game</button>
+</div>
+<div id="play" hidden>
+<h2 id="turn"></h2><p id="mode"></p><ol id="scores"></ol>
+<form id="scoreForm"><label>Turn total (0–180) <input id="score" type="number" min="0" max="180" step="1" inputmode="numeric" autocomplete="off"></label>
+<label id="doubleLabel"><input id="double" type="checkbox"> Last dart was a double (including double bull)</label>
+<button id="submit" type="submit">Enter score</button><button id="bust" type="button">Bust turn</button></form>
+<div id="mnForm" hidden>
+<p>Close all ten rows (3 marks each) and tie or beat every opponent's score. Extra marks score only while an opponent has that row open. Each dart counts on one chosen row. A Bed is three darts in one bed and uses the whole turn. No bust rule; use Miss for a missed dart. This mode stops at the first winner, without placement continuation.</p>
+<label>Target <select id="mnTarget"><option>20</option><option>19</option><option>18</option><option>17</option><option>16</option><option>15</option><option>Bull</option><option>Triples</option><option>Doubles</option><option>Bed</option></select></label>
+<label>Marks for number/Bull <select id="mnMultiplier"><option value="1">Single</option><option value="2">Double</option><option value="3">Triple (not Bull)</option></select></label>
+<label>Actual points for an already closed special row <input id="mnPoints" type="number" min="0" max="180" step="1" inputmode="numeric"></label>
+<button id="mnAdd" type="button">Add dart / Bed</button><button id="mnMiss" type="button">Miss dart</button>
+<p id="mnPending" role="status"></p><button id="mnConfirm" type="button">Confirm turn</button>
+</div>
+<button id="undo" type="button">Undo last turn</button><button id="new" type="button">New game / reset</button>
+</div>
+<p id="message" role="status" aria-live="polite"></p>
+<div id="confirmReset" hidden><p>Replace this simple-mode game? Its scores and undo history will be replaced. Modern BlakeOut saves are not changed.</p><button id="confirm" type="button">Replace simple-mode game</button><button id="cancel" type="button">Cancel</button></div>
+<p>Totals are entered by the scorer; this does not validate individual dart combinations. Double-in is not supported. Keep this page open if saving is unavailable. First loading needs a connection; after loading, scoring needs no network. Offline reopening is not guaranteed on old browsers.</p>
+<p><a href="../" target="_blank" rel="noopener">Open modern DEV in another tab</a></p>
+</main>
+<script id="simpleEngine">
+/* ES5-only, independent of modern modules and their storage. */
+(function (root) {
+    'use strict';
+    function clone(x) { return JSON.parse(JSON.stringify(x)); }
+    var targets=['20','19','18','17','16','15','Bull','Triples','Doubles','Bed'];
+    function create(distance, finish, names) {
+        var players = [], i;
+        var mn=distance==='minnesota';
+        if ((!mn && distance !== 301 && distance !== 501) || (mn ? finish!=='normal' && finish!=='cutthroat' : finish !== 'open' && finish !== 'double') || names.length < 1 || names.length > 4 || (mn&&finish==='cutthroat'&&names.length<2)) throw new Error('Invalid setup: Minnesota Cutthroat needs at least two players.');
+        for (i = 0; i < names.length; i++) {var p={name: String(names[i]).slice(0, 40), score: mn?0:distance};if(mn){p.marks={};for(var j=0;j<targets.length;j++)p.marks[targets[j]]=0;}players.push(p);}
+        return {version: 1, distance: distance, finish: finish, players: players, current: 0, winner: null, history: [], pending: []};
+    }
+    function valid(s) {
+        function frame(f) {
+            var i;
+            if (!f || !Array.isArray(f.players) || f.players.length < 1 || f.players.length > 4 || Math.floor(f.current) !== f.current || f.current < 0 || f.current >= f.players.length || (f.winner !== null && (f.winner !== f.current || (s.distance!=='minnesota'&&f.players[f.winner].score !== 0)))) return false;
+            for (i=0;i<f.players.length;i++) {if (typeof f.players[i].name !== 'string' || f.players[i].name.length > 40 || !isFinite(f.players[i].score) || Math.floor(f.players[i].score) !== f.players[i].score || f.players[i].score < 0 || (s.distance!=='minnesota'&&f.players[i].score > s.distance)) return false;
+                if(s.distance==='minnesota'){for(var j=0;j<targets.length;j++){var m=f.players[i].marks&&f.players[i].marks[targets[j]];if(Math.floor(m)!==m||m<0||m>3)return false;}if(!Array.isArray(f.pending)||f.pending.length>3)return false;for(j=0;j<f.pending.length;j++)if(!validDart(f.pending[j]))return false; if(dartCount(f.pending)>3)return false;}}
+            return true;
+        }
+        try {
+            if (!s || s.version !== 1 || (s.distance !== 301 && s.distance !== 501 && s.distance!=='minnesota') || (s.distance==='minnesota' ? (s.finish!=='normal'&&s.finish!=='cutthroat') || (s.finish==='cutthroat'&&s.players.length<2) : s.finish !== 'open' && s.finish !== 'double') || !Array.isArray(s.history) || s.history.length > 10000 || !frame(s)) return false;
+            for (var i=0;i<s.history.length;i++) if (!frame(s.history[i]) || s.history[i].players.length !== s.players.length) return false;
+            return true;
+        } catch (e) { return false; }
+    }
+    function score(s, total, doubled, forcedBust) {
+        if (!valid(s) || s.distance==='minnesota' || s.winner !== null || typeof total !== 'number' || Math.floor(total) !== total || total < 0 || total > 180 || s.history.length >= 10000) throw new Error('Enter a whole turn total from 0 to 180 in an unfinished game.');
+        var next = clone(s), remaining = s.players[s.current].score - total;
+        var bust = forcedBust || remaining < 0 || (s.finish === 'double' && (remaining === 1 || (remaining === 0 && !doubled)));
+        next.history.push({players:clone(s.players),current:s.current,winner:s.winner});
+        if (!bust) next.players[s.current].score = remaining;
+        if (!bust && remaining === 0) next.winner = s.current;
+        else next.current = (s.current + 1) % s.players.length;
+        return {game:next,bust:!!bust};
+    }
+    function undo(s) {
+        if (!valid(s) || !s.history.length) return s;
+        var next=clone(s), prior=next.history.pop();
+        next.players=prior.players;next.current=prior.current;next.winner=prior.winner;next.pending=prior.pending||[];
+        return next;
+    }
+    function dartCount(darts){var n=0;for(var i=0;i<darts.length;i++)n+=darts[i].target==='Bed'?3:1;return n;}
+    function validDart(d){return !!d&&(targets.indexOf(d.target)!==-1||d.target==='MISS')&&Math.floor(d.multiplier)===d.multiplier&&d.multiplier>=1&&d.multiplier<=(d.target==='Bull'?2:targets.indexOf(d.target)>=7||d.target==='MISS'?1:3)&&Math.floor(d.points)===d.points&&d.points>=0&&d.points<=180;}
+    function frameOf(s){return {players:clone(s.players),current:s.current,winner:s.winner,pending:clone(s.pending||[])};}
+    function applyDart(s,d){
+        if(d.target==='MISS')return;
+        var p=s.players[s.current], before=p.marks[d.target],special=targets.indexOf(d.target)>=7,points=0,open=[];
+        for(var i=0;i<s.players.length;i++)if(i!==s.current&&s.players[i].marks[d.target]<3)open.push(i);
+        if(special){if(before===3&&open.length){var v=d.points,ok=d.target==='Triples'?v>=3&&v<=60&&v%3===0:d.target==='Doubles'?(v>=2&&v<=40&&v%2===0)||v===50:v>=3&&v<=180;if(!ok)throw new Error('Enter actual qualifying points: Triple 3–60, Double 2–40 or 50, Bed 3–180.');points=v;}p.marks[d.target]=Math.min(3,before+1);}
+        else {points=Math.max(0,before+d.multiplier-3)*(d.target==='Bull'?25:Number(d.target));p.marks[d.target]=Math.min(3,before+d.multiplier);}
+        if(open.length){if(s.finish==='cutthroat'){for(i=0;i<open.length;i++)s.players[open[i]].score+=points;}else p.score+=points;}
+    }
+    function addDart(s,d){
+        if(!valid(s)||s.distance!=='minnesota'||s.winner!==null||s.history.length>=10000||!validDart(d)||dartCount(s.pending)+dartCount([d])>3)throw new Error('A turn has at most three darts; a Bed uses the entire turn. Bull has no triple.');
+        var probe=clone(s);for(var i=0;i<probe.pending.length;i++)applyDart(probe,probe.pending[i]);applyDart(probe,d);
+        var next=clone(s);next.history.push(frameOf(s));next.pending.push(clone(d));return next;
+    }
+    function confirm(s){
+        if(!valid(s)||s.distance!=='minnesota'||s.winner!==null||!s.pending.length||s.history.length>=10000)throw new Error('Add at least one dart or Miss before confirming.');
+        var next=clone(s);next.history.push(frameOf(s));for(var i=0;i<next.pending.length;i++)applyDart(next,next.pending[i]);next.pending=[];
+        var p=next.players[next.current],won=true;for(i=0;i<targets.length;i++)if(p.marks[targets[i]]<3)won=false;
+        for(i=0;i<next.players.length;i++)if(next.finish==='cutthroat'?p.score>next.players[i].score:p.score<next.players[i].score)won=false;
+        if(won)next.winner=next.current;else next.current=(next.current+1)%next.players.length;return next;
+    }
+    root.BlakeOutSimple = {create:create,valid:valid,score:score,undo:undo,targets:targets,addDart:addDart,confirm:confirm};
+}(window));
+</script>
+<script id="simpleUI">
+(function () {
+    'use strict';
+    var key='blakeout_dev_simple_game_v1', engine=window.BlakeOutSimple, game=null, savedExists=false, busy=false, pending=null;
+    function el(id){return document.getElementById(id);}
+    function text(id,value){el(id).textContent=value;}
+    function visible(id,on){el(id).hidden=!on;el(id).style.display=on?'':'none';}
+    function warn(){text('storageWarning','Saving is unavailable. Scores work in this open page but may be lost if it closes. Existing stored data has not been cleared.');}
+    function save(){try{window.localStorage.setItem(key,JSON.stringify(game));savedExists=true;text('storageWarning','');}catch(e){warn();}}
+    function render(){
+        visible('setup',!game);visible('play',!!game);
+        if(!game)return;
+        var list=el('scores');while(list.firstChild)list.removeChild(list.firstChild);
+        for(var i=0;i<game.players.length;i++){var li=document.createElement('li');li.textContent=game.players[i].name+': '+game.players[i].score+(game.winner===null&&i===game.current?' — throwing':'');if(game.distance==='minnesota'){var marks=document.createElement('div'),parts=[];for(var j=0;j<engine.targets.length;j++){var t=engine.targets[j];parts.push(t+': '+game.players[i].marks[t]+'/3');}marks.textContent=parts.join(' | ');li.appendChild(marks);}list.appendChild(li);}
+        text('turn',game.winner===null?game.players[game.current].name+' to throw':game.players[game.winner].name+' wins');
+        text('mode',game.distance==='minnesota'?(game.finish==='cutthroat'?'Minnesota Cutthroat — lowest or tied-lowest score wins.':'Minnesota normal — highest or tied-highest score wins.'):(game.distance+' — '+(game.finish==='double'?'Double out':'Straight out')));
+        visible('scoreForm',game.winner===null&&game.distance!=='minnesota');visible('mnForm',game.winner===null&&game.distance==='minnesota');visible('doubleLabel',game.finish==='double');el('undo').disabled=!game.history.length;text('undo',game.distance==='minnesota'?'Undo last dart / confirmation':'Undo last turn');
+        if(game.distance==='minnesota'){var darts=[];for(var k=0;k<game.pending.length;k++)darts.push(game.pending[k].target+' x'+game.pending[k].multiplier+(game.pending[k].points?' ('+game.pending[k].points+' points)':''));text('mnPending','Pending: '+(darts.join(', ')||'none'));el('mnPoints').value='';}
+        el('score').value='';el('double').checked=false;
+    }
+    function requestReset(action){pending=action;visible('confirmReset',true);el('confirm').focus();}
+    function setupGame(){try{var names=[],count=Number(el('count').value);for(var i=0;i<count;i++)names.push(el('name'+i).value.replace(/^\s+|\s+$/g,'')||'Player '+(i+1));var mn=el('distance').value==='minnesota';game=engine.create(mn?'minnesota':Number(el('distance').value),mn?el('mnStyle').value:el('finish').value,names);save();render();text('message','Game started.');}catch(e){text('message',e.message);}}
+    function commit(bust){
+        if(busy||pending||!game||game.winner!==null)return;
+        var raw=el('score').value;
+        if(!bust&&!/^\d+$/.test(raw)){text('message','Enter a whole turn total from 0 to 180.');return;}
+        try{var result=engine.score(game,bust?0:Number(raw),el('double').checked,bust);game=result.game;busy=true;window.setTimeout(function(){busy=false;},500);save();render();text('message',result.bust?'Bust — score unchanged; next player.':'Turn saved in this page.');}catch(e){text('message',e.message);}
+    }
+    el('start').onclick=function(){if(pending)return;if(game||savedExists)requestReset(setupGame);else setupGame();};
+    el('new').onclick=function(){if(pending)return;requestReset(function(){game=null;render();text('message','Choose your next game. The old saved game is retained until you start its replacement.');});};
+    el('confirm').onclick=function(){if(!pending)return;var action=pending;pending=null;visible('confirmReset',false);action();};
+    el('cancel').onclick=function(){pending=null;visible('confirmReset',false);text('message','Reset canceled.');};
+    document.addEventListener('keydown',function(e){if((e.key==='Escape'||e.keyCode===27)&&pending)el('cancel').onclick();});
+    el('scoreForm').onsubmit=function(e){e.preventDefault();commit(false);};el('bust').onclick=function(){commit(true);};
+    function mnAction(kind){if(busy||pending||!game)return;try{if(kind==='confirm')game=engine.confirm(game);else{var target=kind==='miss'?'MISS':el('mnTarget').value;game=engine.addDart(game,{target:target,multiplier:engine.targets.indexOf(target)>=7||target==='MISS'?1:Number(el('mnMultiplier').value),points:el('mnPoints').value===''?0:Number(el('mnPoints').value)});}busy=true;window.setTimeout(function(){busy=false;},500);save();render();text('message',kind==='confirm'?'Turn confirmed.':'Dart added; confirm when ready.');}catch(e){text('message',e.message);}}
+    el('mnAdd').onclick=function(){mnAction('add');};el('mnMiss').onclick=function(){mnAction('miss');};el('mnConfirm').onclick=function(){mnAction('confirm');};
+    el('distance').onchange=function(){var mn=el('distance').value==='minnesota';visible('mnStyleLabel',mn);el('finish').parentNode.style.display=mn?'none':'block';};
+    el('undo').onclick=function(){if(pending||busy||!game)return;game=engine.undo(game);save();render();text('message','Last turn undone.');};
+    el('count').onchange=function(){for(var i=0;i<4;i++)el('name'+i).parentNode.style.display=i<Number(el('count').value)?'block':'none';};
+    try{var raw=window.localStorage.getItem(key);savedExists=!!raw;if(raw){var parsed=JSON.parse(raw);if(!engine.valid(parsed))throw new Error('Invalid save');game=parsed;}}catch(e){text('storageWarning','The simple-mode save could not be read. It has not been removed. Starting a replacement may overwrite only that simple-mode save.');}
+    el('count').onchange();el('distance').onchange();render();visible('boot',false);
+}());
+</script></body></html>

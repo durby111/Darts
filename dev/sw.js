@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v80-player-setup-20261101';
+const CACHE_NAME = 'blakeout-dev-v81-startup-warning-20261103';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -15,6 +15,8 @@ function isOwnPath(url) {
 const ASSETS = [
     './',
     './index.html',
+    './compat/',
+    './compat/index.html',
     './manifest.json',
     './css/variables.css',
     './css/scoreboard-palettes.css',

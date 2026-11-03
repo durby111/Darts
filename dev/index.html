@@ -26,6 +26,66 @@
     <script type="module" src="js/home-account.js"></script>
 </head>
 <body class="dev-build">
+    <!-- Kept inline and ES5: this must work even when the module graph cannot load. -->
+    <section id="startupNotice" role="status" aria-live="polite" aria-atomic="true" style="position:fixed;z-index:100000;top:12px;left:12px;right:12px;max-height:75vh;overflow:auto;margin:0;padding:16px;border:2px solid #ffbf47;border-radius:8px;background:#161616;color:#fff;font:16px/1.5 sans-serif;max-width:720px;box-sizing:border-box;">
+        <strong id="startupTitle">Loading BlakeOut</strong>
+        <p id="startupMessage">Waiting for the game controls. If this stays visible, the app has not finished starting. JavaScript must be enabled and the app files must be available.</p>
+        <p>Do not clear website data: it may contain saved games. This notice does not change your saves.</p>
+        <p><a href="compat/" target="_blank" rel="noopener" style="color:#8bd5ff;">Open simple 301/501/Minnesota scoring in another tab</a>. Separate saves; no accounts or automatic game transfer. Old-device compatibility is still being tested.</p>
+        <button id="startupDismiss" type="button" style="min-height:44px;padding:8px 16px;font:inherit;">Dismiss notice</button>
+        <noscript><p>JavaScript is disabled or unavailable. BlakeOut needs JavaScript to display and score games. Saved games have not been removed.</p></noscript>
+    </section>
+    <script id="startupGuard">
+    (function () {
+        'use strict';
+        var box = document.getElementById('startupNotice');
+        var title = document.getElementById('startupTitle');
+        var message = document.getElementById('startupMessage');
+        var done = false, dismissed = false, failed = false, timer;
+        var missing = [];
+        var probe = document.createElement('script');
+        if (!('noModule' in probe)) missing.push('JavaScript modules');
+        if (!window.Promise || !window.Map || !window.Set || !Array.from || !Array.prototype.includes || !Object.assign || !Object.entries || !Object.values) missing.push('modern JavaScript APIs');
+        if (!Array.prototype.at || !Object.hasOwn) missing.push('current scoring APIs');
+        if (!window.crypto || typeof window.crypto.randomUUID !== 'function') missing.push('secure game identifiers');
+        var unsupported = missing.length > 0;
+        function show(heading, text, state) {
+            title.textContent = heading;
+            message.textContent = text;
+            box.setAttribute('data-startup-state', state);
+            if (!dismissed) box.style.display = 'block';
+        }
+        function failure() {
+            if (done || unsupported) return;
+            failed = true;
+            show('BlakeOut could not finish starting', 'A game file or startup step failed. This can be caused by a loading, cached-file, browser compatibility or saved-settings problem; the cause is not confirmed. Keep this page and report your device, browser version and page address. Do not clear website data.', 'failed');
+        }
+        document.getElementById('startupDismiss').onclick = function () {
+            dismissed = true;
+            box.style.display = 'none';
+        };
+        window.BlakeOutStartup = {
+            fail: failure,
+            ready: function () {
+                done = true;
+                window.clearTimeout(timer);
+                if (!unsupported && !failed) box.style.display = 'none';
+            }
+        };
+        if (unsupported) {
+            show('This browser is missing features BlakeOut needs', 'Unavailable: ' + missing.join(', ') + '. Use the HTTPS site and an up-to-date browser supported by your device. If the device cannot update, use a newer device for play; saves on this device do not transfer automatically. A browser version minimum has not yet been verified.', 'unsupported');
+        } else {
+            box.setAttribute('data-startup-state', 'loading');
+            timer = window.setTimeout(function () {
+                if (!done && !failed) show('BlakeOut is taking longer to start', 'The game controls are not ready yet. Slow or unavailable files, a cached-file mismatch, or browser compatibility may be involved. This delay alone does not mean your browser is unsupported. Check your connection and report your device, browser version and page address if it continues.', 'slow');
+            }, 12000);
+        }
+        window.addEventListener('error', function (event) {
+            var target = event.target;
+            if (!done && (target === window || (target && target.tagName === 'SCRIPT' && target.type === 'module'))) failure();
+        }, true);
+    }());
+    </script>
     <svg style="position:absolute;width:0;height:0" aria-hidden="true">
         <defs>
             <filter id="chalk" x="-8%" y="-8%" width="116%" height="116%" color-interpolation-filters="sRGB">
