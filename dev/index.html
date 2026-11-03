@@ -32,6 +32,7 @@
         <p id="startupMessage">Waiting for the game controls. If this stays visible, the app has not finished starting. JavaScript must be enabled and the app files must be available.</p>
         <p>Do not clear website data: it may contain saved games. This notice does not change your saves.</p>
         <p><a href="compat/" target="_blank" rel="noopener" style="color:#8bd5ff;">Open simple 301/501/Minnesota scoring in another tab</a>. Separate saves; no accounts or automatic game transfer. Old-device compatibility is still being tested.</p>
+        <button id="startupRetry" type="button" style="min-height:44px;padding:8px 16px;font:inherit;">Retry loading scorer</button>
         <button id="startupDismiss" type="button" style="min-height:44px;padding:8px 16px;font:inherit;">Dismiss notice</button>
         <noscript><p>JavaScript is disabled or unavailable. BlakeOut needs JavaScript to display and score games. Saved games have not been removed.</p></noscript>
     </section>
@@ -41,7 +42,7 @@
         var box = document.getElementById('startupNotice');
         var title = document.getElementById('startupTitle');
         var message = document.getElementById('startupMessage');
-        var done = false, dismissed = false, failed = false, timer;
+        var done = false, dismissed = false, failed = false, confirmedFailure = false, timer;
         var missing = [];
         var probe = document.createElement('script');
         if (!('noModule' in probe)) missing.push('JavaScript modules');
@@ -55,11 +56,19 @@
             box.setAttribute('data-startup-state', state);
             if (!dismissed) box.style.display = 'block';
         }
-        function failure() {
+        function failure(step) {
             if (done || unsupported) return;
             failed = true;
-            show('BlakeOut could not finish starting', 'A game file or startup step failed. This can be caused by a loading, cached-file, browser compatibility or saved-settings problem; the cause is not confirmed. Keep this page and report your device, browser version and page address. Do not clear website data.', 'failed');
+            var label = typeof step === 'string' && /^[a-zA-Z][a-zA-Z0-9]{0,30}$/.test(step) ? step : '';
+            if (label) confirmedFailure = true;
+            show('BlakeOut could not finish starting', (label ? 'Startup step: ' + label + '. ' : '') + 'A game file or startup step failed. This can be caused by a loading, cached-file, browser compatibility or saved-settings problem; the cause is not confirmed. Keep this page and report your device, browser version and page address. Do not clear website data.', 'failed');
         }
+        // User-triggered full-page retry also works before a worker is installed.
+        // Do not clear storage/caches or retry a partially evaluated module graph.
+        document.getElementById('startupRetry').onclick = function () {
+            this.disabled = true;
+            window.location.reload();
+        };
         document.getElementById('startupDismiss').onclick = function () {
             dismissed = true;
             box.style.display = 'none';
@@ -67,9 +76,12 @@
         window.BlakeOutStartup = {
             fail: failure,
             ready: function () {
+                if (confirmedFailure) return;
+                if (!document.querySelector('#gameTypeGrid [data-game-value]')) { failure('gamePicker'); return; }
                 done = true;
+                failed = false;
                 window.clearTimeout(timer);
-                if (!unsupported && !failed) box.style.display = 'none';
+                if (!unsupported) { box.setAttribute('data-startup-state', 'ready'); box.style.display = 'none'; }
             }
         };
         if (unsupported) {

@@ -1,3 +1,4 @@
+import { recordPracticeTurn } from './botblake-engine.js';
 /* ============================================
     X01 Games + round-based total-score entry (Count Up)
    Checkout chart, calculator mode, score history
@@ -381,6 +382,7 @@ function x01Bust() {
     const player = game.players[game.currentPlayer];
     remainingMode = false;
     player.history.push(makeHistoryEntry(0, true, thrower));
+    recordPracticeTurn(game, 0);
 
     // 121 mode: a busted turn still consumes 3 darts from the player's allotment.
     if (game.game121) {
@@ -626,6 +628,7 @@ function submitScore(opts = {}) {
     if (newScore < 0) {
         recordTurn({ points: 0, darts: actualDarts, bust: true });
         player.history.push(makeHistoryEntry(score, true, thrower));
+        recordPracticeTurn(game, 0);
 
         const indicator = document.getElementById('finishIndicator');
         indicator.textContent = `BUST! ${score} > ${player.score} remaining`;
@@ -653,6 +656,7 @@ function submitScore(opts = {}) {
 
     // BUG FIX: newScore === 0 is ALWAYS a win. Trust the player.
     // Apply score
+    recordPracticeTurn(game, score);
     player.score = newScore;
     recordTurn({ points: score, darts: actualDarts });
     clearActualDarts();
@@ -1011,3 +1015,15 @@ function initX01Controls() {
 }
 
 export { updateX01Display, initX01Controls, submitScore, clearInput, resetX01Input };
+
+// Bot turns have already been simulated dart by dart under the selected rules.
+export function submitBotX01(turn) {
+    if (turnCommitLocked) return false;
+    const player = game.players[game.currentPlayer];
+    clearInput();
+    if (turn.bust) x01Bust();
+    else { game.currentInput = String(turn.score); submitScore(); }
+
+    saveActiveGame();
+    return true;
+}

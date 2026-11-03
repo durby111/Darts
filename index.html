@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" href="assets/icon-192.png">
     <title>BlakeOut Darts</title>
     <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/scoreboard-palettes.css">
     <link rel="stylesheet" href="css/layout.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/games.css">
@@ -23,6 +24,78 @@
     <script type="module" src="js/platform-nav.js"></script>
 </head>
 <body>
+    <!-- Kept inline and ES5: this must work even when the module graph cannot load. -->
+    <section id="startupNotice" role="status" aria-live="polite" aria-atomic="true" style="position:fixed;z-index:100000;top:12px;left:12px;right:12px;max-height:75vh;overflow:auto;margin:0;padding:16px;border:2px solid #ffbf47;border-radius:8px;background:#161616;color:#fff;font:16px/1.5 sans-serif;max-width:720px;box-sizing:border-box;">
+        <strong id="startupTitle">Loading BlakeOut</strong>
+        <p id="startupMessage">Waiting for the game controls. If this stays visible, the app has not finished starting. JavaScript must be enabled and the app files must be available.</p>
+        <p>Do not clear website data: it may contain saved games. This notice does not change your saves.</p>
+        <p><a href="compat/" target="_blank" rel="noopener" style="color:#8bd5ff;">Open simple 301/501/Minnesota scoring in another tab</a>. Separate saves; no accounts or automatic game transfer. Old-device compatibility is still being tested.</p>
+        <button id="startupRetry" type="button" style="min-height:44px;padding:8px 16px;font:inherit;">Retry loading scorer</button>
+        <button id="startupDismiss" type="button" style="min-height:44px;padding:8px 16px;font:inherit;">Dismiss notice</button>
+        <noscript><p>JavaScript is disabled or unavailable. BlakeOut needs JavaScript to display and score games. Saved games have not been removed.</p></noscript>
+    </section>
+    <script id="startupGuard">
+    (function () {
+        'use strict';
+        var box = document.getElementById('startupNotice');
+        var title = document.getElementById('startupTitle');
+        var message = document.getElementById('startupMessage');
+        var done = false, dismissed = false, failed = false, confirmedFailure = false, timer;
+        var missing = [];
+        var probe = document.createElement('script');
+        if (!('noModule' in probe)) missing.push('JavaScript modules');
+        if (!window.Promise || !window.Map || !window.Set || !Array.from || !Array.prototype.includes || !Object.assign || !Object.entries || !Object.values) missing.push('modern JavaScript APIs');
+        if (!Array.prototype.at || !Object.hasOwn) missing.push('current scoring APIs');
+        if (!window.crypto || typeof window.crypto.randomUUID !== 'function') missing.push('secure game identifiers');
+        var unsupported = missing.length > 0;
+        function show(heading, text, state) {
+            title.textContent = heading;
+            message.textContent = text;
+            box.setAttribute('data-startup-state', state);
+            if (!dismissed) box.style.display = 'block';
+        }
+        function failure(step) {
+            if (done || unsupported) return;
+            failed = true;
+            var label = typeof step === 'string' && /^[a-zA-Z][a-zA-Z0-9]{0,30}$/.test(step) ? step : '';
+            if (label) confirmedFailure = true;
+            show('BlakeOut could not finish starting', (label ? 'Startup step: ' + label + '. ' : '') + 'A game file or startup step failed. This can be caused by a loading, cached-file, browser compatibility or saved-settings problem; the cause is not confirmed. Keep this page and report your device, browser version and page address. Do not clear website data.', 'failed');
+        }
+        // User-triggered full-page retry also works before a worker is installed.
+        // Do not clear storage/caches or retry a partially evaluated module graph.
+        document.getElementById('startupRetry').onclick = function () {
+            this.disabled = true;
+            window.location.reload();
+        };
+        document.getElementById('startupDismiss').onclick = function () {
+            dismissed = true;
+            box.style.display = 'none';
+        };
+        window.BlakeOutStartup = {
+            fail: failure,
+            ready: function () {
+                if (confirmedFailure) return;
+                if (!document.querySelector('#gameTypeGrid [data-game-value]')) { failure('gamePicker'); return; }
+                done = true;
+                failed = false;
+                window.clearTimeout(timer);
+                if (!unsupported) { box.setAttribute('data-startup-state', 'ready'); box.style.display = 'none'; }
+            }
+        };
+        if (unsupported) {
+            show('This browser is missing features BlakeOut needs', 'Unavailable: ' + missing.join(', ') + '. Use the HTTPS site and an up-to-date browser supported by your device. If the device cannot update, use a newer device for play; saves on this device do not transfer automatically. A browser version minimum has not yet been verified.', 'unsupported');
+        } else {
+            box.setAttribute('data-startup-state', 'loading');
+            timer = window.setTimeout(function () {
+                if (!done && !failed) show('BlakeOut is taking longer to start', 'The game controls are not ready yet. Slow or unavailable files, a cached-file mismatch, or browser compatibility may be involved. This delay alone does not mean your browser is unsupported. Check your connection and report your device, browser version and page address if it continues.', 'slow');
+            }, 12000);
+        }
+        window.addEventListener('error', function (event) {
+            var target = event.target;
+            if (!done && (target === window || (target && target.tagName === 'SCRIPT' && target.type === 'module'))) failure();
+        }, true);
+    }());
+    </script>
     <svg style="position:absolute;width:0;height:0" aria-hidden="true">
         <defs>
             <filter id="chalk" x="-8%" y="-8%" width="116%" height="116%" color-interpolation-filters="sRGB">
@@ -43,6 +116,7 @@
                 </div>
                 <div class="setup-header-text">
                     <h1>BlakeOut</h1>
+                    <span class="brisket-credit" id="brisketSetupCredit" hidden title="Brisket — idea by Burt" aria-label="Brisket, idea by Burt"><svg viewBox="0 0 48 40" aria-hidden="true" focusable="false"><path d="M24 34C16 27 5 20 7 11C9 3 19 3 24 10C29 3 39 3 41 11C43 20 32 28 24 34Z"/><path d="M3 33L44 4M35 4H44V13M3 28V33H8"/></svg><span>Burt</span></span>
                     <div class="setup-subtitle">DARTS SCORER</div>
                 </div>
                 <div class="setup-header-side">
@@ -197,6 +271,12 @@
                 </label>
             </div>
 
+            <div class="form-group hidden" id="brisketOptions">
+                <label for="brisketStart">Brisket numbered targets</label>
+                <select id="brisketStart"><option value="1">1–6 (default)</option><option value="2">2–7</option><option value="3">3–8</option><option value="4">4–9</option><option value="5">5–10</option><option value="6">6–11</option><option value="7">7–12</option><option value="8">8–13</option><option value="9">9–14</option><option value="10">10–15</option><option value="11">11–16</option><option value="12">12–17</option><option value="13">13–18</option><option value="14">14–19</option><option value="15">15–20</option></select>
+                <label class="checkbox-label"><input type="checkbox" id="brisketBulls" checked><span>Include Bull</span></label>
+                <p class="form-hint">Always six numbered targets, plus Bull when selected. Points use each target’s face value.</p>
+            </div>
             <div class="form-group hidden" id="teamCricketOptions">
                 <label>Team Cricket Rules</label>
                 <select id="teamCricketRules">
@@ -221,7 +301,7 @@
             <datalist id="rosterDatalist"></datalist>
 
             <section class="setup-section setup-panel" id="playersSection">
-                <div class="setup-section-label">Players</div>
+                <div class="setup-section-label">Players</div><p>BotBlake: X01, Cricket, Spanish, and Cutthroat, including teams. Auto lets a human start and follows the running human average. Bot matches are local practice.</p>
                 <div class="form-group" id="numPlayersGroup">
                     <label for="numPlayers">Players at the board</label>
                     <select id="numPlayers">
@@ -240,46 +320,54 @@
                 </div>
 
                 <div class="player-order-toolbar" id="playerOrderControls">
-                    <div class="player-order-hint">Throw order</div>
+                    <div class="player-order-hint"><strong>Throw order</strong> Drag ☰ or tap ▲ ▼</div>
                     <button type="button" class="btn btn--sm btn--neutral" id="randomizePlayersBtn">🎲 Randomize</button>
                 </div>
 
                 <div class="player-order-list" id="playerOrderList">
                 <div class="player-row" id="player1Group" data-player-index="0">
-                    <button type="button" class="player-order-drag" data-player-drag-index="0" aria-label="Drag first player">☰</button>
-                    <label for="player1" data-player-order-label>Throws 1st</label>
-                    <input type="text" id="player1" value="Home" list="rosterDatalist" autocomplete="off">
+                    <button type="button" class="player-order-drag" data-player-drag-index="0" aria-label="Drag first player"><span class="player-order-number" data-player-order-number aria-hidden="true">1</span><span class="player-order-grip" aria-hidden="true">☰</span></button>
+                    <label for="player1" class="player-order-label" data-player-order-label>Throws 1st</label>
+                    <input type="text" id="player1" value="Home" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-controls="player1Suggestions">
                     <span class="player-order-stepper">
                         <button type="button" data-player-order-action="up" data-player-index="0" aria-label="Move first player earlier" disabled>▲</button>
                         <button type="button" data-player-order-action="down" data-player-index="0" aria-label="Move first player later">▼</button>
                     </span>
+                    <label class="bot-skill-label"><span class="visually-hidden">Skill level</span><select id="player1Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
+                    <div class="player-name-suggestions" id="player1Suggestions" data-player-suggestions="0" role="group" aria-label="Recent names for throw 1st" hidden></div>
                 </div>
                 <div class="player-row" id="player2Group" data-player-index="1">
-                    <button type="button" class="player-order-drag" data-player-drag-index="1" aria-label="Drag second player">☰</button>
-                    <label for="player2" data-player-order-label>Throws 2nd</label>
-                    <input type="text" id="player2" value="Away" list="rosterDatalist" autocomplete="off">
+                    <button type="button" class="player-order-drag" data-player-drag-index="1" aria-label="Drag second player"><span class="player-order-number" data-player-order-number aria-hidden="true">2</span><span class="player-order-grip" aria-hidden="true">☰</span></button>
+                    <label for="player2" class="player-order-label" data-player-order-label>Throws 2nd</label>
+                    <input type="text" id="player2" value="Away" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-controls="player2Suggestions">
                     <span class="player-order-stepper">
                         <button type="button" data-player-order-action="up" data-player-index="1" aria-label="Move second player earlier">▲</button>
                         <button type="button" data-player-order-action="down" data-player-index="1" aria-label="Move second player later" disabled>▼</button>
                     </span>
+                    <label class="bot-skill-label"><span class="visually-hidden">Skill level</span><select id="player2Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
+                    <div class="player-name-suggestions" id="player2Suggestions" data-player-suggestions="1" role="group" aria-label="Recent names for throw 2nd" hidden></div>
                 </div>
                 <div class="player-row hidden" id="player3Group" data-player-index="2">
-                    <button type="button" class="player-order-drag" data-player-drag-index="2" aria-label="Drag third player">☰</button>
-                    <label for="player3" data-player-order-label>Throws 3rd</label>
-                    <input type="text" id="player3" value="Player 3" list="rosterDatalist" autocomplete="off">
+                    <button type="button" class="player-order-drag" data-player-drag-index="2" aria-label="Drag third player"><span class="player-order-number" data-player-order-number aria-hidden="true">3</span><span class="player-order-grip" aria-hidden="true">☰</span></button>
+                    <label for="player3" class="player-order-label" data-player-order-label>Throws 3rd</label>
+                    <input type="text" id="player3" value="Player 3" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-controls="player3Suggestions">
                     <span class="player-order-stepper">
                         <button type="button" data-player-order-action="up" data-player-index="2" aria-label="Move third player earlier">▲</button>
                         <button type="button" data-player-order-action="down" data-player-index="2" aria-label="Move third player later" disabled>▼</button>
                     </span>
+                    <label class="bot-skill-label"><span class="visually-hidden">Skill level</span><select id="player3Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
+                    <div class="player-name-suggestions" id="player3Suggestions" data-player-suggestions="2" role="group" aria-label="Recent names for throw 3rd" hidden></div>
                 </div>
                 <div class="player-row hidden" id="player4Group" data-player-index="3">
-                    <button type="button" class="player-order-drag" data-player-drag-index="3" aria-label="Drag fourth player">☰</button>
-                    <label for="player4" data-player-order-label>Throws 4th</label>
-                    <input type="text" id="player4" value="Player 4" list="rosterDatalist" autocomplete="off">
+                    <button type="button" class="player-order-drag" data-player-drag-index="3" aria-label="Drag fourth player"><span class="player-order-number" data-player-order-number aria-hidden="true">4</span><span class="player-order-grip" aria-hidden="true">☰</span></button>
+                    <label for="player4" class="player-order-label" data-player-order-label>Throws 4th</label>
+                    <input type="text" id="player4" value="Player 4" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" aria-controls="player4Suggestions">
                     <span class="player-order-stepper">
                         <button type="button" data-player-order-action="up" data-player-index="3" aria-label="Move fourth player earlier">▲</button>
                         <button type="button" data-player-order-action="down" data-player-index="3" aria-label="Move fourth player later" disabled>▼</button>
                     </span>
+                    <label class="bot-skill-label"><span class="visually-hidden">Skill level</span><select id="player4Skill"><option value="off">Human</option><option value="auto">BotBlake Auto</option><option value="easy">BotBlake — Easy</option><option value="medium">BotBlake — Medium</option><option value="hard">BotBlake — Hard</option><option value="expert">BotBlake — Expert</option></select></label>
+                    <div class="player-name-suggestions" id="player4Suggestions" data-player-suggestions="3" role="group" aria-label="Recent names for throw 4th" hidden></div>
                 </div>
                 </div>
             </section>
@@ -308,6 +396,8 @@
                 <div class="setup-section-label">App Maintenance</div>
                 <button class="btn btn--md btn--neutral btn--block" id="updateAppBtn">Check for Updates</button>
                 <div id="updateStatus" style="text-align:center;font-size:var(--font-sm);color:var(--color-text-muted);margin-top:var(--space-xs);"></div>
+                <button type="button" class="btn btn--md btn--neutral btn--block setup-forget-names" id="clearRecentNamesBtn">Clear recent player names</button>
+                <div class="setup-forget-names-status" id="clearRecentNamesStatus" aria-live="polite"></div>
             </section>
 
             <!-- Roster manager — collapsible. Players added here sync to
@@ -368,7 +458,7 @@
                 <div class="team-section-label">Available Players</div>
                 <div class="team-tray" id="teamTray"></div>
                 <div class="team-add-row">
-                    <input type="text" id="teamAddName" placeholder="Add ad-hoc player" list="rosterDatalist" autocomplete="off">
+                    <label>Bot skill level<select id="teamBotSkill"><option value="auto">Auto</option><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option><option value="expert">Expert</option></select></label><button class="btn btn--md btn--neutral" id="teamAddBotBtn">Add BotBlake</button><input type="text" id="teamAddName" placeholder="Add ad-hoc player" list="rosterDatalist" autocomplete="off">
                     <button class="btn btn--md btn--primary" id="teamAddBtn">Add</button>
                 </div>
             </div>
@@ -416,7 +506,7 @@
             <div class="center-logo">
                 <button class="end-game-btn" id="menuBtn">Menu</button>
                 <div class="round-badge" id="roundBadge">1</div>
-                <div class="version-text">v2.5.0</div>
+                <div class="version-text">v2.6.0</div>
             </div>
 
             <div class="player-header away" id="awayHeader">
@@ -452,6 +542,7 @@
 
         <!-- Cricket Main -->
         <div class="cricket-main hidden" id="cricketMain">
+            <span class="brisket-credit" id="brisketGameCredit" hidden title="Brisket — idea by Burt" aria-label="Brisket, idea by Burt"><svg viewBox="0 0 48 40" aria-hidden="true" focusable="false"><path d="M24 34C16 27 5 20 7 11C9 3 19 3 24 10C29 3 39 3 41 11C43 20 32 28 24 34Z"/><path d="M3 33L44 4M35 4H44V13M3 28V33H8"/></svg><span>Burt</span></span>
             <div id="cricketGrid"></div>
         </div>
 

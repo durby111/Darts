@@ -386,7 +386,7 @@ function safeInit(name, fn) {
         fn();
     } catch (e) {
         console.error(`[BlakeOut] ${name} failed:`, e);
-        window.BlakeOutStartup?.fail();
+        if (!['settings', 'serviceWorker', 'updateButton', 'tournamentBridge', 'casualRecording'].includes(name)) window.BlakeOutStartup?.fail(name);
     }
 }
 

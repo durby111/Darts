@@ -1,3 +1,4 @@
+import { activeBot, recordPracticeTurn } from './botblake-engine.js';
 /* ============================================
    Cricket Module
    Standard Cricket, Spanish Cricket, Minnesota Cricket
@@ -456,6 +457,8 @@ function finishQuickieAtLimit() {
 // --- Exported Functions ---
 
 export function updateCricketDisplay() {
+    const brisketCredit = document.getElementById('brisketGameCredit');
+    if (brisketCredit) brisketCredit.hidden = game.type !== 'brisket';
     let mode = document.getElementById('minnesotaModeNotice');
     if (!mode) {
         mode = document.createElement('p'); mode.id = 'minnesotaModeNotice'; mode.style.overflowWrap = 'anywhere';
@@ -657,7 +660,7 @@ export function cricketConfirm() {
                 isBlakeout = true;
             }
         }
-        if ((recordingSession() || game.minnesotaPlaces) && game.cricketTargets.every(t => player.cricketData[t].closed) &&
+        if ((recordingSession() || game.minnesotaPlaces || activeBot(game)) && game.cricketTargets.every(t => player.cricketData[t].closed) &&
             hasWinningScore(player)) {
             isBlakeout = target === 'Bull' && multiplier === 2;
             break;
@@ -669,6 +672,7 @@ export function cricketConfirm() {
     let turnMarks = 0;
     Object.values(lastTurnMarks).forEach(v => { turnMarks += v; });
     player.totalMarks += recordingSession() ? scoringMarks : turnMarks;
+    recordPracticeTurn(game, turnPoints(), turnMarks);
 
     // Check win: all targets closed AND score >= all opponents' scores (if cricketPoints)
     const allTargetsClosed = game.cricketTargets.every(t => player.cricketData[t].closed);
@@ -749,6 +753,7 @@ export function cricketMiss() {
 
     // Increment throws (1 per turn)
     player.throws++;
+    recordPracticeTurn(game, 0, 0);
 
     // Set lastTurnMarks for miss indicator
     player.lastTurnMarks = { 'MISS': 0 };

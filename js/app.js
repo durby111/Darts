@@ -1,3 +1,4 @@
+import { initBotBlake } from './botblake.js';
 /* ============================================
    App Entry Point
    Screen routing, display dispatcher, PWA
@@ -385,11 +386,13 @@ function safeInit(name, fn) {
         fn();
     } catch (e) {
         console.error(`[BlakeOut] ${name} failed:`, e);
+        if (!['settings', 'serviceWorker', 'updateButton', 'tournamentBridge', 'casualRecording'].includes(name)) window.BlakeOutStartup?.fail(name);
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
     safeInit('setup', initSetupControls);
+    safeInit('botBlake', initBotBlake);
     safeInit('teams', initTeamBuilder);
     safeInit('cricket', initCricketControls);
     safeInit('x01', initX01Controls);
@@ -415,6 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('updateButton', initUpdateButton);
     safeInit('tournamentBridge', initTournamentBridge);
     safeInit('casualRecording', initCasualRecording);
+    window.BlakeOutStartup?.ready();
 });
 
 // Save game on page unload (refresh, close, update)

@@ -22,18 +22,10 @@
    ============================================ */
 
 import { showModal, hideModal } from './ui.js';
+import { SCORE_SKINS, getScoreSkin, saveScoreSkin, applyScoreAppearance } from './score-appearance.js';
+export { SCORE_SKINS, getScoreSkin } from './score-appearance.js';
 
 const WALLPAPER_KEY = 'blakeout_wallpaper';
-const SKIN_KEY = 'blakeout_x01_skin';
-
-export const SCORE_SKINS = [
-    { id: 'modern', label: 'Modern', desc: 'Themed keys, roomier pad' },
-    { id: 'classic', label: 'Classic', desc: 'Original grey keypad' },
-    { id: 'dc', label: 'DC Mode', desc: 'Black/red X01 + Cricket board' },
-    { id: 'dot-better', label: 'Dot Better', desc: 'Charcoal panels, clear scores, full-width pad' }
-];
-const DEFAULT_SKIN = 'modern';
-
 export const WALLPAPER_PRESETS = [
     { id: 'slate', label: 'Slate' },
     { id: 'felt', label: 'Felt' },
@@ -143,25 +135,13 @@ function renderWallpaperChoices() {
 
 // --- X01 keypad skin ---
 
-export function getScoreSkin() {
-    try {
-        const saved = localStorage.getItem(SKIN_KEY);
-        if (SCORE_SKINS.some(s => s.id === saved)) return saved;
-    } catch { /* fall through */ }
-    return DEFAULT_SKIN;
-}
-
 export function applyScoreSkin(skin = getScoreSkin()) {
-    const root = document.documentElement;
-    root.setAttribute('data-x01-skin', skin);
-    root.setAttribute('data-scoreboard-mode', skin);
+    applyScoreAppearance(skin);
     renderScoreSkinChoices();
 }
 
 function setScoreSkin(skin) {
-    if (!SCORE_SKINS.some(s => s.id === skin)) return;
-    try { localStorage.setItem(SKIN_KEY, skin); } catch { /* non-fatal */ }
-    applyScoreSkin(skin);
+    if (saveScoreSkin(skin)) applyScoreSkin(skin);
 }
 
 function renderScoreSkinChoices() {
