@@ -386,6 +386,7 @@ function safeInit(name, fn) {
         fn();
     } catch (e) {
         console.error(`[BlakeOut] ${name} failed:`, e);
+        window.BlakeOutStartup?.fail();
     }
 }
 
@@ -417,6 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('updateButton', initUpdateButton);
     safeInit('tournamentBridge', initTournamentBridge);
     safeInit('casualRecording', initCasualRecording);
+    window.BlakeOutStartup?.ready();
 });
 
 // Save game on page unload (refresh, close, update)
