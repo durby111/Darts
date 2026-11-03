@@ -99,6 +99,9 @@
     max-height: min(420px, calc(100dvh - 405px));
     min-height: 220px;
     overflow-y: auto;
+    /* Once the grid reaches an edge, continue scrolling the setup page.
+       Containment traps the final cards below the fixed Start/Resume panel. */
+    overscroll-behavior-y: auto;
     padding: 3px 8px 8px 3px;
     mask-image: none;
     -webkit-mask-image: none;
