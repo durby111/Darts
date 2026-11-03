@@ -1680,3 +1680,10 @@
 #menuBtn.brisket-menu-button .brisket-credit svg { width: 24px; height: 22px; }
 #menuBtn.brisket-menu-button .brisket-credit > span { font-size: 16px; line-height: 18px; }
 #menuBtn.brisket-menu-button:focus-visible { outline: 3px solid var(--color-primary-light); outline-offset: 3px; }
+
+/* Closed Brisket tattoos stay within their own player cell, including 4-up. */
+.mark.brisket-closed {
+    max-width: 100%;
+    flex-shrink: 1;
+}
+.mark.brisket-closed svg { overflow: hidden; }

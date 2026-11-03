@@ -45,6 +45,26 @@ try{
   await p.click('#startGameBtn');await p.evaluate(async()=>{const {game:g}=await import('./js/state.js');for(const t of g.cricketTargets){g.players[0].cricketData[t].marks=3;g.players[0].cricketData[t].closed=true;}g.players[0].cricketData['4'].marks=2;g.players[0].cricketData['4'].closed=false;g.players[1].score=4;});await turn(p,'4',1);assert(!(await p.locator('#winnerModal').isVisible()));await turn(p,'MISS');await turn(p,'4',1);assert(await p.locator('#winnerModal').isVisible());assert.equal((await state(p)).players[0].score,4);
   await p.evaluate(async()=>{const s=await import('./js/state.js'),c=await import('./js/cricket.js');s.undoLastAction(c.updateCricketDisplay);});assert.equal((await state(p)).players[0].score,0);
  });
+ await run('tattoo closure history follows start of turn, undo/reclose and persisted variants',async p=>{
+  await p.click('#startGameBtn');
+  for(const before of [0,1,2]) {
+   await p.evaluate(async before=>{
+    const s=await import('./js/state.js'),c=await import('./js/cricket.js');
+    s.game.currentPlayer=0;s.game.pendingDarts=[];
+    const m=s.game.players[0].cricketData['1'];m.marks=before;m.closed=false;m.closedInOneTurn=false;m.marksBeforeClose=0;
+    for(let n=before;n<3;n++)c.hitTarget('1',1);
+    c.cricketConfirm();
+   },before);
+   let m=(await state(p)).players[0].cricketData['1'];assert.equal(m.marksBeforeClose,before);assert.equal(m.closedInOneTurn,before===0);
+   const selector='.cricket-row:first-child .cricket-cell:first-child .brisket-closed';
+   assert.equal(await p.locator(selector).getAttribute('data-closure-arrows'),String(before));
+   await p.evaluate(async()=>{const s=await import('./js/state.js'),c=await import('./js/cricket.js');s.undoLastAction(c.updateCricketDisplay);});
+   assert.equal((await state(p)).players[0].cricketData['1'].marks,before);assert.equal(await p.locator(selector).count(),0);
+   await p.evaluate(async()=>{const s=await import('./js/state.js'),c=await import('./js/cricket.js');s.redoLastAction(c.updateCricketDisplay);});
+   assert.equal(await p.locator(selector).getAttribute('data-closure-arrows'),String(before));
+   await p.reload();await p.click('#resumeGameBtn');assert.equal(await p.locator(selector).getAttribute('data-closure-arrows'),String(before));
+  }
+ });
  await run('points-off closure race, no credits leaking into ordinary Cricket',async p=>{
   await p.uncheck('#cricketPoints');await p.click('#startGameBtn');await p.evaluate(async()=>{const {game:g}=await import('./js/state.js');for(const t of g.cricketTargets){g.players[0].cricketData[t].marks=3;g.players[0].cricketData[t].closed=true;}g.players[0].cricketData['2'].marks=2;g.players[0].cricketData['2'].closed=false;g.players[1].score=999;});await turn(p,'2',1);assert(await p.locator('#winnerModal').isVisible());
   await p.goto('http://127.0.0.1:8765/'+build);await p.selectOption('#gameType','cricket');assert(!(await p.locator('#brisketSetupCredit').isVisible()));await p.click('#startGameBtn');assert(!(await p.locator('#brisketGameCredit').isVisible()));assert.deepEqual((await state(p)).cricketTargets,['20','19','18','17','16','15','Bull']);
