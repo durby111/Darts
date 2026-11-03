@@ -32,7 +32,9 @@ for(const feature of ['accounts','brackets']){
 }
 pass('production identity retained; both direct feature routes are static disabled shells without account apps');
 // Reviewed scorer promotion: production retains its own transport and storage.
-for(const rel of ['js/state.js','js/app.js','js/x01.js','js/cricket.js','js/registry.js','js/botblake.js','js/botblake-engine.js','js/player-names.js','js/settings.js','js/score-appearance.js']) assert.equal(read(rel),read('dev/'+rel),rel);
+for(const rel of ['js/state.js','js/x01.js','js/registry.js','js/botblake.js','js/botblake-engine.js','js/player-names.js','js/settings.js','js/score-appearance.js']) assert.equal(read(rel),read('dev/'+rel),rel);
+// DEV-only tattoo menu changes must not enter production.
+for (const rel of ['js/app.js','js/cricket.js','index.html','css/setup.css','css/games.css','sw.js']) assert.equal(read(rel),execFileSync('git',['show','5cba834cb0d1e6516a16ded6c213308329f5202a:'+rel],{cwd:root,encoding:'utf8'}),rel);
 assert.ok(read('js/teams.js').includes("const STORAGE_KEY = 'blakeout_last_team_setup'"));
 assert.ok(!read('js/setup.js').includes('DEV cloud roster'));
 assert.ok(!html.includes('home-account.js'));

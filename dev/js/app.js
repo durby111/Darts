@@ -35,6 +35,13 @@ function on(id, event, handler) {
 // --- Master Display Updater ---
 
 function updateDisplay() {
+    const isBrisket = game.type === 'brisket';
+    const menu = document.getElementById('menuBtn');
+    menu.classList.toggle('brisket-menu-button', isBrisket);
+    document.getElementById('menuButtonText').hidden = isBrisket;
+    document.getElementById('brisketGameCredit').hidden = !isBrisket;
+    if (isBrisket) menu.setAttribute('aria-label', 'Open game menu — Brisket, idea by Burt');
+    else menu.removeAttribute('aria-label');
     const effectiveType = game.chicago ? game.chicago.currentGameType : game.type;
     const isCricket = isCricketGame(effectiveType);
     const isX01 = isX01Game(effectiveType);
