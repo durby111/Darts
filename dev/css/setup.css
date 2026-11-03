@@ -134,7 +134,6 @@
 .setup-screen .game-card-icon { display: none; }
 .setup-screen .game-card[data-game-engine='x01'] .game-card-icon { display: none; }
 .setup-screen .game-card-label { font-family: 'DejaVu Sans Condensed', 'Trebuchet MS', sans-serif; font-size: 18px; font-weight: 800; line-height: 1.1; overflow-wrap: normal; word-break: normal; hyphens: none; }
-.setup-screen .game-card[data-game-engine='x01'] .game-card-label { font-family: Impact, 'Arial Narrow', 'DejaVu Sans Condensed', sans-serif; font-size: 36px; font-weight: 900; }
 .setup-screen .game-card.active .game-card-label, .setup-screen .game-card.active .game-card-sub { color: var(--color-on-primary); }
 .setup-screen .game-card-sub { font-size: 11px; line-height: 1.2; color: var(--color-text-muted); }
 .setup-screen .game-card-new { display: none; }
@@ -235,7 +234,7 @@
     .setup-screen .setup-subtitle { font-size: 10px; }
     .setup-screen .game-grid { max-height: 350px; }
     .setup-screen .game-card { height: 76px; padding-left: 12px; }
-    .setup-screen .game-card-label { font-size: 15px; }
+    .setup-screen .game-card-label { font-size: 18px; }
     .setup-screen .game-card-icon { display: none; }
     .setup-screen .picker-chips { gap: 6px; }
     .setup-screen .picker-chip { padding: 8px 10px; }
