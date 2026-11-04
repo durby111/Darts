@@ -21,18 +21,25 @@ async def main():
             await p.goto(base+'/dev/')
             await p.select_option('#gameType','brisket');await p.select_option('#numPlayers',str(count))
             await p.click('#startGameBtn')
+            assert await p.locator('.brisket-dragon, .brisket-target-label').count()==0
+            assert await p.locator('#cricketGrid button').evaluate_all('''els=>els.every(e=>{const r=e.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===e;})''')
             menu_before=await p.locator('#menuBtn').evaluate('(e)=>e.outerHTML')
+            assert await p.locator('#menuBtn').inner_text()=='Menu'
+            assert await p.locator('#menuBtn svg').count()==0
             # Exercise renderer's complete transition space, including pending closure and every range.
             await p.evaluate('''async()=>{
                 const {game:g}=await import('./js/state.js'),{getMarkSymbol:f}=await import('./js/ui.js');
                 for(const t of ['1','6','15','20','Bull']) for(const n of [0,1,2,3,4]) {
                     const html=f(n,0,true,false,t,false,0,0);
+                    if(html.includes('#9c293b')) throw Error('red ink');
                     if(html.includes('brisket-closed')!==(n>=3)) throw Error('wrong mark '+n);
                 }
                 for(const before of [0,1,2]) {
                     const h=f(3,0,before===0,false,'Bull',false,0,before);
                     if((h.match(/class="tattoo-arrow"/g)||[]).length!==before) throw Error('arrow history');
-                    if(before && !h.includes('M10 8L87 70')) throw Error('arrow direction');
+                    if(before && (!h.includes('translate(3 5) rotate(40)') || !h.includes('M110 0L95 -6'))) throw Error('arrow direction');
+                    if((h.match(/class="arrow-feathers"/g)||[]).length!==before) throw Error('feather count');
+                    if((h.match(/class="arrow-nock"/g)||[]).length!==before) throw Error('nock count');
                 }
                 if(!f(2,1,true,false,'Bull').includes('Pending closure')) throw Error('pending closure');
                 for(const type of ['cricket','spanish','minnesota','cutthroat']) {

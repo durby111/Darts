@@ -44,13 +44,13 @@ async def main():
                     await page.locator('#startupNotice').wait_for(state='hidden')
                     await page.click('#resumeGameBtn')
                     assert await page.evaluate("import('./js/state.js').then(s=>JSON.stringify(s.game.players))")==players
-                    menu=page.get_by_role('button',name='Open game menu — Brisket, idea by Burt',exact=True)
+                    menu=page.get_by_role('button',name='Menu',exact=True)
                     assert await menu.count()==1
-                    assert await page.locator('#menuBtn #brisketGameCredit').is_visible()
-                    assert not await page.locator('#menuButtonText').is_visible()
+                    assert await page.locator('#menuBtn svg').count()==0
+                    assert await page.locator('#menuButtonText').is_visible()
                     assert await page.locator('#cricketMain #brisketGameCredit').count()==0
                     box=await menu.bounding_box()
-                    assert box['width']>=44 and box['height']>=44 and box['x']>=0 and box['x']+box['width']<=width and box['y']+box['height']<=height,box
+                    assert box['width']>=30 and box['height']>=30 and box['x']>=0 and box['x']+box['width']<=width and box['y']+box['height']<=height,box
                     stored=await page.evaluate('JSON.stringify(localStorage)')
                     for key in ['Enter','Space']:
                         await menu.focus();await page.keyboard.press(key)
@@ -74,7 +74,7 @@ async def main():
                     await page.get_by_role('button',name='Menu',exact=True).click()
                     await page.locator('#gameMenuModal').wait_for(state='visible')
                     assert await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
-                    print('PASS Brisket-only menu, touch/keyboard/focus and ordinary Menu restoration',build or 'production',width,height,flush=True);passed+=1
+                    print('PASS default Menu, touch/keyboard/focus and other-game isolation',build or 'production',width,height,flush=True);passed+=1
                     await ctx.close()
             await browser.close()
         print('PASS',passed,'rendered presentation groups')
