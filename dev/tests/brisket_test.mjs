@@ -45,6 +45,27 @@ try{
   await p.click('#startGameBtn');await p.evaluate(async()=>{const {game:g}=await import('./js/state.js');for(const t of g.cricketTargets){g.players[0].cricketData[t].marks=3;g.players[0].cricketData[t].closed=true;}g.players[0].cricketData['4'].marks=2;g.players[0].cricketData['4'].closed=false;g.players[1].score=4;});await turn(p,'4',1);assert(!(await p.locator('#winnerModal').isVisible()));await turn(p,'MISS');await turn(p,'4',1);assert(await p.locator('#winnerModal').isVisible());assert.equal((await state(p)).players[0].score,4);
   await p.evaluate(async()=>{const s=await import('./js/state.js'),c=await import('./js/cricket.js');s.undoLastAction(c.updateCricketDisplay);});assert.equal((await state(p)).players[0].score,0);
  });
+ await run('descending display preserves range keys, existing saves and real button scoring',async p=>{
+  for(const start of [1,7,15]) {
+   await p.goto('http://127.0.0.1:8765/'+build);await p.selectOption('#gameType','brisket');await p.selectOption('#brisketStart',String(start));
+   if(start===15)await p.uncheck('#brisketBulls');
+   await p.click('#startGameBtn');
+   const storedTargets=(await state(p)).cricketTargets;
+   const expected=[...storedTargets.filter(t=>t!=='Bull')].reverse().concat(storedTargets.includes('Bull')?['Bull']:[]);
+   const displayed=()=>p.locator('.cricket-num-btn').evaluateAll(es=>es.map(e=>e.dataset.target));
+   assert.deepEqual(await displayed(),expected);
+   const highest=String(start+5);
+   await p.locator('[data-target="'+highest+'"][data-multiplier="3"]').click();await p.click('#enterBtn');
+   let s=await state(p);assert.equal(s.players[0].cricketData[highest].marks,3);assert.equal(s.players[0].cricketData[String(start)].marks,0);
+   assert.deepEqual(s.cricketTargets,storedTargets);
+   const saved=JSON.stringify(s.players);
+   await p.evaluate(async()=>{const s=await import('./js/state.js'),c=await import('./js/cricket.js');s.undoLastAction(c.updateCricketDisplay);});assert.equal((await state(p)).players[0].cricketData[highest].marks,0);
+   await p.evaluate(async()=>{const s=await import('./js/state.js'),c=await import('./js/cricket.js');s.redoLastAction(c.updateCricketDisplay);});assert.equal((await state(p)).players[0].cricketData[highest].marks,3);
+   await p.reload();await p.click('#resumeGameBtn');assert.deepEqual(await displayed(),expected);assert.equal(JSON.stringify((await state(p)).players),saved);
+   await p.evaluate(async()=>{const s=await import('./js/state.js'),c=await import('./js/cricket.js');s.game.currentPlayer=1;s.game.players[0].lastTurnMarks={MISS:1};c.updateCricketDisplay();});
+   assert.equal(await p.locator('.cricket-row:first-child .prev-turn-indicator').first().innerText(),'MISS');
+  }
+ });
  await run('tattoo closure history follows start of turn, undo/reclose and persisted variants',async p=>{
   await p.click('#startGameBtn');
   for(const before of [0,1,2]) {
@@ -56,7 +77,7 @@ try{
     c.cricketConfirm();
    },before);
    let m=(await state(p)).players[0].cricketData['1'];assert.equal(m.marksBeforeClose,before);assert.equal(m.closedInOneTurn,before===0);
-   const selector='.cricket-row:first-child .cricket-cell:first-child .brisket-closed';
+   const selector='.cricket-row:has([data-target="1"]) .cricket-cell:first-child .brisket-closed';
    assert.equal(await p.locator(selector).getAttribute('data-closure-arrows'),String(before));
    await p.evaluate(async()=>{const s=await import('./js/state.js'),c=await import('./js/cricket.js');s.undoLastAction(c.updateCricketDisplay);});
    assert.equal((await state(p)).players[0].cricketData['1'].marks,before);assert.equal(await p.locator(selector).count(),0);
