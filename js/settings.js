@@ -35,6 +35,19 @@ export const WALLPAPER_PRESETS = [
 
 function el(id) { return document.getElementById(id); }
 
+// Production-local presentation preference; never part of a saved scoring snapshot.
+const MARK_COLOR_KEY = 'blakeout_cricket_mark_color';
+const MARK_COLORS = { theme: null, white: '#ffffff', blue: '#42a5ff', red: '#ff5268', yellow: '#ffe066', green: '#61ef91', purple: '#c595ff' };
+function applyMarkColor(value) {
+    const selected = Object.hasOwn(MARK_COLORS, value) ? value : 'theme';
+    const root = document.documentElement;
+    if (MARK_COLORS[selected]) root.style.setProperty('--cricket-mark-color', MARK_COLORS[selected]);
+    else root.style.removeProperty('--cricket-mark-color');
+    const picker = el('cricketMarkColor');
+    if (picker) picker.value = selected;
+    return selected;
+}
+
 // --- Wallpaper state ---
 
 function getWallpaper() {
@@ -169,6 +182,13 @@ export function openSettingsModal() {
 export function initSettings() {
     applyWallpaper();
     applyScoreSkin();
+    let markColor = 'theme';
+    try { markColor = localStorage.getItem(MARK_COLOR_KEY) || 'theme'; } catch { /* optional preference */ }
+    applyMarkColor(markColor);
+    el('cricketMarkColor')?.addEventListener('change', event => {
+        const selected = applyMarkColor(event.target.value);
+        try { localStorage.setItem(MARK_COLOR_KEY, selected); } catch { /* usable for this session */ }
+    });
 
     const setupBtn = el('settingsBtnSetup');
     if (setupBtn) setupBtn.addEventListener('click', openSettingsModal);
