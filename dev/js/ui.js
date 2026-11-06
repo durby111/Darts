@@ -57,7 +57,7 @@ function markerCross(inset = false) {
 export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, isCompact = false, target = '', showBoobie = false, playerIndex = -1, marksBeforeClose = 0) {
     const totalMarks = marks + pendingMarks;
     const isPending = pendingMarks > 0;
-    const color = isPending ? 'var(--color-pending)' : 'var(--color-primary)';
+    const color = isPending ? 'var(--color-pending)' : 'var(--cricket-mark-color, var(--color-primary))';
     const cssClass = isPending ? 'mark pending' : 'mark';
     const compactClass = isCompact ? (game.type === 'minnesota' ? ' minnesota' : ' spanish') : '';
 

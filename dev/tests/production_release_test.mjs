@@ -32,9 +32,15 @@ for(const feature of ['accounts','brackets']){
 }
 pass('production identity retained; both direct feature routes are static disabled shells without account apps');
 // Reviewed scorer promotion: production retains its own transport and storage.
-for(const rel of ['js/state.js','js/x01.js','js/registry.js','js/botblake.js','js/botblake-engine.js','js/player-names.js','js/settings.js','js/score-appearance.js']) assert.equal(read(rel),read('dev/'+rel),rel);
+for(const rel of ['js/state.js','js/x01.js','js/registry.js','js/botblake.js','js/botblake-engine.js','js/player-names.js','js/score-appearance.js']) assert.equal(read(rel),read('dev/'+rel),rel);
+assert.equal(read('js/settings.js'),read('dev/js/settings.js').replace('DEV-local presentation preference','Production-local presentation preference').replace('blakeout_dev_cricket_mark_color','blakeout_cricket_mark_color'));
 // DEV-only tattoo menu changes must not enter production.
-for (const rel of ['js/app.js','js/cricket.js','index.html','css/setup.css','css/games.css','sw.js']) assert.equal(read(rel),execFileSync('git',['show','5cba834cb0d1e6516a16ded6c213308329f5202a:'+rel],{cwd:root,encoding:'utf8'}),rel);
+for (const rel of ['js/app.js','js/cricket.js','css/setup.css','css/games.css']) assert.equal(read(rel),execFileSync('git',['show','5cba834cb0d1e6516a16ded6c213308329f5202a:'+rel],{cwd:root,encoding:'utf8'}),rel);
+const prior = p => execFileSync('git',['show','98286d6:'+p],{cwd:root,encoding:'utf8'});
+const colorSection = /            <div class="settings-section">\n                <label class="settings-section-label" for="cricketMarkColor">[\s\S]*?<\/div>\n\n/;
+assert.equal(html.replace(colorSection,''),prior('index.html'));
+assert.equal(read('sw.js').replace('blakeout-v61-mark-colors-20261106','blakeout-v60-picker-scroll-20261103'),prior('sw.js'));
+assert.equal(read('js/ui.js').replace('var(--cricket-mark-color, var(--color-primary))','var(--color-primary)'),prior('js/ui.js'));
 assert.ok(read('js/teams.js').includes("const STORAGE_KEY = 'blakeout_last_team_setup'"));
 assert.ok(!read('js/setup.js').includes('DEV cloud roster'));
 assert.ok(!html.includes('home-account.js'));
