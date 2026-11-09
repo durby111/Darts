@@ -106,7 +106,7 @@ export function saveRoster(tournament, registrations) {
     return next;
 }
 
-/** Start blockers; payment is required for playing team members, not standby. */
+/** Start blockers enforce roster validity; payment/check-in are tracking only. */
 export function readiness(tournament) {
     const blockers = [];
     if (tournament.status !== 'registration') blockers.push('Registration is closed.');
@@ -132,15 +132,14 @@ export function readiness(tournament) {
             const entry = registrations.get(id);
             if (!entry) blockers.push(`${team.name} has a player not registered in this tournament.`);
             else {
-                if (!entry.checkedIn || entry.standby) blockers.push(`${entry.name} must be checked in and not on standby.`);
-                if (!entry.standby && !entry.paid) blockers.push(`${entry.name} must be marked paid before starting.`);
+                if (entry.standby) blockers.push(`${entry.name} is on standby and cannot be assigned to a playing team.`);
             }
             if (assigned.has(id)) blockers.push('A player cannot belong to more than one team.');
             assigned.add(id);
         }
     }
     for (const entry of registrations.values()) {
-        if (entry.checkedIn && !entry.standby && !assigned.has(entry.id)) {
+        if (!entry.standby && !assigned.has(entry.id)) {
             blockers.push(`${entry.name} needs a team tag and partner.`);
         }
     }
@@ -262,7 +261,19 @@ export function createPreview(tournament) {
     return { teams: clone(teams), matches: preview.matches };
 }
 
-export function startTournament(tournament) {
+export function setPlayerPaid(tournament, registrationId, paid) {
+    if (typeof paid !== 'boolean') throw Error('Payment status must be true or false.');
+    const next = clone(tournament);
+    const entry = next.registrations.find(row => row.id === registrationId);
+    if (!entry) throw Error('Player is not registered in this tournament.');
+    entry.paid = paid;
+    next.revision += 1;
+    return next;
+}
+
+export function startTournament(tournament, roster = null) {
+    // Save draft and start in one revision/write, never a partial roster save.
+    if (roster !== null) tournament = { ...saveRoster(tournament, roster), revision: tournament.revision };
     const blockers = readiness(tournament);
     if (blockers.length) throw new Error(blockers.join('\n'));
     const next = clone(tournament);
@@ -356,7 +367,6 @@ export function blindDraw(tournament) {
     const eligible = roster.filter(r => !r.standby);
     if (eligible.length < 4 || eligible.length > 64 || eligible.length % 2)
         throw Error('Blind draw needs an even number of 4–64 playing people. Move an unmatched player to standby.');
-    if (eligible.some(r => !r.checkedIn)) throw Error('Check in every playing person before drawing partners.');
     for (let i = eligible.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [eligible[i], eligible[j]] = [eligible[j], eligible[i]];

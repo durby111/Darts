@@ -84,8 +84,8 @@ async def test_roster(page):
         equal(t.status, 'registration');
         assert(t.registrations[0].playerId === null, 'Guests must not acquire inferred IDs');
         equal(t.registrations[1].playerId, 'verified-1');
-        assert(engine.readiness(t).some(text => text.includes('checked in')));
-        rejects(() => engine.startTournament(t), 'checked in');
+        equal(engine.readiness(t), []);
+        equal(engine.startTournament(t).status, 'live');
         const rows = structuredClone(t.registrations);
         rows.forEach(r => { r.tag = `  ${r.tag}  `; r.checkedIn = true; });
         const saved = engine.saveRoster(freeze(t), freeze(rows));
@@ -159,27 +159,19 @@ async def test_event_labels(page):
 
 async def test_paid_start(page):
     return await page.evaluate("""() => {
-        const ready = fixture(2);
-        const unpaid = engine.saveRoster(ready, ready.registrations.map((r,i) => ({...r, paid:i!==0})));
-        const before = JSON.stringify(unpaid);
-        assert(engine.readiness(unpaid).some(text => text.includes('Player 0') && text.includes('paid')));
-        rejects(() => engine.startTournament(freeze(unpaid)), 'paid');
-        equal(JSON.stringify(unpaid), before, 'Rejected start must not mutate the roster or bracket');
-        const standby = engine.saveRoster(ready, [...ready.registrations, {
-            id:'standby-unpaid',playerId:null,name:'Standby Guest',tag:'1',
-            paid:false,checkedIn:true,standby:true,
-        }, {
-            id:'arrival-unpaid',playerId:null,name:'Unassigned arrival',tag:'',
-            paid:false,checkedIn:false,standby:false,
-        }]);
-        equal(engine.readiness(standby), [], 'Only the playing team roster requires payment');
-        equal(engine.startTournament(standby).status, 'live');
-        const movedToPlay = engine.saveRoster(standby, standby.registrations.map(r =>
-            r.id==='entry-0' ? {...r,standby:true} : r.id==='standby-unpaid' ? {...r,standby:false} : r));
-        rejects(() => engine.startTournament(movedToPlay), 'paid');
-        const paid = engine.saveRoster(unpaid, unpaid.registrations.map(r => ({...r,paid:true})));
-        equal(engine.startTournament(paid).status, 'live');
-        return 'unpaid playing members blocked; unpaid standby/unassigned arrivals excluded; promotion and paid retry';
+        const ready = fixture(2, false);
+        const rows = ready.registrations.map(r => ({...r, paid:false, checkedIn:false}));
+        const before = JSON.stringify(ready);
+        const live = engine.startTournament(freeze(ready), rows);
+        equal(live.status, 'live');equal(live.revision, ready.revision+1);
+        assert(live.registrations.every(r=>!r.paid&&!r.checkedIn));
+        equal(JSON.stringify(ready), before);
+        const paid = engine.setPlayerPaid(live, rows[0].id, true);
+        equal(paid.matches,live.matches);equal(paid.teams,live.teams);
+        assert(paid.registrations[0].paid&&!paid.registrations[0].checkedIn);
+        rejects(()=>engine.startTournament(ready,[...rows,{id:'extra',name:'Arrival',tag:'',paid:false,checkedIn:false,standby:false}]),'partner');
+        rejects(()=>engine.startTournament(ready,rows.map((r,i)=>i? r:{...r,name:'  '})),'name');
+        return 'unpaid/unchecked named players start atomically; payment changes preserve teams/matches; invalid roster rejected';
     }""")
 
 

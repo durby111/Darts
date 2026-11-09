@@ -64,9 +64,16 @@ export const getDocsFromServer=async ref=>{
     return {docs:[...docs.keys()].filter(path=>path.startsWith(ref.path+'/')
         &&path.slice(ref.path.length+1).indexOf('/')===-1)
         .filter(path=>!ref.filter||docs.get(path)[ref.filter.field].includes(ref.filter.value))
+        .sort()
+        .filter(path=>!ref.cursor||path.split('/').at(-1)>ref.cursor)
+        .slice(0,ref.maximum??Infinity)
         .map(path=>snapshot({path,id:path.split('/').at(-1)}))};
 };
-export const query=(ref,filter)=>({...ref,filter});
+export const documentId=()=> '__name__';
+export const orderBy=field=>({sort:field});
+export const limit=maximum=>({maximum});
+export const startAfter=cursor=>({cursor});
+export const query=(ref,...constraints)=>Object.assign({...ref},...constraints.map(c=>c.field?{filter:c}:c));
 export const where=(field,op,value)=>({field,op,value});
 export const runTransaction=async(db,callback)=>{
     read();
@@ -252,39 +259,34 @@ async def test_owner_roster(browser, base):
         await page.locator("#addForm button").click()
         await page.locator("#rosterRows tr").last.locator('[data-field="tag"]').fill("5")
         await page.wait_for_timeout(180)
-        await click_with_confirmation(page, "#startTournament")
-        assert "Save all roster changes" in await page.locator("#startFeedback").inner_text()
-        assert await page.evaluate("__api.calls.length") == 0
-        assert "Guest partner" in await page.locator("#diagram").inner_text()
-        await page.locator("#saveRoster").click()
-        await page.wait_for_function("__api.writes === 1")
-        records = await page.evaluate("__api.docs.demo.registrations.slice(-2)")
-        assert [r["playerId"] for r in records] == ["profile-b", None]
-        assert len(await page.evaluate("__api.docs.demo.teams")) == 5
-        await click_with_confirmation(page, "#startTournament")
-        assert "checked in" in await page.locator("#startFeedback").inner_text()
-        assert await page.evaluate("__api.writes") == 1
-        for row in await page.locator("#rosterRows tr").all():
-            await row.locator('[data-field="checkedIn"]').check()
-        await page.locator("#saveRoster").click()
-        await page.wait_for_function("__api.writes === 2")
-        await click_with_confirmation(page, "#startTournament")
-        assert "marked paid" in await page.locator("#startFeedback").inner_text()
-        assert await page.evaluate("__api.writes") == 2
-        assert await page.evaluate("__api.docs.demo.status") == "registration"
-        assert "marked paid" in await page.locator("#blockers").inner_text()
-        for row in await page.locator("#rosterRows tr").all():
-            await row.locator('[data-field="paid"]').check()
-        await page.locator("#saveRoster").click()
-        await page.wait_for_function("__api.writes === 3")
-        assert await page.locator("#startTournament").is_enabled()
+        await click_with_confirmation(page, "#startTournament", accept=False)
+        assert await page.evaluate("__api.writes") == 0
         await click_with_confirmation(page, "#startTournament")
         await page.wait_for_function("__api.docs.demo.status === 'live'")
+        assert await page.evaluate("__api.writes") == 1
+        records = await page.evaluate("__api.docs.demo.registrations.slice(-2)")
+        assert [r["playerId"] for r in records] == ["profile-b", None]
+        assert all(not r['paid'] and not r['checkedIn'] for r in records)
+        assert len(await page.evaluate("__api.docs.demo.teams")) == 5
+        await page.locator('#paymentRows input').last.check()
+        await page.wait_for_function("__api.docs.demo.registrations.at(-1).paid")
         assert await page.locator("#rosterPanel").is_hidden()
         assert await page.locator("#rosterRows tr").count() == 0
         assert await page.locator(".match-action").count() > 0
         assert await page.evaluate("__api.statsWrites") == 0
-        return "single team-number field, verified/guest add, preview, check-in and locked start"
+        await page.evaluate('__api.failWrite=true')
+        await page.locator('#paymentRows input').last.click()
+        await page.wait_for_function("document.querySelector('#message').textContent.includes('permission-denied')")
+        assert await page.locator('#paymentRows input').last.is_checked()
+        assert await page.evaluate('__api.docs.demo.registrations.at(-1).paid')
+        await page.evaluate('__api.failWrite=false;__api.holdResponse=true')
+        await page.locator('#paymentRows input').last.click()
+        await page.wait_for_function('!!__api.releaseResponse')
+        await page.evaluate('__api.account=null;__api.accountChanged(null);__api.releaseResponse()')
+        await page.wait_for_function("document.querySelector('#paymentPanel').hidden")
+        await page.wait_for_timeout(100)
+        assert await page.locator('#paymentRows input').count() == 0
+        return "named draft starts atomically unpaid/unchecked; active payment edit, failure rollback, sign-out privacy"
     finally:
         await context.close()
 
@@ -342,7 +344,7 @@ async def test_bulk_flags_and_odd_warning(browser, base):
         assert await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)') == ids
         assert await page.evaluate('__api.writes') == 0
         await click_with_confirmation(page, '#startTournament')
-        assert 'Save all roster changes' in await page.locator('#startFeedback').inner_text()
+        assert 'Team count' in await page.locator('#startFeedback').inner_text()
         assert await page.evaluate('__api.writes') == 0
         await page.evaluate('__api.failWrite=true')
         await page.locator('#saveRoster').click()
@@ -405,8 +407,8 @@ async def test_roster_order(browser, base):
         assert await page.locator('#rosterRows tr').evaluate_all('(rows)=>rows.map(r=>r.dataset.registration)') == expected
         assert await page.locator('#rosterRows th[scope="row"]').all_text_contents() == [str(i) for i in range(1,9)]
         assert await page.evaluate('__api.writes') == 0
-        await click_with_confirmation(page, '#startTournament')
-        assert 'Save all roster changes' in await page.locator('#startFeedback').inner_text()
+        await click_with_confirmation(page, '#startTournament', accept=False)
+        assert 'Start canceled' in await page.locator('#startFeedback').inner_text()
         assert await page.evaluate('__api.writes') == 0
         await page.evaluate('__api.conflict=true')
         await page.locator('#saveRoster').click()
@@ -475,7 +477,6 @@ async def test_start_feedback(browser, base):
         await page.locator('#rosterRows [data-field="tag"]').first.fill("")
         await page.locator("#startTournament").tap()
         panel = page.locator("#startFeedback")
-        assert "Save all roster changes" in await panel.inner_text()
         assert "needs a team tag and partner" in await panel.inner_text()
         assert await panel.locator("img").count() == 0, "Player labels must remain text"
         assert await page.evaluate("document.activeElement.id") == "startFeedback"
@@ -496,10 +497,9 @@ async def test_start_feedback(browser, base):
         await page.locator("#saveRoster").click()
         await page.wait_for_function("__api.writes===2")
         await click_with_confirmation(page, "#startTournament")
-        assert "must be checked in" in await panel.inner_text()
-        assert await page.evaluate("testConfirmCalls") == 0
-        assert await page.evaluate("__api.docs.demo.status") == "registration"
-        return "touch/keyboard Start explains unsaved, missing-pair and check-in blockers; no confirmation/write, safe text and nearby tablet/mobile feedback"
+        await page.wait_for_function("__api.docs.demo.status==='live'")
+        assert not await page.evaluate("__api.docs.demo.registrations[0].checkedIn")
+        return "touch/keyboard invalid-pair feedback, safe text, unpaid/unchecked start and responsive feedback"
     finally:
         await context.close()
 
@@ -551,8 +551,8 @@ async def test_start_account_switch(browser, base):
     context, page = await fresh(browser, base)
     try:
         await page.locator('#rosterRows [data-field="checkedIn"]').first.uncheck()
-        await click_with_confirmation(page, "#startTournament")
-        assert "Player 1 must be checked in" in await page.locator("#startFeedback").inner_text()
+        await click_with_confirmation(page, "#startTournament", accept=False)
+        assert "Start canceled" in await page.locator("#startFeedback").inner_text()
         await page.evaluate("__api.account=null;__api.accountChanged(null)")
         assert await page.locator("#startFeedback").is_hidden()
         assert await page.locator("#startFeedbackTitle").text_content() == ""
@@ -653,7 +653,8 @@ async def test_spectator_and_layout(browser, base):
         assert await page.locator(".match-action").count() == 0
         assert await page.locator(".match-card").count() == 63
         assert "Player" in await page.locator("#diagram").inner_text()
-        assert "Not decided" in await page.locator("#diagram").inner_text()
+        assert "Await winner of W1.1" in await page.locator("#diagram").inner_text()
+        assert "Await loser of W1.1" in await page.locator("#diagram").inner_text()
         assert await page.locator(".connector").count() > 60
         assert await page.locator("#diagramScale").input_value() == "fit"
         for width in (1024, 768, 390):
@@ -687,6 +688,7 @@ async def test_viewport_pan_zoom(browser, base):
             return b.left>=a.left && b.right<=a.right && b.top>=a.top && b.bottom<=a.bottom;
         }""")
         await page.locator('#diagramReset').click()
+        await page.wait_for_function("Number(diagram.dataset.zoom)===1")
         await page.evaluate("""() => {
             const d=document.querySelector('#diagram'); d.scrollLeft=500; d.scrollTop=1000;
         }""")
@@ -703,10 +705,11 @@ async def test_viewport_pan_zoom(browser, base):
         assert abs(after[1] - before[1] - 80) < 2
         assert await page.locator('#resultPanel').is_hidden()
         await page.locator('#diagramZoomIn').click()
+        await page.wait_for_function("Number(diagram.dataset.zoom)===1.25")
         assert abs(float(await page.locator('#diagram').get_attribute('data-zoom')) - 1.25) < .001
         saved = await page.evaluate("[diagram.scrollLeft,diagram.scrollTop,diagram.dataset.zoom]")
         await page.evaluate("async () => (await import('/js/brackets/page.js')).refreshSelected()")
-        assert await page.evaluate("[diagram.scrollLeft,diagram.scrollTop,diagram.dataset.zoom]") == saved
+        assert await page.evaluate("[diagram.scrollLeft,diagram.scrollTop,diagram.dataset.zoom]") == saved, (saved, await page.evaluate("[diagram.scrollLeft,diagram.scrollTop,diagram.dataset.zoom]"))
         # Real browser touch dispatch exercises implicit pointer-capture transfer.
         await page.locator('#diagram').scroll_into_view_if_needed()
         box = await page.locator('#diagram').bounding_box()
@@ -741,6 +744,7 @@ async def test_viewport_fractional_drag(browser, base):
     context, page = await fresh(browser, base, status="live", count=32, touch=True)
     try:
         await page.locator('#diagramReset').click()
+        await page.wait_for_function("Number(diagram.dataset.zoom)===1")
         await page.locator('#diagram').scroll_into_view_if_needed()
         await page.evaluate("() => { diagram.scrollLeft=500; diagram.scrollTop=1000; }")
         box = await page.locator('#diagram').bounding_box()
@@ -789,9 +793,10 @@ async def assert_outcome_styles(page, code):
                 return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
             };
             const contrast=(a,b)=>(Math.max(a,b)+.05)/(Math.min(a,b)+.05);
-            const bg=lum(getComputedStyle(card).backgroundColor);
+            // The inset outline and text sit on each slot's painted background.
             return [...card.querySelectorAll('.match-slot')].map(slot=>{
                 const style=getComputedStyle(slot), text=getComputedStyle(slot.querySelector('.slot-score'));
+                const bg=lum(style.backgroundColor);
                 return {state:slot.className,width:style.outlineWidth,style:style.outlineStyle,
                     outlineContrast:contrast(lum(style.outlineColor),bg),textContrast:contrast(lum(text.color),bg)};
             });
@@ -1118,7 +1123,8 @@ async def test_real_platform_adapter(browser, base):
     page = await context.new_page()
     try:
         await page.goto(base + "/brackets/")
-        await page.wait_for_function("document.querySelector('#message').textContent.includes('Cloud connected')")
+        await page.wait_for_function("/Cloud connected|Cloud unavailable/.test(document.querySelector('#message').textContent)")
+        assert "Cloud connected" in await page.locator("#message").inner_text(), await page.locator("#message").inner_text()
         await page.locator("#createPanel summary").click()
         await page.fill("#title", "Real adapter event")
         await page.fill("#date", "2026-09-07")
@@ -1131,8 +1137,9 @@ async def test_real_platform_adapter(browser, base):
             await page.locator("#addForm button").click()
         for index, row in enumerate(await page.locator("#rosterRows tr").all()):
             await row.locator('[data-field="tag"]').fill(str(index // 2 + 1))
-            await row.locator('[data-field="checkedIn"]').check()
-            await row.locator('[data-field="paid"]').check()
+            if index == 0:
+                await row.locator('[data-field="checkedIn"]').check()
+                await row.locator('[data-field="paid"]').check()
         await page.locator("#saveRoster").click()
         await page.wait_for_function("document.querySelector('#message').textContent.includes('All roster changes saved')")
         assert await page.locator('#rosterRows [data-field="name"]').first.input_value() == profile_name
@@ -1148,6 +1155,11 @@ async def test_real_platform_adapter(browser, base):
         await page.evaluate("window.retryTransaction=true")
         await click_with_confirmation(page, "#startTournament")
         await page.wait_for_function("document.querySelector('#message').textContent.includes('Tournament started')")
+        assert not await page.locator('#paymentRows input').last.is_checked()
+        await page.locator('#paymentRows input').last.check()
+        await page.wait_for_function("document.querySelector('#message').textContent.includes('Payment status saved')")
+        assert await page.evaluate("""() => [...testDocs].filter(([k])=>k.startsWith('blakeoutDevRosterPrivate/'))
+            .every(([,v])=>{const rows=JSON.parse(v.registrations);return rows.at(-1).paid&&!rows.at(-1).checkedIn;})""")
         await page.locator('[data-code="W1.1"] .match-action').click()
         await page.fill("#scoreA", "2")
         await page.fill("#scoreB", "0")
@@ -1179,7 +1191,8 @@ docs.set('blakeoutDevProfiles/verified_joiner',{name:'Verified Arrival'});
         body="export const firebaseConfig={apiKey:'test-only',projectId:'blakeout-darts-dev',authDomain:'blakeout-darts-dev.firebaseapp.com',appId:'1:901185136996:web:89d4f413520e66ff773271'};"))
     page = await context.new_page()
     await page.goto(base + "/brackets/")
-    await page.wait_for_function("document.querySelector('#message').textContent.includes('Cloud connected')")
+    await page.wait_for_function("/Cloud connected|Cloud unavailable/.test(document.querySelector('#message').textContent)")
+    assert "Cloud connected" in await page.locator("#message").inner_text(), await page.locator("#message").inner_text()
     await page.evaluate("""async () => {
         const p=await import('/js/platform.js'),e=await import('/js/brackets/engine.js');
         let t=e.createTournament({id:'selfjoin-integration',ownerId:'verified_owner',

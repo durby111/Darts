@@ -101,12 +101,12 @@ async def test_registry_picker(page):
     await dismiss_onboard(page)
     # Registry card count grows deliberately as game batches land.
     cards = await page.locator(".game-card[data-game-value]").count()
-    assert cards == 29, f"expected 29 game cards, got {cards}"
+    assert cards == 30, f"expected 30 game cards including Brisket, got {cards}"
 
     # New games present
     for gid in ("chaos", "shanghai", "901", "1101", "1501", "countup",
                 "quickie", "cutthroat", "wildcard", "gotcha", "hammer", "teamhammer",
-                "sharktank", "tictactoe", "robinhood", "doubledown", "teamcricket"):
+                "sharktank", "tictactoe", "robinhood", "doubledown", "teamcricket", "brisket"):
         n = await page.locator(f".game-card[data-game-value='{gid}']").count()
         assert n == 1, f"{gid} card missing"
 
@@ -126,7 +126,7 @@ async def test_registry_picker(page):
     assert set(cricket_cards) == {
         "cricket", "spanish", "minnesota", "chaos",
         "quickie", "cutthroat", "wildcard", "hammer", "teamhammer", "doubledown",
-        "teamcricket"
+        "teamcricket", "brisket"
     }, \
         f"cricket category shows {cricket_cards}"
     await page.click(".picker-chip[data-category='all']")
