@@ -106,7 +106,7 @@
                 <h2>Organizer roster</h2>
                 <p id="rosterSummary" aria-live="polite"></p>
                 <p id="rosterWarning" aria-live="polite" hidden></p>
-                <p>Use one matching team number for both partners. Save all rows together; swaps between full teams are allowed. Every playing team member must be checked in and marked paid before starting. Standby players do not need to be paid.</p>
+                <p>Use one matching team number for both partners. Save all rows together; swaps between full teams are allowed. Every player needs a name and a valid team assignment. Paid and checked-in flags are tracking only and never block play. Start saves the current roster draft.</p>
                 <p>Guests belong only to this tournament. Account players are linked by verified profile ID, never by a name or email match.</p>
                 <fieldset id="rosterControls">
                     <form id="addForm" class="bracket-fields">
@@ -135,6 +135,11 @@
                 </section>
                 <p id="draftStatus" aria-live="polite"></p>
                 <ul id="blockers"></ul>
+            </section>
+            <section id="paymentPanel" class="platform-card" hidden>
+                <h2>Organizer payments</h2>
+                <p>Paid status is tracking only. Changes save immediately; players, teams and match results stay locked.</p>
+                <div id="paymentRows"></div>
             </section>
             <section id="formatPanel" class="platform-card" hidden>
                 <h2>Games and match lengths</h2>

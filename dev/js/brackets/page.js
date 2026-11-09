@@ -105,7 +105,7 @@ function startFeedback(title, messages, error = false) {
 
 function startBlockers() {
     const blockers = [];
-    if (dirty()) blockers.push('Save all roster changes before starting.');
+    if (resultDirty) blockers.push('Save or discard the unsaved match result before starting.');
     try {
         const candidate = rosterDirty ? engine.saveRoster(current, validRoster()) : current;
         blockers.push(...engine.readiness(candidate));
@@ -136,6 +136,7 @@ function accountUI() {
 }
 
 function controls() {
+    for (const input of document.querySelectorAll('#paymentRows input')) input.disabled = busy || pendingConfirmation || needsAccountReload || resultDirty || !owner();
     $('createControls').disabled = busy || !verified();
     $('rosterControls').disabled = busy || needsAccountReload || !owner();
     $('resultControls').disabled = busy || needsAccountReload || !owner();
@@ -269,7 +270,7 @@ function draw() {
 
 function updatePreview() {
     if (!current) return;
-    $('draftStatus').textContent = rosterDirty ? 'Unsaved changes · preview only. Save all changes before starting.' : localText('Roster saved to cloud.');
+    $('draftStatus').textContent = rosterDirty ? 'Unsaved roster changes · Start saves this draft and locks the roster.' : localText('Roster saved to cloud.');
     $('blockers').replaceChildren();
     $('rosterSummary').textContent = '';
     $('rosterWarning').textContent = '';
@@ -451,6 +452,29 @@ function renderTournament() {
     renderFormats();
     $('tournamentMeta').textContent = `${current.date} · ${formatLabel(current)} · best of ${current.bestOf} · ${current.status} · revision ${current.revision}`;
     $('rosterPanel').hidden = !owner() || current.status !== 'registration';
+    $('paymentPanel').hidden = !owner() || current.status === 'registration';
+    $('paymentRows').replaceChildren();
+    if (owner() && current.status !== 'registration') {
+        for (const entry of current.registrations) {
+            const label = textElement('label', `${entry.name} · Paid `);
+            const input = document.createElement('input');
+            input.type = 'checkbox'; input.checked = entry.paid;
+            input.setAttribute('aria-label', `Paid for ${entry.name}`);
+            input.addEventListener('change', () => {
+                if (busy || pendingConfirmation || needsAccountReload || resultDirty || !owner()) return;
+                const paid = input.checked;
+                const isCurrent = captureContext({ requireOwner: true });
+                action(async () => {
+                    const saved = await platform.updateTournament(current.id, current.revision,
+                        stored => engine.setPlayerPaid(stored, entry.id, paid));
+                    if (!isCurrent()) return;
+                    accept(saved);
+                    notice('Payment status saved. Play and team assignments are unchanged.');
+                }, error => { input.checked = entry.paid; notice(error.message, true); }, isCurrent);
+            });
+            label.append(input); $('paymentRows').append(label);
+        }
+    }
     $('spectatorNote').hidden = !!owner();
     $('lockedNote').hidden = current.status === 'registration';
     $('resultPanel').hidden = true;
@@ -574,13 +598,13 @@ $('formatForm').addEventListener('submit', event => {
 });
 $('drawPartners').addEventListener('click', async () => {
     if (!owner() || busy || pendingConfirmation || needsAccountReload || current.status !== 'registration') return;
-    const confirmation = await confirmCurrent('Randomly draw two-person teams from every non-standby player in this draft? This replaces existing pairings. Review and save the roster before starting.', { requireOwner: true, confirmLabel: 'Draw partners' });
+    const confirmation = await confirmCurrent('Randomly draw two-person teams from every non-standby player in this draft? This replaces existing pairings. Review the roster before starting. Start saves the draft.', { requireOwner: true, confirmLabel: 'Draw partners' });
     if (!confirmation?.answer || !confirmation.isCurrent()) return;
     try {
         const drawn = engine.blindDraw({ ...current, registrations: validRoster() });
         draft = drawn.registrations;
         markRosterDirty(); renderRoster(); updatePreview();
-        notice('Partners drawn in the draft. Review the pairs and save all roster changes.');
+        notice('Partners drawn in the draft. Review the pairs, then save or start.');
     } catch (error) { notice(error.message, true); }
 });
 
@@ -677,7 +701,7 @@ $('startTournament').addEventListener('click', async () => {
     action(async () => {
         startFeedback('Starting tournament…', ['Waiting for cloud confirmation. Please wait before trying again.']);
         // Transaction callbacks may retry: the randomized draw must be computed once.
-        const started = engine.startTournament(current);
+        const started = engine.startTournament(current, rosterDirty ? validRoster() : null);
         const saved = await platform.updateTournament(current.id, current.revision, () => structuredClone(started));
         if (!sameStartContext()) return;
         accept(saved);

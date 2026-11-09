@@ -70,7 +70,7 @@ export function authoritativeMatch(tournament, matchId, ownerId, allowComplete =
             id: team.id, name: team.name,
             members: team.memberIds.map(id => {
                 const member = tournament.registrations.find(r => r.id === id);
-                if (!member || !member.checkedIn || member.standby) throw new Error('A team member is no longer eligible.');
+                if (!member || !member.name?.trim() || member.standby) throw new Error('A team member is no longer eligible.');
                 return { id: member.id, playerId: member.playerId || null, name: member.name };
             })
         };

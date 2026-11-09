@@ -11,7 +11,7 @@ const reject=async(fn,text)=>{let error;try{await fn();}catch(x){error=x;}ok(err
 const fixture=(id,n=8)=>e.saveRoster(e.createTournament({id,ownerId:'device-organizer',title:'Boundary',date:'2026-10-15',gameType:'301',bestOf:1}),Array.from({length:n},(_,i)=>({id:`r${i}`,playerId:null,name:`Player ${i}`,tag:String(Math.floor(i/2)+1),paid:true,checkedIn:true,standby:false})));
 let t=fixture('edge');const original=JSON.stringify(t);
 await reject(()=>e.blindDraw({...t,registrations:t.registrations.slice(0,5)}),'even number');
-await reject(()=>e.blindDraw({...t,registrations:t.registrations.map((r,i)=>({...r,checkedIn:i!==0}))}),'Check in');
+const unchecked=e.blindDraw({...t,registrations:t.registrations.map(r=>({...r,checkedIn:false,paid:false}))});ok(unchecked.registrations.every(r=>!r.checkedIn&&!r.paid),'Draw preserves unchecked/unpaid');
 const draw=e.blindDraw(t);ok(JSON.stringify(t)===original,'Draw mutated input');ok(draw.teams.length===4 && new Set(draw.teams.flatMap(x=>x.memberIds)).size===8,'Draw members');
 let standby=fixture('standby',6);standby.registrations[4].standby=standby.registrations[5].standby=true;
 ok(e.blindDraw(standby).teams.length===2,'Standby excluded');
