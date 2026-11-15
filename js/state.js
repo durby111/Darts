@@ -238,6 +238,9 @@ export function initCricket(type, includeBulls = false, brisketOptions = {}) {
         targets = includeBulls
             ? ['20', '19', '18', '17', '16', '15', '14', '13', '12', '11', '10', 'Bull']
             : ['20', '19', '18', '17', '16', '15', '14', '13', '12', '11', '10'];
+    } else if (type === 'bullshit') {
+        targets = Array.from({ length: 10 }, (_, i) => String(10 - i));
+        if (includeBulls) targets.push('Bull');
     } else if (type === 'chaos') {
         targets = generateChaosTargets();
     } else if (type === 'wildcard') {

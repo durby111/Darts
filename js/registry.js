@@ -108,6 +108,13 @@ export const GAME_REGISTRY = [
         rules: 'Standard cricket marks and points, but on the numbers 20 down to 10 (Bull optional). More numbers to close = longer, more open game.'
     },
     {
+        id: 'bullshit', label: 'Bullshit', sub: '10-1', icon: '🎯',
+        engine: 'cricket', category: 'cricket', isNew: true,
+        tags: ['cricket', 'marks', 'bullshit', 'low', 'new'],
+        desc: 'Cricket on 10 down to 1, with optional Bull and points.',
+        rules: 'Single = 1 mark, double = 2, triple = 3; three marks closes a target. Targets are 10 down to 1, with Bull optional. With points enabled, excess marks score while an opponent has the target open; close everything with equal or more points to win. With points disabled, close every target first.'
+    },
+    {
         id: 'minnesota', label: 'Minnesota', sub: 'Cricket variant', icon: '✕',
         engine: 'cricket', category: 'cricket',
         tags: ['cricket', 'marks', 'minnesota', 'triples', 'doubles', 'beds'],

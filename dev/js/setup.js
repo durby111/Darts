@@ -430,6 +430,8 @@ export function initSetupControls() {
         const isTeamCricket = this.value === 'teamcricket';
         document.getElementById('cricketOptions').classList.toggle('hidden', !isCricket);
         document.getElementById('spanishBullsOption').classList.toggle('hidden', !isSpanish);
+        document.querySelector('#spanishBullsOption span').textContent = this.value === 'bullshit'
+            ? 'Include Bulls (10-1 + Bull)' : 'Include Bulls (20-10 + Bull)';
         document.getElementById('chaosOptions')?.classList.toggle('hidden', !isChaos);
         document.getElementById('game121Options').classList.toggle('hidden', !is121);
         document.getElementById('baseballOptions').classList.toggle('hidden', !isBaseball);

@@ -187,7 +187,7 @@ function calculatePendingScoreDeltas() {
 function updateCricketGrid() {
     const grid = document.getElementById('cricketGrid');
     const numPlayers = game.players.length;
-    const isSpanish = game.type === 'spanish';
+    const isSpanish = game.type === 'spanish' || game.type === 'bullshit';
     const isMinnesota = game.type === 'minnesota';
     const isCompact = isSpanish || isMinnesota;
     const specialTargets = ['Triples', 'Doubles', 'Bed'];

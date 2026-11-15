@@ -111,8 +111,8 @@ export const GAME_REGISTRY = [
         id: 'bullshit', label: 'Bullshit', sub: '10-1', icon: '🎯',
         engine: 'cricket', category: 'cricket', isNew: true,
         tags: ['cricket', 'marks', 'bullshit', 'low', 'new'],
-        desc: 'Spanish-style Cricket on 10 down to 1, with optional Bull and points.',
-        rules: 'Play like Spanish: single = 1 mark, double = 2, triple = 3; three marks closes a target. Targets are 10 down to 1, with Bull optional. With points enabled, excess marks score while an opponent has the target open; close everything with equal or more points to win. With points disabled, close every target first.'
+        desc: 'Cricket on 10 down to 1, with optional Bull and points.',
+        rules: 'Single = 1 mark, double = 2, triple = 3; three marks closes a target. Targets are 10 down to 1, with Bull optional. With points enabled, excess marks score while an opponent has the target open; close everything with equal or more points to win. With points disabled, close every target first.'
     },
     {
         id: 'minnesota', label: 'Minnesota', sub: 'Cricket variant', icon: '✕',

@@ -418,7 +418,7 @@ export function initSetupControls() {
         const isCricket = isCricketGame(this.value);
         const isX01 = isX01Game(this.value);
         const isChicago = this.value === 'chicago';
-        const isSpanish = this.value === 'spanish';
+        const isSpanish = this.value === 'spanish' || this.value === 'bullshit';
         const is121 = this.value === '121';
         const isBaseball = this.value === 'baseball';
         const isBermuda = this.value === 'bermuda';
@@ -430,6 +430,8 @@ export function initSetupControls() {
         const isTeamCricket = this.value === 'teamcricket';
         document.getElementById('cricketOptions').classList.toggle('hidden', !isCricket);
         document.getElementById('spanishBullsOption').classList.toggle('hidden', !isSpanish);
+        document.querySelector('#spanishBullsOption span').textContent = this.value === 'bullshit'
+            ? 'Include Bulls (10-1 + Bull)' : 'Include Bulls (20-10 + Bull)';
         document.getElementById('chaosOptions')?.classList.toggle('hidden', !isChaos);
         document.getElementById('game121Options').classList.toggle('hidden', !is121);
         document.getElementById('baseballOptions').classList.toggle('hidden', !isBaseball);
@@ -827,7 +829,7 @@ async function beginOptionalMatch(playerSeeds, teams, force = false) {
     try {
         const members = teams ? teams.flatMap(t => t.members) : playerSeeds;
         if (members.some(p => p.bot)) {
-            if (!supportsBot(document.getElementById('gameType').value)) { alert('BotBlake supports X01, Cricket, Spanish, and Cutthroat. Choose a supported game or human players.'); document.getElementById('setupScreen').style.display = 'flex'; return; }
+            if (!supportsBot(document.getElementById('gameType').value)) { alert('BotBlake supports X01, Cricket, Spanish, Bullshit, and Cutthroat. Choose a supported game or human players.'); document.getElementById('setupScreen').style.display = 'flex'; return; }
             if (!members.some(p => !p.bot)) { alert('Add at least one human player for BotBlake practice.'); document.getElementById('setupScreen').style.display = 'flex'; return; }
             if (members.some(p => p.bot?.skill === 'auto')) {
                 if (teams) {
