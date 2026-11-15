@@ -418,7 +418,7 @@ export function initSetupControls() {
         const isCricket = isCricketGame(this.value);
         const isX01 = isX01Game(this.value);
         const isChicago = this.value === 'chicago';
-        const isSpanish = this.value === 'spanish';
+        const isSpanish = this.value === 'spanish' || this.value === 'bullshit';
         const is121 = this.value === '121';
         const isBaseball = this.value === 'baseball';
         const isBermuda = this.value === 'bermuda';
@@ -831,7 +831,7 @@ async function beginOptionalMatch(playerSeeds, teams, force = false) {
     try {
         const members = teams ? teams.flatMap(t => t.members) : playerSeeds;
         if (members.some(p => p.bot)) {
-            if (!supportsBot(document.getElementById('gameType').value)) { alert('BotBlake supports X01, Cricket, Spanish, and Cutthroat. Choose a supported game or human players.'); document.getElementById('setupScreen').style.display = 'flex'; return; }
+            if (!supportsBot(document.getElementById('gameType').value)) { alert('BotBlake supports X01, Cricket, Spanish, Bullshit, and Cutthroat. Choose a supported game or human players.'); document.getElementById('setupScreen').style.display = 'flex'; return; }
             if (!members.some(p => !p.bot)) { alert('Add at least one human player for BotBlake practice.'); document.getElementById('setupScreen').style.display = 'flex'; return; }
             if (members.some(p => p.bot?.skill === 'auto')) {
                 if (teams) {

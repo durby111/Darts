@@ -1,6 +1,6 @@
 // Pure dart simulation. Inject RNG for reproducible tests; no network or AI service.
 export const LEVELS = { easy: .25, medium: .45, hard: .65, expert: .85 };
-export const SUPPORTED_CRICKET = ['cricket', 'spanish', 'cutthroat'];
+export const SUPPORTED_CRICKET = ['cricket', 'spanish', 'bullshit', 'cutthroat'];
 export function supportsBot(type) {
     return /^\d+01$/.test(type) || SUPPORTED_CRICKET.includes(type);
 }

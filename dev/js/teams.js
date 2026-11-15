@@ -471,7 +471,7 @@ export function initTeamBuilder() {
     controlsInitialized = true;
 
     document.getElementById('teamAddBotBtn')?.addEventListener('click', () => {
-        if (!supportsBot(document.getElementById('gameType').value)) { alert('BotBlake supports X01, Cricket, Spanish, and Cutthroat.'); return; }
+        if (!supportsBot(document.getElementById('gameType').value)) { alert('BotBlake supports X01, Cricket, Spanish, Bullshit, and Cutthroat.'); return; }
         const people = [...trayPeople, ...teamMembers.flat()];
         let number = 1; while (people.some(p => p.name === `BotBlake ${number}`)) number++;
         trayPeople.push({ id: makeId(), name: `BotBlake ${number}`, rosterEmail: null, bot: { skill: document.getElementById('teamBotSkill').value } });
