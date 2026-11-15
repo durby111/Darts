@@ -21,6 +21,8 @@ let rosterCache = [];
 let rosterListeners = [];
 let initState = 'pending';   // pending | ready | error
 let initError = null;
+let rosterIdForSession = null;
+let offlinePersistence = false;
 
 /* ============================================
    Private roster scoping (SECURITY_AUDIT finding #1)
@@ -50,7 +52,8 @@ let initError = null;
    ============================================ */
 
 const ROSTER_ID_KEY = 'blakeout_roster_id';
-const ROSTER_ID_RE = /^[0-9a-f]{32}$/;
+const ROSTER_ID_PREVIOUS_KEY = 'blakeout_roster_id_previous';
+const ROSTER_ID_RE =/^[0-9a-f]{32}$/;
 
 // Mirrors the cap enforced by the Firestore rules, so an over-long name is
 // trimmed here instead of being rejected by the server with a vague error.
@@ -68,6 +71,7 @@ function randomRosterId() {
  * the back stack), otherwise reuses or mints a private id.
  */
 export function getRosterId() {
+    if (rosterIdForSession) return rosterIdForSession;
     let adopted = null;
     try {
         const fromUrl = new URLSearchParams(location.search).get('roster');
@@ -80,22 +84,54 @@ export function getRosterId() {
     } catch { /* private mode */ }
 
     if (adopted && adopted !== id) {
-        id = adopted;
-        try { localStorage.setItem(ROSTER_ID_KEY, id); } catch { /* non-fatal */ }
+        // A device that already has its own roster must agree before a link
+        // replaces it — otherwise any opened link silently swaps the list.
+        const hasOwn = !!id && ROSTER_ID_RE.test(id);
+        let agreed = true;
+        if (hasOwn) {
+            try {
+                agreed = window.confirm(
+                    'This link joins a shared BlakeOut player list.\n\n' +
+                    'This device will switch to the shared list and stop showing its current one. ' +
+                    'Anyone with the link can view and edit the shared list.\n\n' +
+                    'Join the shared list?'
+                );
+            } catch { agreed = false; }
+        }
+        if (agreed) {
+            try {
+                // Keep the old id so the previous list can be recovered.
+                if (hasOwn) localStorage.setItem(ROSTER_ID_PREVIOUS_KEY, id);
+                localStorage.setItem(ROSTER_ID_KEY, adopted);
+                id = adopted;
+            } catch {
+                if (!hasOwn) {
+                    // A valid capability link can recover a session-only roster even
+                    // while storage is blocked. Never invent a replacement ID here.
+                    id = adopted;
+                    try { window.alert('This shared player list is open for this session only because site storage is unavailable. Keep its Share roster link to reopen it. The link does not back up unsynced player changes.'); } catch {}
+                } else {
+                    try { window.alert('Could not save the shared roster on this device. Your current list has not been changed. Free device storage or allow site storage, then reopen the link.'); } catch {}
+                }
+            }
+        }
     }
     if (!id || !ROSTER_ID_RE.test(id)) {
         id = randomRosterId();
-        try { localStorage.setItem(ROSTER_ID_KEY, id); } catch { /* non-fatal */ }
+        try { localStorage.setItem(ROSTER_ID_KEY, id); } catch {
+            try { window.alert('Site storage is unavailable. This player list will only stay linked while this page is open. Save its Share roster link before closing the page. The link does not back up unsynced player changes.'); } catch {}
+        }
     }
 
     if (adopted) {
-        // Keep the id out of the visible URL once it's stored.
+        // Remove a handled capability link from the address bar.
         try {
             const url = new URL(location.href);
             url.searchParams.delete('roster');
             history.replaceState(null, '', url.pathname + url.search + url.hash);
         } catch { /* non-fatal */ }
     }
+    rosterIdForSession = id;
     return id;
 }
 
@@ -145,6 +181,7 @@ export async function initFirebase() {
         // multiple tabs, etc). The app still works in those cases.
         try {
             await fsMod.enableIndexedDbPersistence(db);
+            offlinePersistence = true;
         } catch (err) {
             console.warn('[Firebase] offline persistence unavailable:', err.code);
         }
@@ -208,7 +245,7 @@ export function onRosterChange(fn) {
  * inside this device's private roster.
  * Uses merge: true so future stats writes don't clobber profile fields.
  */
-export async function upsertPlayer({ email, name }) {
+export async function upsertPlayer({ email, name }, onLateError) {
     const cleanName = (name || '').trim().slice(0, MAX_NAME_LENGTH);
     if (!cleanName) throw new Error('name required');
     if (!db || !sdk) throw new Error('Roster is offline. Check your connection and refresh.');
@@ -220,12 +257,32 @@ export async function upsertPlayer({ email, name }) {
     const id = normalizeEmail(email) || `noemail-${cryptoId()}`;
 
     const ref = playerDoc(id);
-    await sdk.setDoc(ref, {
+    const write = sdk.setDoc(ref, {
         email: id,
         name: cleanName,
         updatedAt: sdk.serverTimestamp()
     }, { merge: true });
+
+    // Firestore resolves a write only when the server confirms it, which
+    // never happens offline. A timeout is NOT a durable-save acknowledgment.
+    // Persistence may be unavailable, or the local write may still be pending.
+    let timer;
+    const waited = new Promise(resolve => { timer = setTimeout(() => resolve(offlinePersistence ? 'pending' : 'pending-memory'), UPSERT_WAIT_MS); });
+    let outcome;
+    try { outcome = await Promise.race([write.then(() => 'saved'), waited]); }
+    finally { clearTimeout(timer); }
+    if (outcome !== 'saved') {
+        write.catch(err => {
+            console.warn('[Firebase] queued roster write failed:', err?.code || err);
+            if (typeof onLateError === 'function') {
+                try { onLateError(err, cleanName); } catch (e) { console.error(e); }
+            }
+        });
+    }
+    return outcome;
 }
+
+const UPSERT_WAIT_MS = 1500;
 
 function cryptoId() {
     const a = new Uint8Array(8);

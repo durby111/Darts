@@ -619,7 +619,14 @@ function initRosterUI() {
         }
         addBtn.disabled = true;
         try {
-            await upsertPlayer({ name, email });
+            const outcome = await upsertPlayer({ name, email }, (err, savedName) => {
+                alert(`Could not sync ${savedName} to the cloud: ` + (err?.message || err));
+            });
+            if (outcome !== 'saved') {
+                alert(outcome === 'pending-memory'
+                    ? 'Not yet saved to the cloud. Offline storage is unavailable, so this player may be lost if you close or reload this page. Keep it open and reconnect.'
+                    : 'Not yet confirmed by the cloud. Keep this page open and reconnect to finish saving the player.');
+            }
             nameInput.value = '';
             emailInput.value = '';
         } catch (err) {
