@@ -21,3 +21,14 @@ for(const prefix of ['', 'dev/']){
  assert.ok(astra.includes('min-height:44px')&&astra.includes('ON THROW'));
  console.log('PASS '+(prefix||'production')+': registered once, Modern default, precached, paired CSS parity, no external assets or cross-game Astra selectors');
 }
+
+const {SCORE_SKINS,getScoreSkin} = await import('../js/score-appearance.js');
+assert.equal(SCORE_SKINS.find(s=>s.id==='fable').label, 'Fable 5.2');
+assert.equal(SCORE_SKINS.find(s=>s.id==='astra').label, 'Astra 6.2');
+for(const saved of ['fable','astra','modern']) {
+ globalThis.localStorage={getItem:key=>{assert.equal(key,'blakeout_x01_skin');return saved;}};
+ assert.equal(getScoreSkin(),saved);
+}
+delete globalThis.localStorage;
+assert.equal(getScoreSkin(),'modern');
+console.log('PASS DEV exact comparison labels, persisted IDs and default unchanged');
