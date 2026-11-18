@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-v66-paired-score-layouts-20261118';
+const CACHE_NAME = 'blakeout-v67-layout-picker-names-20261118';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;

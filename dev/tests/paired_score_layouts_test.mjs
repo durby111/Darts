@@ -6,6 +6,8 @@ const read=path=>fs.readFileSync(new URL(path,root),'utf8');
 for(const prefix of ['', 'dev/']){
  const html=read(prefix+'index.html'),prefs=read(prefix+'js/score-appearance.js'),sw=read(prefix+'sw.js');
  assert.match(prefs,/const DEFAULT_SKIN = 'modern'/);
+ assert.ok(prefs.includes("id: 'fable', label: 'Fable 5.2'"));
+ assert.ok(prefs.includes("id: 'astra', label: 'Astra 6.2'"));
  for(const [id,file] of [['fable','fable'],['astra','astra-flight-deck']]){
   assert.equal(prefs.split("id: '"+id+"'").length,2);
   assert.equal(html.split('href="css/'+file+'.css"').length,2);
