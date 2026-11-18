@@ -8,7 +8,9 @@ export const SCORE_SKINS = [
     { id: 'modern', label: 'Modern', desc: 'Themed keys, roomier pad' },
     { id: 'classic', label: 'Classic', desc: 'Original grey keypad' },
     { id: 'dc', label: 'DC Mode', desc: 'Black/red X01 + Cricket board' },
-    { id: 'dot-better', label: 'Dot Better', desc: 'Charcoal panels, clear scores, full-width pad' }
+    { id: 'dot-better', label: 'Dot Better', desc: 'Charcoal panels, clear scores, full-width pad' },
+    { id: 'fable', label: 'Fable', desc: 'Green baize, brass trim, ivory keys' },
+    { id: 'astra', label: 'Astra 6.2 · Flight Deck', desc: 'X01: fixed score lanes, cyan checkout and quick-score bank' }
 ];
 
 function isScoreSkin(skin) {

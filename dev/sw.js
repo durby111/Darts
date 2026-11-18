@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v95-bullshit-label-20261115';
+const CACHE_NAME = 'blakeout-dev-v96-paired-score-layouts-20261118';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -32,6 +32,8 @@ const ASSETS = [
     './css/winner.css',
     './css/winner-celebration.css',
     './css/dot-better.css',
+    './css/fable.css',
+    './css/astra-flight-deck.css',
     './css/platform.css',
     './css/brackets.css',
     './accounts/',

@@ -1,0 +1,648 @@
+/* Fable is an opt-in, DEV-only presentation layer: a pub-cabinet look with
+   green baize, brass trim, chalkboard score plates and ivory keys. It keeps
+   Classic's layout (header, history, bottom keypad) and only restyles it.
+   No scoring/state rules live here. Every rule is scoped to the Fable mode
+   and the game screen, so every game shares it and all existing styles stay intact.
+   The shared palette and result-dialog gate live in scoreboard-palettes.css. */
+
+:root[data-scoreboard-mode="fable"] #gameScreen {
+    --fb-brass: #c9a45c;
+    --fb-brass-light: #ecd398;
+    --fb-brass-dark: #8a6a2f;
+    --fb-board: #081510;
+    --fb-cream: #f6efdc;
+    --fb-gap: clamp(6px, 1vw, 10px);
+    background:
+        radial-gradient(120% 70% at 50% 0%, #17382a 0%, transparent 70%),
+        linear-gradient(180deg, #0e2419, #091710);
+    color: var(--color-text);
+    padding: max(var(--fb-gap), env(safe-area-inset-top)) var(--fb-gap)
+        max(var(--fb-gap), env(safe-area-inset-bottom));
+    gap: var(--fb-gap);
+}
+
+/* === Header: brass-trimmed player cards with chalkboard score plates === */
+:root[data-scoreboard-mode="fable"] #gameScreen .score-header {
+    background: transparent;
+    column-gap: var(--fb-gap);
+}
+
+/* X01 has no target buttons in the centre lane, so give that width back to
+   the player cards. Cricket keeps its wider lane for the number buttons. */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .score-header {
+    --cricket-center-col: clamp(72px, 12vw, 112px);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .player-header {
+    background: linear-gradient(180deg, #16332699, #0f241acc);
+    color: var(--color-text-muted);
+    border: 1px solid #2c5340;
+    border-radius: 14px;
+    padding: 8px 8px 10px;
+    opacity: 1;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .player-header.active {
+    background: linear-gradient(180deg, #1d4331, #133022);
+    border-color: var(--fb-brass);
+    box-shadow: inset 0 4px 0 var(--fb-brass), 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .player-name {
+    color: #c3cdbd;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    font-size: calc(clamp(0.8rem, 2.3vw, 1.3rem) * var(--ui-scale));
+    padding-block: 2px 6px;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .player-header.active .player-name {
+    color: var(--fb-brass-light);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .thrower-name {
+    color: #9db0a1;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .thrower-name.active {
+    color: var(--fb-brass-light);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .score-big {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    background: var(--fb-board);
+    color: #cfd6c8;
+    border: 1px solid #24483a;
+    border-radius: 10px;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6);
+    text-shadow: none;
+    font-weight: 800;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .player-header.active .score-big {
+    color: #fff7e0;
+    border-color: var(--fb-brass-dark);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .score-big.score-preview {
+    background: #2a2412;
+    box-shadow: inset 0 0 0 2px var(--fb-brass-light);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .score-big.score-preview-bust {
+    background: #3a1614;
+    color: #ffd9d4;
+    box-shadow: inset 0 0 0 2px #e2675c;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .avg-small {
+    color: #9db0a1;
+    font-variant-numeric: tabular-nums;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .score-delta {
+    background: #2a2412;
+    border-color: var(--fb-brass);
+    color: var(--fb-brass-light);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .score-delta.bust {
+    background: #3a1614;
+    border-color: #e2675c;
+    color: #ffd9d4;
+}
+
+/* Classic's header grows when the live-preview chip appears, nudging the
+   history down mid-turn. Reserve the chip's line in X01 so nothing moves. */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .score-delta:empty {
+    display: block;
+    visibility: hidden;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .score-delta:empty::before {
+    content: '\00a0';
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .center-logo {
+    background: transparent;
+    gap: 6px;
+    padding: 0;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .end-game-btn {
+    min-height: 44px;
+    margin: 0;
+    border: 1px solid #4d7a62;
+    border-radius: 999px;
+    background: #11281d;
+    color: var(--fb-cream);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .round-badge {
+    background: var(--fb-board);
+    color: var(--fb-brass-light);
+    border: 2px solid var(--fb-brass);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px #0e2419, 0 0 0 4px var(--fb-brass-dark);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .version-text {
+    color: #9db0a1;
+}
+
+/* === X01 history: a framed chalkboard === */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-main {
+    background: var(--fb-board);
+    border: 1px solid #2c5340;
+    border-radius: 14px;
+    box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .score-history-col {
+    border-color: #1f3d2f;
+    scrollbar-color: #2c5340 transparent;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .round-numbers-col {
+    min-width: 46px;
+    background: #0e2419;
+}
+
+/* Identical fixed row geometry keeps each round number level with its
+   scores in every lane, including the smaller BUST / MISS rows. */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] :is(.score-history-entry, .round-number) {
+    --fb-row: calc(clamp(44px, 7dvh, 64px) * var(--ui-scale));
+    height: var(--fb-row);
+    min-height: var(--fb-row);
+    flex: 0 0 var(--fb-row);
+    padding-block: 0;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .round-number {
+    position: relative;
+    z-index: 0;
+    color: #9db0a1;
+    font-size: var(--font-sm);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .round-number.current {
+    color: #1a1407;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .round-number.current::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    top: 50%;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--fb-brass);
+    transform: translate(-50%, -50%);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry {
+    color: #dfe5d6;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry.current {
+    color: var(--fb-brass-light);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry.bust {
+    color: #f29b91;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry.miss {
+    color: #9db0a1;
+}
+
+/* === X01 controls === */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] #x01Controls {
+    background: transparent;
+    padding: 0;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .checkout-suggestion {
+    background: #2a2412;
+    color: var(--fb-brass-light);
+    border: 1px solid var(--fb-brass);
+    border-radius: 12px;
+    padding: var(--space-sm) var(--space-md);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .finish-indicator {
+    letter-spacing: 0.08em;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-input-row {
+    align-items: stretch;
+    gap: var(--fb-gap);
+    margin-bottom: var(--fb-gap);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .input-display {
+    min-width: 0;
+    background: var(--fb-board);
+    color: var(--fb-cream);
+    border: 1px solid #2c5340;
+    border-radius: 12px;
+    box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.6);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .input-display.remaining-mode {
+    border: 2px solid var(--fb-brass);
+    color: var(--fb-brass-light);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-input-row .btn {
+    min-width: 76px;
+    min-height: 48px;
+    border-radius: 12px;
+    box-shadow: none;
+    letter-spacing: 0.08em;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] #undoBtnX01 {
+    background: #2a2412;
+    color: var(--fb-brass-light);
+    border: 1px solid var(--fb-brass-dark);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] #redoBtnX01 {
+    background: #173326;
+    color: var(--fb-cream);
+    border: 1px solid #4d7a62;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .number-pad {
+    gap: var(--fb-gap);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .quick-col {
+    width: clamp(50px, 11vw, 88px);
+    gap: 6px;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .pad-center {
+    gap: 6px;
+    grid-auto-rows: 1fr;
+}
+
+/* Ivory keys keep Classic's light, high-contrast pad, with depth. */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-num-btn {
+    min-height: 44px;
+    background: linear-gradient(180deg, #fbf5e4, #e6dcc0);
+    color: #16241c;
+    border: 1px solid #b9aa80;
+    border-radius: 12px;
+    box-shadow: 0 3px 0 #8f8361, inset 0 1px 0 #ffffff;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-num-btn:active {
+    opacity: 1;
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #8f8361;
+    background: #e9dfc4;
+}
+
+/* The two operators read as brass modifiers, not digits. */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-num-btn[data-op] {
+    background: linear-gradient(180deg, #e0bd74, #b98f44);
+    color: #1f1607;
+    border-color: var(--fb-brass-dark);
+    box-shadow: 0 3px 0 #6f5424, inset 0 1px 0 #f5dfa9;
+}
+
+/* x and + sit directly above the BUST / ENTER row. Make them smaller and
+   lift them to the top of their cell so a thumb heading for ENTER has a
+   clear dead band instead of a neighbouring key. */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-num-btn[data-op] {
+    align-self: start;
+    justify-self: center;
+    width: 72%;
+    height: calc(100% - clamp(12px, 2dvh, 20px));
+    min-height: 44px;
+    padding-block: 0;
+    font-size: calc(clamp(1rem, 2.4dvh, 1.4rem) * var(--ui-scale));
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-num-btn[data-op]:active {
+    box-shadow: 0 1px 0 #6f5424;
+    background: #c29a4c;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-quick-btn {
+    min-height: 44px;
+    background: linear-gradient(180deg, #1e4030, #15301f);
+    color: var(--fb-brass-light);
+    border: 1px solid #7d6a3c;
+    border-radius: 10px;
+    box-shadow: 0 2px 0 #050d09;
+    font-weight: 800;
+    font-size: calc(clamp(0.9rem, 2dvh, 1.25rem) * var(--ui-scale));
+    font-variant-numeric: tabular-nums;
+    transition: transform 0.06s ease;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-quick-btn:active {
+    opacity: 1;
+    transform: translateY(1px);
+    background: var(--fb-brass);
+    color: #1a1407;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-bottom-row {
+    gap: var(--fb-gap);
+    margin-top: var(--fb-gap);
+}
+
+/* One tall action row. Every button shares the height so the row does not
+   jump when ENTER replaces MISS. */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-bottom-row .btn {
+    min-height: calc(clamp(72px, 10dvh, 104px) * var(--ui-scale));
+    border-radius: 14px;
+    box-shadow: none;
+    letter-spacing: 0.12em;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] #x01MissBtn {
+    background: #24443a;
+    color: var(--fb-cream);
+    border: 1px solid #4d7a62;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] #x01BustBtn {
+    background: #8f342c;
+    color: #ffffff;
+    border: 1px solid #d9776d;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] #x01EnterBtn {
+    /* The score-commit key: more than twice BUST's width and the largest
+       label on the pad, so it is hard to miss at arm's length. */
+    flex: 2.4 1 0;
+    background: linear-gradient(180deg, #e6c57c, #c29a4c);
+    color: #1a1407;
+    border: 2px solid #f3dba4;
+    box-shadow: 0 4px 0 #6f5424;
+    font-size: calc(clamp(1.5rem, 3.6dvh, 2.2rem) * var(--ui-scale));
+    font-weight: 800;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] #x01EnterBtn:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #6f5424;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen button:focus-visible {
+    outline: 3px solid var(--fb-brass-light);
+    outline-offset: 2px;
+}
+
+/* === Cricket-family boards share the palette and keep their geometry === */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="cricket"] :is(.cricket-main, .double-down-main, .team-cricket-main) {
+    background: var(--fb-board);
+    border: 1px solid #2c5340;
+    border-radius: 14px;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="cricket"] .cricket-row {
+    border-bottom: 1px solid #1f3d2f;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="cricket"] .cricket-cell.active {
+    background: #173326;
+    box-shadow: none;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="cricket"] .mark {
+    --color-primary: #ecd398;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="cricket"] :is(.cricket-num-btn, .cricket-dt-btn) {
+    background: linear-gradient(180deg, #1e4030, #15301f);
+    color: var(--fb-cream);
+    border-color: #7d6a3c;
+    box-shadow: none;
+}
+
+/* Keep the closed-for-everyone cue: a dashed edge is a non-colour signal. */
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="cricket"] :is(.cricket-num-btn, .cricket-dt-btn).dimmed {
+    background: #11281d;
+    color: #9db0a1;
+    border: 1px dashed #4d7a62;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="cricket"] :is(.bottom-controls, .double-down-controls, .team-cricket-controls) {
+    background: #0e2419;
+    border: 1px solid #2c5340;
+    border-radius: 14px;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="cricket"] .btn--undo {
+    background: #2a2412;
+    color: #ecd398;
+    border: 1px solid #8a6a2f;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="cricket"] #enterBtn {
+    background: linear-gradient(180deg, #e6c57c, #c29a4c);
+    color: #1a1407;
+}
+
+/* === One feel across every game ===
+   The same three roles look the same everywhere: brass is the key that
+   commits a turn, ivory is a key that enters a hit, dark green is a quiet
+   action (miss, clear), and UNDO is the dark brass-edged key. */
+
+/* Commit: END TURN / ENTER in every engine matches the X01 ENTER key. */
+:root[data-scoreboard-mode="fable"] #gameScreen :is(#targetEndTurnBtn, #ticEndTurnBtn, #doubleDownEndTurnBtn, #teamCricketEnterBtn, #enterBtn) {
+    min-height: calc(clamp(64px, 9dvh, 96px) * var(--ui-scale));
+    background: linear-gradient(180deg, #e6c57c, #c29a4c);
+    color: #1a1407;
+    border: 2px solid #f3dba4;
+    border-radius: 14px;
+    box-shadow: 0 4px 0 #6f5424;
+    font-size: calc(clamp(1.3rem, 3.2dvh, 2rem) * var(--ui-scale));
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen :is(#targetEndTurnBtn, #ticEndTurnBtn, #doubleDownEndTurnBtn, #teamCricketEnterBtn, #enterBtn):active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #6f5424;
+}
+
+/* UNDO: one look in every game. */
+:root[data-scoreboard-mode="fable"] #gameScreen .btn--undo {
+    background: #2a2412;
+    color: #ecd398;
+    border: 1px solid #8a6a2f;
+    border-radius: 12px;
+    box-shadow: none;
+    letter-spacing: 0.08em;
+}
+
+/* Quiet actions: MISS, CLEAR, MISS DART, MISS TURN. */
+:root[data-scoreboard-mode="fable"] #gameScreen .btn--miss {
+    background: #24443a;
+    color: #f6efdc;
+    border: 1px solid #4d7a62;
+    border-radius: 12px;
+    box-shadow: none;
+    letter-spacing: 0.06em;
+}
+
+/* Entry keys: Single / Double / Triple are ivory, like the X01 digits. */
+:root[data-scoreboard-mode="fable"] #gameScreen :is(.target-hit-buttons, .tic-multiplier-row) .btn--primary {
+    min-height: 56px;
+    background: linear-gradient(180deg, #fbf5e4, #e6dcc0);
+    color: #16241c;
+    border: 1px solid #b9aa80;
+    border-radius: 12px;
+    box-shadow: 0 3px 0 #8f8361, inset 0 1px 0 #ffffff;
+    font-weight: 800;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen :is(.target-hit-buttons, .tic-multiplier-row) .btn--primary:active {
+    opacity: 1;
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #8f8361;
+}
+
+/* The chosen Tic Tac Toe multiplier is a brass key, not just an outline. */
+:root[data-scoreboard-mode="fable"] #gameScreen .tic-multiplier-row .btn--primary.active {
+    background: linear-gradient(180deg, #e0bd74, #b98f44);
+    color: #1f1607;
+    border-color: #8a6a2f;
+    box-shadow: 0 3px 0 #6f5424, inset 0 1px 0 #f5dfa9;
+    outline: 2px solid #ecd398;
+    outline-offset: 2px;
+}
+
+/* Every game's control block sits on the baize, not a separate slab. */
+:root[data-scoreboard-mode="fable"] #gameScreen .controls-area {
+    background: transparent;
+    padding: 0;
+}
+
+/* Target games: the number to hit is a chalkboard plate, like a score. */
+:root[data-scoreboard-mode="fable"] #gameScreen .target-game-main {
+    background: #081510;
+    border: 1px solid #2c5340;
+    border-radius: 14px;
+    box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .target-stage {
+    color: #ecd398;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .target-value {
+    background: #0e2419;
+    color: #fff7e0;
+    border: 2px solid #c9a45c;
+    border-radius: 14px;
+    box-shadow: 0 0 0 4px #081510, 0 0 0 5px #8a6a2f;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .target-turn-score {
+    color: #ecd398;
+}
+
+/* Tic Tac Toe, Double Down and Team Cricket boards share the framed board. */
+:root[data-scoreboard-mode="fable"] #gameScreen :is(.tic-tac-toe-main, .double-down-main, .team-cricket-main) {
+    background: #081510;
+    border: 1px solid #2c5340;
+    border-radius: 14px;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .tic-cell {
+    background: #11281d;
+    border-color: #2c5340;
+    border-radius: 12px;
+}
+
+:root[data-scoreboard-mode="fable"] #gameScreen .bottom-bar {
+    background: #0e2419;
+    border: 1px solid #2c5340;
+    border-radius: 12px;
+}
+
+@media (orientation: landscape) {
+    :root[data-scoreboard-mode="fable"] #gameScreen .player-header {
+        padding-block: 4px 6px;
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen .player-name {
+        padding-block: 0 2px;
+    }
+    /* Height is scarce in landscape: trim the controls so the history keeps
+       about three visible turns. ENTER stays the widest key on the pad. */
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-bottom-row .btn {
+        min-height: calc(clamp(52px, 9dvh, 72px) * var(--ui-scale));
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .input-display {
+        min-height: 44px;
+        padding-block: 2px;
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-input-row .btn {
+        min-height: 44px;
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .finish-indicator:empty {
+        display: none;
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] :is(.score-history-entry, .round-number) {
+        --fb-row: calc(clamp(34px, 6dvh, 50px) * var(--ui-scale));
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry {
+        font-size: calc(clamp(1.4rem, 4.6dvh, 2.2rem) * var(--ui-scale));
+    }
+}
+
+@media (max-width: 600px) {
+    :root[data-scoreboard-mode="fable"] #gameScreen {
+        --fb-gap: 6px;
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen .player-header {
+        padding: 6px 4px 8px;
+        border-radius: 11px;
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen .player-name {
+        letter-spacing: 0.06em;
+        font-size: clamp(0.7rem, 3.2vw, 1rem);
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] .x01-input-row .btn {
+        min-width: 60px;
+    }
+    /* Four narrow lanes on a phone: keep every turn on one line. */
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] :is(.three-player, .four-player) .score-history-col {
+        padding-inline: 2px;
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] :is(.three-player, .four-player) .score-history-entry {
+        font-size: clamp(17px, 5.6vw, 24px);
+        padding-inline: 0;
+        white-space: nowrap;
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] :is(.three-player, .four-player) .score-history-entry:is(.bust, .miss) {
+        font-size: clamp(12px, 3.6vw, 16px);
+    }
+    :root[data-scoreboard-mode="fable"] #gameScreen[data-scoreboard-family="x01"] :is(.three-player, .four-player) .round-numbers-col {
+        min-width: 34px;
+    }
+}

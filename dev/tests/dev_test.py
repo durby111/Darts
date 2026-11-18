@@ -1693,7 +1693,7 @@ async def test_x01_keypad_skin(page):
     await page.wait_for_timeout(400)
     choices = await page.eval_on_selector_all(
         "#scoreSkinChoices [data-score-skin]", "els => els.map(e => e.dataset.scoreSkin)")
-    assert choices == ["modern", "classic", "dc", "dot-better"], choices
+    assert choices == ["modern", "classic", "dc", "dot-better", "fable", "astra"], choices
     assert await page.locator("#scoreSkinChoices .score-skin-choice.active").get_attribute(
         "data-score-skin") == "modern"
 

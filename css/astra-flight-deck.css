@@ -1,0 +1,80 @@
+/* Astra 6.2 / Flight Deck. Opt-in presentation over the existing X01 controls.
+   Fixed player lanes and a horizontal quick-score bank; no events, state or scoring overrides. */
+
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] {--fd-ink:#101a21;--fd-surface:#18262e;--fd-line:#41545c;--fd-ice:#92e3ee;--fd-paper:#f3f0df;--fd-text:#f4f4e9;--fd-muted:#b5c8cc;--fd-warm:#ffb79e;--color-primary-light:var(--fd-ice);--color-warning:#ffd596;--color-danger:#ffb79e;--color-pending:var(--fd-ice);background:var(--fd-ink);color:var(--fd-text);gap:6px;padding:max(5px,env(safe-area-inset-top)) clamp(6px,2vw,18px) max(6px,env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] > * {width:100%;max-width:880px;margin-inline:auto}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-header {grid-template-columns:repeat(2,minmax(0,1fr));gap:3px;background:transparent}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-header.one-player {grid-template-columns:1fr}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-header.three-player {grid-template-columns:repeat(3,minmax(0,1fr))}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-header.four-player {grid-template-columns:repeat(4,minmax(0,1fr))}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-header .center-logo {order:-1;grid-column:1/-1;flex-direction:row;justify-content:flex-start;gap:12px;background:none;padding:0;min-height:44px}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .center-logo::before {content:"BLAKEOUT  /  FLIGHT DECK";color:var(--fd-ice);font:bold clamp(10px,2.7vw,14px) monospace;letter-spacing:.07em}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .center-logo .end-game-btn {order:3;min-height:44px;min-width:48px;padding:4px 10px;border:1px solid var(--fd-line);background:var(--fd-surface);border-radius:5px;color:var(--fd-text);font:bold 14px sans-serif}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .center-logo .round-badge {margin-left:auto;display:inline-flex;flex-direction:row;gap:4px;align-items:center;justify-content:center;background:none;color:var(--fd-text);border:0;width:auto;height:auto;font:bold 16px monospace;line-height:1.2}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .round-badge::before {content:"RD";color:var(--fd-muted);font:11px monospace}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .center-logo .version-text {font-size:9px;color:var(--fd-muted)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-header .player-header {order:0;position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;text-align:left;border:1px solid var(--fd-line);border-radius:5px;padding:7px clamp(6px,1.8vw,15px);background:#26363e;color:var(--fd-text);opacity:1}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-header .player-header.active {background:var(--fd-paper);color:#14242a;border-color:var(--fd-paper);background-image:repeating-radial-gradient(circle at 115% 148%,transparent 0 19px,#1021280c 20px 21px,transparent 22px 30px)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .player-header::before {content:"WAITING";font:bold clamp(8px,1.7vw,10px) monospace;letter-spacing:.07em;color:var(--fd-muted)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .player-header.active::before {content:"◆  ON THROW";color:#28545c}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .player-name {font-size:clamp(15px,2.8vw,24px);font-weight:750;line-height:1.2;letter-spacing:-.025em;max-width:100%;color:inherit}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .thrower-name {color:inherit;max-width:100%;font-size:13px}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-display-header {align-items:flex-start}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-header .score-big {display:block;text-align:left;background:none;color:inherit;text-shadow:none;border:0;border-radius:3px;padding:0 2px 0 0;min-width:0;width:100%;line-height:1;font-size:clamp(25px,min(calc(12vw * var(--ui-scale)),36cqi),100px);letter-spacing:-.06em;font-weight:850}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-big.score-preview {color:#125765;box-shadow:none}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-big.score-preview-bust {color:#892e23}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-delta {font: bold 12px monospace;background:#c3e6e3;color:#163e47;border-color:#698d90}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-delta.bust {background:#ffd5c4;color:#642718;border-color:#a75e4a}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-main {position:relative;min-height:70px;padding:24px 7px 4px;background:var(--fd-surface);border:1px solid var(--fd-line);border-radius:5px;flex:1 1 0}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-main::before {content:"VISIT HISTORY";position:absolute;top:6px;left:10px;font:bold 10px monospace;letter-spacing:.1em;color:var(--fd-muted)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] :is(.score-history-col,.round-numbers-col) {background:transparent;color:var(--fd-text);min-height:0;overflow-y:auto;padding:0 2px;scrollbar-width:thin}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] :is(.score-history-entry,.round-number) {border:0;border-bottom:1px solid #35434a;border-radius:0;min-height:25px;height:25px;flex:0 0 25px;line-height:24px;padding:0;justify-content:center;text-align:center;font:bold clamp(12px,1.9vw,17px) monospace;color:var(--fd-text)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .round-number {color:var(--fd-muted);font-size:12px}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] :is(.round-number.current,.score-history-entry.current) {color:var(--fd-ice);background:#233840}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry.bust {color:var(--fd-warm)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .score-history-entry.miss {color:var(--fd-muted)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] #x01Controls {flex:0 0 auto;min-height:0;padding:clamp(6px,1.1vw,12px);background:var(--fd-surface);border:1px solid var(--fd-line);border-radius:6px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(52px,.94fr);gap:5px}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] #x01Controls > :is(.checkout-suggestion,.finish-indicator,.x01-input-row) {grid-column:1/-1;width:100%;max-width:none;margin:0}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .checkout-suggestion {padding:6px 12px;border:0;border-radius:3px;background:var(--fd-ice);color:#102b32;font:bold clamp(15px,2.4vw,24px) monospace;text-align:left}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .finish-indicator {min-height:0;padding:2px;color:var(--fd-warm)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .finish-indicator:empty {display:none}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-input-row {gap:5px;align-items:stretch}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .input-display {order:-1;display:flex;justify-content:space-between;gap:6px;min-width:0;min-height:44px;padding:5px 10px;border:1px solid var(--fd-line);border-radius:4px;background:var(--fd-ink);color:var(--fd-text);font-weight:750;font-size:clamp(18px,3.5vw,30px);text-align:right}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .input-display::before {content:"VISIT";font:bold 10px monospace;letter-spacing:.07em;color:var(--fd-muted)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .input-display.remaining-mode {color:var(--fd-ice)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .input-display.remaining-mode::before {content:"LEFT"}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .number-pad {display:grid;grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;flex:none}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .quick-col {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;width:auto;min-width:0}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .quick-col:last-child {grid-column:2;grid-row:1}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .pad-center {display:grid;grid-row:2;grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(44px,1fr));gap:4px;width:auto;min-width:0}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] :is(.x01-num-btn,.x01-quick-btn) {width:100%;min-width:0;min-height:44px;padding:3px;border:1px solid var(--fd-line);border-radius:4px;background:#293a43;color:var(--fd-text);box-shadow:none;text-shadow:none;font-size:clamp(20px,3.3vw,30px);font-weight:700}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-quick-btn {background:#203139;color:#d3e8ea;font:bold clamp(12px,2.2vw,18px) monospace}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-num-btn[data-op] {background:var(--fd-ink);color:var(--fd-ice)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-bottom-row {display:flex;grid-column:1/-1;width:100%;max-width:none;gap:5px;margin:0}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] :is(.x01-input-row,.x01-bottom-row) .btn {min-height:44px;min-width:46px;margin:0;padding:5px 8px;border:1px solid var(--fd-line);border-radius:4px;background:var(--fd-ink);color:var(--fd-text);box-shadow:none;font:bold clamp(12px,2.2vw,17px) sans-serif}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-bottom-row #x01BustBtn {flex:0 1 28%;color:var(--fd-warm);order:-1}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-bottom-row :is(#x01MissBtn,#x01EnterBtn) {background:var(--fd-ice);color:#122930;min-height:48px}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] button:focus-visible {outline:3px solid #ffc783;outline-offset:1px}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] button:disabled {opacity:.5}
+@media (max-width:600px) {
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .number-pad {grid-template-columns:1fr}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .quick-col:last-child {grid-column:1;grid-row:2}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .pad-center {grid-row:3}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .center-logo .version-text {display:none}
+}
+@media (min-width:800px) and (min-height:650px) {
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] {gap:9px}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .pad-center {grid-template-rows:repeat(4,minmax(55px,1fr))}
+}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-main {grid-template-columns:32px repeat(2,minmax(0,1fr))}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-main.three-player {grid-template-columns:32px repeat(3,minmax(0,1fr))}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-main.four-player {grid-template-columns:32px repeat(4,minmax(0,1fr))}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-main:has(#p3HistoryCol[style*="none"]):not(.three-player):not(.four-player) {grid-template-columns:32px minmax(0,1fr)}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .round-numbers-col {order:-1;min-width:0}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-main :is(.round-numbers-col,.score-history-col)::before {position:sticky;top:0;z-index:1;flex:none;padding:2px 0 3px;text-align:center;font:9px monospace;color:var(--fd-muted);background:var(--fd-surface);letter-spacing:.08em}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .round-numbers-col::before {content:"RD"}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] #p1HistoryCol::before {content:"P1"}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] #p2HistoryCol::before {content:"P2"}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] #p3HistoryCol::before {content:"P2"}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] .x01-main:is(.three-player,.four-player) #p3HistoryCol::before {content:"P3"}
+:root[data-scoreboard-mode="astra"] #gameScreen[data-scoreboard-family="x01"] #p4HistoryCol::before {content:"P4"}

@@ -37,14 +37,14 @@ await settings.link(specifier => {
 });
 await settings.evaluate();
 assert.deepEqual(Array.from(settings.namespace.SCORE_SKINS, s => s.id),
-    ['modern', 'classic', 'dc', 'dot-better']);
+    ['modern', 'classic', 'dc', 'dot-better', 'fable', 'astra']);
 assert.equal(settings.namespace.SCORE_SKINS[3].label, 'Dot Better');
 assert.equal(settings.namespace.getScoreSkin(), 'modern');
 settings.namespace.initSettings();
 assert.equal(attrs.get('data-scoreboard-mode'), 'modern');
 pass('optional fourth choice; Modern remains the default');
 
-for (const skin of ['modern', 'classic', 'dc', 'dot-better']) {
+for (const skin of ['modern', 'classic', 'dc', 'dot-better', 'fable', 'astra']) {
     handlers.get('click')({ target: { closest: () => ({ dataset: { scoreSkin: skin } }) } });
     assert.equal(storage.get('blakeout_x01_skin'), skin);
     assert.equal(settings.namespace.getScoreSkin(), skin);
@@ -57,10 +57,10 @@ for (const skin of ['modern', 'classic', 'dc', 'dot-better']) {
 }
 assert.equal(storage.get('blakeout_dev_active_game'), '{"sentinel":"unchanged"}');
 assert.equal(storage.size, 2);
-pass('all four choices persist, preserve active-game storage, and render pressed state');
+pass('all six choices persist, preserve active-game storage, and render pressed state');
 
 handlers.get('click')({ target: { closest: () => ({ dataset: { scoreSkin: 'invalid' } }) } });
-assert.equal(storage.get('blakeout_x01_skin'), 'dot-better');
+assert.equal(storage.get('blakeout_x01_skin'), 'astra');
 storage.set('blakeout_x01_skin', 'invalid');
 assert.equal(settings.namespace.getScoreSkin(), 'modern');
 context.localStorage.getItem = () => { throw new Error('Storage disabled'); };
