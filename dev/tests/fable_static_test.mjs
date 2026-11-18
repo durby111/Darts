@@ -66,7 +66,7 @@ const html = read('index.html');
 assert.equal((html.match(/href="css\/fable.css"/g) || []).length, 1);
 assert.ok(html.indexOf('css/dot-better.css') < html.indexOf('css/fable.css'));
 assert.ok(/(['"])\.\/css\/fable\.css\1/.test(read('sw.js')));
-assert.ok(read('js/score-appearance.js').includes("id: 'fable', label: 'Fable'"));
+assert.ok(read('js/score-appearance.js').includes("id: 'fable', label: 'Fable 5.2'"));
 pass('stylesheet linked once after existing styles, precached, and registered as a choice');
 
 function luminance(hex) {
