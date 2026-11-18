@@ -6,18 +6,43 @@ import { newRecordId, finishScoringLeg, scoringResult, tournamentScoringLocked, 
 import { saveCasualResult } from './casual-recording.js';
 import { registrationLabels } from './brackets/labels.js';
 import { isFeatureAvailable } from './feature-availability.js';
-import { BUILD_STORAGE } from './build-context.js';
+import { matchFormat } from './brackets/engine.js';
+import { BUILD_STORAGE, LOCAL_TOURNAMENT } from './build-context.js';
+import { confirmAction } from './confirm-action.js';
 
 const LAUNCH_KEY = BUILD_STORAGE.matchRecoveryPrefix + 'launch';
 const SUPPORTED = RECORDING_GAMES;
-const BRACKETS_NOTICE = 'Brackets are coming soon. Your recorded game stays on this device; use Resume to continue local scoring.';
-const SAVE_NOTICE = 'Brackets and Players & Records are coming soon. Cloud saving is unavailable; your recorded game and results stay on this device.';
+const BRACKETS_NOTICE = 'Cloud brackets are coming soon. Your recorded game stays on this device; use Resume to continue local scoring.';
+const SAVE_NOTICE = 'Cloud Brackets and Players & Records are coming soon. Cloud saving is unavailable; your recorded game and results stay on this device.';
 let saving = false;
 let initialized = false;
+let lastControlAction = 0;
+let controlPending = false;
+
+// Hold the guard across both the asynchronous question and the resulting write.
+// A second Save/Return/Next leg must never run behind an open confirmation.
+async function exclusiveControl(action) {
+    if (controlPending || saving) return;
+    controlPending = true;
+    try { return await action(); }
+    finally { controlPending = false; }
+}
+
+async function confirmCurrentMatch(message, options) {
+    const session = game.tournament;
+    const snapshot = JSON.stringify([session, game.scoringRecords]);
+    if (!await confirmAction(message, options)) return false;
+    if (game.tournament !== session || snapshot !== JSON.stringify([game.tournament, game.scoringRecords])) {
+        renderTournamentControls('The match changed while confirmation was open. Review it before continuing.');
+        return false;
+    }
+    return true;
+}
 
 async function platform() {
-    if (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts')) throw new Error(SAVE_NOTICE);
-    const api = await import('./platform.js');
+    if (!LOCAL_TOURNAMENT && (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts'))) throw new Error(SAVE_NOTICE);
+    if (!LOCAL_TOURNAMENT) throw new Error(SAVE_NOTICE);
+    const api = await import('../local/platform.js');
     await api.initPlatform();
     await api.requireVerifiedAccount();
     const account = api.getAccount();
@@ -30,9 +55,10 @@ export function authoritativeMatch(tournament, matchId, ownerId, allowComplete =
     if (tournament.status !== 'live' && !(allowComplete && tournament.status === 'complete')) {
         throw new Error('The tournament is not live. Return to brackets to refresh.');
     }
-    if (!SUPPORTED.has(tournament.gameType)) throw new Error('This game is not enabled for tournaments.');
-    if (!Number.isSafeInteger(tournament.bestOf) || tournament.bestOf < 1 || tournament.bestOf > 99 || tournament.bestOf % 2 !== 1 ||
-        (tournament.gameType === 'chicago' && tournament.bestOf !== 3)) throw new Error('Invalid match format.');
+    const effective = matchFormat(tournament, tournament.matches.find(m => m.id === matchId) || { id: matchId });
+    if (!SUPPORTED.has(effective.gameType)) throw new Error('This game is not enabled for tournaments.');
+    if (!Number.isSafeInteger(effective.bestOf) || effective.bestOf < 1 || effective.bestOf > 99 || effective.bestOf % 2 !== 1 ||
+        (effective.gameType === 'chicago' && effective.bestOf !== 3)) throw new Error('Invalid match format.');
     const match = tournament.matches.find(m => m.id === matchId);
     if (!match || (match.status !== 'ready' && !(allowComplete && match.status === 'complete'))) {
         throw new Error('This match is no longer ready. Return to brackets to refresh.');
@@ -44,7 +70,7 @@ export function authoritativeMatch(tournament, matchId, ownerId, allowComplete =
             id: team.id, name: team.name,
             members: team.memberIds.map(id => {
                 const member = tournament.registrations.find(r => r.id === id);
-                if (!member || !member.checkedIn || member.standby) throw new Error('A team member is no longer eligible.');
+                if (!member || !member.name?.trim() || member.standby) throw new Error('A team member is no longer eligible.');
                 return { id: member.id, playerId: member.playerId || null, name: member.name };
             })
         };
@@ -80,19 +106,20 @@ function recoverMatch(tournamentId, matchId) {
 }
 
 export async function launchRequestedMatch() {
-    if (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts')) {
+    if (!LOCAL_TOURNAMENT && (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts'))) {
         note(SAVE_NOTICE + ' Use Resume to continue a saved game.');
         return;
     }
     try {
         const request = JSON.parse(localStorage.getItem(LAUNCH_KEY));
         if (!request?.tournamentId || !request.matchId) throw new Error('Missing tournament launch request. Return to brackets.');
-        note('Verifying tournament ownership and current match online…');
+        note(LOCAL_TOURNAMENT ? 'Loading the saved local match…' : 'Verifying tournament ownership and current match online…');
         const { api, account } = await platform();
         const tournament = await api.getTournament(request.tournamentId);
         const existing = recoverMatch(request.tournamentId, request.matchId);
         const retrying = existing && ['pending', 'saving', 'saved'].includes(existing.tournament.status);
         const { teams } = authoritativeMatch(tournament, request.matchId, account.uid, retrying);
+        const effective = matchFormat(tournament, tournament.matches.find(m => m.id === request.matchId));
         const eventLabels = Object.fromEntries(registrationLabels(tournament.registrations));
         const active = loadActiveGame();
         const replacingOrdinary = active?.players?.length && !active.tournament;
@@ -102,7 +129,8 @@ export async function launchRequestedMatch() {
         }
         if (existing) {
             if (JSON.stringify(existing.tournament.teams) !== JSON.stringify(teams) ||
-                existing.tournament.gameType !== tournament.gameType || existing.tournament.bestOf !== tournament.bestOf) {
+                existing.tournament.gameType !== effective.gameType || existing.tournament.bestOf !== effective.bestOf ||
+                !!existing.tournament.minnesotaCutthroat !== !!effective.minnesotaCutthroat) {
                 throw new Error('The team roster or format changed. Your local result is kept, but cannot be applied to this match.');
             }
             existing.tournament.eventLabels = eventLabels;
@@ -117,7 +145,7 @@ export async function launchRequestedMatch() {
             }
             launchTournamentScorer({
                 tournamentId: tournament.id, matchId: request.matchId, revision: tournament.revision,
-                ownerId: account.uid, gameType: tournament.gameType, bestOf: tournament.bestOf,
+                ownerId: account.uid, gameType: effective.gameType, bestOf: effective.bestOf, ...(effective.minnesotaCutthroat ? { minnesotaCutthroat: true } : {}), ...(LOCAL_TOURNAMENT ? { localOnly: true } : {}),
                 teams, eventLabels, resultId: newRecordId(), legWins: [0, 0], legComplete: false,
                 winnerIndex: null, status: 'scoring'
             });
@@ -139,23 +167,33 @@ function button(label, id, handler) {
     node.className = 'btn';
     node.id = id;
     node.textContent = label;
-    node.addEventListener('click', handler);
+    node.addEventListener('click', event => {
+        // Saving can rebuild and shift this panel under a second tap. Guard the
+        // whole control group so a repeated Save cannot become Return/Next leg.
+        if (['tournamentSaveResult', 'tournamentNextLeg', 'tournamentReturn', 'tournamentResultReturn'].includes(id)) {
+            if (Date.now() - lastControlAction < 450) return;
+            lastControlAction = Date.now();
+        }
+        handler(event);
+    });
     return node;
 }
 
-function returnToBrackets() {
-    if (!isFeatureAvailable('brackets')) {
+function returnToBrackets() { return exclusiveControl(returnToBracketsConfirmed); }
+
+async function returnToBracketsConfirmed() {
+    if (!LOCAL_TOURNAMENT && !isFeatureAvailable('brackets')) {
         renderTournamentControls(BRACKETS_NOTICE);
         return;
     }
-    if (!saveActiveGame() || !confirm('Return to brackets? Unsaved scoring stays on this device; no result will be sent.')) return;
-    const url = new URL('../brackets/', import.meta.url);
+    if (!await confirmCurrentMatch('Return to brackets? Unsaved scoring stays on this device; no result will be sent.', { title: 'Return to brackets?', confirmLabel: 'Return to brackets' }) || !saveActiveGame()) return;
+    const url = new URL(LOCAL_TOURNAMENT ? '../local/brackets/' : '../brackets/', import.meta.url);
     url.searchParams.set('id', game.tournament.tournamentId);
     location.href = url.href;
 }
 
 function nextLeg() {
-    if (!game.tournament?.legComplete || seriesComplete() || saving) return;
+    if (!game.tournament?.legComplete || seriesComplete() || saving || controlPending) return;
     if (!confirm('Confirm this leg and start the next leg? Previous legs will be retained.')) return;
     if (!saveActiveGame()) return;
     const tournament = game.tournament;
@@ -171,12 +209,16 @@ function nextLeg() {
 }
 
 export async function saveTournamentResult() {
-    if (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts')) {
+    return exclusiveControl(saveTournamentResultConfirmed);
+}
+
+async function saveTournamentResultConfirmed() {
+    if (!LOCAL_TOURNAMENT && (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts'))) {
         renderTournamentControls(SAVE_NOTICE);
         return;
     }
     if (!seriesComplete() || saving || game.tournament.status === 'saved') return;
-    if (!confirm('Save this tournament result and the registered players’ actual dart statistics?')) return;
+    if (!await confirmCurrentMatch(LOCAL_TOURNAMENT ? 'Save this match result and its scoring record in this browser? No account statistics or cloud data will be sent.' : 'Save this tournament result and the registered players’ actual dart statistics?', { title: 'Save match result?', confirmLabel: 'Save result' })) return;
     const session = game.tournament;
     const winnerId = session.teams[session.winnerIndex].id;
     session.pendingResult ||= {
@@ -188,13 +230,14 @@ export async function saveTournamentResult() {
     if (!saveActiveGame()) return;
     saving = true;
     session.status = 'saving';
-    renderTournamentControls('Verifying and saving…');
+    renderTournamentControls(LOCAL_TOURNAMENT ? 'Saving on this device…' : 'Verifying and saving…');
     try {
         const { api, account } = await platform();
         const tournament = await api.getTournament(session.tournamentId);
         const { teams } = authoritativeMatch(tournament, session.matchId, account.uid, true);
+        const effective = matchFormat(tournament, tournament.matches.find(m => m.id === session.matchId));
         if (account.uid !== session.ownerId || JSON.stringify(teams) !== JSON.stringify(session.teams) ||
-            tournament.gameType !== session.gameType || tournament.bestOf !== session.bestOf) {
+            effective.gameType !== session.gameType || effective.bestOf !== session.bestOf || !!effective.minnesotaCutthroat !== !!session.minnesotaCutthroat) {
             throw new Error('The owner, teams, or format changed. Local result retained for review.');
         }
         const { recordResult } = await import('./brackets/engine.js');
@@ -202,20 +245,21 @@ export async function saveTournamentResult() {
             session.pendingResult, current => {
                 authoritativeMatch(current, session.matchId, account.uid);
                 return recordResult(current, session.matchId, { winnerId, scoreA: session.legWins[0], scoreB: session.legWins[1] });
-            });
+            }, session);
         session.status = 'saved';
         game.undoHistory = [];
         game.redoHistory = [];
         saveActiveGame();
         renderTournamentControls('Result saved. You can return to brackets.');
     } catch (error) {
+        lastControlAction = 0; // A failed save may be retried immediately after recovery.
         session.status = 'pending';
         saveActiveGame();
         renderTournamentControls(`Not saved: ${error.message}. Your result is kept on this device. Reconnect and retry Save tournament result.`);
     } finally {
         saving = false;
         const save = document.getElementById('tournamentSaveResult');
-        if (save) save.disabled = !isFeatureAvailable('brackets') || !isFeatureAvailable('accounts') || session.status === 'saved';
+        if (save) save.disabled = (session.history ? !isFeatureAvailable('history') : (!LOCAL_TOURNAMENT && (!isFeatureAvailable('brackets') || !isFeatureAvailable('accounts')))) || session.status === 'saved';
     }
 }
 
@@ -251,8 +295,8 @@ export function renderTournamentControls(message = '') {
         document.querySelector('#gameMenuModal h2').after(returnButton);
     }
     returnButton.hidden = !game.tournament;
-    returnButton.disabled = !isFeatureAvailable('brackets');
-    returnButton.textContent = returnButton.disabled ? 'Return to tournament brackets · Coming soon' : 'Return to tournament brackets';
+    returnButton.disabled = session?.history ? !isFeatureAvailable('history') : !LOCAL_TOURNAMENT && !isFeatureAvailable('brackets');
+    returnButton.textContent = returnButton.disabled ? 'Return to tournament brackets · Cloud off' : 'Return to tournament brackets';
     returnButton.title = returnButton.disabled ? BRACKETS_NOTICE : '';
     if (!session) return;
     if (session.legComplete) {
@@ -264,7 +308,7 @@ export function renderTournamentControls(message = '') {
     const status = document.createElement('span');
     status.className = 'tournament-series';
     status.textContent = casual ? `Casual stats · ${session.legWins.join(' – ')}` : `Series ${session.legWins.join(' – ')} · best of ${session.bestOf}`;
-    if (effectiveType === 'minnesota') status.textContent += ' · Scroll targets ↕';
+    if (effectiveType === 'minnesota') status.textContent += (session.minnesotaCutthroat ? ' · Cutthroat' : '') + ' · Scroll targets ↕';
     controls.append(status);
     const label = document.createElement('label');
     label.className = 'tournament-darts-label';
@@ -305,10 +349,11 @@ export function renderTournamentControls(message = '') {
     const text = document.createElement('p');
     text.setAttribute('role', 'status');
     text.textContent = message || `${casual ? 'Scorekeeper-declared casual record.' : 'Series: ' + session.legWins.join(' – ') + '.'} ${session.status === 'saved' ? 'Saved.' : 'Not yet sent.'}`;
-    const cloudSaveAvailable = isFeatureAvailable('accounts') && (casual || isFeatureAvailable('brackets'));
+    const cloudSaveAvailable = session.history ? isFeatureAvailable('history') : ((!casual && LOCAL_TOURNAMENT) || isFeatureAvailable('accounts') && (casual || isFeatureAvailable('brackets')));
     if (!cloudSaveAvailable && !message) text.textContent += ' ' + (casual
-        ? 'Players & Records is coming soon. Cloud saving is unavailable; your recorded game and results stay on this device.'
+        ? 'Players & Records are coming soon. Cloud saving is unavailable; your recorded game and results stay on this device.'
         : SAVE_NOTICE);
+    if (LOCAL_TOURNAMENT) text.textContent += ' Device-local tournament; no cloud sync.';
     panel.append(text);
     if (!cloudSaveAvailable) {
         // A completed pending/saved match hides the normal winner actions.
@@ -324,16 +369,16 @@ export function renderTournamentControls(message = '') {
             button('Save tournament result', 'tournamentSaveResult', saveTournamentResult);
         save.disabled = !cloudSaveAvailable || saving || ['saving', 'saved'].includes(session.status);
         if (!cloudSaveAvailable) {
-            save.textContent += ' · Coming soon';
+            save.textContent += ' · Cloud off';
             save.title = text.textContent;
         }
         panel.append(save);
     }
     if (!casual) {
         const returnResult = button('Return to brackets', 'tournamentResultReturn', returnToBrackets);
-        returnResult.disabled = !isFeatureAvailable('brackets');
+        returnResult.disabled = session.history ? !isFeatureAvailable('history') : !LOCAL_TOURNAMENT && !isFeatureAvailable('brackets');
         if (returnResult.disabled) {
-            returnResult.textContent += ' · Coming soon';
+            returnResult.textContent += ' · Cloud off';
             returnResult.title = BRACKETS_NOTICE;
         }
         panel.append(returnResult);

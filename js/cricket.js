@@ -194,7 +194,13 @@ function updateCricketGrid() {
 
     let html = '';
 
-    game.cricketTargets.forEach((target, targetIndex) => {
+    // Display Brisket numbers high-to-low, with Bull last. Saved target order
+    // and target-keyed scoring data remain untouched for existing games.
+    const displayTargets = game.type === 'brisket'
+        ? [...game.cricketTargets.filter(t => t !== 'Bull')].sort((a, b) => Number(b) - Number(a))
+            .concat(game.cricketTargets.includes('Bull') ? ['Bull'] : [])
+        : game.cricketTargets;
+    displayTargets.forEach((target, targetIndex) => {
         const isSpecial = specialTargets.includes(target);
 
         // Check if all players have closed this target
@@ -457,8 +463,6 @@ function finishQuickieAtLimit() {
 // --- Exported Functions ---
 
 export function updateCricketDisplay() {
-    const brisketCredit = document.getElementById('brisketGameCredit');
-    if (brisketCredit) brisketCredit.hidden = game.type !== 'brisket';
     let mode = document.getElementById('minnesotaModeNotice');
     if (!mode) {
         mode = document.createElement('p'); mode.id = 'minnesotaModeNotice'; mode.style.overflowWrap = 'anywhere';

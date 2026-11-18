@@ -62,3 +62,7 @@ See [separate DEV backend proposal](../dev/SEPARATE_BACKEND_SETUP.md),
 [provider preparation](../dev/ACCOUNT_PROVIDERS.md), and
 [email-worker operations](../dev/email-worker/README.md). Those documents preserve
 specific proposed scopes and dated evidence; they are not standing authorization.
+
+## November 18 local mode
+
+Production local tournaments live under `/local/`; the cloud `/brackets/` gate stays closed. Preserve `blakeout_local_*`, ordinary production, and DEV keys independently. See [release scope](RELEASE-20261118.md).

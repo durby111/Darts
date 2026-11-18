@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-v64-roster-safety-20261115';
+const CACHE_NAME = 'blakeout-v65-local-tournaments-20261118';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -13,6 +13,21 @@ function isOwnPath(url) {
 }
 
 const ASSETS = [
+    "./css/brackets.css",
+    "./js/brackets/diagram.js",
+    "./js/brackets/engine.js",
+    "./js/brackets/page.js",
+    "./js/brackets/scorer-status.js",
+    "./js/brackets/viewport.js",
+    "./js/brackets/zoom-steps.js",
+    "./js/confirm-action.js",
+    "./js/confirm-dialog.js",
+    "./js/feature-appearance.js",
+    "./local/brackets.js",
+    "./local/brackets/index.html",
+    "./local/brackets/template.html",
+    "./local/platform.js",
+
     "./compat/",
     "./compat/index.html",
     "./js/botblake.js",
