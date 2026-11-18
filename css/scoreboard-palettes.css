@@ -66,3 +66,37 @@
 :root[data-scoreboard-mode="dot-better"] .platform-page {
     --color-accent: var(--color-primary-light);
 }
+
+/* Fable: green baize, brass trim, cream ink. Every game on the game screen
+   and the in-game dialogs; setup and feature pages keep the selected theme. */
+:root[data-scoreboard-mode="fable"] #gameScreen,
+:root[data-scoreboard-mode="fable"] :is(#winnerModal, #chicagoLegModal, #chicagoGameModal, #game121SummaryModal, #gameMenuModal, #scoreKeypadModal, #bermudaFacePickerModal) {
+    --color-bg: #0b1d15;
+    --color-surface: #11281d;
+    --color-surface-alt: #173326;
+    --color-surface-elevated: #1e4030;
+    --color-border: #2c5340;
+    --color-border-light: #4d7a62;
+    --color-text: #f6efdc;
+    --color-text-muted: #c3cdbd;
+    --color-text-dim: #9db0a1;
+    --color-text-dark: #16241c;
+    --color-primary: #c9a45c;
+    --color-primary-light: #ecd398;
+    --color-primary-dark: #7d5f27;
+    --color-on-primary: #1a1407;
+    --color-success: #2f8f5b;
+    --color-success-dark: #1e4030;
+    --color-on-success: #ffffff;
+    --color-pending: #ecd398;
+    --color-warning: #ecd398;
+    --color-danger: #e2675c;
+    --color-undo: #8a5a25;
+    --color-prev-turn: #c3cdbd;
+    --color-miss: #24443a;
+    --color-bust: #8f342c;
+    --color-active-player: #1d4331;
+    --color-inactive-player: #11281d;
+    --color-score-bg: #081510;
+    --color-score-text: #f6efdc;
+}
