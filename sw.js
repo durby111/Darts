@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-v66-paired-score-layouts-20261118';
+const CACHE_NAME = 'blakeout-v67-offline-local-navigation-20261118';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -184,7 +184,25 @@ self.addEventListener('fetch', (event) => {
             }
             return response;
         }).catch(() => {
-            return caches.open(CACHE_NAME).then(cache => cache.match(request));
+            return caches.open(CACHE_NAME).then(async cache => {
+                const cached = await cache.match(request);
+                if (cached) return cached;
+                const url = new URL(request.url);
+                // These are static device-local shells. Keep the browser URL
+                // (and its tournament query) intact, but use the precached HTML
+                // for a cold offline navigation. Never alias auth/action URLs,
+                // cloud feature routes, assets, POSTs or the other build scope.
+                if (request.method === 'GET' && request.mode === 'navigate'
+                    && isOwnPath(url) && isCacheable(request)) {
+                    if (url.pathname === APP_SCOPE_PATH + 'local/brackets/'
+                        || url.pathname === APP_SCOPE_PATH + 'local/brackets/index.html')
+                        return cache.match(new URL('./local/brackets/index.html', self.location.href).href);
+                    if ((url.pathname === APP_SCOPE_PATH || url.pathname === APP_SCOPE_PATH + 'index.html')
+                        && url.searchParams.get('localTournament') === '1')
+                        return cache.match(new URL('./index.html', self.location.href).href);
+                }
+                return cached;
+            });
         })
     );
 });

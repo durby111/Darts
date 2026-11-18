@@ -685,7 +685,7 @@ function renderRoster(roster) {
             list.innerHTML = '<div class="roster-empty">No players yet. Add one below.</div>';
         } else {
             list.innerHTML = roster.map(p => {
-                const emailLabel = isRealEmail(p.email) ? p.email : '(no email — local only)';
+                const emailLabel = isRealEmail(p.email) ? p.email : '(no email — shared roster)';
                 return `
                 <div class="roster-row" data-email="${escapeHtml(p.email)}">
                     <div class="roster-row-info">
