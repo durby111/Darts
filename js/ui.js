@@ -85,6 +85,33 @@ export function getMarkSymbol(marks, pendingMarks = 0, closedInOneTurn = true, i
         </span>`;
     }
 
+    // Brisket's closed mark is tattoo flash. Keep partial marks and pending
+    // indicators unchanged, and keep this artwork out of other Cricket games.
+    if (game.type === 'brisket') {
+        const arrowCount = closedInOneTurn ? 0 : Math.min(2, marksBeforeClose);
+        const arrow = `<g class="tattoo-arrow" transform="translate(3 5) rotate(40)">
+            <path class="arrow-shaft" d="M0 0H110" fill="none" stroke-width="2"/>
+            <path class="arrow-feathers" d="M4 -1C1 -6 5 -9 10 -7L31 -1ZM4 1C1 6 5 9 10 7L31 1Z" fill="#e7e4dc" stroke="#151515" stroke-width="1"/>
+            <path d="M8 -1L6 -6M13 -1L11 -6M18 -1L16 -5M23 -1L21 -3M8 1L6 6M13 1L11 6M18 1L16 5M23 1L21 3" fill="none" stroke="#151515" stroke-width="1.2"/>
+            <path class="arrow-nock" d="M0 -2V2" fill="none" stroke-width="1.5"/>
+            <path class="arrow-point" d="M110 0L95 -6L98 0L95 6Z" fill="#e7e4dc" stroke="#151515" stroke-width="1"/>
+        </g>`;
+        return `<span class="${cssClass} brisket-closed" data-closure-arrows="${arrowCount}" role="img" aria-label="${isPending ? 'Pending closure' : 'Closed'} — Burt heart, ${arrowCount} earlier marks">
+            <svg viewBox="0 0 100 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                <g stroke="${isPending ? 'var(--color-pending)' : '#e7e4dc'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    ${arrowCount > 0 ? arrow : ''}
+                    ${arrowCount > 1 ? `<g transform="translate(100 0) scale(-1 1)">${arrow}</g>` : ''}
+                    <path d="M50 71C39 62 18 47 19 30C20 12 40 10 50 24C60 10 80 12 81 30C82 47 61 62 50 71Z" fill="#151515"/>
+                    <path d="M26 29Q29 20 38 23M29 54L40 63M33 53L45 64M38 53L49 62M63 23L71 30M66 23L73 29" fill="none" stroke-width="1.7"/>
+                    <path d="M23 60C10 48 6 61 15 63M77 60C90 48 94 61 85 63M37 73Q50 66 63 73" fill="none" stroke-width="2"/>
+                </g>
+                <path d="M18 33L8 31L12 42L8 51L23 48L23 34M82 33L92 31L88 42L92 51L77 48L77 34" fill="#777" stroke="#151515" stroke-width="2"/>
+                <path d="M17 32Q50 27 83 32L81 51Q50 46 19 51Z" fill="#e7e4dc" stroke="#151515" stroke-width="2"/>
+                <text x="50" y="45" text-anchor="middle" fill="#151515" font-family="Georgia,serif" font-weight="bold" font-size="21" textLength="56" lengthAdjust="spacingAndGlyphs">BURT</text>
+            </svg>
+        </span>`;
+    }
+
     // Closed (3+ marks). Three variants based on what was on the cell at the
     // START of the turn that closed it (marksBeforeClose):
     //   0 → closed in one turn → empty O, tappable to toggle a center dot

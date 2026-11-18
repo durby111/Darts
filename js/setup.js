@@ -1,3 +1,4 @@
+import { LOCAL_TOURNAMENT } from './build-context.js';
 /* ============================================
    Setup Screen Logic
    Form handling, config save/load
@@ -591,7 +592,7 @@ export function initSetupControls() {
 
     // Roster (Firestore) — non-blocking. App still works if Firebase fails.
     initRosterUI();
-    initFirebase().catch(err => {
+    if (!LOCAL_TOURNAMENT) initFirebase().catch(err => {
         const status = document.getElementById('rosterStatus');
         if (status) status.textContent = '(offline — check Firebase setup)';
         console.warn('[Setup] Firebase init error:', err);
@@ -602,6 +603,13 @@ export function initSetupControls() {
 // --- Roster UI ---
 
 function initRosterUI() {
+    if (LOCAL_TOURNAMENT) {
+        for (const id of ['rosterAddBtn', 'rosterShareBtn']) {
+            const control = document.getElementById(id);
+            if (control) { control.disabled = true; control.title = 'Device-local tournament: cloud roster is not used.'; }
+        }
+        return;
+    }
     const addBtn = document.getElementById('rosterAddBtn');
     const nameInput = document.getElementById('rosterAddName');
     const emailInput = document.getElementById('rosterAddEmail');

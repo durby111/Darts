@@ -1,3 +1,7 @@
+# November 18 production promotion
+
+See [v2.7.0 release scope and limits](../docs/RELEASE-20261118.md). The production candidate adds device-local tournaments at `/local/brackets/`, including named-player/paid tracking, and approved Brisket presentation. Cloud Accounts/Brackets remain gated. Historical DEV-only rows below describe earlier releases.
+
 # Feature readiness — November 3, 2026
 
 The November 3 v2.6.0 candidate promotes the reviewed scorer from DEV main

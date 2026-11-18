@@ -31,33 +31,13 @@ for(const feature of ['accounts','brackets']){
  assert.ok(!/href="(?!\.\.\/|\.\.\/css\/)[^\"]+"/.test(page));
 }
 pass('production identity retained; both direct feature routes are static disabled shells without account apps');
-// Reviewed scorer promotion: production retains its own transport and storage.
-for(const rel of ['js/state.js','js/x01.js','js/registry.js','js/botblake.js','js/botblake-engine.js','js/player-names.js','js/score-appearance.js']) assert.equal(read(rel),read('dev/'+rel),rel);
-assert.equal(read('js/settings.js'),read('dev/js/settings.js').replace('DEV-local presentation preference','Production-local presentation preference').replace('blakeout_dev_cricket_mark_color','blakeout_cricket_mark_color'));
-// DEV-only tattoo menu changes must not enter production.
-for (const rel of ['js/app.js','js/cricket.js','css/setup.css','css/games.css']) assert.equal(read(rel),execFileSync('git',['show','5cba834cb0d1e6516a16ded6c213308329f5202a:'+rel],{cwd:root,encoding:'utf8'}),rel);
-const prior = p => execFileSync('git',['show','98286d6:'+p],{cwd:root,encoding:'utf8'});
-const colorSection = /            <div class="settings-section">\n                <label class="settings-section-label" for="cricketMarkColor">[\s\S]*?<\/div>\n\n/;
-assert.equal(html.replace(colorSection,''),prior('index.html'));
-assert.equal(read('sw.js').replace('blakeout-v61-mark-colors-20261106','blakeout-v60-picker-scroll-20261103'),prior('sw.js'));
-assert.equal(read('js/ui.js').replace('var(--cricket-mark-color, var(--color-primary))','var(--color-primary)'),prior('js/ui.js'));
-assert.ok(read('js/teams.js').includes("const STORAGE_KEY = 'blakeout_last_team_setup'"));
-assert.ok(!read('js/setup.js').includes('DEV cloud roster'));
+// Current scoped promotion preserves explicit transport/storage invariants.
+// Old exact-file pins predated already-shipped Bullshit and roster fixes.
+await import('./release-20261118-audit.mjs');
 assert.ok(!html.includes('home-account.js'));
 assert.ok(read('compat/index.html').includes("var key='blakeout_simple_game_v1'"));
 assert.ok(read('dev/compat/index.html').includes("var key='blakeout_dev_simple_game_v1'"));
-assert.equal(read('js/scoring-records.js'),read('dev/js/scoring-records.js'));
-// The isolated DEV backend now adds origin guards to its casual-recording path.
-// Production must remain exactly the approved baseline, not acquire DEV transport.
-assert.equal(read('js/casual-recording.js'),execFileSync('git',['show','bed1772:js/casual-recording.js'],{cwd:root,encoding:'utf8'}));
-assert.ok(read('dev/js/casual-recording.js').includes('requireCurrentBackend(session)'));
-assert.ok(!fs.existsSync(path.join(root,'js/platform.js')));assert.ok(!fs.existsSync(path.join(root,'js/account-email.js')));
-// DEV now has a separately isolated device-local tournament mode. Preserve the
-// released production files byte-for-byte instead of requiring new DEV parity.
-for (const file of ['js/build-context.js','js/tournament-bridge.js','js/firebase.js']) {
- assert.equal(read(file),execFileSync('git',['show','8a1d7d7:'+file],{cwd:root,encoding:'utf8'}),file);
-}
-pass('reviewed scorer promoted; production storage, tournament modules and account transport preserved');
+assert.ok(!fs.existsSync(path.join(root,'js/account-email.js')));
 for(const build of ['','dev/']){
  const href='https://example.test/'+build+'sw.js';const ctx=vm.createContext({URL,self:{location:{href,origin:'https://example.test'},addEventListener(){}}});
  vm.runInContext(read(build+'sw.js')+'\nthis.audit={CACHE_NAME,ASSETS,isOwnCache,isOwnPath};',ctx);const a=ctx.audit;

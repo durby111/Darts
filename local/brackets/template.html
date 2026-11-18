@@ -1,0 +1,162 @@
+    <template id="featurePageTemplate">
+    <header class="platform-header">
+        <a class="platform-brand" href="../"><span class="platform-brand-logo" aria-hidden="true"></span><span class="platform-brand-text"><span class="platform-brand-name">BlakeOut</span><span class="platform-brand-subtitle">DARTS SCORER </span></span></a>
+        <nav aria-label="Main navigation">
+            <a href="../">Scoring</a>
+            <a href="./" aria-current="page">Brackets</a>
+            <a href="../accounts/">Players &amp; Records</a>
+        </nav>
+    </header>
+    <main class="platform-main">
+        <h1>Doubles tournaments</h1>
+        <p>Double elimination · 2–32 teams · Live brackets and tournament history</p>
+        <p id="accountNotice">Connecting…</p>
+        <p id="message" class="platform-notice" role="status" aria-live="polite">Loading tournaments…</p>
+        <div class="platform-actions">
+            <button id="refresh" type="button">Refresh from cloud</button>
+            <button id="discard" type="button" hidden>Discard edits &amp; reload</button>
+        </div>
+        <details id="createPanel" class="platform-card" hidden>
+            <summary>Create a tournament</summary>
+            <form id="createForm">
+                <fieldset id="createControls">
+                    <div class="bracket-fields">
+                        <label>Title<input id="title" maxlength="100" required autocomplete="off"></label>
+                        <label>Date<input id="date" type="date" required></label>
+                        <label>Game<select id="gameType">
+                            <option value="chicago">Chicago</option><option value="301">301</option>
+                            <option value="501">501</option><option value="cricket">Cricket</option>
+                            <option value="spanish">Spanish Cricket</option>
+                            <option value="minnesota">Minnesota Cricket</option>
+                        </select></label>
+                        <label id="createMinnesotaOption" hidden><input id="createMinnesotaCutthroat" type="checkbox">Minnesota Cutthroat · lowest score wins</label>
+                        <label>Best of (legs)<input id="bestOf" type="number" min="1" max="99" step="2" value="3" required disabled></label>
+                    </div>
+                    <p>Chicago is always best of 3. Other games use your selected odd-numbered series length.</p>
+                    <button type="submit">Create tournament</button>
+                </fieldset>
+            </form>
+        </details>
+        <section id="directory" class="platform-card" aria-label="Tournament directory">
+            <h2>Current tournaments</h2><div id="currentList" class="tournament-list"></div>
+            <details><summary>History · completed tournaments</summary><div id="historyList" class="tournament-list"></div></details>
+        </section>
+        <article id="tournament" hidden>
+            <section class="platform-card">
+                <h2 id="tournamentTitle"></h2>
+                <p id="tournamentMeta"></p>
+                <p id="champion" hidden></p>
+                <p id="spectatorNote" hidden>Public view: registered names, teams and bracket only. Join immediately with your verified profile or as a tournament-only guest while registration is open. The organizer pairs teams and manages check-in.</p>
+                <div class="join-panel">
+                    <button id="joinTournament" type="button" disabled>Join tournament</button>
+                    <p id="joinHelp" aria-live="polite"></p>
+                    <a id="joinProfileLink" href="../accounts/">Sign in or create your player profile</a>
+                    <button id="refreshJoinProfile" type="button" hidden>Refresh my profile</button>
+                    <form id="guestJoinForm">
+                        <fieldset id="guestJoinControls">
+                            <label for="guestJoinName">Join with a guest display name</label>
+                            <input id="guestJoinName" maxlength="40" required autocomplete="nickname">
+                            <p>Tournament only · no lifetime statistics. No account, email or name matching. This device’s guest entry is separate from verified player profiles.</p>
+                            <button id="joinGuest" type="submit">Join as tournament-only guest</button>
+                        </fieldset>
+                    </form>
+                    <p id="guestJoinHelp" aria-live="polite"></p>
+                </div>
+                <p id="lockedNote" hidden>Roster locked. Byes advance a team but are never recorded as played wins. Completed results cannot be edited here; recorded dart statistics are immutable.</p>
+                <h3 id="publicRosterHeading">Registered players</h3>
+                <p>Matching names get numbered event labels so you can tell players apart. Labels may update when the roster changes; saved names and player identities stay unchanged.</p>
+                <ul id="publicRoster" class="public-roster"></ul>
+                <h3>Saved teams</h3>
+                <div id="publicTeams" class="public-teams"></div>
+            </section>
+            <section id="rosterPanel" class="platform-card" hidden>
+                <h2>Organizer roster</h2>
+                <p id="rosterSummary" aria-live="polite"></p>
+                <p id="rosterWarning" aria-live="polite" hidden></p>
+                <p>Use one matching team number for both partners. Save all rows together; swaps between full teams are allowed. Every player needs a name and a valid team assignment. Paid and checked-in flags are tracking only and never block play. Start saves the current roster draft.</p>
+                <p>Guests belong only to this tournament. Account players are linked by verified profile ID, never by a name or email match.</p>
+                <fieldset id="rosterControls">
+                    <form id="addForm" class="bracket-fields">
+                        <label>Add player<select id="profile"><option value="">Tournament-only guest</option></select></label>
+                        <label>Guest display name<input id="guestName" maxlength="40" autocomplete="off" required></label>
+                        <button type="submit">Add to draft roster</button>
+                    </form>
+                    <form id="rosterForm">
+                        <p>Use the row arrows to arrange the draft without changing team numbers. Column checkboxes set or clear that flag for every draft row, including standby players. Save all roster changes when ready.</p>
+                        <div class="roster-scroll">
+                            <table class="roster-table">
+                                <thead><tr><th scope="col">#</th><th scope="col">Display name</th><th scope="col">Team number</th><th scope="col"><label>Paid<input type="checkbox" data-bulk-field="paid" aria-label="Paid for all roster players"></label></th><th scope="col"><label>Checked in<input type="checkbox" data-bulk-field="checkedIn" aria-label="Checked in for all roster players"></label></th><th scope="col"><label>Standby<input type="checkbox" data-bulk-field="standby" aria-label="Standby for all roster players"></label></th><th scope="col">Order</th><th scope="col">Remove</th></tr></thead>
+                                <tbody id="rosterRows"></tbody>
+                            </table>
+                        </div>
+                        <div class="platform-actions">
+                            <button id="drawPartners" type="button">Blind draw partners</button>
+                            <button id="saveRoster" type="submit">Save all roster changes</button>
+                            <button id="startTournament" type="button" aria-describedby="draftStatus blockers">Start &amp; lock tournament</button>
+                        </div>
+                    </form>
+                </fieldset>
+                <section id="startFeedback" class="platform-notice" role="status" aria-live="polite" aria-labelledby="startFeedbackTitle" tabindex="-1" hidden>
+                    <h3 id="startFeedbackTitle"></h3>
+                    <ul id="startFeedbackReasons"></ul>
+                </section>
+                <p id="draftStatus" aria-live="polite"></p>
+                <ul id="blockers"></ul>
+            </section>
+            <section id="paymentPanel" class="platform-card" hidden>
+                <h2>Organizer payments</h2>
+                <p>Paid status is tracking only. Changes save immediately; players, teams and match results stay locked.</p>
+                <div id="paymentRows"></div>
+            </section>
+            <section id="formatPanel" class="platform-card" hidden>
+                <h2>Games and match lengths</h2>
+                <p>The event game is the default. A match override takes priority over its round, then its bracket. Played matches and matches with scoring in progress cannot change format.</p>
+                <p id="formatSummary"></p>
+                <form id="formatForm" class="bracket-fields">
+                    <label>Apply to<select id="formatScope"><option value="brackets">Bracket</option><option value="rounds">Round</option><option value="matches">Individual match</option></select></label>
+                    <label>Selection<select id="formatTarget"></select></label>
+                    <label>Game<select id="formatGame"><option value="301">301</option><option value="501">501</option><option value="cricket">Cricket</option><option value="spanish">Spanish Cricket</option><option value="minnesota">Minnesota Cricket</option><option value="chicago">Chicago</option></select></label>
+                    <label id="formatMinnesotaOption" hidden><input id="formatMinnesotaCutthroat" type="checkbox">Minnesota Cutthroat · lowest score wins</label>
+                    <label>Best of<input id="formatBestOf" type="number" min="1" max="99" step="2" value="1" required></label>
+                    <button id="saveFormat" type="submit">Save game selection</button>
+                </form>
+            </section>
+            <section class="platform-card bracket-section">
+                <div class="bracket-toolbar">
+                    <div><h2 id="bracketHeading" tabindex="-1">Bracket</h2><p id="bracketHelp"></p></div>
+                    <div class="diagram-controls" role="group" aria-label="Bracket view controls">
+                        <button id="diagramZoomOut" type="button" aria-label="Zoom out">−</button>
+                        <label class="diagram-scale-label">Zoom<select id="diagramScale" aria-label="Bracket zoom"><option value="fit">Fit entire bracket</option><option value="0.25">25%</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100% · readable</option><option value="1.5">150%</option><option value="2">200%</option></select></label>
+                        <button id="diagramZoomIn" type="button" aria-label="Zoom in">+</button>
+                        <button id="diagramFit" type="button">Fit bracket</button>
+                        <button id="diagramReset" type="button">100%</button>
+                        <button id="diagramPanLeft" type="button" aria-label="Pan bracket left">←</button>
+                        <button id="diagramPanRight" type="button" aria-label="Pan bracket right">→</button>
+                        <output id="diagramZoomLabel" aria-live="off"></output>
+                    </div>
+                </div>
+                <div class="diagram-legend" aria-label="Bracket connections"><span>Winner advances</span><span class="legend-drop">Dashed: loser drops / conditional reset</span></div>
+                <p id="diagramInstructions" class="diagram-instructions">Drag to move · Pinch or Ctrl/⌘ + wheel to zoom · Keyboard: arrows to move, +/− to zoom, 0 to fit, 1 for 100%</p>
+                <div id="diagram" class="diagram-viewport" tabindex="0" role="region" aria-label="Connected tournament bracket" aria-describedby="diagramInstructions"></div>
+            </section>
+            <section id="resultPanel" class="platform-card" hidden>
+                <h2 id="resultHeading"></h2>
+                <p id="resultNames"></p>
+                <p class="platform-notice">Manual entry records the match result only. It does not create per-dart or lifetime player statistics, or change statistics previously captured by the scorer.</p>
+                <button id="launchScorer" type="button">Launch scorer</button>
+                <form id="resultForm">
+                    <fieldset id="resultControls">
+                        <div class="bracket-fields">
+                            <label>Winner<select id="winner" required></select></label>
+                            <label><span id="scoreALabel">Team A legs</span><input id="scoreA" type="number" min="0" step="1" required></label>
+                            <label><span id="scoreBLabel">Team B legs</span><input id="scoreB" type="number" min="0" step="1" required></label>
+                        </div>
+                        <label><input id="forfeit" type="checkbox">Forfeit (no leg scores)</label>
+                        <button type="submit">Save manual result</button>
+                        <button id="closeResult" type="button">Close result form</button>
+                    </fieldset>
+                </form>
+            </section>
+        </article>
+    </main>
+    </template>

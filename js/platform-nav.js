@@ -6,7 +6,7 @@ nav.className = 'dev-app-nav';
 nav.setAttribute('aria-label', 'BlakeOut apps');
 for (const [label, path, feature] of [
     ['Scoring', './', null],
-    ['Brackets', 'brackets/', 'brackets'],
+    ['Local tournaments', 'local/brackets/', null],
     ['Players & Records', 'accounts/', 'accounts']
 ]) {
     const locked = feature && !isFeatureAvailable(feature);
