@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>TV spectator board · BlakeOut DEV</title>
+<link rel="stylesheet" href="../../css/variables.css"><link rel="stylesheet" href="../../css/scoreboard-palettes.css">
+<link rel="stylesheet" href="../../css/platform.css"><link rel="stylesheet" href="../../css/brackets.css">
+<link rel="stylesheet" href="../../css/tv-board.css">
+<script type="module" src="../tv.js"></script>
+</head><body class="dev-build platform-page brackets-page tv-board">
+<header class="tv-header">
+    <div>
+        <p class="tv-brand">BlakeOut <span class="dev-badge">DEV</span> · Spectator board</p>
+        <h1 id="tvTitle">Loading tournament…</h1>
+        <p id="tvStatus" class="tv-status" role="status" aria-live="polite"></p>
+    </div>
+    <div class="tv-tools">
+        <label id="tvEventLabel" hidden>Tournament<select id="tvEvent"></select></label>
+        <button id="tvFullscreen" type="button">Full screen</button>
+        <a id="tvOrganizer" class="platform-button" href="../brackets/">Organizer page</a>
+    </div>
+</header>
+<main class="tv-main">
+    <section class="tv-panel tv-now" aria-labelledby="tvNowHeading">
+        <h2 id="tvNowHeading">Now playing</h2>
+        <div id="tvNow"></div>
+    </section>
+    <section class="tv-panel tv-deck" aria-labelledby="tvDeckHeading">
+        <h2 id="tvDeckHeading">On deck</h2>
+        <ol id="tvDeck"></ol>
+    </section>
+    <section class="tv-panel tv-bracket" aria-labelledby="tvBracketHeading">
+        <h2 id="tvBracketHeading">Bracket</h2>
+        <p id="tvChampion" class="tv-champion" hidden></p>
+        <div id="tvDiagram" class="diagram-viewport" tabindex="0" role="region" aria-label="Tournament bracket, view only"></div>
+    </section>
+</main>
+<footer class="tv-footer">
+    <p>Read-only view of tournaments saved in this browser. It updates when the organizer or scorer on <strong>this same device</strong> saves. Show it on a TV by HDMI or screen mirroring; it does not sync to other devices and nothing is published.</p>
+</footer>
+</body></html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v98-layout-picker-names-20261118';
+const CACHE_NAME = 'blakeout-dev-v99-labs-20261119';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -44,6 +44,21 @@ const ASSETS = [
     './local/brackets/index.html',
     './local/brackets.js',
     './local/platform.js',
+    './local/tv/',
+    './local/tv/index.html',
+    './local/tv.js',
+    './local/tv-model.js',
+    './scorecard/',
+    './scorecard/index.html',
+    './js/scorecard/page.js',
+    './js/scorecard/draft.js',
+    './js/scorecard/extract.js',
+    './js/scorecard/sample.js',
+    './js/coach/ui.js',
+    './js/coach/recap.js',
+    './css/coach.css',
+    './css/tv-board.css',
+    './css/scorecard.css',
     './js/platform-nav.js',
     './js/home-account.js',
     './js/shared-player-auth.js',
@@ -209,6 +224,10 @@ self.addEventListener('fetch', (event) => {
                     if (url.pathname === APP_SCOPE_PATH + 'local/brackets/'
                         || url.pathname === APP_SCOPE_PATH + 'local/brackets/index.html')
                         return cache.match(new URL('./local/brackets/index.html', self.location.href).href);
+                    // DEV TV spectator board: same static-shell rule for its ?event= URL.
+                    if (IS_DEV_SCOPE && (url.pathname === APP_SCOPE_PATH + 'local/tv/'
+                        || url.pathname === APP_SCOPE_PATH + 'local/tv/index.html'))
+                        return cache.match(new URL('./local/tv/index.html', self.location.href).href);
                     if ((url.pathname === APP_SCOPE_PATH || url.pathname === APP_SCOPE_PATH + 'index.html')
                         && url.searchParams.get('localTournament') === '1')
                         return cache.match(new URL('./index.html', self.location.href).href);

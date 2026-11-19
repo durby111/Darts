@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Scorecard reader · BlakeOut DEV</title>
+<link rel="stylesheet" href="../css/variables.css"><link rel="stylesheet" href="../css/scoreboard-palettes.css">
+<link rel="stylesheet" href="../css/platform.css"><link rel="stylesheet" href="../css/scorecard.css">
+<script type="module" src="../js/scorecard/page.js"></script>
+</head><body class="dev-build platform-page scorecard-page">
+<main class="scorecard-shell">
+    <header>
+        <p><a href="../">← BlakeOut scorer</a></p>
+        <h1>Scorecard reader <span class="dev-badge">DEV</span></h1>
+        <p>Turn a photo of a league scorecard into an editable result draft. The photo stays on this device and is never uploaded. Every field must be checked by you before the draft can be exported, and nothing is sent to a league tracker.</p>
+    </header>
+    <section class="platform-card" aria-labelledby="photoHeading">
+        <h2 id="photoHeading">1. Scorecard photo</h2>
+        <label for="photoInput">Choose or take a photo</label>
+        <input id="photoInput" type="file" accept="image/*">
+        <div class="platform-actions">
+            <button id="detectText" type="button" hidden>Read text on this device (experimental)</button>
+            <button id="loadSample" type="button">Load synthetic sample</button>
+            <button id="startBlank" type="button">Start a blank draft</button>
+        </div>
+        <p id="extractNote" class="platform-notice" role="status" aria-live="polite"></p>
+        <div id="photoFrame" class="scorecard-photo" hidden>
+            <div class="scorecard-zoom"><label for="photoZoom">Photo zoom</label><input id="photoZoom" type="range" min="50" max="300" step="10" value="100"></div>
+            <div class="scorecard-photo-scroll" tabindex="0" aria-label="Scorecard photo"><img id="photo" alt="Scorecard photo for comparison"><canvas id="sampleCanvas" hidden aria-label="Synthetic sample scorecard"></canvas></div>
+        </div>
+    </section>
+    <section id="draftPanel" class="platform-card" aria-labelledby="draftHeading" hidden>
+        <h2 id="draftHeading">2. Result draft — check every field</h2>
+        <p id="reviewSummary" class="scorecard-summary" role="status" aria-live="polite"></p>
+        <div id="headerFields" class="scorecard-fields"></div>
+        <h3>Games</h3>
+        <div id="games"></div>
+        <button id="addGame" type="button">Add a game</button>
+        <section id="unparsedPanel" hidden>
+            <h3>Unplaced text from the photo</h3>
+            <p>These lines were read but could not be placed in a field. Copy anything that belongs into the draft, then dismiss each line.</p>
+            <ul id="unparsed"></ul>
+        </section>
+        <ul id="warnings" class="scorecard-warnings"></ul>
+    </section>
+    <section id="reviewPanel" class="platform-card" aria-labelledby="reviewHeading" hidden>
+        <h2 id="reviewHeading">3. Manual review</h2>
+        <label><input id="attest" type="checkbox"> I compared every field in this draft with the scorecard.</label>
+        <div class="platform-actions">
+            <button id="markReviewed" type="button">Mark draft as reviewed</button>
+            <button id="download" type="button" disabled>Download reviewed draft (.json)</button>
+            <button id="discard" type="button">Discard draft</button>
+        </div>
+        <p id="reviewStatus" role="status" aria-live="polite"></p>
+        <label for="exportText">Reviewed draft (copy by hand into your tracker)</label>
+        <textarea id="exportText" rows="10" readonly placeholder="Available after the manual review is complete."></textarea>
+    </section>
+</main>
+</body></html>

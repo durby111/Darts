@@ -20,6 +20,7 @@ changes: [production flags](../js/feature-availability.js),
 | Production accounts and brackets | Coming Soon; both flags false | Notices and disabled navigation remain intact |
 | DEV accounts/brackets navigation | Accounts enabled in DEV source; brackets gated | DEV account code remains DEV-only. This scorer promotion does not open production accounts or deploy backend changes. |
 | Device-local brackets | Published **DEV only** at `/dev/local/brackets/` | Blind draw, format overrides, scorer integration, receipts, guarded local corrections and finals; no cloud or cross-device sync. [Acceptance](LOCAL_TOURNAMENTS.md) |
+| DEV labs: 501 coach, TV spectator board, scorecard reader | **DEV only**, unreleased review candidate (November 19) | Read-only/local; same-device TV only; scorecard auto-reading limited to browsers with an on-device text detector. [Scope and limits](DEV_LABS.md) |
 | Real cloud accounts/records/tournaments | Implementations retained, access gated | Named client apps/collection prefixes are not separate Firebase projects. [Rollout review](REAL_ACCOUNT_ROLLOUT.md) |
 | Google/Apple sign-in | Prepared, disabled | Provider and redirect switches false; isolated-project prerequisite. [Provider notes](ACCOUNT_PROVIDERS.md) |
 | Separate DEV backend | Proposed; no provisioning established by this work | [Setup handoff and approval boundaries](SEPARATE_BACKEND_SETUP.md) |

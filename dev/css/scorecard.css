@@ -1,0 +1,28 @@
+/* Scorecard reader (DEV). Flags use text and icons, never colour alone. */
+.scorecard-shell { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.scorecard-photo { margin-top: 12px; }
+.scorecard-zoom { display: flex; align-items: center; gap: 12px; }
+.scorecard-zoom label { margin: 0; white-space: nowrap; }
+.scorecard-photo-scroll { max-height: 60dvh; overflow: auto; border: 1px solid var(--color-border-light); border-radius: 8px; background: var(--color-bg); }
+.scorecard-photo-scroll img, .scorecard-photo-scroll canvas { display: block; width: 100%; max-width: none; height: auto; }
+.scorecard-photo-scroll [hidden] { display: none; }
+.scorecard-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.scorecard-field { padding: 10px; border: 2px solid var(--color-border); border-radius: 10px; min-width: 0; }
+.scorecard-field label { margin-top: 0; }
+.scorecard-field[data-status="empty"], .scorecard-field[data-status="uncertain"] { border-color: var(--color-danger, #d64545); border-style: dashed; }
+.scorecard-field[data-status="extracted"] { border-color: var(--color-warning, #d9a400); border-style: dashed; }
+.scorecard-chip { display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; font-size: .8rem; font-weight: 700; }
+.scorecard-field[data-status="empty"] .scorecard-chip, .scorecard-field[data-status="uncertain"] .scorecard-chip { color: var(--color-danger, #d64545); }
+.scorecard-field[data-status="extracted"] .scorecard-chip { color: var(--color-warning, #d9a400); }
+.scorecard-field-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.scorecard-reason { margin: 6px 0 0; font-size: .85rem; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.scorecard-game { margin: 12px 0; padding: 12px; border: 1px solid var(--color-border-light); border-radius: 12px; min-width: 0; }
+.scorecard-game legend { font-weight: 700; padding: 0 6px; }
+.scorecard-summary { font-weight: 700; }
+.scorecard-warnings { padding-left: 1.2rem; }
+.scorecard-warnings li { margin: 4px 0; }
+#unparsed { list-style: none; padding: 0; }
+#unparsed li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--color-border); }
+#unparsed span { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+#unparsed button { margin-top: 0; }
+#exportText { font-family: ui-monospace, monospace; font-size: .85rem; }

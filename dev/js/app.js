@@ -418,6 +418,8 @@ document.addEventListener('DOMContentLoaded', () => {
     safeInit('updateButton', initUpdateButton);
     safeInit('tournamentBridge', initTournamentBridge);
     safeInit('casualRecording', initCasualRecording);
+    // DEV 501 coach: optional and read-only. A load failure must never affect scoring.
+    import('./coach/ui.js').then(m => m.initCoach()).catch(error => console.warn('[BlakeOut] 501 coach unavailable:', error));
     window.BlakeOutStartup?.ready();
 });
 
