@@ -15,6 +15,14 @@ try {
     content.querySelector('#refresh').textContent = 'Reload saved tournaments';
     content.querySelector('#lockedNote').textContent = 'Roster locked. Byes do not count as played wins. Corrections are allowed only before any dependent match is played; original scorer records are retained separately.';
     content.querySelectorAll('.join-panel').forEach(node => { node.hidden = true; });
+    const devLinks = document.createElement('p');
+    devLinks.id = 'devLabLinks';
+    for (const [href, text] of [['../tv/', 'TV spectator board (this device)'], ['../../scorecard/', 'Scorecard reader']]) {
+        const link = document.createElement('a');
+        link.href = href; link.textContent = text; link.className = 'platform-button';
+        devLinks.append(link, ' ');
+    }
+    content.querySelector('h1 + p').after(devLinks);
     document.querySelector('#localContent').append(content);
     await import('../js/brackets/page.js');
     document.querySelector('#localBoot').remove();

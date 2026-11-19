@@ -1,0 +1,38 @@
+/* TV spectator board (DEV). Sized for across-the-room reading; view only. */
+body.tv-board { min-height: 100dvh; display: flex; flex-direction: column; padding: clamp(12px, 1.6vw, 28px); gap: clamp(10px, 1.2vw, 20px); }
+.tv-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.tv-brand { margin: 0; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: clamp(.8rem, 1vw, 1.1rem); color: var(--color-text-muted); }
+.tv-header h1 { margin: 0; font-size: clamp(1.6rem, 3.2vw, 3.4rem); line-height: 1.1; overflow-wrap: anywhere; }
+.tv-status { margin: 4px 0 0; color: var(--color-text-muted); font-size: clamp(.9rem, 1.2vw, 1.3rem); }
+.tv-tools { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.tv-tools label { margin: 0; }
+.tv-tools button, .tv-tools .platform-button { margin-top: 0; }
+.tv-main { flex: 1; display: grid; gap: clamp(10px, 1.2vw, 20px); grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); grid-template-areas: "now deck" "bracket bracket"; align-content: start; }
+.tv-panel { min-width: 0; padding: clamp(12px, 1.4vw, 24px); background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--platform-panel-radius, 12px); }
+.tv-panel h2 { margin: 0 0 8px; font-size: clamp(1rem, 1.5vw, 1.6rem); text-transform: uppercase; letter-spacing: .08em; color: var(--color-text-muted); }
+.tv-now { grid-area: now; } .tv-deck { grid-area: deck; } .tv-bracket { grid-area: bracket; }
+.tv-match-meta { margin: 0 0 10px; font-size: clamp(1rem, 1.6vw, 1.7rem); font-weight: 650; }
+.tv-sides { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(8px, 1vw, 18px); }
+.tv-side { padding: clamp(10px, 1.2vw, 20px); border: 2px solid var(--color-border-light); border-radius: 12px; min-width: 0; }
+.tv-side.throwing { border-color: var(--platform-link, var(--color-primary-light)); box-shadow: inset 0 0 0 2px var(--platform-link, var(--color-primary-light)); }
+.tv-team { display: flex; flex-direction: column; min-width: 0; }
+.tv-team-name { font-size: clamp(1.1rem, 2vw, 2.2rem); line-height: 1.15; overflow-wrap: anywhere; }
+.tv-team-members { color: var(--color-text-muted); font-size: clamp(.9rem, 1.3vw, 1.4rem); overflow-wrap: anywhere; }
+.tv-score { margin: 6px 0 0; display: flex; align-items: baseline; gap: .5rem; }
+.tv-score-value { font-size: clamp(3rem, 9vw, 9rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.tv-score-label { color: var(--color-text-muted); font-size: clamp(.9rem, 1.4vw, 1.5rem); }
+.tv-legs, .tv-throwing, .tv-note, .tv-empty { margin: 6px 0 0; font-size: clamp(1rem, 1.5vw, 1.6rem); }
+.tv-throwing { font-weight: 800; color: var(--platform-link, var(--color-primary-light)); }
+.tv-empty { color: var(--color-text-muted); }
+#tvDeck { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.tv-deck-item { padding: 10px 12px; border: 1px solid var(--color-border-light); border-radius: 10px; }
+.tv-deck-code { display: block; font-weight: 700; color: var(--color-text-muted); font-size: clamp(.85rem, 1.1vw, 1.2rem); }
+.tv-versus { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: center; }
+.tv-vs { color: var(--color-text-muted); font-weight: 700; }
+.tv-deck .tv-team-name { font-size: clamp(1rem, 1.5vw, 1.6rem); }
+.tv-champion { margin: 0 0 10px; font-size: clamp(1.3rem, 2.4vw, 2.6rem); font-weight: 800; }
+.tv-board .diagram-viewport { height: clamp(260px, 48dvh, 900px); }
+.tv-footer p { margin: 0; color: var(--color-text-muted); font-size: clamp(.75rem, .95vw, 1rem); }
+.tv-no-event .tv-main { display: none; }
+@media (max-width: 760px) { .tv-main { grid-template-columns: minmax(0, 1fr); grid-template-areas: "now" "deck" "bracket"; } .tv-sides { grid-template-columns: minmax(0, 1fr); } }
+:fullscreen .tv-tools #tvOrganizer, :fullscreen .tv-footer { display: none; }
