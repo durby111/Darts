@@ -1,0 +1,178 @@
+/* Fable 5.2 — Brass Wire, mapped to actual BlakeOut DEV menu markup.
+ * Original design: Claude session_01YKyUzkTg5wguSeprRLRBCv. */
+html[data-menu-style="fable52"] :is(#gameMenuModal, #settingsModal) > .modal-content {
+  --f52-ink: #0a0e13;
+  --f52-panel: #121923;
+  --f52-tile: #1c2633;
+  --f52-line: #3a4a5f;
+  --f52-chalk: #f6f2e7;
+  --f52-muted: #c3ccd8;
+  --f52-brass: #ffc247;
+  --f52-brass-ink: #15100a;
+  --f52-danger: #ff6b6b;
+  --f52-danger-bg: #3b0f15;
+  --f52-danger-text: #ffe3e3;
+  --f52-radius: .875rem;
+  --f52-tap: max(48px, 3rem);
+  box-sizing: border-box;
+  inline-size: min(94vw, 30rem);
+  max-inline-size: 100%;
+  max-block-size: calc(100vh - 1.5rem);
+  max-block-size: calc(100dvh - 1.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block: 1.25rem;
+  padding: 1.125rem 1rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  color: var(--f52-chalk);
+  color-scheme: dark;
+  accent-color: var(--f52-brass);
+  background-color: var(--f52-panel);
+  background-image:
+    repeating-radial-gradient(circle at 100% 0, rgba(255, 194, 71, .1) 0 2px, transparent 2px 22px),
+    linear-gradient(180deg, #17202c 0%, var(--f52-panel) 38%, var(--f52-ink) 100%);
+  background-repeat: no-repeat;
+  background-size: 11rem 11rem, 100% 100%;
+  background-position: 100% 0, 0 0;
+  border: 2px solid var(--f52-line);
+  border-block-start: 4px solid var(--f52-brass);
+  border-radius: calc(var(--f52-radius) + .25rem);
+  box-shadow: 0 1.25rem 3rem rgba(0, 0, 0, .6);
+  font-size: 1rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+html[data-menu-style="fable52"] :is(#gameMenuModal, #settingsModal) > .modal-content > h2 {
+  margin: 0 0 .875rem;
+  padding: 0 0 .625rem;
+  color: var(--f52-chalk);
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  text-align: start;
+  border-block-end: 2px solid var(--f52-brass);
+}
+html[data-menu-style="fable52"] #gameMenuModal > .modal-content > div > .btn,
+html[data-menu-style="fable52"] #settingsModal > .modal-content :is(#settingsCloseBtn, .wallpaper-upload-btn) {
+  box-sizing: border-box;
+  min-block-size: var(--f52-tap);
+  max-inline-size: 100%;
+  padding: .75rem 1rem .75rem 1.25rem;
+  color: var(--f52-chalk);
+  background: var(--f52-tile);
+  box-shadow: inset 5px 0 0 var(--f52-brass), 0 2px 0 rgba(0, 0, 0, .45);
+  font-family: inherit;
+  font-size: 1.0625rem;
+  font-weight: 750;
+  letter-spacing: .01em;
+  line-height: 1.2;
+  white-space: normal;
+  border: 2px solid var(--f52-line);
+  border-radius: var(--f52-radius);
+}
+html[data-menu-style="fable52"] #gameMenuModal > .modal-content > div > .btn {
+  inline-size: 100%;
+  text-align: start;
+}
+html[data-menu-style="fable52"] #gameMenuModal > .modal-content #gameMenuResumeBtn,
+html[data-menu-style="fable52"] #settingsModal > .modal-content #settingsCloseBtn {
+  color: var(--f52-brass-ink);
+  background: var(--f52-brass);
+  border-color: #ffe2a3;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .22), 0 2px 0 rgba(0, 0, 0, .45);
+  font-weight: 850;
+}
+html[data-menu-style="fable52"] #gameMenuModal > .modal-content #gameMenuExitBtn {
+  color: var(--f52-danger-text);
+  background:
+    repeating-linear-gradient(135deg, var(--f52-danger) 0 6px, #7a1620 6px 12px) 0 0 / .625rem 100% no-repeat,
+    var(--f52-danger-bg);
+  border: 3px solid var(--f52-danger);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, .45);
+  margin-block-start: .55rem;
+  padding-inline-start: 1.5rem;
+  font-weight: 850;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+html[data-menu-style="fable52"] #gameMenuModal > .modal-content > div > .btn:is(:disabled, [aria-disabled="true"]) {
+  color: #aab4c2;
+  background: #161d27;
+  border-style: dashed;
+  border-color: #56657a;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+html[data-menu-style="fable52"] #settingsModal > .modal-content .settings-section:not(.menu-style-picker):not(:has(.menu-style-picker)) {
+  margin-block-end: .875rem;
+  padding: .75rem;
+  min-inline-size: 0;
+  background: rgba(10, 14, 19, .55);
+  border: 1px solid var(--f52-line);
+  border-radius: var(--f52-radius);
+}
+html[data-menu-style="fable52"] #settingsModal > .modal-content .settings-section-label:not(.menu-style-picker *) {
+  color: var(--f52-brass);
+  padding-inline-start: .625rem;
+  border-inline-start: 4px solid var(--f52-brass);
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+html[data-menu-style="fable52"] #settingsModal > .modal-content #cricketMarkColorHelp {
+  color: var(--f52-muted);
+}
+html[data-menu-style="fable52"] #settingsModal > .modal-content #cricketMarkColor {
+  min-block-size: var(--f52-tap) !important; /* this existing control sets 44px inline */
+  color: var(--f52-chalk);
+  background: var(--f52-ink);
+  border: 2px solid var(--f52-line);
+  border-radius: .625rem;
+  padding-inline: .5rem;
+  font-size: 1rem;
+}
+html[data-menu-style="fable52"] #settingsModal > .modal-content #uiScale {
+  min-block-size: var(--f52-tap);
+}
+html[data-menu-style="fable52"] :is(#gameMenuModal, #settingsModal) > .modal-content
+:is(button, a[href], [role="button"], [role="radio"], [role="tab"], select, input, [tabindex]):focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+@media (max-width: 380px) {
+  html[data-menu-style="fable52"] :is(#gameMenuModal, #settingsModal) > .modal-content {
+    inline-size: calc(100vw - .75rem);
+    padding-inline: .75rem;
+    background-size: 8rem 8rem, 100% 100%;
+  }
+  html[data-menu-style="fable52"] :is(#gameMenuModal, #settingsModal) > .modal-content > h2 {
+    font-size: 1.1875rem;
+  }
+}
+@media (orientation: landscape) and (max-height: 480px) {
+  html[data-menu-style="fable52"] :is(#gameMenuModal, #settingsModal) > .modal-content {
+    padding-block: .75rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-menu-style="fable52"] :is(#gameMenuModal, #settingsModal) > .modal-content,
+  html[data-menu-style="fable52"] :is(#gameMenuModal, #settingsModal) > .modal-content * {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (forced-colors: active) {
+  html[data-menu-style="fable52"] :is(#gameMenuModal, #settingsModal) > .modal-content {
+    background-image: none;
+    border: 2px solid CanvasText;
+  }
+  html[data-menu-style="fable52"] #gameMenuModal > .modal-content #gameMenuExitBtn {
+    border-style: double;
+  }
+  html[data-menu-style="fable52"] :is(#gameMenuModal, #settingsModal) > .modal-content
+  :is(button, a[href], [role="button"], select, input, [tabindex]):focus-visible {
+    outline-color: Highlight;
+  }
+}

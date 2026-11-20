@@ -14,6 +14,7 @@ import { initTeamBuilder, currentThrower } from './teams.js';
 import { initTargetGameControls, updateTargetGameDisplay } from './target_game.js';
 import { init121SummaryControls } from './game121.js';
 import { getGame, isCricketGame, isTargetGame, isX01Game } from './registry.js';
+import { initMenuStyles, registerMenuStyle } from './menu-style.js';
 import { initSettings } from './settings.js';
 import { initTicTacToeControls, updateTicTacToeDisplay } from './tictactoe.js';
 import { initDoubleDownControls, updateDoubleDownDisplay } from './doubledown.js';
@@ -409,6 +410,12 @@ document.addEventListener('DOMContentLoaded', () => {
     ));
     safeInit('keypad', initKeypadControls);
     safeInit('gameMenu', initGameMenuControls);
+    safeInit('menuStyle', () => {
+        registerMenuStyle('fable52', 'Fable 5.2');
+        registerMenuStyle('astra62', 'Astra 6.2');
+        registerMenuStyle('neon', 'Neon');
+        initMenuStyles();
+    });
     safeInit('winnerModal', initWinnerModalControls);
     safeInit('chicagoEvents', initChicagoEvents);
     safeInit('game121Events', initGame121Events);

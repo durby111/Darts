@@ -1,0 +1,11 @@
+/* Common escape hatch: variants must retain this footer and its native control. */
+:is(#gameMenuModal, #settingsModal) .menu-style-picker {
+    clear: both; grid-column: 1 / -1; order: 2147483647;
+    flex: 0 0 auto; width: 100%; min-width: 0; box-sizing: border-box;
+    margin-top: 1rem; padding-top: 1rem; border-top: 1px solid currentColor;
+    text-align: left;
+}
+.menu-style-picker label { display: block; font-size: 1rem; font-weight: 700; }
+.menu-style-picker select { display: block; width: 100%; min-height: 44px; max-width: 100%; font: inherit; }
+.menu-style-picker p { font-size: .875rem; line-height: 1.4; margin: .5rem 0; }
+.menu-style-picker select:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }

@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+const {JSDOM}=createRequire(import.meta.url)(process.env.BLAKEOUT_JSDOM_MODULE || 'jsdom');
+const dom=new JSDOM(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'),{url:'https://example.test/dev/'});
+for(const key of ['window','document','localStorage','MutationObserver','Option']) globalThis[key]=dom.window[key];
+localStorage.setItem('blakeout_x01_skin','fable');
+localStorage.setItem('blakeout_dev_cricket_mark_color','white');
+localStorage.setItem('blakeout_dev_menu_style_v1','missing');
+const mod=await import('../js/menu-style.js');
+const host=document.querySelector('#gameMenuModal .modal-content');
+const original=[...host.children];let clicks=0;document.querySelector('#gameMenuResumeBtn').addEventListener('click',()=>clicks++);
+mod.initMenuStyles();mod.initMenuStyles();
+assert.equal(document.querySelectorAll('.menu-style-picker').length,2);
+assert.equal(document.documentElement.dataset.menuStyle,undefined);
+assert.equal(document.querySelector('#gameMenuModalMenuStyle').options.length,1);
+assert.throws(()=>mod.registerMenuStyle('unknown','Bad'));
+for(const [id,label] of [['astra62','Astra 6.2'],['fable52','Fable 5.2'],['neon','Neon']]) mod.registerMenuStyle(id,label);
+const picker=document.querySelector('#gameMenuModalMenuStyle');
+for(const id of ['astra62','fable52','neon','current']) {
+ picker.value=id;picker.dispatchEvent(new window.Event('change'));
+ assert.equal(localStorage.getItem(mod.MENU_STYLE_KEY),id);
+ assert.equal(document.querySelector('#settingsModalMenuStyle').value,id);
+ assert.equal(document.documentElement.dataset.menuStyle,id==='current'?undefined:id);
+}
+const nav=document.createElement('nav');nav.textContent='Late DEV routes';host.append(nav);
+await new Promise(r=>setTimeout(r,0));
+assert.ok(host.lastElementChild.classList.contains('menu-style-picker'));
+assert.equal(host.lastElementChild.previousElementSibling,nav);
+for(const el of original) assert.ok(host.contains(el));
+document.querySelector('#gameMenuResumeBtn').click();assert.equal(clicks,1);
+assert.equal(localStorage.getItem('blakeout_x01_skin'),'fable');
+assert.equal(localStorage.getItem('blakeout_dev_cricket_mark_color'),'white');
+localStorage.setItem(mod.MENU_STYLE_KEY,'neon');window.dispatchEvent(new window.StorageEvent('storage',{key:mod.MENU_STYLE_KEY}));assert.equal(picker.value,'neon');
+// Fresh module reads saved preference after integrations register variants.
+dom.window.close();
+const reloaded=new JSDOM(fs.readFileSync(new URL('../index.html',import.meta.url),'utf8'),{url:'https://example.test/dev/'});
+for(const key of ['window','document','localStorage','MutationObserver','Option']) globalThis[key]=reloaded.window[key];
+localStorage.setItem(mod.MENU_STYLE_KEY,'neon');
+const fresh=await import('../js/menu-style.js?reload');fresh.registerMenuStyle('neon','Neon');fresh.initMenuStyles();assert.equal(document.documentElement.dataset.menuStyle,'neon');
+console.log('PASS default/unknown fallback, registered-only options, all IDs, independent persistence, two synchronized pickers, reload, late nav and original handlers');
+reloaded.window.close();

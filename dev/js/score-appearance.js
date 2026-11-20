@@ -10,7 +10,8 @@ export const SCORE_SKINS = [
     { id: 'dc', label: 'DC Mode', desc: 'Black/red X01 + Cricket board' },
     { id: 'dot-better', label: 'Dot Better', desc: 'Charcoal panels, clear scores, full-width pad' },
     { id: 'fable', label: 'Fable 5.2', desc: 'Green baize, brass trim, ivory keys' },
-    { id: 'astra', label: 'Astra 6.2', desc: 'X01: fixed score lanes, cyan checkout and quick-score bank' }
+    { id: 'astra', label: 'Astra 6.2', desc: 'X01: fixed score lanes, cyan checkout and quick-score bank' },
+    { id: 'neon', label: 'Neon', desc: 'High-contrast portrait X01 and Cricket' }
 ];
 
 function isScoreSkin(skin) {
