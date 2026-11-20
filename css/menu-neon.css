@@ -1,0 +1,1314 @@
+/* Design: Gemini 4 Neon (Extra). Adapted for BlakeOut DEV; no scoring or preference logic. */
+/* ==========================================================================
+   BLAKEOUT — "NEON" INTERFACE SUITE (OPT-IN, MOBILE-FIRST PORTRAIT)
+   1. Shared Scoreboard Chassis & Player Strip (X01 + Cricket)
+   2. 501 / X01 Layout (html[data-scoreboard-mode="neon"] [data-scoreboard-family="x01"])
+   3. Companion Cricket Layout (html[data-scoreboard-mode="neon"] [data-scoreboard-family="cricket"])
+   4. Independent In-App Menu Panel (html[data-menu-style="neon"])
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. SHARED NEON SCOREBOARD TOKENS, CHASSIS & #scoreHeader (2–4 PLAYERS)
+   -------------------------------------------------------------------------- */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"],
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] {
+  --neon-bg: #06080f;
+  --neon-surface: #0c111e;
+  --neon-surface-2: #121a2d;
+  --neon-well: #04060b;
+  --neon-line: rgba(126, 162, 218, 0.22);
+  --neon-line-strong: rgba(154, 194, 248, 0.42);
+
+  --neon-ink: #f5fbff;
+  --neon-ink-muted: #9eb3d1;
+  --neon-ink-dim: #7388a8;
+
+  --neon-cyan: #1cf2ff;
+  --neon-cyan-soft: rgba(28, 242, 255, 0.16);
+  --neon-lime: #c4ff33;
+  --neon-lime-soft: rgba(196, 255, 51, 0.16);
+  --neon-amber: #ffb732;
+  --neon-amber-soft: rgba(255, 183, 50, 0.16);
+  --neon-crimson: #ff4075;
+  --neon-crimson-soft: rgba(255, 64, 117, 0.18);
+  --neon-violet: #b66bff;
+
+  --neon-font-display: "Bahnschrift", "DIN Alternate", "Franklin Gothic Medium",
+    ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --neon-font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --neon-font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", "Roboto Mono",
+    Consolas, monospace;
+
+  --neon-radius-sm: 8px;
+  --neon-radius-md: 12px;
+  --neon-radius-lg: 16px;
+  --neon-focus-ring: 0 0 0 2px #06080f, 0 0 0 4px #f5fbff, 0 0 0 7px rgba(28, 242, 255, 0.62);
+
+  position: relative;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-height: 0;
+  overflow-x: clip;
+  overflow-y: auto;
+  color: var(--neon-ink);
+  font-family: var(--neon-font-ui);
+  background-color: var(--neon-bg);
+  background-image:
+    radial-gradient(110% 42% at 50% 0%, rgba(28, 242, 255, 0.11), transparent 64%),
+    radial-gradient(85% 34% at 50% 100%, rgba(182, 107, 255, 0.09), transparent 68%),
+    linear-gradient(rgba(126, 162, 218, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(126, 162, 218, 0.035) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 24px 24px, 24px 24px;
+  -webkit-font-smoothing: antialiased;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"],
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] *,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] *::before,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] *::after,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"],
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] *,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] *::before,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] *::after {
+  box-sizing: border-box;
+}
+
+/* Shared Touch & Keyboard Focus Discipline */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] :is(button, [role="button"], input, select, [tabindex]),
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] :is(button, [role="button"], input, select, [tabindex]) {
+  /* Keep existing dart input gesture semantics. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] :focus-visible,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] :focus-visible {
+  outline: 2px solid var(--neon-ink);
+  outline-offset: 2px;
+  box-shadow: var(--neon-focus-ring);
+  z-index: 5;
+}
+
+/* Player Strip (#scoreHeader): Adaptive 2–4 Player Telemetry Cartridges */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  padding: 10px 10px 12px;
+  background: linear-gradient(180deg, rgba(12, 17, 30, 0.96), rgba(6, 8, 15, 0.92));
+  border-bottom: 1px solid var(--neon-line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.48);
+  flex: 0 0 auto;
+  overflow-x: clip;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .player-header,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .player-header {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 76px;
+  padding: 10px 8px 9px;
+  border-radius: var(--neon-radius-md);
+  border: 1px solid var(--neon-line);
+  background:
+    linear-gradient(160deg, rgba(22, 32, 54, 0.92), rgba(10, 14, 25, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(245, 251, 255, 0.08),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.35);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+/* Top Emitter Tube Cap (dim when waiting, white-hot cyan when active) */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .player-header::before,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .player-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 14%;
+  right: 14%;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: rgba(158, 179, 209, 0.28);
+  transition: background-color 160ms ease, box-shadow 160ms ease, left 160ms ease, right 160ms ease;
+}
+
+/* Active Thrower Ignition */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .player-header:is(.active),
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .player-header:is(.active) {
+  border-color: rgba(28, 242, 255, 0.85);
+  background:
+    radial-gradient(95% 75% at 50% 0%, rgba(28, 242, 255, 0.24), transparent 72%),
+    linear-gradient(180deg, #13213a 0%, #0b1222 100%);
+  box-shadow:
+    0 0 0 1px rgba(28, 242, 255, 0.28),
+    0 0 18px rgba(28, 242, 255, 0.26),
+    inset 0 1px 0 rgba(245, 251, 255, 0.24);
+  transform: translateY(-1px);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .player-header:is(.active)::before,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .player-header:is(.active)::before {
+  left: 8%;
+  right: 8%;
+  height: 3.5px;
+  background: #f5fbff;
+  box-shadow:
+    0 0 8px var(--neon-cyan),
+    0 0 18px rgba(28, 242, 255, 0.85);
+}
+
+/* Downward Oche Pointer Notch on Active Player */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .player-header:is(.active)::after,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .player-header:is(.active)::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: #0d192e;
+  border-right: 1.5px solid var(--neon-cyan);
+  border-bottom: 1.5px solid var(--neon-cyan);
+  transform: translateX(-50%) rotate(45deg);
+  box-shadow: 2px 2px 8px rgba(28, 242, 255, 0.45);
+  pointer-events: none;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .player-name,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .player-name {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-size: clamp(0.72rem, 2.7vw, 0.88rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--neon-ink-muted);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .player-header:is(.active) .player-name,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .player-header:is(.active) .player-name {
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px rgba(28, 242, 255, 0.55);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .score-big,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .score-big {
+  font-family: var(--neon-font-display);
+  font-size: clamp(2.1rem, 8.6vw, 3.05rem);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--neon-ink);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.65);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .player-header:is(.active) .score-big,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .player-header:is(.active) .score-big {
+  color: #ffffff;
+  text-shadow:
+    0 0 10px rgba(28, 242, 255, 0.65),
+    0 0 22px rgba(28, 242, 255, 0.3);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .score-delta,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .score-delta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  min-height: 19px;
+  padding: 1px 7px;
+  margin-top: 2px;
+  border-radius: 999px;
+  font-family: var(--neon-font-mono);
+  font-size: clamp(0.68rem, 2.5vw, 0.8rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+  color: var(--neon-amber);
+  background: rgba(255, 183, 50, 0.11);
+  border: 1px solid rgba(255, 183, 50, 0.34);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .score-delta:empty,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .score-delta:empty {
+  border-color: transparent;
+  background: transparent;
+}
+
+/* 3-Player & 4-Player Portrait Density Refinement (Zero Horizontal Scroll) */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader:is(.three-player,.four-player),
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader:is(.three-player,.four-player) {
+  gap: 6px;
+  padding: 8px 8px 11px;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader:is(.three-player,.four-player) .player-header,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader:is(.three-player,.four-player) .player-header {
+  padding: 9px 5px 8px;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader:is(.three-player,.four-player) .score-big,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader:is(.three-player,.four-player) .score-big {
+  font-size: clamp(1.72rem, 6.7vw, 2.4rem);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader.four-player,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader.four-player {
+  gap: 5px;
+  padding: 8px 6px 10px;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader.four-player .player-header,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader.four-player .player-header {
+  min-height: 68px;
+  padding: 8px 3px 7px;
+  border-radius: 10px;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader.four-player .player-name,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader.four-player .player-name {
+  font-size: clamp(0.65rem, 2.3vw, 0.76rem);
+  letter-spacing: 0.04em;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader.four-player .score-big,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader.four-player .score-big {
+  font-size: clamp(1.42rem, 5.4vw, 1.98rem);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader.four-player .score-delta,
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader.four-player .score-delta {
+  padding: 1px 4px;
+  font-size: 0.66rem;
+}
+
+
+/* --------------------------------------------------------------------------
+   2. 501 / X01 LAYOUT — "NEON" SPLIT-RAIL OCHE CONSOLE
+   -------------------------------------------------------------------------- */
+
+/* Visit Histories & Illuminated Calibration Round Spine (#x01Main) */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 92px;
+  width: 100%;
+  max-width: 100%;
+  overflow-y: auto;
+  overflow-x: clip;
+  overscroll-behavior: contain;
+  padding: 8px 10px 10px;
+  background:
+    linear-gradient(180deg, rgba(4, 6, 11, 0.72), rgba(7, 10, 18, 0.56));
+  scrollbar-width: thin;
+  scrollbar-color: rgba(28, 242, 255, 0.35) transparent;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main :is(.score-history-entry,.round-number) {
+  border-bottom: 1px solid rgba(126, 162, 218, 0.14);
+  transition: background-color 140ms ease;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main :is(.score-history-entry,.round-number):nth-child(even) {
+  background: rgba(18, 26, 45, 0.36);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main :is(.score-history-entry,.round-number).current {
+  background: linear-gradient(90deg, rgba(28, 242, 255, 0.08), rgba(196, 255, 51, 0.07), rgba(28, 242, 255, 0.08));
+  border-bottom-color: rgba(28, 242, 255, 0.34);
+}
+
+/* Round Column: Etched Graphite Telemetry Spine */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main .round-numbers-col {
+  font-family: var(--neon-font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--neon-cyan);
+  text-align: center;
+  background: linear-gradient(180deg, rgba(8, 13, 24, 0.94), rgba(5, 8, 16, 0.96));
+  border-inline: 1px solid rgba(28, 242, 255, 0.24);
+  box-shadow: inset 0 0 12px rgba(28, 242, 255, 0.07);
+}
+
+/* Visit History Columns & Score Entries */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main .score-history-col {
+  min-width: 0;
+  font-family: var(--neon-font-display);
+  font-variant-numeric: tabular-nums lining-nums;
+  text-align: center;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main .score-history-entry {
+  font-size: clamp(1rem, 3.8vw, 1.24rem);
+  font-weight: 700;
+  color: var(--neon-ink);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main :is(.visit-thrown, .visit-sub, .visit-delta) {
+  font-family: var(--neon-font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--neon-ink-muted);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main :is(.is-bust, .bust, [data-bust="true"]) {
+  color: var(--neon-crimson);
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 64, 117, 0.75);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main :is(.is-ton, .high-score, [data-ton="true"]) {
+  color: var(--neon-lime);
+  text-shadow: 0 0 10px rgba(196, 255, 51, 0.45);
+}
+
+/* Bottom Sculpted Control Deck (#x01Controls) */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+  max-width: 100%;
+  padding: 9px 9px max(10px, env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, rgba(14, 20, 36, 0.98) 0%, rgba(7, 10, 18, 0.99) 100%);
+  border-top: 1px solid rgba(28, 242, 255, 0.36);
+  box-shadow:
+    0 -8px 26px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(28, 242, 255, 0.2);
+}
+
+/* Checkout Suggestion / Finish Indicator Ribbon (respects existing hidden state) */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls :is(#checkoutSuggestion, .checkout-suggestion, #finishIndicator, .finish-indicator):not([hidden]):not(.hidden):not(:empty) {
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: var(--neon-radius-sm);
+  border: 1px solid rgba(196, 255, 51, 0.68);
+  background:
+    linear-gradient(90deg, rgba(196, 255, 51, 0.08), rgba(196, 255, 51, 0.2), rgba(28, 242, 255, 0.12));
+  color: #efffb3;
+  font-family: var(--neon-font-mono);
+  font-size: clamp(0.84rem, 3.3vw, 0.98rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(196, 255, 51, 0.45);
+  box-shadow:
+    0 0 14px rgba(196, 255, 51, 0.18),
+    inset 0 0 12px rgba(196, 255, 51, 0.08);
+  animation: blakeout-neon-checkout-pulse 2.6s ease-in-out infinite;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls :is(#checkoutSuggestion, .checkout-suggestion, #finishIndicator, .finish-indicator):not([hidden]):not(.hidden):not(:empty):not(:empty)::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--neon-lime);
+  box-shadow: 0 0 8px var(--neon-lime), 0 0 14px var(--neon-lime);
+  flex: 0 0 auto;
+}
+
+/* Input Row (.x01-input-row): Sunken Phosphor Entry Trough + Undo/Redo Switches */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-input-row {
+  display: flex;
+  align-items: stretch;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-input-row > button {
+  flex: 0 0 auto;
+  min-width: 48px;
+  min-height: 46px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: var(--neon-radius-md);
+  border: 1px solid var(--neon-line-strong);
+  background: linear-gradient(180deg, #182238 0%, #0d1322 100%);
+  color: var(--neon-ink);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow:
+    inset 0 1px 0 rgba(245, 251, 255, 0.16),
+    0 2px 8px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: transform 90ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-input-row > button:active:not(:disabled) {
+  transform: scale(0.95);
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 12px rgba(28, 242, 255, 0.35);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-input-row > button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-input-row > :not(button) {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 46px;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--neon-radius-md);
+  border: 1px solid rgba(28, 242, 255, 0.48);
+  border-bottom: 2.5px solid var(--neon-cyan);
+  background:
+    radial-gradient(85% 110% at 50% 100%, rgba(28, 242, 255, 0.15), transparent 72%),
+    var(--neon-well);
+  color: #ffffff;
+  font-family: var(--neon-font-display);
+  font-size: clamp(1.65rem, 6.2vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums lining-nums;
+  text-align: center;
+  text-shadow: 0 0 12px rgba(28, 242, 255, 0.58);
+  box-shadow:
+    inset 0 3px 10px rgba(0, 0, 0, 0.8),
+    0 0 14px rgba(28, 242, 255, 0.14);
+}
+
+/* Number Pad (.number-pad): Cantilevered Quick Rails + Recessed Mechanical Key Well */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad {
+  display: grid;
+  grid-template-columns: minmax(48px, 0.9fr) minmax(0, 3.1fr) minmax(48px, 0.9fr);
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .quick-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .quick-col button {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--neon-radius-sm);
+  border: 1px solid rgba(126, 162, 218, 0.28);
+  background: linear-gradient(180deg, #131c30 0%, #0b101d 100%);
+  color: #f3f8ff;
+  font-family: var(--neon-font-mono);
+  font-size: clamp(0.88rem, 3.3vw, 1.04rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 1px 0 rgba(245, 251, 255, 0.1);
+  cursor: pointer;
+  transition: transform 90ms ease, border-color 130ms ease, box-shadow 130ms ease, background-color 130ms ease;
+}
+
+/* Outward MFD-Style Edge Pips: Amber Left Rail, Violet-Cyan Right Rail */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .quick-col:first-child button {
+  border-left: 3px solid var(--neon-amber);
+  color: #ffdfa0;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .quick-col:last-child button {
+  border-right: 3px solid var(--neon-violet);
+  color: #e8d2ff;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .quick-col:first-child button:active {
+  transform: scale(0.95);
+  background: rgba(255, 183, 50, 0.22);
+  border-color: var(--neon-amber);
+  box-shadow: 0 0 12px rgba(255, 183, 50, 0.42);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .quick-col:last-child button:active {
+  transform: scale(0.95);
+  background: rgba(182, 107, 255, 0.24);
+  border-color: var(--neon-violet);
+  box-shadow: 0 0 12px rgba(182, 107, 255, 0.46);
+}
+
+/* Center Numeric Pad Well (.pad-center) */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .pad-center {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+  padding: 6px;
+  border-radius: var(--neon-radius-md);
+  border: 1px solid rgba(28, 242, 255, 0.26);
+  background:
+    linear-gradient(180deg, rgba(4, 7, 14, 0.92), rgba(9, 14, 26, 0.96));
+  box-shadow:
+    inset 0 2px 12px rgba(0, 0, 0, 0.72),
+    0 0 16px rgba(28, 242, 255, 0.08);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .pad-center button {
+  width: 100%;
+  min-width: 44px;
+  min-height: 48px;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid rgba(154, 194, 248, 0.3);
+  border-top-color: rgba(245, 251, 255, 0.32);
+  background: linear-gradient(180deg, #1b2740 0%, #10182b 62%, #0c1322 100%);
+  color: var(--neon-ink);
+  font-family: var(--neon-font-display);
+  font-size: clamp(1.3rem, 4.8vw, 1.56rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  box-shadow:
+    0 3px 0 #050811,
+    0 5px 10px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(245, 251, 255, 0.18);
+  cursor: pointer;
+  transition: transform 80ms ease, border-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .pad-center button:active {
+  transform: translateY(1.5px) scale(0.96);
+  border-color: var(--neon-cyan);
+  color: #ffffff;
+  background: linear-gradient(180deg, rgba(28, 242, 255, 0.28), rgba(16, 28, 48, 0.96));
+  box-shadow:
+    0 1px 0 #050811,
+    0 0 14px rgba(28, 242, 255, 0.48),
+    inset 0 0 8px rgba(28, 242, 255, 0.22);
+}
+
+/* Bottom Hardware Paddles (.x01-bottom-row): MISS / BUST / ENTER (DOM order preserved) */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-bottom-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.45fr);
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-bottom-row button {
+  width: 100%;
+  min-width: 44px;
+  min-height: 48px;
+  padding: 6px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--neon-radius-md);
+  font-family: var(--neon-font-ui);
+  font-size: clamp(0.84rem, 3.2vw, 0.98rem);
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 90ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+/* 1. MISS — Cool Ice-Wire Neutral Paddle */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-bottom-row button#x01MissBtn {
+  border: 1.5px solid rgba(158, 179, 209, 0.48);
+  background: linear-gradient(180deg, #161f33 0%, #0d1322 100%);
+  color: #dce7f8;
+  box-shadow: inset 0 -2px 0 rgba(158, 179, 209, 0.25);
+}
+
+/* 2. BUST — Plasma Crimson Hazard Paddle */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-bottom-row button#x01BustBtn {
+  position: relative;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 64, 117, 0.78);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255, 64, 117, 0.14) 0 6px,
+      transparent 6px 12px
+    ),
+    linear-gradient(180deg, #320d1c 0%, #1d0711 100%);
+  color: #ffe3ec;
+  text-shadow: 0 0 10px rgba(255, 64, 117, 0.55);
+  box-shadow: 0 0 12px rgba(255, 64, 117, 0.2);
+}
+
+/* 3. ENTER — Ignited Voltage-Lime Primary Launch Bar */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-bottom-row button#x01EnterBtn {
+  border: 1.5px solid #e6ff99;
+  background: linear-gradient(135deg, #d7ff54 0%, #9dff2e 52%, #29f4ff 100%);
+  color: #050910;
+  font-weight: 900;
+  box-shadow:
+    0 0 18px rgba(196, 255, 51, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-bottom-row button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+
+/* --------------------------------------------------------------------------
+   3. COMPANION CRICKET LAYOUT — "NEON" TACTICAL TARGET MATRIX
+   -------------------------------------------------------------------------- */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 9px max(10px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overflow-x: clip;
+  overscroll-behavior: contain;
+}
+
+/* Matrix Container (#cricketGrid): Isolated Illuminated Target Channels */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Support table-based or row-div-based #cricketGrid gracefully */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid:is(table) {
+  display: table;
+  border-collapse: separate;
+  border-spacing: 0 6px;
+  table-layout: fixed;
+}
+
+/* Individual Target Rows (20–15 and Bull) */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-row {
+  position: relative;
+  min-height: 48px;
+  border-radius: var(--neon-radius-md);
+  background:
+    linear-gradient(90deg, rgba(11, 16, 29, 0.94), rgba(18, 26, 46, 0.92), rgba(11, 16, 29, 0.94));
+  border: 1px solid rgba(126, 162, 218, 0.24);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 251, 255, 0.06),
+    0 3px 10px rgba(0, 0, 0, 0.42);
+  transition: opacity 160ms ease, border-color 160ms ease, filter 160ms ease;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid > .cricket-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 6px;
+  padding: 4px;
+}
+
+/* Target Number Medallion (20–15) */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-num-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  min-height: 44px;
+  padding: 4px 6px;
+  border-radius: 9px;
+  border: 1px solid rgba(28, 242, 255, 0.38);
+  background:
+    radial-gradient(100% 100% at 50% 0%, rgba(28, 242, 255, 0.16), transparent 70%),
+    linear-gradient(180deg, #15213a 0%, #090f1d 100%);
+  color: var(--neon-ink);
+  font-family: var(--neon-font-display);
+  font-size: clamp(1.12rem, 4.4vw, 1.38rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 10px rgba(28, 242, 255, 0.45);
+  box-shadow: inset 0 1px 0 rgba(245, 251, 255, 0.18);
+}
+
+/* Bull Row & Bull Medallion — Concentric Crimson Bullseye Halo */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-row:has(.cricket-num-btn[data-target="Bull"]) {
+  border-color: rgba(255, 64, 117, 0.44);
+  background:
+    radial-gradient(55% 120% at 50% 50%, rgba(255, 64, 117, 0.14), transparent 72%),
+    linear-gradient(90deg, rgba(14, 14, 26, 0.96), rgba(28, 14, 28, 0.94), rgba(14, 14, 26, 0.96));
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-row:has(.cricket-num-btn[data-target="Bull"]) .cricket-num-btn {
+  border-color: rgba(255, 64, 117, 0.78);
+  background:
+    radial-gradient(circle at center, rgba(255, 64, 117, 0.42) 0 32%, rgba(255, 64, 117, 0.12) 33% 58%, #140814 59% 100%);
+  color: #ffeaf1;
+  text-shadow: 0 0 12px rgba(255, 64, 117, 0.8);
+  box-shadow: 0 0 14px rgba(255, 64, 117, 0.28);
+}
+
+/* Player Mark Sockets — Strictly Preserving User-Selected Mark Colors */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid :is(.cricket-cell, .mark-cell, .player-marks, [data-player-cell], td) {
+  position: relative;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  border: 1px solid rgba(126, 162, 218, 0.18);
+  background: rgba(4, 7, 14, 0.84);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.68);
+  cursor: pointer;
+  transition: transform 90ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid :is(.cricket-cell, .mark-cell, .player-marks, [data-player-cell], td):active {
+  transform: scale(0.95);
+  border-color: var(--neon-cyan);
+}
+
+/* Neon Tube Glow Derived Dynamically From Existing User-Selected Mark Color */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .mark:not(.pending):not(.brisket-closed) svg {
+  /* Intentionally NO color / stroke / fill override — user-selected hue drives the glow */
+  filter: drop-shadow(0 0 6px var(--cricket-mark-color,var(--color-primary)));
+  text-shadow: 0 0 10px currentColor;
+  font-weight: 800;
+}
+
+/* Individual Player Closed Target (3 Marks): Luminous Ring in User's Mark Color */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid :is(.cricket-cell, .mark-cell, .player-marks, [data-player-cell], td):is(.closed, .is-closed, .mark-closed, [data-marks="3"], [data-closed="true"]) {
+  border-color: currentColor;
+  box-shadow:
+    inset 0 0 0 1px currentColor,
+    inset 0 0 14px rgba(245, 251, 255, 0.14);
+  box-shadow:
+    inset 0 0 0 1px currentColor,
+    inset 0 0 16px color-mix(in srgb, currentColor 26%, transparent),
+    0 0 10px color-mix(in srgb, currentColor 24%, transparent);
+}
+
+/* All-Players Closed ("Dead") Row: De-Energized Smoked-Glass Shutter */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-row:has(.cricket-num-btn.dimmed) {
+  border-color: rgba(115, 136, 168, 0.18);
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      rgba(115, 136, 168, 0.06) 0 6px,
+      rgba(4, 6, 11, 0.65) 6px 12px
+    );
+  opacity: 0.54;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-row:has(.cricket-num-btn.dimmed) .cricket-num-btn {
+  border-color: rgba(115, 136, 168, 0.28);
+  color: var(--neon-ink-dim);
+  text-shadow: none;
+  text-decoration: line-through;
+  text-decoration-color: rgba(158, 179, 209, 0.65);
+}
+
+/* Cricket Points Entry, Multiplier & Undo Controls */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketControls {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 7px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(28, 242, 255, 0.26);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketControls button {
+  flex: 1 1 0;
+  min-width: 44px;
+  min-height: 46px;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: var(--neon-radius-md);
+  border: 1px solid var(--neon-line-strong);
+  background: linear-gradient(180deg, #19243c 0%, #0d1424 100%);
+  color: var(--neon-ink);
+  font-family: var(--neon-font-ui);
+  font-size: clamp(0.84rem, 3.2vw, 0.96rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(245, 251, 255, 0.16);
+  cursor: pointer;
+  transition: transform 90ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketControls button:is(#enterBtn,.active,[aria-pressed="true"]) {
+  border-color: var(--neon-lime);
+  background: linear-gradient(135deg, rgba(196, 255, 51, 0.24), rgba(28, 242, 255, 0.16));
+  color: #f4ffbf;
+  box-shadow: 0 0 14px rgba(196, 255, 51, 0.34);
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketControls button#undoBtn {
+  border-color: rgba(255, 183, 50, 0.52);
+  color: #ffe2ab;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketControls button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* 4-Player Cricket Portrait Tightening */
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"]:has(#scoreHeader.four-player) #cricketMain #cricketGrid > .cricket-row {
+  gap: 4px;
+  padding: 3px;
+}
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"]:has(#scoreHeader.four-player) #cricketMain #cricketGrid .cricket-num-btn {
+  min-width: 42px;
+  font-size: 1rem;
+  padding: 2px 3px;
+}
+
+
+/* --------------------------------------------------------------------------
+   4. INDEPENDENT IN-APP MENU PANEL — "NEON" BACKSTAGE CONSOLE DRAWER
+      (Scoped strictly to html[data-menu-style="neon"] — decoupled from scoring)
+   -------------------------------------------------------------------------- */
+html[data-menu-style="neon"] {
+  --nm-bg: rgba(7, 10, 19, 0.95);
+  --nm-plate: rgba(14, 21, 37, 0.88);
+  --nm-item: rgba(19, 28, 49, 0.78);
+  --nm-item-hover: rgba(28, 242, 255, 0.14);
+  --nm-line: rgba(132, 168, 224, 0.24);
+  --nm-ink: #f5fbff;
+  --nm-ink-muted: #9eb3d1;
+  --nm-cyan: #1cf2ff;
+  --nm-lime: #c4ff33;
+  --nm-violet: #b66bff;
+  --nm-crimson: #ff4075;
+  --nm-focus-ring: 0 0 0 2px #070a13, 0 0 0 4px #f5fbff, 0 0 0 7px rgba(28, 242, 255, 0.65);
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content,
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content *,
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content *::before,
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content *::after {
+  box-sizing: border-box;
+}
+
+/* Main Drawer Container (:is(#gameMenuModal,#settingsModal) > .modal-content) with Vertical Plasma Edge Conduit */
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content:not([hidden]):not(.hidden):not(:empty) {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(92vw, 390px);
+  max-width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: calc(100dvh - 2rem);
+  padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom)) 18px;
+  overflow-y: auto;
+  overflow-x: clip;
+  overscroll-behavior: contain;
+  color: var(--nm-ink);
+  background:
+    radial-gradient(120% 35% at 0% 0%, rgba(28, 242, 255, 0.14), transparent 62%),
+    radial-gradient(120% 35% at 100% 100%, rgba(182, 107, 255, 0.14), transparent 62%),
+    var(--nm-bg);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  border-inline-start: 1px solid rgba(28, 242, 255, 0.42);
+  box-shadow:
+    -12px 0 36px rgba(0, 0, 0, 0.72),
+    inset 1px 0 0 rgba(245, 251, 255, 0.12);
+}
+
+/* Signature Full-Height Neon Light Conduit Along Leading Drawer Edge */
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content::before {
+  content: "";
+  position: sticky;
+  top: 0;
+  left: 0;
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 3.5px;
+  background: linear-gradient(
+    180deg,
+    var(--nm-cyan) 0%,
+    #77a8ff 44%,
+    var(--nm-violet) 74%,
+    var(--nm-crimson) 100%
+  );
+  box-shadow:
+    0 0 12px rgba(28, 242, 255, 0.65),
+    0 0 22px rgba(182, 107, 255, 0.42);
+  pointer-events: none;
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content :focus-visible {
+  outline: 2px solid var(--nm-ink);
+  outline-offset: 2px;
+  box-shadow: var(--nm-focus-ring);
+}
+
+/* Engraved Module Plates (.settings-section — Navigation, Gameplay, Customize) */
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--nm-line);
+  background:
+    linear-gradient(180deg, rgba(20, 29, 52, 0.78), var(--nm-plate));
+  box-shadow:
+    inset 0 1px 0 rgba(245, 251, 255, 0.08),
+    0 4px 14px rgba(0, 0, 0, 0.34);
+}
+
+/* Section Kicker Headings */
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .settings-section > :is(h2, h3, h4, .settings-section-label) {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 4px;
+  padding: 0 4px;
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nm-cyan);
+  text-shadow: 0 0 10px rgba(28, 242, 255, 0.4);
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .settings-section > :is(h2, h3, h4, .settings-section-label)::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--nm-cyan);
+  box-shadow: 0 0 8px var(--nm-cyan);
+  flex: 0 0 auto;
+}
+
+/* Customize Section Highlight & Preserved Color Swatches */
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .settings-section:is(.menu-section--customize, #customizeSection, [data-section="customize"]) {
+  border-color: rgba(182, 107, 255, 0.36);
+  background:
+    radial-gradient(95% 65% at 100% 0%, rgba(182, 107, 255, 0.14), transparent 68%),
+    linear-gradient(180deg, rgba(20, 27, 49, 0.86), rgba(12, 17, 32, 0.94));
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .settings-section :is(select, input[type="text"], input[type="number"]) {
+  min-height: 44px;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(28, 242, 255, 0.38);
+  background: #070b15;
+  color: var(--nm-ink);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .settings-section :is(.color-swatch, [data-color-swatch]) {
+  /* Keeps inline user swatch background color untouched inside a glowing socket */
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(245, 251, 255, 0.32);
+  box-shadow: 0 0 0 2px #070a13, 0 0 10px rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .settings-section :is(.color-swatch, [data-color-swatch]):is(.active, .selected, [aria-pressed="true"], [aria-checked="true"]) {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px #070a13, 0 0 0 4px var(--nm-cyan), 0 0 14px rgba(28, 242, 255, 0.7);
+}
+
+/* Tactile Console Rows (:is(button.btn,label.btn)) with Left LED Ignition Bar */
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content :is(button.btn,label.btn) {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(132, 168, 224, 0.2);
+  background: var(--nm-item);
+  color: var(--nm-ink);
+  font-size: 0.94rem;
+  font-weight: 650;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 90ms ease, box-shadow 140ms ease;
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content :is(button.btn,label.btn)::before {
+  content: "";
+  position: absolute;
+  inset-block: 9px;
+  inset-inline-start: 6px;
+  width: 3px;
+  border-radius: 3px;
+  background: rgba(158, 179, 209, 0.28);
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content :is(button.btn,label.btn):is(:hover, :focus-visible) {
+  background: var(--nm-item-hover);
+  border-color: rgba(28, 242, 255, 0.62);
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content :is(button.btn,label.btn):is(:hover, :focus-visible, .active, .is-active, [aria-current="true"], [aria-pressed="true"])::before {
+  background: var(--nm-cyan);
+  box-shadow: 0 0 8px var(--nm-cyan), 0 0 14px rgba(28, 242, 255, 0.8);
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content :is(button.btn,label.btn):is(.active, .is-active, [aria-current="true"], [aria-pressed="true"]) {
+  border-color: rgba(28, 242, 255, 0.78);
+  background: linear-gradient(90deg, rgba(28, 242, 255, 0.2), rgba(18, 28, 50, 0.88));
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(28, 242, 255, 0.16);
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content :is(button.btn,label.btn):active {
+  transform: scale(0.98);
+}
+
+/* Menu Style Picker Dock (.menu-style-picker) — Anchored at the Very Bottom */
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker {
+  margin-top: auto;
+  padding: 12px 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(28, 242, 255, 0.34);
+  border-top: 2px solid var(--nm-cyan);
+  background:
+    radial-gradient(90% 80% at 50% 0%, rgba(28, 242, 255, 0.15), transparent 72%),
+    rgba(6, 9, 17, 0.94);
+  box-shadow:
+    0 -6px 20px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(245, 251, 255, 0.14);
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker > :is(label, legend, .picker-label, h3, h4, span:first-child) {
+  display: block;
+  margin: 0 0 8px;
+  font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nm-ink-muted);
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker :is(.menu-style-options, .picker-options, [role="radiogroup"]) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker :is(button, [role="radio"], .menu-style-option) {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(132, 168, 224, 0.28);
+  background: linear-gradient(180deg, #141d33 0%, #0a0f1d 100%);
+  color: var(--nm-ink-muted);
+  font-size: 0.85rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color 140ms ease, box-shadow 140ms ease, color 140ms ease, transform 90ms ease;
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker :is(button, [role="radio"], .menu-style-option):is(.active, .is-active, .selected, [aria-pressed="true"], [aria-checked="true"], [data-menu-style-option="neon"]) {
+  border-color: var(--nm-cyan);
+  background: linear-gradient(135deg, rgba(28, 242, 255, 0.24), rgba(182, 107, 255, 0.2));
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(28, 242, 255, 0.65);
+  box-shadow:
+    0 0 14px rgba(28, 242, 255, 0.28),
+    inset 0 1px 0 rgba(245, 251, 255, 0.28);
+}
+
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker :is(button, [role="radio"], .menu-style-option):is(.active, .is-active, .selected, [aria-pressed="true"], [aria-checked="true"])::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--nm-lime);
+  box-shadow: 0 0 8px var(--nm-lime);
+  flex: 0 0 auto;
+}
+
+/* Native <select> fallback if .menu-style-picker uses a select control */
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker select {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--nm-cyan);
+  background: #080d1a;
+  color: var(--nm-ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+
+/* --------------------------------------------------------------------------
+   5. COMPACT PORTRAIT HEIGHT GUARD, KEYFRAMES & REDUCED MOTION
+   -------------------------------------------------------------------------- */
+@keyframes blakeout-neon-checkout-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 12px rgba(196, 255, 51, 0.18),
+      inset 0 0 10px rgba(196, 255, 51, 0.08);
+  }
+  50% {
+    box-shadow:
+      0 0 22px rgba(196, 255, 51, 0.36),
+      inset 0 0 14px rgba(196, 255, 51, 0.15);
+  }
+}
+
+/* Short portrait phones (e.g., 360x640): keep targets >= 44px while preserving #x01Main view */
+@media (max-height: 680px) {
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader,
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader {
+    padding-block: 6px 8px;
+  }
+
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #scoreHeader .player-header,
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #scoreHeader .player-header {
+    min-height: 62px;
+    padding-block: 6px;
+  }
+
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls {
+    gap: 5px;
+    padding-top: 7px;
+  }
+
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .pad-center button,
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .x01-bottom-row button {
+    min-height: 44px;
+  }
+}
+
+/* Reduced Motion: disable pulse, transitions, and press scaling */
+@media (prefers-reduced-motion: reduce) {
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"],
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] *,
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] *::before,
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] *::after,
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"],
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] *,
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] *::before,
+  html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] *::after,
+  html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content,
+  html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content *,
+  html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content *::before,
+  html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content *::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* Native markup and small-screen safeguards; no controls or game state changed. */
+
+html[data-scoreboard-mode="neon"] #gameScreen:is([data-scoreboard-family="x01"],[data-scoreboard-family="cricket"]) #scoreHeader .score-big { min-width:0; max-width:100%; padding:1px 3px; background-color:var(--neon-well); }
+html[data-scoreboard-mode="neon"] #gameScreen:is([data-scoreboard-family="x01"],[data-scoreboard-family="cricket"]) #scoreHeader .score-big.score-preview { box-shadow:0 0 0 2px var(--neon-amber); }
+html[data-scoreboard-mode="neon"] #gameScreen:is([data-scoreboard-family="x01"],[data-scoreboard-family="cricket"]) #scoreHeader .score-big.score-preview-bust { box-shadow:0 0 0 2px var(--neon-crimson); }
+html[data-scoreboard-mode="neon"] #gameScreen:is([data-scoreboard-family="x01"],[data-scoreboard-family="cricket"]) #scoreHeader .score-delta:empty { display:none; }
+html[data-scoreboard-mode="neon"] #gameScreen:is([data-scoreboard-family="x01"],[data-scoreboard-family="cricket"]) #scoreHeader .center-logo { min-width:0; background:var(--neon-surface); }
+html[data-scoreboard-mode="neon"] #gameScreen:is([data-scoreboard-family="x01"],[data-scoreboard-family="cricket"]) #menuBtn { min-width:44px; min-height:44px; padding:4px; color:var(--neon-ink); }
+html[data-scoreboard-mode="neon"] #gameScreen:is([data-scoreboard-family="x01"],[data-scoreboard-family="cricket"]) #scoreHeader .player-header { opacity:1; }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls .number-pad .quick-col { width:auto; }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls { min-height:0; }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main .round-number, html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main .score-history-entry { min-height:32px; height:32px; flex:none; }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Main .round-number { color:var(--neon-cyan); }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-row .cricket-cell { min-width:0; padding-inline:0; }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-row .cricket-cell.active { border-color:var(--neon-cyan); }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-buttons .cricket-dt-btn:not(.fake-spacer) { color:var(--neon-ink); background:var(--neon-surface-2); min-height:44px; }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .mark svg { max-width:100%; }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketControls { flex-wrap:nowrap; }
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal)>.modal-content > * { flex-shrink:0; }
+
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="x01"] #x01Controls #finishIndicator:empty { display:none; }
+html[data-scoreboard-mode="neon"] #gameScreen:is([data-scoreboard-family="x01"],[data-scoreboard-family="cricket"]) #scoreHeader:is(.three-player,.four-player) .score-big { font-size:clamp(1rem,min(5.9vw,36cqi),2.35rem); }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .mark { max-width:100%; }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-row:has(.cricket-num-btn.dimmed) { opacity:1; }
+html[data-scoreboard-mode="neon"] #gameScreen[data-scoreboard-family="cricket"] #cricketMain #cricketGrid .cricket-row:has(.cricket-num-btn.dimmed) .cricket-num-btn { color:var(--neon-ink-muted); }

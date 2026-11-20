@@ -1,0 +1,62 @@
+/* Astra 6.2 | Oche Line. Load last in dev/index.html.
+   Apply data-menu-style="astra62" on the document element only. */
+html[data-menu-style="astra62"] :is(#gameMenuModal,#settingsModal) {
+  --am-paper:#f5f0df; --am-ink:#152820; --am-line:#9aab9c;
+  --am-green:#185640; --am-red:#873421;
+  background:rgb(8 21 17 / .83);
+  padding:12px;
+  padding-bottom:max(12px,env(safe-area-inset-bottom));
+  box-sizing:border-box;
+}
+html[data-menu-style="astra62"] :is(#gameMenuModal,#settingsModal) > .modal-content {
+  background:var(--am-paper);color:var(--am-ink);border:1px solid #526357;
+  border-top:6px solid var(--am-green);border-radius:8px;box-shadow:0 16px 60px #09140f88;
+  width:min(100%,30rem);max-width:30rem !important;min-width:0;
+  max-height:calc(100vh - 32px);max-height:calc(100dvh - 24px - env(safe-area-inset-bottom));
+  padding:clamp(12px,4vw,22px);box-sizing:border-box;overflow:auto;overscroll-behavior:contain;
+  scrollbar-color:#65776a var(--am-paper);text-align:start;
+}
+html[data-menu-style="astra62"] :is(#gameMenuModal,#settingsModal) > .modal-content > h2 {
+  color:var(--am-ink);font:800 clamp(1.65rem,7vw,2.25rem)/1.1 system-ui,sans-serif;
+  letter-spacing:-.045em;margin:0 0 12px;text-shadow:none;text-align:start;
+}
+html[data-menu-style="astra62"] #gameMenuModal .modal-content > div:where(:has(> #gameMenuResumeBtn)) {
+  gap:4px !important;margin-top:0 !important;
+}
+html[data-menu-style="astra62"] #gameMenuModal .modal-content > div:where(:has(> #gameMenuResumeBtn)) > .btn {
+  background:#fffcf1;color:var(--am-ink);border:1px solid var(--am-line);border-radius:4px;
+  min-height:44px;height:auto;white-space:normal;padding:9px 12px;text-align:start;
+  justify-content:flex-start;font:650 1rem/1.25 system-ui,sans-serif;
+  text-transform:none;letter-spacing:normal;text-shadow:none;box-shadow:none;
+}
+html[data-menu-style="astra62"] #gameMenuModal #gameMenuResumeBtn {
+  background:var(--am-green);color:white;border-color:var(--am-green);
+}
+html[data-menu-style="astra62"] #gameMenuModal #gameMenuExitBtn {
+  background:#fffcf1;color:var(--am-red);border-inline-start:4px double var(--am-red);
+}
+html[data-menu-style="astra62"] #gameMenuModal hr {border:0;border-top:1px dashed #718575;}
+html[data-menu-style="astra62"] #gameMenuModal .dev-game-nav {
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,7.2rem),1fr));
+  gap:5px;margin:12px 0;padding:10px 0;border-block:1px solid var(--am-line);background:none;
+}
+html[data-menu-style="astra62"] #gameMenuModal .dev-game-nav > :is(a,button) {
+  color:var(--am-ink);background:#e4e9db;min-height:44px;border:1px solid var(--am-line);
+  border-radius:4px;white-space:normal;line-height:1.25;overflow-wrap:anywhere;
+}
+html[data-menu-style="astra62"] #gameMenuModal .dev-game-nav [aria-current="page"] {
+  text-decoration:underline;text-underline-offset:.18em;
+}
+html[data-menu-style="astra62"] #settingsModal .settings-section {
+  background:#fffdf3;color:var(--am-ink);border:1px solid var(--am-line);
+  border-radius:4px;padding:12px;margin-block:8px;min-width:0;
+}
+html[data-menu-style="astra62"] #settingsModal :is(.settings-section-label,p,small) {
+  color:var(--am-ink);
+}
+html[data-menu-style="astra62"] :is(#gameMenuModal,#settingsModal) :focus-visible {
+  outline:3px solid #00649b;outline-offset:2px;
+}
+@media(forced-colors:active){
+  html[data-menu-style="astra62"] :is(#gameMenuModal,#settingsModal) :focus-visible {outline-color:Highlight;}
+}

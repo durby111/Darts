@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-v67-layout-picker-names-20261118';
+const CACHE_NAME = 'blakeout-v68-menu-styles-20261120';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -13,6 +13,11 @@ function isOwnPath(url) {
 }
 
 const ASSETS = [
+    './css/menu-fable52.css',
+    './css/menu-astra62.css',
+    './css/menu-neon.css',
+    './css/menu-style-picker.css',
+    './js/menu-style.js',
     "./css/brackets.css",
     "./js/brackets/diagram.js",
     "./js/brackets/engine.js",
