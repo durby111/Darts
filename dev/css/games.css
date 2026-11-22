@@ -1052,10 +1052,10 @@
 }
 
 /* A 3/4-player DC lane can be narrower than the viewport-based preferred
-   font allows. Fit up to four digits and a sign inside the actual score
-   content box, without shifting the aligned header/board tracks. */
+   font allows. Fit the displayed value inside its actual score content box,
+   retaining a conservative fallback before initialization. */
 :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .score-header:is(.three-player, .four-player) .score-big {
-    font-size: min(var(--dc-score-size), calc((100cqi - 2 * var(--dc-score-padding-inline)) / 2.85));
+    font-size: min(var(--dc-score-size), calc((100cqi - 2 * var(--dc-score-padding-inline)) / var(--dc-score-fit-units, 2.85)));
 }
 
 :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .player-header.active .score-big {
