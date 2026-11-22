@@ -1,0 +1,83 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>DC scoreboard score fit regression</title>
+<h1>DC scoreboard score fit regression</h1>
+<pre id="results">RUNNING</pre>
+<style>iframe { position: absolute; left: -10000px; border: 0; }</style>
+<script>
+(async () => {
+    const base = new URL("../", location.href).href;
+    const report = document.querySelector("#results");
+    const widths = [320, 600, 601, 744, 768];
+    const scores = [
+        [107, 126, 123, 198],
+        [1000, 1999, 9999, 1245],
+        [-9999, 1399, -1999, 4001]
+    ];
+    const cases = widths.flatMap(width => [1, 1.5].flatMap(scale =>
+        [3, 4].map(count => ({ width, height: 1133, scale, count, mode: "dc", scores }))));
+    cases.push(
+        { width: 744, height: 1133, scale: 1, count: 3, mode: "current", scores: [scores[0]] },
+        { width: 1133, height: 744, scale: 1, count: 2, mode: "dc", scores: [scores[0]] }
+    );
+    const failures = [];
+    let checks = 0;
+    const slots = ["home", "away", "player3", "player4"];
+    for (const { width, height, scale, count, mode, scores } of cases) {
+        const frame = document.createElement("iframe");
+        frame.width = width;
+        frame.height = height;
+        const loaded = new Promise(resolve => frame.addEventListener("load", resolve, { once: true }));
+        const layout = ["two", "three", "four"][count - 2];
+        frame.srcdoc = `<!doctype html><html data-scoreboard-mode="${mode}" style="--ui-scale:${scale}">
+            <base href="${base}">
+            ${["variables", "layout", "components", "games"].map(name =>
+                `<link rel="stylesheet" href="css/${name}.css">`).join("")}
+            <div id="gameScreen" class="game-screen" data-scoreboard-family="cricket" style="display:flex">
+              <div class="score-header minnesota ${layout}-player">
+                ${slots.slice(0, count).map((slot, i) => `<div class="player-header ${slot} ${i === 0 ? "active" : "inactive"}">
+                  <div class="player-name">Player ${i + 1}</div>
+                  <div class="score-display-header"><div class="score-big ${i === 0 ? "score-preview" : ""}">0</div></div>
+                </div>`).join("")}
+                <div class="center-logo">18</div>
+              </div>
+            </div></html>`;
+        document.body.append(frame);
+        await loaded;
+        const doc = frame.contentDocument;
+        const view = frame.contentWindow;
+        await doc.fonts.ready;
+        if (view.innerWidth !== width || doc.styleSheets.length !== 4 ||
+                view.getComputedStyle(doc.querySelector(".player-header")).containerType !== "inline-size") {
+            throw new Error(`Fixture width or production CSS incorrect at ${width}px`);
+        }
+        const nodes = [...doc.querySelectorAll(".score-big")];
+        for (const values of scores) {
+            nodes.forEach((node, i) => { node.textContent = values[i]; });
+            for (const [i, node] of nodes.entries()) {
+                const range = doc.createRange();
+                range.selectNodeContents(node);
+                const text = range.getBoundingClientRect();
+                const expected = node.getBoundingClientRect();
+                const style = view.getComputedStyle(node);
+                const contentLeft = expected.left + parseFloat(style.paddingLeft);
+                const contentRight = expected.right - parseFloat(style.paddingRight);
+                checks += 1;
+                if (text.width <= 0 || text.left < contentLeft - 0.5 || text.right > contentRight + 0.5) {
+                    failures.push(`${width}px ${scale}x ${mode}/${count} lane ${i + 1} “${node.textContent}”: text ${text.width.toFixed(1)}px in ${(contentRight - contentLeft).toFixed(1)}px`);
+                }
+                if (mode === "dc" && count === 2 && parseFloat(style.fontSize) !== 84) {
+                    failures.push(`Two-player DC landscape font size changed: ${style.fontSize}`);
+                }
+            }
+        }
+        frame.remove();
+    }
+    report.textContent = failures.length ? `FAIL (${failures.length}/${checks})\n${failures.join("\n")}` : `PASS (${checks} score text checks)`;
+    report.dataset.status = failures.length ? "fail" : "pass";
+})().catch(error => {
+    const report = document.querySelector("#results");
+    report.textContent = `FAIL: ${error.message}`;
+    report.dataset.status = "fail";
+});
+</script>

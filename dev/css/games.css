@@ -1035,7 +1035,9 @@
     min-width: 0;
     max-width: 100%;
     overflow: hidden;
-    padding: 2px 6px;
+    --dc-score-size: calc(clamp(3rem, 10vw, 5.25rem) * var(--ui-scale));
+    --dc-score-padding-inline: 6px;
+    padding: 2px var(--dc-score-padding-inline);
     border: 0;
     border-radius: 0;
     color: #fff;
@@ -1043,10 +1045,17 @@
     box-shadow: none;
     text-shadow: none;
     font-family: inherit;
-    font-size: calc(clamp(3rem, 10vw, 5.25rem) * var(--ui-scale));
+    font-size: var(--dc-score-size);
     font-weight: 900;
     line-height: 1;
     letter-spacing: 0;
+}
+
+/* A 3/4-player DC lane can be narrower than the viewport-based preferred
+   font allows. Fit up to four digits and a sign inside the actual score
+   content box, without shifting the aligned header/board tracks. */
+:root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .score-header:is(.three-player, .four-player) .score-big {
+    font-size: min(var(--dc-score-size), calc((100cqi - 2 * var(--dc-score-padding-inline)) / 2.85));
 }
 
 :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .player-header.active .score-big {
@@ -1637,8 +1646,8 @@
     }
 
     :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .score-big {
-        font-size: clamp(2rem, min(calc(12vw * var(--ui-scale)), 38cqi), 3.7rem);
-        padding-inline: 2px;
+        --dc-score-size: clamp(2rem, min(calc(12vw * var(--ui-scale)), 38cqi), 3.7rem);
+        --dc-score-padding-inline: 2px;
     }
 
     :root[data-scoreboard-mode="dc"] #gameScreen[data-scoreboard-family] .avg-small {
