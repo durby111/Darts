@@ -4,13 +4,16 @@
 <h1>DC scoreboard score fit regression</h1>
 <pre id="results">RUNNING</pre>
 <style>iframe { position: absolute; left: -10000px; border: 0; }</style>
-<script>
+<script type="module">
+import { initDcScoreFit } from "../js/score-fit.js";
+
 (async () => {
     const base = new URL("../", location.href).href;
     const report = document.querySelector("#results");
     const widths = [320, 600, 601, 744, 768];
     const scores = [
         [107, 126, 123, 198],
+        [1, 19, 9, 77],
         [1000, 1999, 9999, 1245],
         [-9999, 1399, -1999, 4001]
     ];
@@ -34,10 +37,10 @@
             ${["variables", "layout", "components", "games"].map(name =>
                 `<link rel="stylesheet" href="css/${name}.css">`).join("")}
             <div id="gameScreen" class="game-screen" data-scoreboard-family="cricket" style="display:flex">
-              <div class="score-header minnesota ${layout}-player">
+              <div id="scoreHeader" class="score-header minnesota ${layout}-player">
                 ${slots.slice(0, count).map((slot, i) => `<div class="player-header ${slot} ${i === 0 ? "active" : "inactive"}">
                   <div class="player-name">Player ${i + 1}</div>
-                  <div class="score-display-header"><div class="score-big ${i === 0 ? "score-preview" : ""}">0</div></div>
+                  <div class="score-display-header"><span class="score-big">0</span></div>
                 </div>`).join("")}
                 <div class="center-logo">18</div>
               </div>
@@ -52,8 +55,30 @@
             throw new Error(`Fixture width or production CSS incorrect at ${width}px`);
         }
         const nodes = [...doc.querySelectorAll(".score-big")];
-        for (const values of scores) {
-            nodes.forEach((node, i) => { node.textContent = values[i]; });
+        initDcScoreFit(doc.getElementById("scoreHeader"));
+        if (nodes.some(node => node.style.getPropertyValue("--dc-score-fit-units") !== "0.76")) {
+            throw new Error("Initial score size was not synchronized");
+        }
+        for (const [round, values] of scores.entries()) {
+            nodes[0].classList.toggle("score-preview", round % 2 === 1);
+            nodes.forEach((node, i) => {
+                if (round % 2 === 0) node.textContent = values[i];
+                else node.firstChild.data = String(values[i]);
+            });
+            await Promise.resolve(); // Score mutations synchronize before the next paint.
+            if (mode === "dc" && count >= 3 && width === 744 && round < 2) {
+                for (const [i, node] of nodes.entries()) {
+                    const fitted = parseFloat(view.getComputedStyle(node).fontSize);
+                    const units = node.style.getPropertyValue("--dc-score-fit-units");
+                    node.style.removeProperty("--dc-score-fit-units");
+                    const previous = parseFloat(view.getComputedStyle(node).fontSize);
+                    node.style.setProperty("--dc-score-fit-units", units);
+                    const minimum = count === 3 && i === 2 ? 1 : 1.30;
+                    if (fitted < minimum * previous - 0.1) {
+                        failures.push(`744px ${scale}x ${count} players lane ${i + 1} “${node.textContent}”: expected ≥${minimum}× growth; ${previous}px → ${fitted}px`);
+                    }
+                }
+            }
             for (const [i, node] of nodes.entries()) {
                 const range = doc.createRange();
                 range.selectNodeContents(node);
@@ -62,6 +87,10 @@
                 const style = view.getComputedStyle(node);
                 const contentLeft = expected.left + parseFloat(style.paddingLeft);
                 const contentRight = expected.right - parseFloat(style.paddingRight);
+                const expectedUnits = (0.62 * String(Math.abs(values[i])).length + (values[i] < 0 ? 0.65 : 0) + 0.14).toFixed(2);
+                if (node.style.getPropertyValue("--dc-score-fit-units") !== expectedUnits) {
+                    failures.push(`Stale score geometry for ${values[i]} after ${round % 2 ? "characterData" : "textContent"} update`);
+                }
                 checks += 1;
                 if (text.width <= 0 || text.left < contentLeft - 0.5 || text.right > contentRight + 0.5) {
                     failures.push(`${width}px ${scale}x ${mode}/${count} lane ${i + 1} “${node.textContent}”: text ${text.width.toFixed(1)}px in ${(contentRight - contentLeft).toFixed(1)}px`);

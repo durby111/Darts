@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v101-dc-score-fit-20261122';
+const CACHE_NAME = 'blakeout-dev-v102-dc-score-readable-20261122';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -85,6 +85,7 @@ const ASSETS = [
     './js/firebase.js',
     './js/firebase-config.js',
     './js/app.js',
+    './js/score-fit.js',
     './js/botblake.js',
     './js/botblake-engine.js',
     './js/state.js',

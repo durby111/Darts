@@ -1,4 +1,5 @@
 import { initBotBlake } from './botblake.js';
+import { initDcScoreFit } from './score-fit.js';
 /* ============================================
    App Entry Point
    Screen routing, display dispatcher, PWA
@@ -392,6 +393,7 @@ function safeInit(name, fn) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    safeInit('dcScoreFit', initDcScoreFit);
     safeInit('setup', initSetupControls);
     safeInit('botBlake', initBotBlake);
     safeInit('teams', initTeamBuilder);
