@@ -3,13 +3,14 @@ import {isFeatureAvailable} from '../feature-availability.js';
 import * as platform from '../../local/platform.js';
 import * as engine from './engine.js';
 import { renderDiagram, teamLabel } from './diagram.js';
-import { registrationLabels } from './labels.js';
+import { registrationLabels, rosterDisplayOrder } from './labels.js';
 import { diagramViewport } from './viewport.js';
 import { confirmDialog } from '../confirm-dialog.js';
 
 const $ = id => document.getElementById(id);
 const formatLabel = format => GAMES[format.gameType] + (format.minnesotaCutthroat ? ' · Cutthroat' : '');
 const GAMES = { chicago: 'Chicago', '301': '301', '501': '501', cricket: 'Cricket', spanish: 'Spanish Cricket', minnesota: 'Minnesota Cricket' };
+let rosterAlphabetical = false;
 let current = null, draft = [], profiles = [], rosterDirty = false, resultDirty = false;
 let selectedMatch = null, busy = false, refreshing = false, previewTimer;
 let list = [], diagramState = null;
@@ -146,6 +147,9 @@ function controls() {
     const canAttemptStart = current && owner() && current.status === 'registration';
     $('startTournament').disabled = busy || needsAccountReload || !canAttemptStart;
     $('drawPartners').disabled = busy || pendingConfirmation || needsAccountReload || !canAttemptStart;
+    const rosterUnavailable = busy || !!pendingConfirmation || needsAccountReload || !canAttemptStart;
+    if ($('sortRosterAz')) $('sortRosterAz').disabled = rosterUnavailable;
+    if ($('clearTeamNumbers')) $('clearTeamNumbers').disabled = rosterUnavailable || !draft.some(entry => entry.tag);
     $('saveFormat').disabled = busy || pendingConfirmation || needsAccountReload;
     $('saveRoster').disabled = busy || needsAccountReload || !rosterDirty;
     for (const input of document.querySelectorAll('[data-bulk-field]')) {
@@ -317,7 +321,7 @@ function markRosterDirty() {
 
 function renderRoster() {
     $('rosterRows').replaceChildren();
-    for (const [index, entry] of draft.entries()) {
+    for (const [index, entry] of rosterDisplayOrder(draft, rosterAlphabetical).entries()) {
         const row = document.createElement('tr');
         row.dataset.registration = entry.id;
         const number = textElement('th', String(index + 1));
@@ -354,9 +358,10 @@ function renderRoster() {
             move.type = 'button';
             move.dataset.move = direction;
             move.setAttribute('aria-label', `Move row ${index + 1} (${entry.name}) ${direction}`);
-            move.disabled = index + offset < 0 || index + offset >= draft.length;
+            move.disabled = rosterAlphabetical || index + offset < 0 || index + offset >= draft.length;
+            if (rosterAlphabetical) move.title = 'Turn off A–Z to change the roster order.';
             move.addEventListener('click', () => {
-                if (!owner() || busy || needsAccountReload || current.status !== 'registration') return;
+                if (rosterAlphabetical || !owner() || busy || needsAccountReload || current.status !== 'registration') return;
                 const from = draft.findIndex(item => item.id === entry.id);
                 const to = from + offset;
                 if (from < 0 || to < 0 || to >= draft.length) return;
@@ -594,6 +599,27 @@ $('formatForm').addEventListener('submit', event => {
         accept(saved);
         notice(`Game selection saved for ${key}: ${formatLabel(format)}, best of ${format.bestOf}. More specific overrides take priority.`);
     });
+});
+$('sortRosterAz')?.addEventListener('click', () => {
+    if (!owner() || busy || pendingConfirmation || needsAccountReload || current?.status !== 'registration') return;
+    rosterAlphabetical = !rosterAlphabetical;
+    $('sortRosterAz').setAttribute('aria-pressed', String(rosterAlphabetical));
+    renderRoster();
+    updateEventLabels();
+});
+$('clearTeamNumbers')?.addEventListener('click', async () => {
+    if (!owner() || busy || pendingConfirmation || needsAccountReload || current?.status !== 'registration' || !draft.some(entry => entry.tag)) return;
+    const choice = await confirmCurrent('Clear all team numbers in this draft? Player names, order, payment, check-in and standby stay as they are. Use Save all roster changes to keep the cleared numbers.', {
+        requireOwner: true, confirmLabel: 'Clear team numbers',
+    });
+    controls();
+    if (!choice?.answer || !choice.isCurrent()) return;
+    for (const entry of draft) entry.tag = '';
+    markRosterDirty();
+    renderRoster();
+    updatePreview();
+    notice('Team numbers cleared in the draft. Save all roster changes to keep them cleared.');
+    $('saveRoster').focus({ preventScroll: true });
 });
 $('drawPartners').addEventListener('click', async () => {
     if (!owner() || busy || pendingConfirmation || needsAccountReload || current.status !== 'registration') return;

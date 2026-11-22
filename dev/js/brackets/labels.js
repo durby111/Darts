@@ -27,3 +27,10 @@ export function registrationLabels(registrations) {
     }
     return labels;
 }
+
+const rosterNameOrder = new Intl.Collator(undefined, { sensitivity: 'base', numeric: true });
+
+// Stable display sort only; the underlying roster and seeding order stay intact.
+export function rosterDisplayOrder(entries, alphabetic = false) {
+    return alphabetic ? [...entries].sort((a, b) => rosterNameOrder.compare(a.name.trim(), b.name.trim())) : entries;
+}
