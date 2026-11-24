@@ -24,7 +24,12 @@ html[data-home="next"] {
     --hn-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'DejaVu Sans', sans-serif;
     --hn-display: Impact, 'Arial Narrow Bold', 'DejaVu Sans Condensed', sans-serif;
     --hn-bar-height: 88px;
+    --hn-shadow: 0 1px 0 color-mix(in srgb, #fff 4%, transparent) inset, 0 6px 22px color-mix(in srgb, #000 18%, transparent);
+    --hn-shadow-soft: 0 2px 10px color-mix(in srgb, #000 10%, transparent);
 }
+
+/* Neon's primary is bright cyan: dark text reads on it, white does not. */
+html[data-home="next"][data-theme="neon"] :is(#setupScreen, #teamBuilderScreen) { --color-on-primary: #00161c; }
 
 /* ---------- Canvas ---------- */
 html[data-home="next"] .setup-screen {
@@ -34,7 +39,6 @@ html[data-home="next"] .setup-screen {
         radial-gradient(1100px 520px at 50% -180px, color-mix(in srgb, var(--color-primary) 30%, transparent), transparent 70%),
         var(--color-bg);
     scroll-padding-top: 16px;
-    scroll-padding-bottom: calc(var(--hn-bar-height) + 24px);
 }
 html[data-home="next"] .setup-screen::before { display: none; }
 html[data-home="next"] .setup-screen .setup-card * { letter-spacing: normal; }
@@ -52,16 +56,18 @@ html[data-home="next"] #setupScreen .setup-card {
         'library presets'
         'library recording'
         'library account'
+        'library play'
         'library .'
         'footer footer';
-    grid-template-rows: auto auto auto auto auto auto auto auto 1fr auto;
+    grid-template-rows: auto auto auto auto auto auto auto auto auto 1fr auto;
     gap: var(--hn-gap) 24px;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 0 calc(var(--hn-bar-height) + 32px + env(safe-area-inset-bottom, 0px));
+    padding: 0 0 32px;
     counter-reset: hn-step;
 }
 html[data-home="next"] #setupScreen .home-player-help { grid-area: account; }
+html[data-home="next"] #setupScreen #playSection { grid-area: play; }
 html[data-home="next"] #setupScreen #gamePickerSection { align-self: start; }
 html[data-home="next"] #setupScreen #backToGameBtn { grid-area: back; margin: 0 !important; }
 
@@ -76,11 +82,12 @@ html[data-home="next"] #setupScreen #backToGameBtn { grid-area: back; margin: 0 
             'library library presets presets'
             'library library recording recording'
             'library library account account'
+            'library library play play'
             'library library . .'
             'roster roster maintenance maintenance'
             'credit credit qr qr';
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 200px) minmax(0, 200px);
-        grid-template-rows: auto auto auto auto auto auto auto auto 1fr auto auto;
+        grid-template-rows: auto auto auto auto auto auto auto auto auto 1fr auto auto;
     }
     html[data-home="next"] #setupScreen #rosterSection { grid-area: roster; }
     html[data-home="next"] #setupScreen #maintenanceSection { grid-area: maintenance; }
@@ -99,10 +106,11 @@ html[data-home="next"] #setupScreen #backToGameBtn { grid-area: back; margin: 0 
             'library presets'
             'library recording'
             'library account'
+            'library play'
             'library .'
             'roster maintenance'
             'credit qr';
-        grid-template-rows: auto auto auto auto auto auto auto auto 1fr auto auto;
+        grid-template-rows: auto auto auto auto auto auto auto auto auto 1fr auto auto;
         gap: var(--hn-gap) 16px;
     }
     html[data-home="next"] #setupScreen #rosterSection { grid-area: roster; }
@@ -111,7 +119,7 @@ html[data-home="next"] #setupScreen #backToGameBtn { grid-area: back; margin: 0 
     html[data-home="next"] #setupScreen .setup-qr { grid-area: qr; }
 }
 @media (max-width: 720px) {
-    html[data-home="next"] .setup-screen { padding: 0 12px; }
+    html[data-home="next"] .setup-screen { padding: 0 12px; scroll-padding-bottom: calc(var(--hn-bar-height) + 24px); }
     html[data-home="next"] #setupScreen .setup-card {
         display: flex;
         flex-direction: column;
@@ -150,7 +158,7 @@ html[data-home="next"] .setup-screen .setup-header {
     box-shadow: 0 10px 30px #0006;
     color: #fff;
 }
-html[data-home="next"] .setup-screen .setup-header .setup-logo { width: 64px; height: 64px; flex: 0 0 64px; }
+html[data-home="next"] .setup-screen .setup-header .setup-logo { width: 118px; height: 64px; flex: 0 0 118px; }
 html[data-home="next"] .setup-screen .setup-header-text { min-width: 0; flex: 1 1 auto; }
 html[data-home="next"] .setup-screen .setup-header-text h1 {
     margin: 0;
@@ -165,7 +173,7 @@ html[data-home="next"] .setup-screen .setup-subtitle {
     margin-top: 6px;
     font-size: 13px;
     font-weight: 700;
-    color: #d6e4ff;
+    color: color-mix(in srgb, var(--color-primary-light) 45%, #fff);
     letter-spacing: 0.04em;
     text-transform: none;
 }
@@ -189,7 +197,7 @@ html[data-home="next"] .setup-screen .home-account-link {
     border: 1px solid #ffffff40;
     background: #ffffff10;
 }
-html[data-home="next"] .setup-screen .home-account-link:hover { background: #ffffff22; }
+@media (hover: hover) { html[data-home="next"] .setup-screen .home-account-link:hover { background: #ffffff22; } }
 html[data-home="next"] .setup-screen .setup-header-side .settings-gear {
     min-height: 44px;
     padding: 0 16px;
@@ -201,7 +209,7 @@ html[data-home="next"] .setup-screen .setup-header-side .settings-gear {
     font-weight: 700;
     white-space: nowrap;
 }
-html[data-home="next"] .setup-screen .setup-header-side .settings-gear:hover { background: #ffffff2e; }
+@media (hover: hover) { html[data-home="next"] .setup-screen .setup-header-side .settings-gear:hover { background: #ffffff2e; } }
 html[data-home="next"] .setup-screen .brisket-credit { color: #fff; }
 
 @media (max-width: 720px) {
@@ -212,12 +220,11 @@ html[data-home="next"] .setup-screen .brisket-credit { color: #fff; }
         padding: 14px;
         border-radius: 16px;
     }
-    html[data-home="next"] .setup-screen .setup-header .setup-logo { width: 44px; height: 44px; flex-basis: 44px; }
+    html[data-home="next"] .setup-screen .setup-header .setup-logo { width: 80px; height: 44px; flex-basis: 80px; }
     html[data-home="next"] .setup-screen .setup-header-text h1 { font-size: 30px; }
     html[data-home="next"] .setup-screen .setup-subtitle { font-size: 12px; margin-top: 4px; }
     html[data-home="next"] .setup-screen .setup-subtitle::after { content: none; }
     html[data-home="next"] .setup-screen .setup-header-side { flex: 1 1 100%; justify-content: flex-end; margin-left: 0; }
-    html[data-home="next"] .setup-screen .setup-header-side .settings-gear { flex: 1 1 auto; }
 }
 
 /* ---------- Scoring / Brackets / Players & Records tabs ---------- */
@@ -244,10 +251,16 @@ html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) {
     border-radius: 12px;
     font-size: 15px;
     font-weight: 700;
+    white-space: nowrap;
     color: var(--color-text);
 }
-html[data-home="next"] #setupScreen .dev-app-nav a[aria-current=page] { box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 45%, transparent); }
+html[data-home="next"] #setupScreen .dev-app-nav a[aria-current=page] { color: var(--color-on-primary); box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 45%, transparent); }
 html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { font-size: 11px; padding: 2px 6px; border-radius: 999px; }
+html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; }
+@media (max-width: 480px) {
+    html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { flex: 1 0 auto; padding: 0 12px; font-size: 14px; }
+    html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { font-size: 10px; padding: 1px 5px; }
+}
 @media (min-width: 721px) {
     html[data-home="next"] #setupScreen .dev-app-nav { width: fit-content; justify-self: start; }
     html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { flex: 0 0 auto; padding: 0 20px; }
@@ -261,10 +274,10 @@ html[data-home="next"] #setupScreen :is(.setup-panel, .roster-section, .home-pla
     border: 1px solid var(--hn-line);
     border-radius: var(--hn-radius);
     background: var(--hn-card);
-    box-shadow: 0 1px 0 #ffffff08 inset, 0 6px 22px #0000002e;
+    box-shadow: var(--hn-shadow);
 }
 html[data-home="next"] #setupScreen :is(#gamePickerSection, #gameOptionsSection) { padding-top: 18px; border-top: 1px solid var(--hn-line); }
-html[data-home="next"] #setupScreen .setup-panel:focus-within { box-shadow: 0 0 0 2px color-mix(in srgb, var(--hn-accent) 45%, transparent), 0 6px 22px #0000002e; }
+html[data-home="next"] #setupScreen .setup-panel:has(:focus-visible) { box-shadow: 0 0 0 2px color-mix(in srgb, var(--hn-accent) 45%, transparent), var(--hn-shadow); }
 
 html[data-home="next"] #setupScreen :is(#gamePickerSection, #gameOptionsSection, #playersSection) > .setup-section-label {
     display: grid;
@@ -367,7 +380,7 @@ html[data-home="next"] #setupScreen .picker-chip {
     white-space: nowrap;
     scroll-snap-align: start;
 }
-html[data-home="next"] #setupScreen .picker-chip:hover { border-color: var(--hn-accent); }
+@media (hover: hover) { html[data-home="next"] #setupScreen .picker-chip:hover { border-color: var(--hn-accent); } }
 html[data-home="next"] #setupScreen .picker-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-on-primary); }
 
 /* Recents: one tidy row, Quick Start first. */
@@ -417,8 +430,9 @@ html[data-home="next"] #setupScreen .game-grid {
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior-y: auto;
-    padding: 2px 4px 2px 0;
-    scrollbar-gutter: stable;
+    padding: 6px;
+    margin: -6px;
+    scrollbar-width: thin;
 }
 @media (min-width: 560px) {
     html[data-home="next"] #setupScreen .game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -426,8 +440,15 @@ html[data-home="next"] #setupScreen .game-grid {
 @media (min-width: 721px) and (max-width: 1000px) {
     html[data-home="next"] #setupScreen .game-grid { grid-template-columns: 1fr; }
 }
+@media (min-width: 721px) {
+    /* The library stays in view while the right column scrolls by. */
+    html[data-home="next"] #setupScreen .game-grid {
+        max-height: max(300px, calc(100vh - var(--hn-bar-height) - 380px));
+        max-height: round(down, max(300px, calc(100dvh - var(--hn-bar-height) - 380px)), 1px);
+    }
+}
 @media (max-width: 720px) {
-    html[data-home="next"] #setupScreen .game-grid { max-height: min(52vh, 440px); max-height: round(down, min(52vh, 440px), 1px); }
+    html[data-home="next"] #setupScreen .game-grid { max-height: min(40vh, 340px); max-height: round(down, min(40vh, 340px), 1px); }
 }
 html[data-home="next"] #setupScreen .game-card-wrap { position: relative; min-width: 0; }
 html[data-home="next"] #setupScreen .game-card {
@@ -451,7 +472,7 @@ html[data-home="next"] #setupScreen .game-card {
     transform: none;
     transition: background-color 120ms ease, border-color 120ms ease;
 }
-html[data-home="next"] #setupScreen .game-card:hover { background: var(--hn-card-raised); border-color: var(--hn-line-strong); transform: none; }
+@media (hover: hover) { html[data-home="next"] #setupScreen .game-card:hover { background: var(--hn-card-raised); border-color: var(--hn-line-strong); transform: none; } }
 html[data-home="next"] #setupScreen .game-card:active { transform: scale(0.99); }
 html[data-home="next"] #setupScreen .game-card.active {
     background: var(--color-primary);
@@ -502,7 +523,7 @@ html[data-home="next"] #setupScreen :is(.game-card-fav, .game-card-info) {
 html[data-home="next"] #setupScreen .game-card-fav { right: 50px; }
 html[data-home="next"] #setupScreen .game-card-info { right: 4px; }
 html[data-home="next"] #setupScreen .game-card-fav.faved { color: var(--color-warning); }
-html[data-home="next"] #setupScreen :is(.game-card-fav, .game-card-info):hover { background: color-mix(in srgb, var(--color-text) 10%, transparent); }
+@media (hover: hover) { html[data-home="next"] #setupScreen :is(.game-card-fav, .game-card-info):hover { background: color-mix(in srgb, var(--color-text) 10%, transparent); } }
 html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) :is(.game-card-fav:not(.faved), .game-card-info) { color: var(--color-on-primary); }
 html[data-home="next"] #setupScreen :is(.game-card, .game-card-fav, .game-card-info):focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
 
@@ -531,7 +552,7 @@ html[data-home="next"] #setupScreen .form-group label[for] {
     color: var(--color-text-muted);
     text-transform: none;
 }
-html[data-home="next"] #setupScreen select,
+html[data-home="next"] #setupScreen select:not(.visually-hidden),
 html[data-home="next"] #setupScreen input[type="text"],
 html[data-home="next"] #setupScreen input[type="email"],
 html[data-home="next"] #setupScreen input[type="number"] {
@@ -749,7 +770,7 @@ html[data-home="next"] #setupScreen :is(#presetsSection, .setup-panel, .home-pla
 
 html[data-home="next"] #setupScreen #casualRecordingSetup { font-size: 14px; }
 html[data-home="next"] #setupScreen #casualRecordingSetup .casual-recording-toggle { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 15px; font-weight: 700; color: var(--color-text); }
-html[data-home="next"] #setupScreen #casualRecordingSetup > label { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; min-height: 44px; }
+html[data-home="next"] #setupScreen #casualRecordingSetup > label { display: flex; align-items: center; flex-wrap: nowrap; gap: 10px 12px; min-height: 44px; }
 html[data-home="next"] #setupScreen #casualRecordingHint { margin: 6px 0 8px; font-size: 13px; line-height: 1.5; color: var(--color-text-muted); }
 html[data-home="next"] #setupScreen #casualLocalHistory > summary { font-size: 14px; font-weight: 700; color: var(--color-text); }
 
@@ -757,13 +778,13 @@ html[data-home="next"] #setupScreen .home-player-help { font-size: 14px; }
 html[data-home="next"] #setupScreen .home-player-help p { color: var(--color-text-muted); font-size: 13px; }
 
 /* ---------- Footer: roster, maintenance, credit, QR ---------- */
-html[data-home="next"] #setupScreen :is(#rosterSection, #maintenanceSection, .setup-credit, .setup-qr) { box-shadow: none; background: color-mix(in srgb, var(--hn-card) 70%, transparent); }
+html[data-home="next"] #setupScreen :is(#rosterSection, #maintenanceSection, .setup-credit, .setup-qr) { box-shadow: var(--hn-shadow-soft); }
 html[data-home="next"] #setupScreen #rosterSection > summary { padding: 0; flex-wrap: wrap; row-gap: 2px; }
 html[data-home="next"] #setupScreen #rosterSection > summary .roster-status { flex: 1 1 100%; padding-left: 22px; }
 html[data-home="next"] #setupScreen #rosterSection .roster-status { font-size: 12px; font-weight: 500; color: var(--color-text-muted); }
 html[data-home="next"] #setupScreen #maintenanceSection > .setup-section-label { margin-bottom: 12px; }
 html[data-home="next"] #setupScreen #maintenanceSection .btn { min-height: 46px; border-radius: 12px; font-size: 15px; }
-html[data-home="next"] #setupScreen .setup-credit { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; }
+html[data-home="next"] #setupScreen .setup-credit { display: block; text-align: center; }
 html[data-home="next"] #setupScreen .setup-credit .support-btn { margin: 0; }
 html[data-home="next"] #setupScreen .setup-qr { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; }
 html[data-home="next"] #setupScreen .setup-qr img { width: 148px; height: 148px; border-radius: 12px; }
@@ -776,24 +797,56 @@ html[data-home="next"] #setupScreen #backToGameBtn { min-height: 56px; border-ra
 
 /* ---------- Start bar (all screen sizes) ---------- */
 html[data-home="next"] #setupScreen #playSection {
-    position: fixed;
-    z-index: 50;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    position: sticky;
+    z-index: 5;
+    bottom: 12px;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(150px, 280px);
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 14px;
     margin: 0;
-    padding: 12px max(16px, calc((100vw - 1200px) / 2)) calc(12px + env(safe-area-inset-bottom, 0px));
-    border: 0;
-    border-top: 1px solid var(--hn-line-strong);
-    border-radius: 0;
-    background: color-mix(in srgb, var(--color-surface) 92%, transparent);
+    padding: 16px 18px;
+    border: 1px solid var(--hn-line-strong);
+    border-radius: var(--hn-radius);
+    background: color-mix(in srgb, var(--color-surface) 94%, transparent);
     -webkit-backdrop-filter: blur(14px) saturate(140%);
     backdrop-filter: blur(14px) saturate(140%);
-    box-shadow: 0 -10px 30px #0000004d;
+    box-shadow: 0 10px 28px color-mix(in srgb, #000 28%, transparent);
+}
+@media (max-width: 720px) {
+    /* Phones: Start stays docked at the bottom of the screen. */
+    html[data-home="next"] #setupScreen .setup-card { padding-bottom: calc(var(--hn-bar-height) + 28px + env(safe-area-inset-bottom, 0px)); }
+    html[data-home="next"] #setupScreen #playSection {
+        position: fixed;
+        z-index: 50;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+        border: 0;
+        border-top: 1px solid var(--hn-line-strong);
+        border-radius: 0;
+        box-shadow: 0 -8px 24px color-mix(in srgb, #000 22%, transparent);
+    }
+}
+@media (min-width: 721px) and (min-height: 700px) {
+    /* Tall screens: the library stays in view while the right column scrolls by. */
+    html[data-home="next"] #setupScreen #gamePickerSection { position: sticky; top: 16px; z-index: 1; }
+}
+@media (min-width: 721px) {
+    /* In the right column: what you are playing on top, a full-width Start below. */
+    html[data-home="next"] #setupScreen #playSection { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    html[data-home="next"] #setupScreen .setup-match-title { white-space: normal; overflow-wrap: anywhere; }
+}
+@media (min-width: 721px) and (max-height: 560px) {
+    /* Short landscape screens: a slim Start card, still always in reach. */
+    html[data-home="next"] #setupScreen #playSection { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 12px; bottom: 8px; }
+    html[data-home="next"] #setupScreen #playSection .setup-match-title { font-size: 18px; white-space: nowrap; }
+    html[data-home="next"] #setupScreen #startGameBtn { min-height: 48px; padding: 0 18px; }
+}
+@media (max-width: 720px) and (max-height: 500px) {
+    html[data-home="next"] #setupScreen .setup-card { padding-bottom: 24px; }
+    html[data-home="next"] #setupScreen #playSection { position: static; border: 1px solid var(--hn-line-strong); border-radius: var(--hn-radius); }
 }
 html[data-home="next"] #setupScreen #playSection > .setup-section-label { display: none; }
 html[data-home="next"] #setupScreen .home-next-match { min-width: 0; }
@@ -808,13 +861,16 @@ html[data-home="next"] #setupScreen .setup-match-title {
     text-overflow: ellipsis;
 }
 html[data-home="next"] #setupScreen .home-next-summary {
+    display: -webkit-box;
     margin-top: 3px;
     font-size: 13px;
     font-weight: 600;
+    line-height: 1.3;
     color: var(--color-text-muted);
-    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 html[data-home="next"] #setupScreen .setup-action-row { display: grid; gap: 8px; }
 html[data-home="next"] #setupScreen #startGameBtn {
@@ -823,12 +879,14 @@ html[data-home="next"] #setupScreen #startGameBtn {
     border-radius: 16px;
     background: var(--color-success);
     color: var(--color-on-success);
-    font-size: 18px;
+    padding: 0 28px;
+    font-size: 19px;
     font-weight: 800;
     letter-spacing: 0.02em;
+    white-space: nowrap;
     box-shadow: 0 6px 18px color-mix(in srgb, var(--color-success) 45%, transparent);
 }
-html[data-home="next"] #setupScreen #startGameBtn:hover { filter: brightness(1.08); }
+@media (hover: hover) { html[data-home="next"] #setupScreen #startGameBtn:hover { filter: brightness(1.08); } }
 html[data-home="next"] #setupScreen #startGameBtn:focus-visible { outline: 3px solid var(--color-text); outline-offset: 3px; }
 html[data-home="next"] #setupScreen #resumeGameBtn {
     min-height: 44px;
@@ -838,14 +896,15 @@ html[data-home="next"] #setupScreen #resumeGameBtn {
     white-space: normal;
 }
 @media (max-width: 720px) {
-    html[data-home="next"] #setupScreen #playSection { grid-template-columns: minmax(0, 1fr) minmax(140px, 1.1fr); gap: 12px; }
-    html[data-home="next"] #setupScreen .setup-match-title { font-size: 19px; }
-    html[data-home="next"] #setupScreen #startGameBtn { min-height: 52px; font-size: 17px; }
+    html[data-home="next"] #setupScreen #playSection { gap: 12px; }
+
+    html[data-home="next"] #setupScreen .setup-match-title { font-size: clamp(16px, 4.9vw, 19px); }
+    html[data-home="next"] #setupScreen #startGameBtn { min-height: 52px; padding: 0 18px; }
 }
 
 /* ---------- Team builder (shown after Start in team mode) ---------- */
 html[data-home="next"] #teamBuilderScreen .setup-card {
-    max-width: 760px;
+    max-width: 1100px;
     margin: 16px auto calc(24px + env(safe-area-inset-bottom, 0px));
     padding: 20px;
     border: 1px solid var(--hn-line);
@@ -860,24 +919,24 @@ html[data-home="next"] #teamBuilderScreen .team-zone {
     background: var(--color-surface-alt);
 }
 html[data-home="next"] #teamBuilderScreen .btn { border-radius: 12px; }
-html[data-home="next"] #teamBuilderScreen #teamStartMatchBtn { min-height: 56px; border-radius: 16px; font-size: 18px; font-weight: 800; }
+html[data-home="next"] #teamBuilderScreen #teamStartMatchBtn { align-self: start; min-height: 56px; border-radius: 16px; font-size: 18px; font-weight: 800; }
 html[data-home="next"] #teamBuilderScreen :is(input[type="text"], select) { min-height: 44px; border-radius: 12px; }
 
 /* ---------- Menus (only with Menu Style "Current") ---------- */
-html[data-home="next"]:not([data-menu-style]) :is(#gameMenuModal, #settingsModal) .modal-content {
+html[data-home="next"]:not([data-menu-style]) #settingsModal .modal-content {
     border: 1px solid var(--hn-line-strong);
     border-radius: 22px;
     background: var(--color-surface);
     box-shadow: 0 24px 60px #000000a6;
     font-family: var(--hn-font);
 }
-html[data-home="next"]:not([data-menu-style]) :is(#gameMenuModal, #settingsModal) .modal-content h2 { font-family: var(--hn-font); font-weight: 800; }
-html[data-home="next"]:not([data-menu-style]) #gameMenuModal .modal-content .btn { border-radius: 14px; }
+html[data-home="next"]:not([data-menu-style]) #settingsModal .modal-content h2 { font-family: var(--hn-font); font-weight: 800; }
 html[data-home="next"]:not([data-menu-style]) #settingsModal .settings-section-label { font-size: 13px; font-weight: 800; letter-spacing: 0.04em; }
 
 /* Home screen choice in Customize (shown in both layouts). */
-.home-layout-choice { margin: 0; padding: 0; border: 0; min-width: 0; }
-.home-layout-choice legend { padding: 0; }
+.home-layout-choice { margin: 14px 0 0; padding: 0; border: 0; min-width: 0; }
+.home-layout-choice > legend { float: left; width: 100%; margin: 0 0 8px; padding: 0; }
+.home-layout-choice-row { clear: both; }
 .home-layout-choice-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .home-layout-option {
     position: relative;
@@ -902,4 +961,81 @@ html[data-home="next"]:not([data-menu-style]) #settingsModal .settings-section-l
 @media (prefers-reduced-motion: no-preference) {
     html[data-home="next"] #setupScreen .setup-card > * { animation: hn-rise 260ms ease-out both; }
     @keyframes hn-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+
+/* Fade the last visible row while more games sit below (where supported). */
+@property --hn-fade { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@keyframes hn-list-fade { from { --hn-fade: 32px; } 96% { --hn-fade: 32px; } to { --hn-fade: 0px; } }
+@supports (animation-timeline: scroll(self)) {
+    html[data-home="next"] #setupScreen .game-grid {
+        -webkit-mask-image: linear-gradient(#000 calc(100% - var(--hn-fade)), transparent);
+        mask-image: linear-gradient(#000 calc(100% - var(--hn-fade)), transparent);
+        animation: hn-list-fade linear both;
+        animation-timeline: scroll(self);
+    }
+}
+
+/* No search results: hide the selected game's description under the message. */
+html[data-home="next"] #setupScreen .game-grid:has(.picker-empty) ~ .picker-description { display: none; }
+html[data-home="next"] #setupScreen .picker-empty { padding: 18px 8px; color: var(--color-text-muted); font-size: 15px; text-align: center; }
+
+/* Favourite star: outline when off, filled when on. */
+html[data-home="next"] #setupScreen .game-card-fav { font-size: 0; }
+html[data-home="next"] #setupScreen .game-card-fav::before { content: '\2606'; font-size: 22px; line-height: 1; }
+html[data-home="next"] #setupScreen .game-card-fav.faved::before { content: '\2605'; }
+html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved { color: #ffd54a; }
+
+/* Monochrome glyph icons pick up the theme accent; emoji keep their colours. */
+html[data-home="next"] #setupScreen .game-card-icon { font-size: 22px; color: var(--hn-accent); }
+html[data-home="next"] #setupScreen .game-card.active .game-card-icon { color: var(--color-on-primary); }
+html[data-home="next"] #setupScreen #casualRecordingSetup > label > span { flex: 1 1 auto; min-width: 0; }
+
+/* Roster inputs: room inside the taller fields. */
+html[data-home="next"] #setupScreen #rosterSection input:not([type="checkbox"]):not([type="radio"]) { padding: 0 14px; }
+
+/* Resume is the main action while a game is in progress. */
+html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) #startGameBtn {
+    min-height: 44px;
+    background: transparent;
+    color: var(--color-text);
+    border: 1px solid var(--hn-line-strong);
+    box-shadow: none;
+    font-size: 15px;
+}
+html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) .setup-action-row { grid-auto-flow: row; }
+html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) #resumeGameBtn {
+    order: -1;
+    min-height: 52px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--color-success);
+    color: var(--color-on-success);
+    font-size: 19px;
+    font-weight: 800;
+}
+html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) .setup-action-row { display: flex; flex-direction: column; }
+
+/* Small but complete targets in the account and roster areas. */
+html[data-home="next"] #setupScreen :is(.home-player-help .btn, #rosterAddBtn, #rosterShareBtn) { min-height: 44px; }
+html[data-home="next"] #setupScreen .setup-credit a[href^="mailto:"] { display: inline-block; padding: 12px 4px; }
+
+/* Very narrow phones (320–360px). */
+@media (max-width: 360px) {
+    html[data-home="next"] .setup-screen { padding: 0 8px; }
+    html[data-home="next"] #setupScreen :is(.setup-panel, .roster-section, .home-player-help, .setup-credit, .setup-qr) { padding: 14px 12px; }
+    html[data-home="next"] #setupScreen .player-row { padding: 6px; }
+    html[data-home="next"] #setupScreen #startGameBtn { padding: 0 16px; }
+    html[data-home="next"] #setupScreen #playSection { padding-left: 12px; padding-right: 12px; }
+}
+@media (max-width: 480px) {
+    html[data-home="next"] #setupScreen .dev-app-nav { flex-wrap: wrap; overflow-x: visible; }
+}
+
+/* A game in progress: match info on top, Resume and Start side by side. */
+html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) .setup-action-row { display: grid; flex-direction: initial; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: stretch; }
+html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) #resumeGameBtn { font-size: 16px; line-height: 1.2; white-space: normal; padding: 6px 10px; }
+html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) #startGameBtn { min-height: 52px; padding: 0 10px; }
+@media (max-width: 720px) {
+    html[data-home="next"] #setupScreen .setup-card:has(#resumeGameBtn:not(.hidden)) { padding-bottom: calc(var(--hn-bar-height) + 90px + env(safe-area-inset-bottom, 0px)); }
 }

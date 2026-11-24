@@ -18,16 +18,42 @@ function applyLayout(value) {
     const layout = LAYOUTS.includes(value) ? value : 'next';
     document.documentElement.dataset.home = layout;
     // In the New look the segmented buttons drive the original select.
+    // Only hide it once the replacement buttons exist.
     const count = document.getElementById('numPlayers');
+    const countLabel = document.querySelector('label[for="numPlayers"]');
+    const replaced = !!document.getElementById('homeNextPlayerCount');
     if (count) {
-        if (layout === 'next') { count.tabIndex = -1; count.setAttribute('aria-hidden', 'true'); }
-        else { count.removeAttribute('tabindex'); count.removeAttribute('aria-hidden'); }
+        if (layout === 'next' && replaced) {
+            count.tabIndex = -1;
+            count.setAttribute('aria-hidden', 'true');
+            countLabel?.setAttribute('aria-hidden', 'true');
+        } else {
+            count.removeAttribute('tabindex');
+            count.removeAttribute('aria-hidden');
+            countLabel?.removeAttribute('aria-hidden');
+        }
     }
+    placePlayerHelp(layout);
     document.querySelectorAll('input[name="homeLayoutChoice"]').forEach(input => {
         input.checked = input.value === layout;
     });
     document.dispatchEvent(new CustomEvent('homelayoutchange', { detail: { layout } }));
     return layout;
+}
+
+// "Players on this device" sits after the header in the page source. In the
+// New look it belongs after the setup steps, so move it there (and back for
+// Classic) to keep keyboard order matching what is on screen.
+function placePlayerHelp(layout) {
+    const help = document.querySelector('#setupScreen .home-player-help');
+    if (!help) return;
+    if (layout === 'next') {
+        const anchor = document.getElementById('rosterSection');
+        if (anchor && help.nextElementSibling !== anchor) anchor.before(help);
+    } else {
+        const header = document.querySelector('#setupScreen .setup-header');
+        if (header && header.nextElementSibling !== help) header.after(help);
+    }
 }
 
 const isNext = () => document.documentElement.dataset.home === 'next';
@@ -53,7 +79,9 @@ function summaryText() {
         if (bots) parts.push(bots === 1 ? '1 BotBlake' : `${bots} BotBlakes`);
     }
     const finish = byId('finishType');
-    if (visible(byId('finishTypeOptions')) && finish?.selectedOptions?.[0]) {
+    // 121 always plays double out, whatever the dropdown says.
+    const fixedFinish = byId('gameType')?.value === '121';
+    if (!fixedFinish && visible(byId('finishTypeOptions')) && finish?.selectedOptions?.[0]) {
         parts.push(finish.selectedOptions[0].textContent.trim());
     }
     return parts.join(' · ');
@@ -184,8 +212,12 @@ function followRulesPop() {
     const margin = 8;
     let left = anchor.left + anchor.width / 2 - box.width / 2;
     left = Math.max(margin, Math.min(left, window.innerWidth - box.width - margin));
+    // Keep clear of the docked Start bar on phones.
+    const bar = byId('playSection');
+    const barTop = bar && getComputedStyle(bar).position === 'fixed' ? bar.getBoundingClientRect().top : window.innerHeight;
+    const floor = Math.min(window.innerHeight, barTop) - margin;
     let top = anchor.bottom + 6;
-    if (top + box.height > window.innerHeight - margin) top = Math.max(margin, anchor.top - box.height - 6);
+    if (top + box.height > floor) top = Math.max(margin, anchor.top - box.height - 6);
     pop.style.left = `${Math.round(left)}px`;
     pop.style.top = `${Math.round(top)}px`;
 }
@@ -197,11 +229,25 @@ export function initHomeNext() {
     };
     run('summary', mountSummary);
     run('playerCount', mountPlayerCount);
+    applyLayout(document.documentElement.dataset.home);
     run('layoutChoice', mountLayoutChoice);
-    // The game list no longer scrolls inside its own box, so keep an open
-    // rules popover (fixed to the window) next to its button as the page
-    // scrolls, and close it once that button leaves the screen.
+    // The rules popover is fixed to the window: keep it next to its button
+    // as the page scrolls, and close it once that button leaves the screen.
     document.addEventListener('scroll', followRulesPop, { capture: true, passive: true });
+    // Place it right after it opens too, and let Escape close it.
+    byId('gameTypeGrid')?.addEventListener('click', event => {
+        if (event.target.closest('[data-rules-toggle]')) later(followRulesPop);
+    });
+    document.addEventListener('keydown', event => {
+        const pop = byId('gameRulesPop');
+        if (event.key !== 'Escape' || !pop || !isNext()) return;
+        const button = [...document.querySelectorAll('[data-rules-toggle]')].find(el => el.dataset.rulesToggle === pop.dataset.gameId);
+        pop.remove();
+        button?.focus();
+    });
+    // The account panel can mount after this runs.
+    const card = document.querySelector('#setupScreen .setup-card');
+    if (card) new MutationObserver(() => placePlayerHelp(document.documentElement.dataset.home)).observe(card, { childList: true });
     window.addEventListener('storage', event => {
         if (event.key === HOME_LAYOUT_KEY || event.key === null) applyLayout(storedLayout());
     });
