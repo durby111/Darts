@@ -44,21 +44,33 @@ function applyLayout(value) {
     return layout;
 }
 
-// Keep keyboard order matching what is on screen. In the New look,
-// "Players on this device" sits just above Start and App Maintenance comes
-// after the roster. Classic gets the original order back.
+// Keep keyboard order matching what is on screen. In the New look the match
+// setup comes first and ends with Start; the helpers (players on this
+// device, app maintenance, roster, credits, QR) follow it. Classic gets the
+// original order back.
 function placeSections(layout) {
     const help = document.querySelector('#setupScreen .home-player-help');
-    const play = document.getElementById('playSection');
-    const roster = document.getElementById('rosterSection');
-    const maintenance = document.getElementById('maintenanceSection');
+    const play = byId('playSection');
+    const presets = byId('presetsSection');
+    const recording = byId('casualRecordingSetup');
+    const roster = byId('rosterSection');
+    const maintenance = byId('maintenanceSection');
+    if (!play) return;
+    const putAfter = (anchor, el) => { if (anchor && el && anchor.nextElementSibling !== el) anchor.after(el); };
+    putAfter(presets, recording);
+    putAfter(recording || presets, play);
     if (layout === 'next') {
-        if (help && play && play.previousElementSibling !== help) play.before(help);
-        if (maintenance && roster && roster.nextElementSibling !== maintenance) roster.after(maintenance);
+        let anchor = play;
+        for (const el of [help, maintenance, roster]) {
+            if (!el) continue;
+            putAfter(anchor, el);
+            anchor = el;
+        }
     } else {
         const header = document.querySelector('#setupScreen .setup-header');
-        if (help && header && header.nextElementSibling !== help) header.after(help);
-        if (maintenance && play && play.nextElementSibling !== maintenance) play.after(maintenance);
+        putAfter(header, help);
+        putAfter(play, maintenance);
+        putAfter(maintenance, roster);
     }
 }
 
@@ -132,7 +144,16 @@ function mountSummary() {
     title.before(wrap);
     wrap.append(title, summary);
     describeStart(document.documentElement.dataset.home);
-    const update = () => { summary.textContent = summaryText(); };
+    // Each part stays whole, so a line only ever breaks between parts.
+    const update = () => {
+        const parts = summaryText().split(' · ');
+        summary.replaceChildren(...parts.flatMap((part, i) => {
+            const span = document.createElement('span');
+            span.className = 'hn-summary-part';
+            span.textContent = part;
+            return i ? [document.createTextNode(' · '), span] : [span];
+        }));
+    };
     document.addEventListener('change', () => later(update), true);
     update();
 }
@@ -150,7 +171,7 @@ function splitResume(button) {
         return;
     }
     if (wrapped) return;
-    const at = text.lastIndexOf(' (');
+    const at = text.indexOf(' (');
     if (at < 0 || !text.endsWith(')')) return;
     const main = document.createElement('span');
     main.className = 'hn-resume-main';
@@ -266,9 +287,11 @@ function mountLayoutChoice() {
 
 // --- Rules popover follows its card while the page scrolls -----------------
 
-function followRulesPop() {
+function followRulesPop(event) {
     const pop = byId('gameRulesPop');
     if (!pop || !isNext()) return;
+    // Scrolling the popover's own text moves nothing.
+    if (event?.target === pop) return;
     const id = pop.dataset.gameId;
     const button = id && [...document.querySelectorAll('[data-rules-toggle]')]
         .find(el => el.dataset.rulesToggle === id);
@@ -289,13 +312,25 @@ function followRulesPop() {
     const visTop = Math.max(0, list ? list.top : 0) - 2;
     const visBottom = Math.min(window.innerHeight, list ? list.bottom : window.innerHeight, barTop) + 2;
     if (!anchor.width || anchor.top < visTop || anchor.bottom > visBottom) { close(); return; }
-    const box = pop.getBoundingClientRect();
     const margin = 8;
+    const floor = Math.min(window.innerHeight, barTop) - margin;
+    // Below the button if it fits, otherwise above; if neither fits, the
+    // larger side with the text scrolling, so it never covers its button.
+    pop.style.maxHeight = '';
+    pop.style.overflowY = '';
+    const box = pop.getBoundingClientRect();
+    const below = floor - (anchor.bottom + 8);
+    const above = anchor.top - 8 - margin;
+    let side = 'below';
+    if (box.height > below) side = box.height <= above || above > below ? 'above' : 'below';
+    const room = side === 'below' ? below : above;
+    const height = Math.min(box.height, Math.max(48, room));
+    if (height < box.height) { pop.style.maxHeight = `${Math.floor(height)}px`; pop.style.overflowY = 'auto'; }
     let left = anchor.left + anchor.width / 2 - box.width / 2;
     left = Math.max(margin, Math.min(left, window.innerWidth - box.width - margin));
-    const floor = Math.min(window.innerHeight, barTop) - margin;
-    let top = anchor.bottom + 6;
-    if (top + box.height > floor) top = Math.max(margin, anchor.top - box.height - 6);
+    const top = side === 'below' ? anchor.bottom + 8 : anchor.top - 8 - height;
+    pop.dataset.hnSide = side;
+    pop.style.setProperty('--hn-arrow-x', `${Math.round(Math.max(14, Math.min(box.width - 14, anchor.left + anchor.width / 2 - left)))}px`);
     pop.style.left = `${Math.round(left)}px`;
     pop.style.top = `${Math.round(top)}px`;
 }
@@ -372,67 +407,128 @@ function mountGridFocus() {
 
 // --- Team builder by keyboard and screen reader ----------------------------
 // teams.js works on pointer presses. In the New look, keyboard presses on its
-// buttons are passed through as the same press, the arrows say what they do,
-// and Home and Away can be reached with Tab.
+// buttons are passed through as the same press, every button says what it
+// does, each member gets a Remove button, Home and Away take the chosen player
+// with Enter or Space, and each move is read out.
 
 function mountTeamA11y() {
     const screen = byId('teamBuilderScreen');
     if (!screen) return;
-    const memberName = el => {
-        const name = el.closest('.team-zone-member')?.querySelector('.team-zone-member-name')?.cloneNode(true);
+    const live = document.createElement('div');
+    live.id = 'homeNextTeamLive';
+    live.className = 'hn-visually-hidden';
+    live.setAttribute('aria-live', 'polite');
+    screen.append(live);
+    const say = text => { live.textContent = ''; later(() => { live.textContent = text; }); };
+    const nameIn = node => {
+        const name = node?.querySelector('.team-zone-member-name')?.cloneNode(true);
         name?.querySelector('.team-chip-order')?.remove();
-        return name ? name.textContent.trim() : 'player';
+        return name ? name.textContent.trim() : '';
     };
+    const memberNode = id => screen.querySelector(`.team-zone-member[data-zone-member-id="${CSS.escape(id)}"]`);
+    const zoneName = idx => byId(`teamZone${idx}Label`)?.textContent.trim() || (idx ? 'Away' : 'Home');
+    const zoneOf = id => { const m = memberNode(id); return m ? Number(m.dataset.zoneIdx) : null; };
     const label = () => {
         const next = isNext();
+        screen.querySelectorAll('.team-zone-member').forEach(member => {
+            let remove = member.querySelector('[data-member-action="hn-remove"]');
+            if (!next) { remove?.remove(); return; }
+            if (!remove) {
+                remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'hn-member-remove';
+                remove.dataset.memberAction = 'hn-remove';
+                remove.dataset.memberId = member.dataset.zoneMemberId;
+                remove.textContent = '✕';
+                member.append(remove);
+            }
+        });
         screen.querySelectorAll('[data-member-action]').forEach(button => {
             if (!next) { if (button.dataset.hnLabel) { button.removeAttribute('aria-label'); delete button.dataset.hnLabel; } return; }
-            const name = memberName(button);
+            const name = nameIn(button.closest('.team-zone-member')) || 'player';
             const act = button.dataset.memberAction;
-            const text = act === 'swap' ? `Move ${name} to the other team` : `Move ${name} ${act}`;
+            const text = act === 'swap' ? `Move ${name} to the other team`
+                : act === 'hn-remove' ? `Take ${name} off the team`
+                : `Move ${name} ${act}`;
             if (button.getAttribute('aria-label') !== text) { button.setAttribute('aria-label', text); button.dataset.hnLabel = '1'; }
         });
         screen.querySelectorAll('.team-chip[data-chip-id]').forEach(chip => {
             if (next) chip.setAttribute('aria-pressed', chip.classList.contains('selected') ? 'true' : 'false');
             else chip.removeAttribute('aria-pressed');
         });
+        const choosing = next && !!screen.querySelector('.team-chip.selected');
         [0, 1].forEach(idx => {
             const zone = byId(`teamZone${idx}`);
             if (!zone) return;
             if (next) {
-                zone.tabIndex = 0;
                 zone.setAttribute('role', 'group');
                 zone.setAttribute('aria-labelledby', `teamZone${idx}Label`);
+                if (choosing) { zone.tabIndex = 0; zone.setAttribute('aria-describedby', 'teamBuilderHint'); }
+                else { zone.removeAttribute('tabindex'); zone.removeAttribute('aria-describedby'); }
             } else {
-                zone.removeAttribute('tabindex');
-                zone.removeAttribute('role');
-                zone.removeAttribute('aria-labelledby');
+                ['tabindex', 'role', 'aria-labelledby', 'aria-describedby'].forEach(a => zone.removeAttribute(a));
             }
         });
     };
-    const press = target => {
-        const r = target.getBoundingClientRect();
-        const init = { bubbles: true, cancelable: true, button: 0, pointerId: 31337, isPrimary: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
-        target.dispatchEvent(new PointerEvent('pointerdown', init));
-        document.dispatchEvent(new PointerEvent('pointerup', init));
+    const point = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+    const pointer = (type, target, at) => (target || document).dispatchEvent(new PointerEvent(type, {
+        bubbles: true, cancelable: true, button: 0, pointerId: 31337, isPrimary: true, clientX: at.x, clientY: at.y,
+    }));
+    const press = target => { const at = point(target); pointer('pointerdown', target, at); pointer('pointerup', null, at); };
+    // Taking a member off uses the same drag back to the tray that a finger would.
+    const dragToTray = member => {
+        const tray = byId('teamTray');
+        if (!member || !tray) return;
+        const from = point(member);
+        const to = point(tray);
+        pointer('pointerdown', member, from);
+        pointer('pointermove', null, to);
+        pointer('pointerup', null, to);
     };
-    const refocus = selector => later(() => {
-        const el = selector && screen.querySelector(selector);
-        if (el && !el.disabled) el.focus({ preventScroll: true });
+    const focusFirst = (...selectors) => later(() => {
+        for (const selector of selectors) {
+            const el = selector && screen.querySelector(selector);
+            if (el && !el.disabled && el.offsetParent !== null) { el.focus({ preventScroll: false }); return; }
+        }
     });
-    // A keyboard press reaches a button as a click with no pointer behind it.
+    let lastRealPress = { target: null, at: 0 };
+    screen.addEventListener('pointerdown', event => {
+        if (event.isTrusted) lastRealPress = { target: event.target, at: performance.now() };
+    }, true);
+    const recentlyPressed = el => lastRealPress.target && el.contains(lastRealPress.target) && performance.now() - lastRealPress.at < 600;
     screen.addEventListener('click', event => {
-        if (!isNext() || event.detail !== 0) return;
+        if (!isNext()) return;
         const action = event.target.closest('[data-member-action]');
+        if (action?.dataset.memberAction === 'hn-remove') {
+            const id = action.dataset.memberId;
+            const name = nameIn(memberNode(id));
+            const zone = zoneOf(id);
+            dragToTray(memberNode(id));
+            if (!memberNode(id)) say(`${name} is back in Available Players`);
+            focusFirst(`#teamZone${zone} [data-member-action="hn-remove"]`, `.team-chip[data-chip-id="${CSS.escape(id)}"]`, '#teamTray .team-chip', '#teamAddName');
+            return;
+        }
+        // A keyboard press reaches a button as a click with no pointer behind it.
+        if (event.detail !== 0) return;
         const chip = event.target.closest('.team-chip[data-chip-id]');
-        if (action && !action.disabled) {
+        if (action && !action.disabled && !recentlyPressed(action)) {
             const { memberId, memberAction } = action.dataset;
+            const id = CSS.escape(memberId);
+            const name = nameIn(memberNode(memberId));
+            const before = zoneOf(memberId);
             press(action);
-            refocus(`[data-member-id="${CSS.escape(memberId)}"][data-member-action="${memberAction}"]:not(:disabled), [data-member-id="${CSS.escape(memberId)}"][data-member-action="swap"]`);
-        } else if (chip) {
+            const after = zoneOf(memberId);
+            if (memberAction === 'swap') say(after !== before && after != null ? `${name} moved to ${zoneName(after)}` : `${name} can't move, that team is full`);
+            else say(`${name} moved ${memberAction}`);
+            const other = memberAction === 'up' ? 'down' : 'up';
+            focusFirst(`[data-member-id="${id}"][data-member-action="${memberAction}"]`, `[data-member-id="${id}"][data-member-action="${other}"]`, `[data-member-id="${id}"][data-member-action="swap"]`);
+        } else if (chip && !recentlyPressed(chip)) {
             const id = chip.dataset.chipId;
+            const name = chip.textContent.trim();
             press(chip);
-            refocus(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
+            const chosen = screen.querySelector(`.team-chip.selected[data-chip-id="${CSS.escape(id)}"]`);
+            say(chosen ? `${name} chosen. Now pick Home or Away.` : `${name} not chosen`);
+            focusFirst(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
         }
     });
     // Enter or Space on Home or Away places the chosen player there.
@@ -441,13 +537,140 @@ function mountTeamA11y() {
         const zone = event.target.closest?.('.team-zone[tabindex]');
         if (!zone || event.target !== zone) return;
         event.preventDefault();
+        const chip = screen.querySelector('.team-chip.selected');
+        const id = chip?.dataset.chipId;
+        const name = chip?.textContent.trim();
         const zoneLabel = zone.querySelector('.team-zone-label');
         if (zoneLabel) press(zoneLabel);
-        refocus(`#${zone.id}`);
+        const placed = id && memberNode(id);
+        if (placed) say(`${name} added to ${zoneName(Number(zone.dataset.team))}`);
+        else if (id) say(`${zoneName(Number(zone.dataset.team))} is full`);
+        focusFirst('#teamTray .team-chip', `#${zone.id} [data-member-action="hn-remove"]`, '#teamAddName');
     });
+    // Opening the builder puts focus on its heading; going back returns it to Start.
+    const heading = screen.querySelector('h1');
+    let wasOpen = getComputedStyle(screen).display !== 'none';
+    new MutationObserver(() => {
+        const open = screen.style.display !== 'none' && getComputedStyle(screen).display !== 'none';
+        if (open === wasOpen) return;
+        wasOpen = open;
+        if (!isNext()) return;
+        if (open && heading) { heading.tabIndex = -1; later(() => heading.focus()); }
+        else if (!open) later(() => {
+            const setup = byId('setupScreen');
+            const active = document.activeElement;
+            const lost = !active || active === document.body || screen.contains(active) || active.offsetParent === null;
+            if (setup && setup.style.display !== 'none' && lost) byId('startGameBtn')?.focus();
+        });
+    }).observe(screen, { attributes: true, attributeFilter: ['style'] });
     new MutationObserver(label).observe(screen, { childList: true, subtree: true });
     document.addEventListener('homelayoutchange', label);
     label();
+}
+
+// --- Customize as a proper dialog on the home screen -----------------------
+// Only in the New look and only when opened from the home screen; in a game
+// it behaves exactly as before.
+
+function mountCustomizeDialog() {
+    const modal = byId('settingsModal');
+    const opener = byId('settingsBtnSetup');
+    if (!modal) return;
+    const content = modal.querySelector('.modal-content');
+    const title = content?.querySelector('h2');
+    if (title && !title.id) title.id = 'settingsModalTitle';
+    const nameOpener = () => {
+        if (!opener) return;
+        if (isNext()) opener.setAttribute('aria-label', 'Customize');
+        else opener.setAttribute('aria-label', 'Settings');
+    };
+    let active = false;
+    let returnTo = null;
+    const focusables = () => [...content.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+        .filter(el => !el.disabled && el.offsetParent !== null);
+    const setupShowing = () => byId('setupScreen')?.style.display !== 'none';
+    new MutationObserver(() => {
+        const open = modal.style.display !== 'none';
+        if (open && !active && isNext() && setupShowing() && content) {
+            active = true;
+            returnTo = document.activeElement;
+            content.setAttribute('role', 'dialog');
+            content.setAttribute('aria-modal', 'true');
+            if (title) { content.setAttribute('aria-labelledby', title.id); title.tabIndex = -1; }
+            later(() => (title || focusables()[0])?.focus());
+        } else if (!open && active) {
+            active = false;
+            content.removeAttribute('role');
+            content.removeAttribute('aria-modal');
+            content.removeAttribute('aria-labelledby');
+            title?.removeAttribute('tabindex');
+            const back = returnTo && document.contains(returnTo) && returnTo.offsetParent !== null ? returnTo : opener;
+            later(() => back?.focus());
+        }
+    }).observe(modal, { attributes: true, attributeFilter: ['style'] });
+    modal.addEventListener('keydown', event => {
+        if (!active) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            byId('settingsCloseBtn')?.click();
+        } else if (event.key === 'Tab') {
+            const list = focusables();
+            if (!list.length) return;
+            const first = list[0];
+            const last = list[list.length - 1];
+            if (event.shiftKey && (document.activeElement === first || document.activeElement === title)) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        }
+    });
+    document.addEventListener('homelayoutchange', nameOpener);
+    nameOpener();
+}
+
+// --- Clearer names for a few form fields -----------------------------------
+
+function mountFieldNames() {
+    const sync = () => {
+        const next = isNext();
+        const finishLabel = document.querySelector('#finishTypeOptions > label');
+        if (finishLabel) {
+            if (next) finishLabel.htmlFor = 'finishType';
+            else finishLabel.removeAttribute('for');
+        }
+        [1, 2, 3, 4].forEach(n => {
+            const select = byId(`player${n}Skill`);
+            const order = document.querySelector(`label[for="player${n}"][data-player-order-label]`);
+            if (!select) return;
+            if (next && order) select.setAttribute('aria-label', `Skill level, ${order.textContent.trim().toLowerCase()}`);
+            else select.removeAttribute('aria-label');
+        });
+    };
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
+// --- A way out of an empty search ------------------------------------------
+
+function mountClearSearch() {
+    const grid = byId('gameTypeGrid');
+    const search = byId('gameSearchInput');
+    if (!grid || !search) return;
+    const add = () => {
+        const empty = grid.querySelector('.picker-empty');
+        if (!empty || !isNext() || empty.querySelector('.hn-clear-search')) return;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'hn-clear-search';
+        button.textContent = 'Clear search';
+        button.addEventListener('click', () => {
+            search.value = '';
+            search.dispatchEvent(new Event('input', { bubbles: true }));
+            search.focus();
+        });
+        empty.append(button);
+    };
+    new MutationObserver(add).observe(grid, { childList: true });
+    add();
 }
 
 export function initHomeNext() {
@@ -463,6 +686,9 @@ export function initHomeNext() {
     run('rulesA11y', mountRulesA11y);
     run('gridFocus', mountGridFocus);
     run('teamA11y', mountTeamA11y);
+    run('customizeDialog', mountCustomizeDialog);
+    run('fieldNames', mountFieldNames);
+    run('clearSearch', mountClearSearch);
     // The rules popover is fixed to the window: keep it next to its button
     // as the page scrolls, and close it once that button leaves the screen.
     document.addEventListener('scroll', followRulesPop, { capture: true, passive: true });
