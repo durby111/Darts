@@ -34,6 +34,7 @@ function applyLayout(value) {
         }
     }
     placeSections(layout);
+    markStepHeadings(layout);
     describeStart(layout);
     syncRulesExpanded();
     document.querySelectorAll('input[name="homeLayoutChoice"]').forEach(input => {
@@ -59,6 +60,14 @@ function placeSections(layout) {
         if (help && header && header.nextElementSibling !== help) header.after(help);
         if (maintenance && play && play.nextElementSibling !== maintenance) play.after(maintenance);
     }
+}
+
+// The three numbered steps read as headings to screen readers.
+function markStepHeadings(layout) {
+    document.querySelectorAll('#setupScreen :is(#gamePickerSection, #gameOptionsSection, #playersSection) > .setup-section-label').forEach(label => {
+        if (layout === 'next') { label.setAttribute('role', 'heading'); label.setAttribute('aria-level', '2'); }
+        else { label.removeAttribute('role'); label.removeAttribute('aria-level'); }
+    });
 }
 
 // Screen readers hear the match summary with the Start button.
@@ -128,23 +137,37 @@ function mountSummary() {
     update();
 }
 
-// --- Resume button: centre a label that fits on one line -------------------
+// --- Resume button: game on one line, players on the next ------------------
+// setup.js writes "Resume GAME (names)" as plain text. In the New look the
+// two parts get their own lines so a long game or long names never cut the
+// label mid-word. The text itself stays exactly as setup.js wrote it.
 
-function mountResumeFit() {
+function splitResume(button) {
+    const text = button.textContent;
+    const wrapped = button.querySelector('.hn-resume-main');
+    if (!isNext()) {
+        if (wrapped) button.textContent = text;
+        return;
+    }
+    if (wrapped) return;
+    const at = text.lastIndexOf(' (');
+    if (at < 0 || !text.endsWith(')')) return;
+    const main = document.createElement('span');
+    main.className = 'hn-resume-main';
+    main.textContent = text.slice(0, at + 1);
+    const names = document.createElement('span');
+    names.className = 'hn-resume-names';
+    names.textContent = text.slice(at + 1);
+    button.replaceChildren(main, names);
+}
+
+function mountResumeLabel() {
     const button = byId('resumeGameBtn');
     if (!button) return;
-    const fit = () => {
-        button.classList.remove('hn-one-line');
-        if (!isNext() || button.classList.contains('hidden')) return;
-        const style = getComputedStyle(button);
-        const line = parseFloat(style.lineHeight) || 20;
-        const pad = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
-        if (button.scrollHeight - pad <= line * 1.5) button.classList.add('hn-one-line');
-    };
-    new MutationObserver(() => later(fit)).observe(button, { childList: true, characterData: true, subtree: true });
-    if (window.ResizeObserver) new ResizeObserver(() => fit()).observe(button.parentElement);
-    document.addEventListener('homelayoutchange', () => later(fit));
-    fit();
+    const split = () => splitResume(button);
+    new MutationObserver(split).observe(button, { childList: true });
+    document.addEventListener('homelayoutchange', split);
+    split();
 }
 
 // --- Player count as large segmented buttons --------------------------------
@@ -252,23 +275,179 @@ function followRulesPop() {
     const close = () => { pop.remove(); syncRulesExpanded(); };
     if (!button) { close(); return; }
     const anchor = button.getBoundingClientRect();
-    // Close once the button is partly hidden, by the page or the game list.
+    // The Start bar sits over the page on phones (fixed) and at the bottom of
+    // the list column on wider screens (sticky). Treat it as the floor only
+    // where it actually covers the ⓘ button's column.
+    const bar = byId('playSection');
+    let barTop = window.innerHeight;
+    if (bar && /^(fixed|sticky)$/.test(getComputedStyle(bar).position)) {
+        const b = bar.getBoundingClientRect();
+        if (b.width && b.left < anchor.right && b.right > anchor.left && b.top < window.innerHeight) barTop = b.top;
+    }
+    // Close once the button is partly hidden, by the page, the game list or the bar.
     const list = byId('gameTypeGrid')?.getBoundingClientRect();
     const visTop = Math.max(0, list ? list.top : 0) - 2;
-    const visBottom = Math.min(window.innerHeight, list ? list.bottom : window.innerHeight) + 2;
+    const visBottom = Math.min(window.innerHeight, list ? list.bottom : window.innerHeight, barTop) + 2;
     if (!anchor.width || anchor.top < visTop || anchor.bottom > visBottom) { close(); return; }
     const box = pop.getBoundingClientRect();
     const margin = 8;
     let left = anchor.left + anchor.width / 2 - box.width / 2;
     left = Math.max(margin, Math.min(left, window.innerWidth - box.width - margin));
-    // Keep clear of the docked Start bar on phones.
-    const bar = byId('playSection');
-    const barTop = bar && getComputedStyle(bar).position === 'fixed' ? bar.getBoundingClientRect().top : window.innerHeight;
     const floor = Math.min(window.innerHeight, barTop) - margin;
     let top = anchor.bottom + 6;
     if (top + box.height > floor) top = Math.max(margin, anchor.top - box.height - 6);
     pop.style.left = `${Math.round(left)}px`;
     pop.style.top = `${Math.round(top)}px`;
+}
+
+// --- Rules popover for screen readers -------------------------------------
+// The popover is a note tied to its ⓘ button, and its text is read out
+// through a live region that stays in the page.
+
+function mountRulesA11y() {
+    const live = document.createElement('div');
+    live.id = 'homeNextRulesLive';
+    live.className = 'hn-visually-hidden';
+    live.setAttribute('aria-live', 'polite');
+    document.body.append(live);
+    const sync = () => {
+        const pop = byId('gameRulesPop');
+        const next = isNext();
+        document.querySelectorAll('#gameTypeGrid [data-rules-toggle]').forEach(button => {
+            const open = next && !!pop && pop.dataset.gameId === button.dataset.rulesToggle;
+            if (open) { button.setAttribute('aria-controls', 'gameRulesPop'); button.setAttribute('aria-describedby', 'gameRulesPop'); }
+            else { button.removeAttribute('aria-controls'); button.removeAttribute('aria-describedby'); }
+        });
+        if (pop && next) {
+            pop.setAttribute('role', 'note');
+            const text = [...pop.children].map(c => c.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).join('. ');
+            if (live.textContent !== text) live.textContent = text;
+        } else if (live.textContent) {
+            live.textContent = '';
+        }
+    };
+    new MutationObserver(sync).observe(document.body, { childList: true });
+    const grid = byId('gameTypeGrid');
+    if (grid) new MutationObserver(sync).observe(grid, { childList: true });
+    document.addEventListener('homelayoutchange', sync);
+    // Moving focus anywhere else closes the popover.
+    document.addEventListener('focusin', event => {
+        const pop = byId('gameRulesPop');
+        if (!pop || !isNext()) return;
+        const t = event.target;
+        if (pop.contains(t)) return;
+        if (t.closest?.('[data-rules-toggle]')?.dataset.rulesToggle === pop.dataset.gameId) return;
+        pop.remove();
+        syncRulesExpanded();
+    });
+    sync();
+}
+
+// --- Keep keyboard focus when the game list is rebuilt ---------------------
+// Starring or picking a game redraws the list. Put focus back on the same
+// control so keyboard and switch users don't land at the top of the page.
+
+function mountGridFocus() {
+    const grid = byId('gameTypeGrid');
+    if (!grid) return;
+    let last = null;
+    const keyOf = el => {
+        for (const attr of ['data-rules-toggle', 'data-fav-toggle', 'data-game-value']) {
+            const hit = el.closest?.(`[${attr}]`);
+            if (hit && grid.contains(hit)) return [attr, hit.getAttribute(attr)];
+        }
+        return null;
+    };
+    grid.addEventListener('focusin', event => { last = keyOf(event.target); });
+    document.addEventListener('focusin', event => { if (!grid.contains(event.target)) last = null; });
+    new MutationObserver(() => {
+        if (!last || !isNext()) return;
+        const active = document.activeElement;
+        if (active && active !== document.body && document.contains(active)) return;
+        const [attr, value] = last;
+        const el = [...grid.querySelectorAll(`[${attr}]`)].find(node => node.getAttribute(attr) === value);
+        el?.focus({ preventScroll: true });
+    }).observe(grid, { childList: true });
+}
+
+// --- Team builder by keyboard and screen reader ----------------------------
+// teams.js works on pointer presses. In the New look, keyboard presses on its
+// buttons are passed through as the same press, the arrows say what they do,
+// and Home and Away can be reached with Tab.
+
+function mountTeamA11y() {
+    const screen = byId('teamBuilderScreen');
+    if (!screen) return;
+    const memberName = el => {
+        const name = el.closest('.team-zone-member')?.querySelector('.team-zone-member-name')?.cloneNode(true);
+        name?.querySelector('.team-chip-order')?.remove();
+        return name ? name.textContent.trim() : 'player';
+    };
+    const label = () => {
+        const next = isNext();
+        screen.querySelectorAll('[data-member-action]').forEach(button => {
+            if (!next) { if (button.dataset.hnLabel) { button.removeAttribute('aria-label'); delete button.dataset.hnLabel; } return; }
+            const name = memberName(button);
+            const act = button.dataset.memberAction;
+            const text = act === 'swap' ? `Move ${name} to the other team` : `Move ${name} ${act}`;
+            if (button.getAttribute('aria-label') !== text) { button.setAttribute('aria-label', text); button.dataset.hnLabel = '1'; }
+        });
+        screen.querySelectorAll('.team-chip[data-chip-id]').forEach(chip => {
+            if (next) chip.setAttribute('aria-pressed', chip.classList.contains('selected') ? 'true' : 'false');
+            else chip.removeAttribute('aria-pressed');
+        });
+        [0, 1].forEach(idx => {
+            const zone = byId(`teamZone${idx}`);
+            if (!zone) return;
+            if (next) {
+                zone.tabIndex = 0;
+                zone.setAttribute('role', 'group');
+                zone.setAttribute('aria-labelledby', `teamZone${idx}Label`);
+            } else {
+                zone.removeAttribute('tabindex');
+                zone.removeAttribute('role');
+                zone.removeAttribute('aria-labelledby');
+            }
+        });
+    };
+    const press = target => {
+        const r = target.getBoundingClientRect();
+        const init = { bubbles: true, cancelable: true, button: 0, pointerId: 31337, isPrimary: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+        target.dispatchEvent(new PointerEvent('pointerdown', init));
+        document.dispatchEvent(new PointerEvent('pointerup', init));
+    };
+    const refocus = selector => later(() => {
+        const el = selector && screen.querySelector(selector);
+        if (el && !el.disabled) el.focus({ preventScroll: true });
+    });
+    // A keyboard press reaches a button as a click with no pointer behind it.
+    screen.addEventListener('click', event => {
+        if (!isNext() || event.detail !== 0) return;
+        const action = event.target.closest('[data-member-action]');
+        const chip = event.target.closest('.team-chip[data-chip-id]');
+        if (action && !action.disabled) {
+            const { memberId, memberAction } = action.dataset;
+            press(action);
+            refocus(`[data-member-id="${CSS.escape(memberId)}"][data-member-action="${memberAction}"]:not(:disabled), [data-member-id="${CSS.escape(memberId)}"][data-member-action="swap"]`);
+        } else if (chip) {
+            const id = chip.dataset.chipId;
+            press(chip);
+            refocus(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
+        }
+    });
+    // Enter or Space on Home or Away places the chosen player there.
+    screen.addEventListener('keydown', event => {
+        if (!isNext() || (event.key !== 'Enter' && event.key !== ' ')) return;
+        const zone = event.target.closest?.('.team-zone[tabindex]');
+        if (!zone || event.target !== zone) return;
+        event.preventDefault();
+        const zoneLabel = zone.querySelector('.team-zone-label');
+        if (zoneLabel) press(zoneLabel);
+        refocus(`#${zone.id}`);
+    });
+    new MutationObserver(label).observe(screen, { childList: true, subtree: true });
+    document.addEventListener('homelayoutchange', label);
+    label();
 }
 
 export function initHomeNext() {
@@ -280,7 +459,10 @@ export function initHomeNext() {
     run('playerCount', mountPlayerCount);
     applyLayout(document.documentElement.dataset.home);
     run('layoutChoice', mountLayoutChoice);
-    run('resumeFit', mountResumeFit);
+    run('resumeLabel', mountResumeLabel);
+    run('rulesA11y', mountRulesA11y);
+    run('gridFocus', mountGridFocus);
+    run('teamA11y', mountTeamA11y);
     // The rules popover is fixed to the window: keep it next to its button
     // as the page scrolls, and close it once that button leaves the screen.
     document.addEventListener('scroll', followRulesPop, { capture: true, passive: true });
