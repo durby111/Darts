@@ -15,6 +15,7 @@ import { initTargetGameControls, updateTargetGameDisplay } from './target_game.j
 import { init121SummaryControls } from './game121.js';
 import { getGame, isCricketGame, isTargetGame, isX01Game } from './registry.js';
 import { initMenuStyles, registerMenuStyle } from './menu-style.js';
+import { initHomeNext } from './home-next.js';
 import { initSettings } from './settings.js';
 import { initTicTacToeControls, updateTicTacToeDisplay } from './tictactoe.js';
 import { initDoubleDownControls, updateDoubleDownDisplay } from './doubledown.js';
@@ -393,6 +394,7 @@ function safeInit(name, fn) {
 
 document.addEventListener('DOMContentLoaded', () => {
     safeInit('setup', initSetupControls);
+    safeInit('homeNext', initHomeNext);
     safeInit('botBlake', initBotBlake);
     safeInit('teams', initTeamBuilder);
     safeInit('cricket', initCricketControls);

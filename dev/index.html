@@ -30,6 +30,15 @@
 <link rel="stylesheet" href="css/menu-fable52.css">
 <link rel="stylesheet" href="css/menu-neon.css">
 <link rel="stylesheet" href="css/menu-style-picker.css">
+<link rel="stylesheet" href="css/home-next.css">
+    <script>
+    // New-look home layout flag, set before first paint (ES5, no module needed).
+    (function () {
+        var layout = 'next';
+        try { if (localStorage.getItem('blakeout_dev_home_layout_v1') === 'classic') layout = 'classic'; } catch (e) {}
+        document.documentElement.setAttribute('data-home', layout);
+    }());
+    </script>
 </head>
 <body class="dev-build">
     <!-- Kept inline and ES5: this must work even when the module graph cannot load. -->
@@ -311,7 +320,7 @@
             <datalist id="rosterDatalist"></datalist>
 
             <section class="setup-section setup-panel" id="playersSection">
-                <div class="setup-section-label">Players</div><p>BotBlake: X01, Cricket, Spanish, Bullshit, and Cutthroat, including teams. Auto lets a human start and follows the running human average. Bot matches are local practice.</p>
+                <div class="setup-section-label">Players</div><p class="players-bot-note">BotBlake: X01, Cricket, Spanish, Bullshit, and Cutthroat, including teams. Auto lets a human start and follows the running human average. Bot matches are local practice.</p>
                 <div class="form-group" id="numPlayersGroup">
                     <label for="numPlayers">Players at the board</label>
                     <select id="numPlayers">

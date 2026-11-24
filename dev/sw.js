@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v103-x01-miss-guard-20261124';
+const CACHE_NAME = 'blakeout-dev-v104-home-next-20261124';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
@@ -18,6 +18,8 @@ const ASSETS = [
     './css/menu-astra62.css',
     './css/menu-fable52.css',
     './css/menu-neon.css',
+    './css/home-next.css',
+    './js/home-next.js',
     './',
     './index.html',
     './compat/',
