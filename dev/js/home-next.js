@@ -34,6 +34,7 @@ function applyLayout(value) {
         }
     }
     placeSections(layout);
+    placePlayerControls(layout);
     markStepHeadings(layout);
     describeStart(layout);
     syncRulesExpanded();
@@ -72,6 +73,28 @@ function placeSections(layout) {
         putAfter(play, maintenance);
         putAfter(maintenance, roster);
     }
+}
+
+// Resume sits before Start on screen, so it comes first for keyboard and
+// screen readers too. In each player row the skill picker sits between the
+// ▲ and ▼ buttons, matching the order they are drawn in. Classic keeps the
+// original order.
+function placePlayerControls(layout) {
+    const start = byId('startGameBtn');
+    const resume = byId('resumeGameBtn');
+    if (start && resume && start.parentElement === resume.parentElement) {
+        if (layout === 'next') { if (resume.nextElementSibling !== start) resume.after(start); }
+        else if (start.nextElementSibling !== resume) start.after(resume);
+    }
+    [1, 2, 3, 4].forEach(n => {
+        const row = byId(`player${n}Group`);
+        const skill = byId(`player${n}Skill`)?.closest('label');
+        const stepper = row?.querySelector('.player-order-stepper');
+        const down = stepper?.querySelector('[data-player-order-action="down"]');
+        if (!row || !skill || !stepper || !down) return;
+        if (layout === 'next') { if (down.previousElementSibling !== skill) down.before(skill); }
+        else if (stepper.nextElementSibling !== skill) stepper.after(skill);
+    });
 }
 
 // The three numbered steps read as headings to screen readers.
@@ -144,14 +167,23 @@ function mountSummary() {
     title.before(wrap);
     wrap.append(title, summary);
     describeStart(document.documentElement.dataset.home);
-    // Each part stays whole, so a line only ever breaks between parts.
+    // Each part stays whole, so a line only ever breaks between parts. The
+    // dots between parts are drawn by CSS (and dropped at the start of a
+    // line); screen readers hear commas.
+    const row = document.createElement('span');
+    row.className = 'hn-summary-row';
+    summary.append(row);
     const update = () => {
         const parts = summaryText().split(' · ');
-        summary.replaceChildren(...parts.flatMap((part, i) => {
+        row.replaceChildren(...parts.flatMap((part, i) => {
             const span = document.createElement('span');
             span.className = 'hn-summary-part';
             span.textContent = part;
-            return i ? [document.createTextNode(' · '), span] : [span];
+            if (!i) return [span];
+            const comma = document.createElement('span');
+            comma.className = 'hn-visually-hidden';
+            comma.textContent = ', ';
+            return [comma, span];
         }));
     };
     document.addEventListener('change', () => later(update), true);
@@ -178,7 +210,16 @@ function splitResume(button) {
     main.textContent = text.slice(0, at + 1);
     const names = document.createElement('span');
     names.className = 'hn-resume-names';
-    names.textContent = text.slice(at + 1);
+    const inner = text.slice(at + 2, -1);
+    const paren = ch => { const el = document.createElement('span'); el.className = 'hn-resume-paren'; el.textContent = ch; return el; };
+    names.append(paren('('));
+    inner.split(' vs ').forEach((name, i) => {
+        const player = document.createElement('span');
+        player.className = 'hn-resume-player';
+        player.textContent = i ? ` vs ${name}` : name;
+        names.append(player);
+    });
+    names.append(paren(')'));
     button.replaceChildren(main, names);
 }
 
@@ -227,12 +268,24 @@ function mountPlayerCount() {
         });
         return { input, option };
     });
+    const hint = document.createElement('p');
+    hint.id = 'homeNextPlayerCountHint';
+    hint.className = 'home-next-count-hint';
+    fieldset.append(hint);
     const sync = () => {
         for (const { input, option } of radios) {
             input.checked = option.value === select.value;
             input.disabled = option.disabled;
             input.closest('label').classList.toggle('is-disabled', option.disabled);
         }
+        const allowed = radios.filter(r => !r.option.disabled).map(r => r.option.value);
+        const limited = allowed.length && allowed.length < radios.length;
+        hint.hidden = !limited;
+        hint.textContent = !limited ? ''
+            : allowed.length === 1 ? `This game is for ${allowed[0]} ${allowed[0] === '1' ? 'player' : 'players'}.`
+            : `This game is for ${allowed[0]} to ${allowed[allowed.length - 1]} players.`;
+        if (limited) fieldset.setAttribute('aria-describedby', hint.id);
+        else fieldset.removeAttribute('aria-describedby');
     };
     group.prepend(fieldset);
     group.classList.add('home-next-count-group');
@@ -355,7 +408,7 @@ function mountRulesA11y() {
         });
         if (pop && next) {
             pop.setAttribute('role', 'note');
-            const text = [...pop.children].map(c => c.textContent.replace(/\s+/g, ' ').trim()).filter(Boolean).join('. ');
+            const text = [...pop.children].map(c => c.textContent.replace(/\s+/g, ' ').replace(/^[^\p{L}\p{N}]+/u, '').trim()).filter(Boolean).join('. ');
             if (live.textContent !== text) live.textContent = text;
         } else if (live.textContent) {
             live.textContent = '';
@@ -456,18 +509,27 @@ function mountTeamA11y() {
             if (next) chip.setAttribute('aria-pressed', chip.classList.contains('selected') ? 'true' : 'false');
             else chip.removeAttribute('aria-pressed');
         });
-        const choosing = next && !!screen.querySelector('.team-chip.selected');
+        const chosen = next ? screen.querySelector('.team-chip.selected') : null;
+        const chosenName = chosen?.textContent.trim();
         [0, 1].forEach(idx => {
             const zone = byId(`teamZone${idx}`);
             if (!zone) return;
-            if (next) {
+            if (next && chosen) {
+                // With a player chosen, Home and Away are buttons that take them.
+                const text = `Put ${chosenName} in ${zoneName(idx)}`;
+                zone.setAttribute('role', 'button');
+                zone.removeAttribute('aria-labelledby');
+                if (zone.getAttribute('aria-label') !== text) zone.setAttribute('aria-label', text);
+                zone.tabIndex = 0;
+            } else if (next) {
                 zone.setAttribute('role', 'group');
                 zone.setAttribute('aria-labelledby', `teamZone${idx}Label`);
-                if (choosing) { zone.tabIndex = 0; zone.setAttribute('aria-describedby', 'teamBuilderHint'); }
-                else { zone.removeAttribute('tabindex'); zone.removeAttribute('aria-describedby'); }
+                zone.removeAttribute('aria-label');
+                zone.removeAttribute('tabindex');
             } else {
-                ['tabindex', 'role', 'aria-labelledby', 'aria-describedby'].forEach(a => zone.removeAttribute(a));
+                ['tabindex', 'role', 'aria-labelledby', 'aria-label', 'aria-describedby'].forEach(a => zone.removeAttribute(a));
             }
+            zone.removeAttribute('aria-describedby');
         });
     };
     const point = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
@@ -492,8 +554,50 @@ function mountTeamA11y() {
         }
     });
     let lastRealPress = { target: null, at: 0 };
+    // A real tap or click (VoiceOver's double-tap included) gets the same
+    // feedback as a keyboard press: the move is read out and focus stays.
+    const snapshot = () => {
+        const members = new Map();
+        screen.querySelectorAll('.team-zone-member[data-zone-member-id]').forEach(m => {
+            const list = [...m.parentElement.querySelectorAll(':scope > .team-zone-member')];
+            members.set(m.dataset.zoneMemberId, { zone: Number(m.dataset.zoneIdx), index: list.indexOf(m), name: nameIn(m) });
+        });
+        const chip = screen.querySelector('.team-chip.selected');
+        return { members, chip: chip?.dataset.chipId || null, chipName: chip?.textContent.trim() || '' };
+    };
+    let pending = null;
     screen.addEventListener('pointerdown', event => {
-        if (event.isTrusted) lastRealPress = { target: event.target, at: performance.now() };
+        if (!event.isTrusted) return;
+        lastRealPress = { target: event.target, at: performance.now() };
+        if (!isNext()) return;
+        const control = event.target.closest?.('[data-member-action], .team-chip[data-chip-id], .team-zone-label, .team-zone');
+        if (!control || control.matches('[data-member-action="hn-remove"]')) { pending = null; return; }
+        const key = control.dataset.memberAction ? ['member', control.dataset.memberId, control.dataset.memberAction]
+            : control.dataset.chipId ? ['chip', control.dataset.chipId] : null;
+        pending = { before: snapshot(), key };
+    }, true);
+    document.addEventListener('pointerup', event => {
+        if (!event.isTrusted || !pending) return;
+        const { before, key } = pending;
+        pending = null;
+        later(() => {
+            const after = snapshot();
+            let text = '';
+            for (const [id, now] of after.members) {
+                const was = before.members.get(id);
+                if (!was) text = `${now.name} added to ${zoneName(now.zone)}`;
+                else if (was.zone !== now.zone) text = `${now.name} moved to ${zoneName(now.zone)}`;
+                else if (key?.[0] === 'member' && key[1] === id && was.index !== now.index) text = `${now.name} moved ${now.index < was.index ? 'up' : 'down'}`;
+            }
+            for (const [id, was] of before.members) if (!after.members.has(id)) text = `${was.name} is back in Available Players`;
+            if (!text && after.chip && after.chip !== before.chip) text = `${after.chipName} chosen. Now pick Home or Away.`;
+            if (text) say(text);
+            const active = document.activeElement;
+            if (key && (!active || active === document.body || !document.contains(active))) {
+                if (key[0] === 'member') focusFirst(`[data-member-id="${CSS.escape(key[1])}"][data-member-action="${key[2]}"]`, `[data-member-id="${CSS.escape(key[1])}"][data-member-action="swap"]`);
+                else focusFirst(`.team-chip[data-chip-id="${CSS.escape(key[1])}"]`, `.team-zone-member[data-zone-member-id="${CSS.escape(key[1])}"] [data-member-action="hn-remove"]`);
+            }
+        });
     }, true);
     const recentlyPressed = el => lastRealPress.target && el.contains(lastRealPress.target) && performance.now() - lastRealPress.at < 600;
     screen.addEventListener('click', event => {
@@ -589,25 +693,54 @@ function mountCustomizeDialog() {
     const focusables = () => [...content.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
         .filter(el => !el.disabled && el.offsetParent !== null);
     const setupShowing = () => byId('setupScreen')?.style.display !== 'none';
+    const scale = byId('uiScale');
+    const upload = modal.querySelector('.wallpaper-upload-btn');
+    const uploadInput = byId('wallpaperUpload');
+    let titleText = '';
+    // The file input is hidden, so its button label takes keyboard presses.
+    upload?.addEventListener('keydown', event => {
+        if (!active || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        uploadInput?.click();
+    });
+    const activate = () => {
+        active = true;
+        returnTo = document.activeElement;
+        content.setAttribute('role', 'dialog');
+        content.setAttribute('aria-modal', 'true');
+        content.classList.add('hn-dialog');
+        if (title) {
+            titleText = title.textContent;
+            title.textContent = 'Customize';
+            content.setAttribute('aria-labelledby', title.id);
+            title.tabIndex = -1;
+        }
+        scale?.setAttribute('aria-label', 'UI scale');
+        if (upload) { upload.tabIndex = 0; upload.setAttribute('role', 'button'); }
+        later(() => (title || focusables()[0])?.focus());
+    };
+    const deactivate = () => {
+        active = false;
+        content.removeAttribute('role');
+        content.removeAttribute('aria-modal');
+        content.removeAttribute('aria-labelledby');
+        content.classList.remove('hn-dialog');
+        if (title) { if (titleText) title.textContent = titleText; title.removeAttribute('tabindex'); }
+        scale?.removeAttribute('aria-label');
+        if (upload) { upload.removeAttribute('tabindex'); upload.removeAttribute('role'); }
+    };
     new MutationObserver(() => {
         const open = modal.style.display !== 'none';
         if (open && !active && isNext() && setupShowing() && content) {
-            active = true;
-            returnTo = document.activeElement;
-            content.setAttribute('role', 'dialog');
-            content.setAttribute('aria-modal', 'true');
-            if (title) { content.setAttribute('aria-labelledby', title.id); title.tabIndex = -1; }
-            later(() => (title || focusables()[0])?.focus());
+            activate();
         } else if (!open && active) {
-            active = false;
-            content.removeAttribute('role');
-            content.removeAttribute('aria-modal');
-            content.removeAttribute('aria-labelledby');
-            title?.removeAttribute('tabindex');
+            deactivate();
             const back = returnTo && document.contains(returnTo) && returnTo.offsetParent !== null ? returnTo : opener;
             later(() => back?.focus());
         }
     }).observe(modal, { attributes: true, attributeFilter: ['style'] });
+    // Switching to Classic inside the open dialog hands it back to the original behaviour.
+    document.addEventListener('homelayoutchange', () => { if (active && !isNext()) deactivate(); });
     modal.addEventListener('keydown', event => {
         if (!active) return;
         if (event.key === 'Escape') {
@@ -671,6 +804,98 @@ function mountClearSearch() {
     };
     new MutationObserver(add).observe(grid, { childList: true });
     add();
+    // A full-size clear button inside the search field.
+    const toolbar = search.parentElement;
+    const clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'hn-search-clear';
+    clear.setAttribute('aria-label', 'Clear search');
+    clear.textContent = '✕';
+    clear.hidden = true;
+    clear.addEventListener('click', () => {
+        search.value = '';
+        search.dispatchEvent(new Event('input', { bubbles: true }));
+        search.focus();
+    });
+    toolbar.append(clear);
+    const sync = () => { clear.hidden = !isNext() || !search.value; };
+    search.addEventListener('input', sync);
+    document.addEventListener('homelayoutchange', sync);
+}
+
+// --- Game type chips say which one is on, and keep focus when redrawn ------
+
+function mountChipA11y() {
+    const bar = byId('gameCategoryChips');
+    if (!bar) return;
+    let focused = null;
+    const sync = () => {
+        const next = isNext();
+        if (next) { bar.setAttribute('role', 'group'); bar.setAttribute('aria-label', 'Game type'); }
+        else { bar.removeAttribute('role'); bar.removeAttribute('aria-label'); }
+        bar.querySelectorAll('[data-category]').forEach(chip => {
+            if (next) chip.setAttribute('aria-pressed', chip.classList.contains('active') ? 'true' : 'false');
+            else chip.removeAttribute('aria-pressed');
+        });
+        if (next && focused) {
+            const active = document.activeElement;
+            if (!active || active === document.body || !document.contains(active)) {
+                [...bar.querySelectorAll('[data-category]')].find(c => c.dataset.category === focused)?.focus({ preventScroll: true });
+            }
+        }
+    };
+    bar.addEventListener('focusin', event => { focused = event.target.closest('[data-category]')?.dataset.category || null; });
+    document.addEventListener('focusin', event => { if (!bar.contains(event.target)) focused = null; });
+    new MutationObserver(sync).observe(bar, { childList: true });
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
+// --- A skip link past the game list ----------------------------------------
+
+function mountSkipLink() {
+    const grid = byId('gameTypeGrid');
+    if (!grid || byId('homeNextSkipGames')) return;
+    const link = document.createElement('a');
+    link.id = 'homeNextSkipGames';
+    link.className = 'hn-skip-link';
+    link.href = '#gameOptionsSection';
+    link.textContent = 'Skip to game options';
+    link.addEventListener('click', event => {
+        event.preventDefault();
+        const target = [byId('gameOptionsSection'), byId('playersSection')]
+            .map(section => section && !section.classList.contains('hidden') && section.offsetParent !== null
+                ? [...section.querySelectorAll('input, select, button, [tabindex]:not([tabindex="-1"])')]
+                    .find(el => !el.disabled && el.offsetParent !== null && el.tabIndex >= 0)
+                : null)
+            .find(Boolean);
+        target?.focus();
+    });
+    grid.before(link);
+}
+
+// --- While typing on a phone, the Start bar steps aside --------------------
+// With the on-screen keyboard up there is little room left; the docked bar
+// would cover the search results or the field being typed in.
+
+function mountTypingBar() {
+    const setup = byId('setupScreen');
+    if (!setup) return;
+    let tallest = window.visualViewport?.height || window.innerHeight;
+    const isField = el => el?.matches?.('input[type="text"], input[type="search"], input:not([type]), textarea') && setup.contains(el);
+    const update = () => {
+        const vh = window.visualViewport?.height || window.innerHeight;
+        const typing = isField(document.activeElement);
+        if (!typing) tallest = Math.max(vh, window.innerHeight);
+        const squeezed = typing && window.innerWidth <= 720 && vh < tallest - 120;
+        if (squeezed) document.documentElement.dataset.hnTyping = '1';
+        else delete document.documentElement.dataset.hnTyping;
+    };
+    document.addEventListener('focusin', () => later(update));
+    document.addEventListener('focusout', () => later(update));
+    window.visualViewport?.addEventListener('resize', update);
+    window.addEventListener('resize', update);
+    update();
 }
 
 export function initHomeNext() {
@@ -689,6 +914,9 @@ export function initHomeNext() {
     run('customizeDialog', mountCustomizeDialog);
     run('fieldNames', mountFieldNames);
     run('clearSearch', mountClearSearch);
+    run('chipA11y', mountChipA11y);
+    run('skipLink', mountSkipLink);
+    run('typingBar', mountTypingBar);
     // The rules popover is fixed to the window: keep it next to its button
     // as the page scrolls, and close it once that button leaves the screen.
     document.addEventListener('scroll', followRulesPop, { capture: true, passive: true });
