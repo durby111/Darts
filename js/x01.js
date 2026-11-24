@@ -124,27 +124,34 @@ function toggleRemainingMode() {
 }
 
 // --- Turn-commit debounce ---
-// MISS/BUST/ENTER all commit a turn and advance to the next player. A jittery
-// double-tap on a tablet would otherwise burn a whole turn for the next player.
-// Disable the three buttons briefly after any of them fires.
+// A MISS burst must not advance another player's turn after the shared
+// 700ms lock expires. Keep MISS disabled a little longer without making
+// the next player's normal numeric score or BUST wait any longer.
 let turnCommitLocked = false;
-let turnCommitTimer = null;
+let missCommitLocked = false;
 const TURN_COMMIT_COOLDOWN_MS = 700;
+const MISS_REPEAT_COOLDOWN_MS = 1500;
 
-function lockTurnCommit() {
-    turnCommitLocked = true;
-    const ids = ['x01MissBtn', 'x01BustBtn', 'x01EnterBtn'];
-    ids.forEach(id => {
+function syncTurnCommitControls() {
+    ['x01MissBtn', 'x01BustBtn', 'x01EnterBtn'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.disabled = true;
+        if (el) el.disabled = turnCommitLocked || (id === 'x01MissBtn' && missCommitLocked);
     });
-    if (turnCommitTimer) clearTimeout(turnCommitTimer);
-    turnCommitTimer = setTimeout(() => {
+}
+
+function lockTurnCommit(miss = false) {
+    turnCommitLocked = true;
+    if (miss) {
+        missCommitLocked = true;
+        setTimeout(() => {
+            missCommitLocked = false;
+            syncTurnCommitControls();
+        }, MISS_REPEAT_COOLDOWN_MS);
+    }
+    syncTurnCommitControls();
+    setTimeout(() => {
         turnCommitLocked = false;
-        ids.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.disabled = false;
-        });
+        syncTurnCommitControls();
     }, TURN_COMMIT_COOLDOWN_MS);
 }
 
@@ -361,11 +368,6 @@ function resetX01Input() {
 }
 
 function x01Miss() {
-    // No guard here — submitScore() locks for us.
-    expressionStr = '';
-    remainingMode = false;
-    game.currentInput = '0';
-    document.getElementById('inputDisplay').textContent = '0';
     submitScore({ miss: true });
 }
 
@@ -551,16 +553,18 @@ function submitSharkTankScore(score, opts, player, thrower) {
 
 function submitScore(opts = {}) {
     if (tournamentScoringLocked()) return;
-    // Guard against double-tap. x01Miss/x01Bust already locked in their
-    // wrapper; direct ENTER presses and quickScore paths land here.
-    if (turnCommitLocked) return;
+    // Block repeated MISS before touching input. MISS is hidden while
+    // a number is being entered, so a stale event must not clear that entry.
+    if (turnCommitLocked || (opts.miss && (missCommitLocked || expressionStr))) return;
     const actualDarts = requireActualDarts();
     if (actualDarts === null) return;
-    lockTurnCommit();
+    lockTurnCommit(!!opts.miss);
 
-    // Calculate total from expression or direct input
+    // Calculate total from expression or direct input; MISS explicitly scores 0.
     let score;
-    if (expressionStr) {
+    if (opts.miss) {
+        score = 0;
+    } else if (expressionStr) {
         score = evaluateExpression(expressionStr);
     } else {
         score = game.currentInput ? parseInt(game.currentInput) : 0;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-v69-dc-score-fit-20261122';
+const CACHE_NAME = 'blakeout-v71-x01-miss-guard-20261124';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;
