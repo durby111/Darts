@@ -47,87 +47,63 @@ html[data-home="next"] .setup-screen .setup-card * { letter-spacing: normal; }
 html[data-home="next"] #setupScreen .setup-card {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(320px, 400px);
+    /* The library has the left column to itself, so its sticky card can
+       never slide over anything. Everything else stacks on the right. */
     grid-template-areas:
         'header header'
-        'back back'
         'navigation navigation'
+        'back back'
         'library options'
         'library players'
         'library presets'
         'library recording'
         'library account'
         'library play'
-        'library .'
-        'footer footer';
-    grid-template-rows: auto auto auto auto auto auto auto auto auto 1fr auto;
-    gap: var(--hn-gap) 24px;
+        'library roster'
+        'library maintenance'
+        'library credit'
+        'library qr';
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+    /* Spacing comes from each visible card's own bottom margin, so a hidden
+       card (Back to game, a game with no options) leaves no double gap. */
+    gap: 0 24px;
+    align-items: start;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 0 32px;
     counter-reset: hn-step;
 }
+html[data-home="next"] #setupScreen .setup-card > :not(.hidden):not(#gamePickerSection):not(:last-child) { margin-bottom: var(--hn-gap); }
+html[data-home="next"] #setupScreen .setup-card > #backToGameBtn:not(.hidden) { margin-bottom: var(--hn-gap) !important; }
+html[data-home="next"] #setupScreen #rosterSection { grid-area: roster; }
+html[data-home="next"] #setupScreen #maintenanceSection { grid-area: maintenance; }
+html[data-home="next"] #setupScreen .setup-credit { grid-area: credit; }
+html[data-home="next"] #setupScreen .setup-qr { grid-area: qr; }
 html[data-home="next"] #setupScreen .home-player-help { grid-area: account; }
 html[data-home="next"] #setupScreen #playSection { grid-area: play; }
 html[data-home="next"] #setupScreen #gamePickerSection { align-self: start; }
 html[data-home="next"] #setupScreen #backToGameBtn { grid-area: back; margin: 0 !important; }
 
-@media (min-width: 1001px) {
-    html[data-home="next"] #setupScreen .setup-card {
-        grid-template-areas:
-            'header header header header'
-            'back back back back'
-            'navigation navigation navigation navigation'
-            'library library options options'
-            'library library players players'
-            'library library presets presets'
-            'library library recording recording'
-            'library library account account'
-            'library library play play'
-            'library library . .'
-            'roster roster maintenance maintenance'
-            'credit credit qr qr';
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 200px) minmax(0, 200px);
-        grid-template-rows: auto auto auto auto auto auto auto auto auto 1fr auto auto;
-    }
-    html[data-home="next"] #setupScreen #rosterSection { grid-area: roster; }
-    html[data-home="next"] #setupScreen #maintenanceSection { grid-area: maintenance; }
-    html[data-home="next"] #setupScreen .setup-credit { grid-area: credit; }
-    html[data-home="next"] #setupScreen .setup-qr { grid-area: qr; }
-}
 @media (min-width: 721px) and (max-width: 1000px) {
-    html[data-home="next"] #setupScreen .setup-card {
-        grid-template-columns: minmax(0, 1fr) 348px;
-        grid-template-areas:
-            'header header'
-            'back back'
-            'navigation navigation'
-            'library options'
-            'library players'
-            'library presets'
-            'library recording'
-            'library account'
-            'library play'
-            'library .'
-            'roster maintenance'
-            'credit qr';
-        grid-template-rows: auto auto auto auto auto auto auto auto auto 1fr auto auto;
-        gap: var(--hn-gap) 16px;
-    }
-    html[data-home="next"] #setupScreen #rosterSection { grid-area: roster; }
-    html[data-home="next"] #setupScreen #maintenanceSection { grid-area: maintenance; }
-    html[data-home="next"] #setupScreen .setup-credit { grid-area: credit; }
-    html[data-home="next"] #setupScreen .setup-qr { grid-area: qr; }
+    html[data-home="next"] #setupScreen .setup-card { grid-template-columns: minmax(0, 1fr) 348px; column-gap: 16px; }
 }
 @media (max-width: 720px) {
     html[data-home="next"] .setup-screen { padding: 0 12px; scroll-padding-bottom: calc(var(--hn-bar-height) + 24px); }
+}
+/* Phones, and short landscape tablets, use one column. */
+@media (max-width: 720px), (max-width: 1000px) and (max-height: 560px) {
     html[data-home="next"] #setupScreen .setup-card {
         display: flex;
         flex-direction: column;
+        align-items: stretch;
         gap: 12px;
     }
+    html[data-home="next"] #setupScreen .setup-card > :not(.hidden):not(#gamePickerSection):not(:last-child),
+    html[data-home="next"] #setupScreen .setup-card > #backToGameBtn:not(.hidden) { margin-bottom: 0 !important; }
     html[data-home="next"] #setupScreen .setup-header { order: 0; }
-    html[data-home="next"] #setupScreen #backToGameBtn { order: 1; }
-    html[data-home="next"] #setupScreen .dev-app-nav { order: 2; }
+    html[data-home="next"] #setupScreen .dev-app-nav { order: 1; }
+    html[data-home="next"] #setupScreen #backToGameBtn { order: 2; }
     html[data-home="next"] #setupScreen #gamePickerSection { order: 3; }
     html[data-home="next"] #setupScreen #gameOptionsSection { order: 4; }
     html[data-home="next"] #setupScreen #playersSection { order: 5; }
@@ -845,8 +821,18 @@ html[data-home="next"] #setupScreen #playSection {
     html[data-home="next"] #setupScreen #startGameBtn { min-height: 48px; padding: 0 18px; }
 }
 @media (max-width: 720px) and (max-height: 500px) {
-    html[data-home="next"] #setupScreen .setup-card { padding-bottom: 24px; }
-    html[data-home="next"] #setupScreen #playSection { position: static; border: 1px solid var(--hn-line-strong); border-radius: var(--hn-radius); }
+    /* Landscape phones: a slim bar pinned to the bottom of the screen that
+       moves into place at the end of the page instead of covering it. */
+    html[data-home="next"] #setupScreen .setup-card { padding-bottom: 12px; }
+    html[data-home="next"] #setupScreen #playSection {
+        position: sticky;
+        bottom: 0;
+        margin: 0 -12px;
+        padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+        gap: 12px;
+    }
+    html[data-home="next"] #setupScreen #playSection .setup-match-title { font-size: 17px; }
+    html[data-home="next"] #setupScreen #startGameBtn { min-height: 44px; padding: 0 18px; font-size: 17px; }
 }
 html[data-home="next"] #setupScreen #playSection > .setup-section-label { display: none; }
 html[data-home="next"] #setupScreen .home-next-match { min-width: 0; }
@@ -868,9 +854,10 @@ html[data-home="next"] #setupScreen .home-next-summary {
     line-height: 1.3;
     color: var(--color-text-muted);
     overflow: hidden;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
     -webkit-box-orient: vertical;
+    overflow-wrap: anywhere;
 }
 html[data-home="next"] #setupScreen .setup-action-row { display: grid; gap: 8px; }
 html[data-home="next"] #setupScreen #startGameBtn {
@@ -904,7 +891,11 @@ html[data-home="next"] #setupScreen #resumeGameBtn {
 
 /* ---------- Team builder (shown after Start in team mode) ---------- */
 html[data-home="next"] #teamBuilderScreen .setup-card {
-    max-width: 1100px;
+    /* One clear column: who is left, the two teams side by side, then the buttons. */
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 760px;
     margin: 16px auto calc(24px + env(safe-area-inset-bottom, 0px));
     padding: 20px;
     border: 1px solid var(--hn-line);
@@ -919,19 +910,23 @@ html[data-home="next"] #teamBuilderScreen .team-zone {
     background: var(--color-surface-alt);
 }
 html[data-home="next"] #teamBuilderScreen .btn { border-radius: 12px; }
-html[data-home="next"] #teamBuilderScreen #teamStartMatchBtn { align-self: start; min-height: 56px; border-radius: 16px; font-size: 18px; font-weight: 800; }
+html[data-home="next"] #teamBuilderScreen .setup-card > * { grid-area: auto; margin-top: 0 !important; margin-bottom: 0; }
+html[data-home="next"] #teamBuilderScreen .setup-card > h1 { margin: 0; text-align: center; }
+html[data-home="next"] #teamBuilderScreen .team-builder-hint { margin: 0; text-align: center; }
+html[data-home="next"] #teamBuilderScreen #teamStartMatchBtn { min-height: 56px; border-radius: 16px; font-size: 18px; font-weight: 800; }
 html[data-home="next"] #teamBuilderScreen :is(input[type="text"], select) { min-height: 44px; border-radius: 12px; }
 
-/* ---------- Menus (only with Menu Style "Current") ---------- */
-html[data-home="next"]:not([data-menu-style]) #settingsModal .modal-content {
+/* ---------- Customize (only with Menu Style "Current", and only over the setup screen,
+   so the in-game menus look exactly as before) ---------- */
+html[data-home="next"]:not([data-menu-style]):not(:has(#setupScreen[style*="none"])) #settingsModal .modal-content {
     border: 1px solid var(--hn-line-strong);
     border-radius: 22px;
     background: var(--color-surface);
     box-shadow: 0 24px 60px #000000a6;
     font-family: var(--hn-font);
 }
-html[data-home="next"]:not([data-menu-style]) #settingsModal .modal-content h2 { font-family: var(--hn-font); font-weight: 800; }
-html[data-home="next"]:not([data-menu-style]) #settingsModal .settings-section-label { font-size: 13px; font-weight: 800; letter-spacing: 0.04em; }
+html[data-home="next"]:not([data-menu-style]):not(:has(#setupScreen[style*="none"])) #settingsModal .modal-content h2 { font-family: var(--hn-font); font-weight: 800; }
+html[data-home="next"]:not([data-menu-style]):not(:has(#setupScreen[style*="none"])) #settingsModal .settings-section-label { font-size: 13px; font-weight: 800; letter-spacing: 0.04em; }
 
 /* Home screen choice in Customize (shown in both layouts). */
 .home-layout-choice { margin: 14px 0 0; padding: 0; border: 0; min-width: 0; }
@@ -1034,8 +1029,132 @@ html[data-home="next"] #setupScreen .setup-credit a[href^="mailto:"] { display: 
 /* A game in progress: match info on top, Resume and Start side by side. */
 html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) { grid-template-columns: minmax(0, 1fr); gap: 8px; }
 html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) .setup-action-row { display: grid; flex-direction: initial; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: stretch; }
-html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) #resumeGameBtn { font-size: 16px; line-height: 1.2; white-space: normal; padding: 6px 10px; }
+/* Resume reads like Start (same casing, large bold text) and never grows
+   past two lines, however long the player names are. */
+html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) #resumeGameBtn {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    box-sizing: border-box;
+    height: 52px;
+    min-height: 0;
+    font-size: 17px;
+    line-height: 24px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    padding: 2px 10px;
+}
+/* A short label on one line sits in the middle of the button. */
+html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) #resumeGameBtn.hn-one-line { padding-top: 14px; padding-bottom: 14px; }
 html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) #startGameBtn { min-height: 52px; padding: 0 10px; }
 @media (max-width: 720px) {
     html[data-home="next"] #setupScreen .setup-card:has(#resumeGameBtn:not(.hidden)) { padding-bottom: calc(var(--hn-bar-height) + 90px + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* Landscape phones with a game in progress: Start and Resume share the slim bar. */
+@media (max-width: 720px) and (max-height: 500px) {
+    html[data-home="next"] #setupScreen .setup-card:has(#resumeGameBtn:not(.hidden)) { padding-bottom: 12px; }
+    html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr); align-items: center; gap: 10px; }
+    html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) :is(#resumeGameBtn, #startGameBtn) { min-height: 44px; font-size: 16px; }
+    html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) #resumeGameBtn,
+    html[data-home="next"] #setupScreen #playSection:has(#resumeGameBtn:not(.hidden)) #resumeGameBtn.hn-one-line { height: 44px; -webkit-line-clamp: 1; line-clamp: 1; line-height: 44px; padding: 0 10px; }
+}
+
+/* ---------- Theme contrast ---------- */
+/* Neon's green Start and Resume need dark text too. */
+html[data-home="next"][data-theme="neon"] :is(#setupScreen, #teamBuilderScreen) { --color-on-success: #00161c; }
+/* Royal's bright blue is a shade too light behind white text. */
+html[data-home="next"][data-theme="royal"] :is(#setupScreen, #teamBuilderScreen) { --color-primary: #1f63d6; }
+/* Red's olive Start reads as disabled: use a clear, readable green. */
+html[data-home="next"][data-theme="red"] :is(#setupScreen, #teamBuilderScreen) { --color-success: #2e7d32; }
+/* Blue's green Start and Resume: a deeper green keeps white text readable. */
+html[data-home="next"][data-theme="blue"] :is(#setupScreen, #teamBuilderScreen) { --color-success: #00800a; }
+/* A selected favourite keeps a readable star on every theme. */
+html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved { color: var(--color-on-primary); }
+/* Footer links (support, email) use the body text colour so they read on every theme. */
+html[data-home="next"] #setupScreen .setup-credit a:not(.support-btn) { color: var(--color-text); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- Tidy details ---------- */
+html[data-home="next"] #setupScreen .picker-recents-label { text-transform: none; letter-spacing: normal; font-weight: 600; }
+html[data-home="next"] .setup-screen .setup-header .setup-logo { border-radius: 12px; overflow: hidden; }
+html[data-home="next"] #setupScreen :is(.picker-chips, .picker-recents) { padding: 6px 4px; margin-left: -4px; margin-right: -4px; scroll-padding-inline: 4px; }
+html[data-home="next"] #setupScreen .picker-chips { margin-top: -4px; margin-bottom: 8px; }
+html[data-home="next"] #setupScreen .picker-recents { margin-top: -4px; margin-bottom: 10px; }
+/* Throw order needs two or more players. */
+html[data-home="next"] #setupScreen #playersSection:has(#numPlayers > option[value="1"]:checked) .player-order-toolbar { display: none; }
+/* Teams mode: say when teams are made. */
+html[data-home="next"] #setupScreen #playersSection:has(#teamMode:checked) > .setup-section-label::after { content: 'Who is throwing. You split into teams after Start.'; }
+/* A focused game card at the bottom of the list is never hidden by the fade. */
+html[data-home="next"] #setupScreen .game-grid { scroll-padding-block: 12px; }
+html[data-home="next"] #setupScreen .game-grid:has(:focus-visible) { -webkit-mask-image: none; mask-image: none; }
+/* Full-size targets. */
+html[data-home="next"] #setupScreen .setup-credit a[href^="mailto:"] { display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px; }
+html[data-home="next"] #teamBuilderScreen .btn { min-height: 44px; }
+/* Team builder title spans the card. */
+
+/* ---------- Tabs: one row, never taller than two lines of text ---------- */
+@media (max-width: 480px) {
+    html[data-home="next"] #setupScreen .dev-app-nav { flex-wrap: nowrap; overflow-x: visible; padding: 4px; gap: 4px; }
+    html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 46px;
+        padding: 4px 6px;
+        font-size: 13px;
+        line-height: 1.15;
+        white-space: normal;
+        text-align: center;
+        flex-wrap: wrap;
+        row-gap: 2px;
+        column-gap: 4px;
+    }
+}
+
+/* ---------- Small phones: a compact header ---------- */
+@media (max-width: 360px) {
+    html[data-home="next"] .setup-screen .setup-header { padding: 10px 12px; row-gap: 8px; gap: 10px; }
+    html[data-home="next"] .setup-screen .setup-header .setup-logo { width: 60px; height: 34px; flex-basis: 60px; }
+    html[data-home="next"] .setup-screen .setup-header-text h1 { font-size: 24px; }
+    html[data-home="next"] .setup-screen .setup-subtitle { font-size: 11px; margin-top: 2px; }
+    /* Room for a two-line game name in the Start bar. */
+    html[data-home="next"] #setupScreen #playSection:not(:has(#resumeGameBtn:not(.hidden))) .setup-match-title {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    html[data-home="next"] #setupScreen details > summary::before,
+    html[data-home="next"] #setupScreen .game-card { transition: none; }
+    html[data-home="next"] #setupScreen .game-card:active { transform: none; }
+}
+
+/* Wide phones and landscape: logo, title and buttons fit on one row. */
+@media (min-width: 540px) and (max-width: 720px) {
+    html[data-home="next"] .setup-screen .setup-header { flex-wrap: nowrap; }
+    html[data-home="next"] .setup-screen .setup-header-side { flex: 0 0 auto; margin-left: auto; }
+}
+@media (max-width: 720px) and (max-height: 500px) {
+    html[data-home="next"] .setup-screen .setup-header { padding: 10px 14px; margin-top: 8px; }
+}
+
+/* Team builder on phones: Home above Away, so every name has room. */
+@media (max-width: 600px) {
+    html[data-home="next"] #teamBuilderScreen { padding: 0 10px; }
+    html[data-home="next"] #teamBuilderScreen .setup-card { padding: 16px 14px; gap: 14px; }
+    html[data-home="next"] #teamBuilderScreen .team-zones { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    html[data-home="next"] #teamBuilderScreen .team-zone { min-height: 0; }
+}
+html[data-home="next"] #teamBuilderScreen .team-add-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+html[data-home="next"] #teamBuilderScreen .team-add-row > label { display: inline-flex; align-items: center; gap: 8px; }
+html[data-home="next"] #teamBuilderScreen #teamAddName { flex: 1 1 60%; min-width: 0; }
+html[data-home="next"] #teamBuilderScreen #teamAddBtn { flex: 0 0 auto; }

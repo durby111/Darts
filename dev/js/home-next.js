@@ -33,7 +33,9 @@ function applyLayout(value) {
             countLabel?.removeAttribute('aria-hidden');
         }
     }
-    placePlayerHelp(layout);
+    placeSections(layout);
+    describeStart(layout);
+    syncRulesExpanded();
     document.querySelectorAll('input[name="homeLayoutChoice"]').forEach(input => {
         input.checked = input.value === layout;
     });
@@ -41,19 +43,41 @@ function applyLayout(value) {
     return layout;
 }
 
-// "Players on this device" sits after the header in the page source. In the
-// New look it belongs after the setup steps, so move it there (and back for
-// Classic) to keep keyboard order matching what is on screen.
-function placePlayerHelp(layout) {
+// Keep keyboard order matching what is on screen. In the New look,
+// "Players on this device" sits just above Start and App Maintenance comes
+// after the roster. Classic gets the original order back.
+function placeSections(layout) {
     const help = document.querySelector('#setupScreen .home-player-help');
-    if (!help) return;
+    const play = document.getElementById('playSection');
+    const roster = document.getElementById('rosterSection');
+    const maintenance = document.getElementById('maintenanceSection');
     if (layout === 'next') {
-        const anchor = document.getElementById('rosterSection');
-        if (anchor && help.nextElementSibling !== anchor) anchor.before(help);
+        if (help && play && play.previousElementSibling !== help) play.before(help);
+        if (maintenance && roster && roster.nextElementSibling !== maintenance) roster.after(maintenance);
     } else {
         const header = document.querySelector('#setupScreen .setup-header');
-        if (header && header.nextElementSibling !== help) header.after(help);
+        if (help && header && header.nextElementSibling !== help) header.after(help);
+        if (maintenance && play && play.nextElementSibling !== maintenance) play.after(maintenance);
     }
+}
+
+// Screen readers hear the match summary with the Start button.
+function describeStart(layout) {
+    const start = document.getElementById('startGameBtn');
+    if (!start) return;
+    if (layout === 'next' && document.getElementById('homeNextSummary')) start.setAttribute('aria-describedby', 'homeNextSummary');
+    else if (start.getAttribute('aria-describedby') === 'homeNextSummary') start.removeAttribute('aria-describedby');
+}
+
+// Each ⓘ button says whether its rules are showing.
+function syncRulesExpanded() {
+    const pop = document.getElementById('gameRulesPop');
+    const next = document.documentElement.dataset.home === 'next';
+    document.querySelectorAll('#gameTypeGrid [data-rules-toggle]').forEach(button => {
+        if (!next) { button.removeAttribute('aria-expanded'); return; }
+        const open = !!pop && pop.dataset.gameId === button.dataset.rulesToggle;
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
 }
 
 const isNext = () => document.documentElement.dataset.home === 'next';
@@ -98,9 +122,29 @@ function mountSummary() {
     wrap.className = 'home-next-match';
     title.before(wrap);
     wrap.append(title, summary);
+    describeStart(document.documentElement.dataset.home);
     const update = () => { summary.textContent = summaryText(); };
     document.addEventListener('change', () => later(update), true);
     update();
+}
+
+// --- Resume button: centre a label that fits on one line -------------------
+
+function mountResumeFit() {
+    const button = byId('resumeGameBtn');
+    if (!button) return;
+    const fit = () => {
+        button.classList.remove('hn-one-line');
+        if (!isNext() || button.classList.contains('hidden')) return;
+        const style = getComputedStyle(button);
+        const line = parseFloat(style.lineHeight) || 20;
+        const pad = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+        if (button.scrollHeight - pad <= line * 1.5) button.classList.add('hn-one-line');
+    };
+    new MutationObserver(() => later(fit)).observe(button, { childList: true, characterData: true, subtree: true });
+    if (window.ResizeObserver) new ResizeObserver(() => fit()).observe(button.parentElement);
+    document.addEventListener('homelayoutchange', () => later(fit));
+    fit();
 }
 
 // --- Player count as large segmented buttons --------------------------------
@@ -205,9 +249,14 @@ function followRulesPop() {
     const id = pop.dataset.gameId;
     const button = id && [...document.querySelectorAll('[data-rules-toggle]')]
         .find(el => el.dataset.rulesToggle === id);
-    if (!button) { pop.remove(); return; }
+    const close = () => { pop.remove(); syncRulesExpanded(); };
+    if (!button) { close(); return; }
     const anchor = button.getBoundingClientRect();
-    if (anchor.bottom < 0 || anchor.top > window.innerHeight || !anchor.width) { pop.remove(); return; }
+    // Close once the button is partly hidden, by the page or the game list.
+    const list = byId('gameTypeGrid')?.getBoundingClientRect();
+    const visTop = Math.max(0, list ? list.top : 0) - 2;
+    const visBottom = Math.min(window.innerHeight, list ? list.bottom : window.innerHeight) + 2;
+    if (!anchor.width || anchor.top < visTop || anchor.bottom > visBottom) { close(); return; }
     const box = pop.getBoundingClientRect();
     const margin = 8;
     let left = anchor.left + anchor.width / 2 - box.width / 2;
@@ -231,6 +280,7 @@ export function initHomeNext() {
     run('playerCount', mountPlayerCount);
     applyLayout(document.documentElement.dataset.home);
     run('layoutChoice', mountLayoutChoice);
+    run('resumeFit', mountResumeFit);
     // The rules popover is fixed to the window: keep it next to its button
     // as the page scrolls, and close it once that button leaves the screen.
     document.addEventListener('scroll', followRulesPop, { capture: true, passive: true });
@@ -238,16 +288,25 @@ export function initHomeNext() {
     byId('gameTypeGrid')?.addEventListener('click', event => {
         if (event.target.closest('[data-rules-toggle]')) later(followRulesPop);
     });
+    // The rules popover is added to and removed from <body>: keep the ⓘ
+    // buttons' expanded state in step however it opens or closes.
+    new MutationObserver(records => {
+        if (records.some(r => [...r.addedNodes, ...r.removedNodes].some(n => n.id === 'gameRulesPop'))) syncRulesExpanded();
+    }).observe(document.body, { childList: true });
     document.addEventListener('keydown', event => {
         const pop = byId('gameRulesPop');
         if (event.key !== 'Escape' || !pop || !isNext()) return;
         const button = [...document.querySelectorAll('[data-rules-toggle]')].find(el => el.dataset.rulesToggle === pop.dataset.gameId);
         pop.remove();
+        syncRulesExpanded();
         button?.focus();
     });
     // The account panel can mount after this runs.
     const card = document.querySelector('#setupScreen .setup-card');
-    if (card) new MutationObserver(() => placePlayerHelp(document.documentElement.dataset.home)).observe(card, { childList: true });
+    if (card) new MutationObserver(() => placeSections(document.documentElement.dataset.home)).observe(card, { childList: true });
+    // The game list is rebuilt when filtering: keep the ⓘ buttons labelled.
+    const grid = byId('gameTypeGrid');
+    if (grid) new MutationObserver(() => syncRulesExpanded()).observe(grid, { childList: true });
     window.addEventListener('storage', event => {
         if (event.key === HOME_LAYOUT_KEY || event.key === null) applyLayout(storedLayout());
     });
