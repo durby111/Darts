@@ -21,6 +21,7 @@ html[data-home="next"] {
     --hn-line-strong: color-mix(in srgb, var(--color-text) 22%, transparent);
     --hn-tint: color-mix(in srgb, var(--color-primary) 16%, transparent);
     --hn-accent: var(--color-primary-light);
+    --hn-focus: var(--hn-accent);
     --hn-font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'DejaVu Sans', sans-serif;
     --hn-display: Impact, 'Arial Narrow Bold', 'DejaVu Sans Condensed', sans-serif;
     --hn-bar-height: 88px;
@@ -503,7 +504,7 @@ html[data-home="next"] #setupScreen .game-card-info { right: 4px; }
 html[data-home="next"] #setupScreen .game-card-fav.faved { color: var(--color-warning); }
 @media (hover: hover) { html[data-home="next"] #setupScreen :is(.game-card-fav, .game-card-info):hover { background: color-mix(in srgb, var(--color-text) 10%, transparent); } }
 html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) :is(.game-card-fav:not(.faved), .game-card-info) { color: var(--color-on-primary); }
-html[data-home="next"] #setupScreen :is(.game-card, .game-card-fav, .game-card-info):focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #setupScreen :is(.game-card, .game-card-fav, .game-card-info):focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 
 
 html[data-home="next"] #setupScreen .picker-description {
@@ -590,7 +591,7 @@ html[data-home="next"] #setupScreen :is(.checkbox-label, #casualRecordingSetup l
 html[data-home="next"] #setupScreen :is(.checkbox-label, #casualRecordingSetup label) input[type="checkbox"]:checked { background: var(--color-success); border-color: var(--color-success); }
 html[data-home="next"] #setupScreen :is(.checkbox-label, #casualRecordingSetup label) input[type="checkbox"]:checked::before { transform: translateX(20px); }
 html[data-home="next"] #setupScreen :is(.checkbox-label, #casualRecordingSetup label) input[type="checkbox"]:disabled { opacity: 0.5; cursor: not-allowed; }
-html[data-home="next"] #setupScreen :is(.checkbox-label, #casualRecordingSetup label) input[type="checkbox"]:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #setupScreen :is(.checkbox-label, #casualRecordingSetup label) input[type="checkbox"]:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) {
     html[data-home="next"] #setupScreen :is(.checkbox-label, #casualRecordingSetup label) input[type="checkbox"],
     html[data-home="next"] #setupScreen :is(.checkbox-label, #casualRecordingSetup label) input[type="checkbox"]::before { transition: none; }
@@ -664,7 +665,7 @@ html[data-home="next"] #setupScreen .home-next-segmented label:has(input:checked
     color: var(--color-on-primary);
     box-shadow: 0 4px 12px color-mix(in srgb, var(--color-primary) 40%, transparent);
 }
-html[data-home="next"] #setupScreen .home-next-segmented label:has(input:focus-visible) { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #setupScreen .home-next-segmented label:has(input:focus-visible) { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 html[data-home="next"] #setupScreen .home-next-segmented label.is-disabled { opacity: 0.35; cursor: not-allowed; }
 html[data-home="next"] #setupScreen .home-next-segmented label.is-disabled input { cursor: not-allowed; }
 
@@ -1223,7 +1224,7 @@ html[data-home="next"] #teamBuilderScreen .setup-card > h1 { color: var(--color-
 html[data-home="next"] #teamBuilderScreen :is(.team-chip, .team-zone-member-swap-btn) { min-height: 44px; min-width: 44px; }
 html[data-home="next"] #teamBuilderScreen .team-zone-member-order-btns { gap: 4px; }
 html[data-home="next"] #teamBuilderScreen .team-zone-member-order-btns button { min-height: 36px; min-width: 44px; }
-html[data-home="next"] #teamBuilderScreen .team-zone[tabindex]:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #teamBuilderScreen .team-zone[tabindex]:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 /* Light theme: the off switch is easy to see. */
 html[data-home="next"][data-theme="arctic"] #setupScreen :is(.checkbox-label, #casualRecordingSetup label) input[type="checkbox"]:not(:checked) { background: color-mix(in srgb, var(--color-text) 38%, var(--color-surface-alt)); }
 /* Read out by screen readers, never shown. */
@@ -1289,7 +1290,7 @@ html[data-home="next"] #setupScreen .hn-clear-search {
     font-weight: 700;
     cursor: pointer;
 }
-html[data-home="next"] #setupScreen .hn-clear-search:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #setupScreen .hn-clear-search:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 
 /* Header: compact on any short screen; the logo itself gets the rounded corners. */
 html[data-home="next"] .setup-screen .setup-header .setup-logo { padding: 0; border: 0; background: none; border-radius: 0; overflow: visible; }
@@ -1315,7 +1316,7 @@ html[data-home="next"] #setupScreen :is(input, textarea)::placeholder { color: v
 html[data-home="next"] #setupScreen .setup-qr-label { font-size: 0.875rem; color: var(--color-text); }
 html[data-home="next"] #setupScreen .setup-qr-url { font-size: 0.8125rem; color: var(--color-text-muted); }
 html[data-home="next"] #setupScreen .setup-credit-by { margin-bottom: 12px; }
-html[data-home="next"] #setupScreen #presetsSection > summary:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; border-radius: var(--hn-radius-sm); }
+html[data-home="next"] #setupScreen #presetsSection > summary:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; border-radius: var(--hn-radius-sm); }
 
 /* Switches: the off state has a clear edge and knob on every theme. */
 html[data-home="next"] #setupScreen :is(.checkbox-label, #casualRecordingSetup label) input[type="checkbox"]:not(:checked) { border: 2px solid color-mix(in srgb, var(--color-text) 62%, transparent); }
@@ -1346,7 +1347,7 @@ html[data-home="next"] #teamBuilderScreen :is(.team-zone-member-swap-btn, .team-
     line-height: 1;
     cursor: pointer;
 }
-html[data-home="next"] #teamBuilderScreen :is(.team-zone-member-swap-btn, .team-zone-member-order-btns button, .hn-member-remove):focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #teamBuilderScreen :is(.team-zone-member-swap-btn, .team-zone-member-order-btns button, .hn-member-remove):focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 
 /* Short landscape tablets get the same slim, full-width bar as landscape phones. */
 @media (min-width: 721px) and (max-width: 1000px) and (max-height: 500px) {
@@ -1483,7 +1484,7 @@ html[data-home="next"] #setupScreen .hn-search-clear {
     cursor: pointer;
 }
 html[data-home="next"] #setupScreen .hn-search-clear[hidden] { display: none; }
-html[data-home="next"] #setupScreen .hn-search-clear:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: -3px; }
+html[data-home="next"] #setupScreen .hn-search-clear:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: -3px; }
 html:not([data-home="next"]) .hn-search-clear, html:not([data-home="next"]) .hn-skip-link { display: none !important; }
 
 /* Skip link past the game list, shown when it has focus. */
@@ -1506,14 +1507,14 @@ html[data-home="next"] #setupScreen .hn-skip-link:focus {
     color: var(--color-on-primary);
     font-weight: 700;
     text-decoration: none;
-    outline: 3px solid var(--hn-accent);
+    outline: 3px solid var(--hn-focus);
     outline-offset: 2px;
 }
 
 /* Focus rings that read on every card, the selected one included. */
-html[data-home="next"] #setupScreen :is(.game-card, .game-card-fav, .game-card-info, .picker-chip, .picker-recent-chip):focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; box-shadow: 0 0 0 5px var(--color-bg); }
+html[data-home="next"] #setupScreen :is(.game-card, .game-card-fav, .game-card-info, .picker-chip, .picker-recent-chip):focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; box-shadow: 0 0 0 5px var(--color-bg); }
 html[data-home="next"] #setupScreen .game-card.active :is(.game-card-fav, .game-card-info):focus-visible { outline-color: var(--color-on-primary); outline-offset: 0; box-shadow: 0 0 0 5px color-mix(in srgb, #000 70%, transparent); }
-html[data-home="next"] #setupScreen :is(.setup-credit a, .setup-qr a, .setup-qr):focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 3px; border-radius: 8px; }
+html[data-home="next"] #setupScreen :is(.setup-credit a, .setup-qr a, .setup-qr):focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 3px; border-radius: 8px; }
 html[data-home="next"] :is(#teamBuilderScreen h1, #settingsModal h2)[tabindex="-1"]:focus { outline: none; }
 
 /* While typing with an on-screen keyboard up, the Start bar steps aside.
@@ -1588,7 +1589,7 @@ html[data-home="next"] #teamBuilderScreen .team-zone-member > label { grid-colum
 
 /* Customize from the home screen: full-size colour swatches. */
 html[data-home="next"] #settingsModal .hn-dialog .theme-swatch { min-width: 44px; }
-html[data-home="next"] #settingsModal .hn-dialog .wallpaper-upload-btn:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #settingsModal .hn-dialog .wallpaper-upload-btn:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 /* Two columns: the library has the left column to itself and stays in view
    while everything else scrolls by on the right. Nothing sits under it, so it
    can never slide over another card. */
@@ -1618,7 +1619,7 @@ html[data-home="next"] #teamBuilderScreen .hn-zone-put {
     font-weight: 700;
     cursor: pointer;
 }
-html[data-home="next"] #teamBuilderScreen .hn-zone-put:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #teamBuilderScreen .hn-zone-put:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 html:not([data-home="next"]) .hn-zone-put, html:not([data-home="next"]) .hn-all-games { display: none !important; }
 
 /* Wide screens: the library ends 16px above the bottom of the window, at
@@ -1656,7 +1657,7 @@ html:not([data-home="next"]) .hn-zone-put, html:not([data-home="next"]) .hn-all-
         cursor: pointer;
     }
     html[data-home="next"] #setupScreen .hn-all-games[hidden] { display: none; }
-    html[data-home="next"] #setupScreen .hn-all-games:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+    html[data-home="next"] #setupScreen .hn-all-games:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 }
 
 /* Game icons: one family of colour emoji, none with a frame of its own. */
@@ -1693,7 +1694,7 @@ html[data-home="next"]:not([data-menu-style]) #settingsModal .hn-dialog select {
 html[data-home="next"] #setupScreen :is(input[type="text"], input[type="search"], input[type="email"], input[type="number"], select):focus-visible,
 html[data-home="next"] #teamBuilderScreen :is(input[type="text"], select):focus-visible,
 html[data-home="next"] #settingsModal .hn-dialog :is(select, input[type="range"]):focus-visible {
-    outline: 3px solid var(--hn-accent);
+    outline: 3px solid var(--hn-focus);
     outline-offset: 2px;
 }
 
@@ -1795,7 +1796,7 @@ html[data-home="next"] .game-rules-pop[data-hn-more]::after {
     content: ""; display: block; position: sticky; bottom: -12px; height: 28px; margin: -28px -14px -12px; pointer-events: none;
     background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-surface-elevated, var(--color-surface)) 92%, var(--color-text)));
 }
-html[data-home="next"] .game-rules-pop:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] .game-rules-pop:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 /* Customize: a close button pinned to the top corner while the dialog scrolls. */
 html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-bar {
     position: sticky; top: 0; z-index: 3;
@@ -1819,7 +1820,7 @@ html[data-home="next"] #settingsModal .hn-dialog .hn-dialog-close {
     font: 600 1.125rem/1 var(--hn-font, inherit); cursor: pointer;
 }
 html[data-home="next"] #settingsModal .hn-dialog > #settingsModalTitle { padding-right: 56px; min-height: 48px; box-sizing: border-box; }
-html[data-home="next"] #settingsModal .hn-dialog .hn-dialog-close:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #settingsModal .hn-dialog .hn-dialog-close:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 /* The title only takes focus so the dialog opens at the top: no ring on it in any menu style. */
 html[data-home="next"] #settingsModal #settingsModalTitle:focus { outline: none !important; box-shadow: none !important; }
 
@@ -1915,10 +1916,10 @@ html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { border-radius:
 /* Round 8: Customize choices show the same strong focus ring as the rest of the dialog,
    set apart from the chosen item's ring by a gap. */
 html[data-home="next"] #settingsModal .hn-dialog :is(.theme-swatch, .wallpaper-choice, .score-skin-choice):focus-visible {
-    outline: 3px solid var(--hn-accent); outline-offset: 3px;
+    outline: 3px solid var(--hn-focus); outline-offset: 3px;
 }
 html[data-home="next"] #settingsModal .hn-dialog .home-layout-option:has(input:focus-visible) {
-    outline: 3px solid var(--hn-accent); outline-offset: 3px;
+    outline: 3px solid var(--hn-focus); outline-offset: 3px;
 }
 
 /* Round 8: two-column screens shorter than 950px get a one-row Start card
@@ -1985,8 +1986,8 @@ html[data-home="next"] #setupScreen #gameRecentsRow [data-quickstart] + .picker-
    accent ring as the other controls. The tabs sit in a scrolling strip with
    5px of padding, so their ring stays inside it. */
 html[data-home="next"] #settingsModal .hn-dialog #settingsCloseBtn:focus-visible,
-html[data-home="next"] #setupScreen #homeAccountLink:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 3px; }
-html[data-home="next"] #setupScreen .dev-app-nav :is(a, button):focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #setupScreen #homeAccountLink:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 3px; }
+html[data-home="next"] #setupScreen .dev-app-nav :is(a, button):focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 2px; }
 
 /* With a game to resume, Start Game names the game it starts on a second line.
    Screen readers already hear it from the match summary. */
@@ -2202,3 +2203,105 @@ html[data-home="next"] #setupScreen #startGameBtn[aria-disabled="true"] { filter
 
 /* Large text: a tab label too long for the row wraps inside its tab. */
 html[data-home="next"][data-hn-tight] #setupScreen .dev-app-nav :is(a, button) { white-space: normal; text-align: center; text-wrap: balance; max-width: 100%; }
+
+/* Large text on a narrow card: ☆ and ⓘ move below the name, so game names
+   keep whole words. Words break only when one cannot fit a line at all. */
+html[data-home="next"] #setupScreen .game-card-wrap { container: hn-card / inline-size; }
+html[data-home="next"] #setupScreen :is(.game-card-label, .game-card-sub) { overflow-wrap: break-word; }
+@container hn-card (max-width: calc(124px + 8.9rem)) {
+    html[data-home="next"] #setupScreen .game-card { grid-template-columns: min(2.5rem, 48px) minmax(0, 1fr); padding: 10px 12px 52px; }
+    html[data-home="next"] #setupScreen .game-card-icon { width: min(2.5rem, 48px); height: min(2.5rem, 48px); }
+    html[data-home="next"] #setupScreen :is(.game-card-fav, .game-card-info) { top: auto; bottom: 4px; transform: none; }
+}
+
+/* Large text on a narrow screen: the throw-order tile and its arrows on one
+   line, the name and the skill picker full width below. */
+html[data-home="next"] #setupScreen .player-order-list { container: hn-players / inline-size; }
+@container hn-players (max-width: calc(88px + 7.75rem)) {
+    html[data-home="next"] #setupScreen .player-row {
+        grid-template-columns: max(52px, 2.75rem) minmax(0, 1fr) 44px 44px;
+        grid-template-areas: 'handle . up down' 'name name name name' 'skill skill skill skill' 'suggest suggest suggest suggest';
+    }
+}
+
+/* Round 13: focus rings stand out in every theme. Crimson's and Arctic's
+   accent sits near 3:1 against their page, so their ring gets its own colour. */
+html[data-home="next"][data-theme="red"] { --hn-focus: #ff8f8f; }
+html[data-home="next"][data-theme="arctic"] { --hn-focus: #1d4fae; }
+html[data-home="next"] :is(#setupScreen, #teamBuilderScreen, #settingsModal) :focus-visible { outline-color: var(--hn-focus); }
+html[data-home="next"] #setupScreen .setup-panel:has(:focus-visible) { box-shadow: 0 0 0 2px color-mix(in srgb, var(--hn-focus) 45%, transparent), var(--hn-shadow); }
+
+/* Round 13: the Sample badge in the app tabs keeps its size on narrow phones. */
+html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { flex-shrink: 0; line-height: 1.2; white-space: nowrap; }
+
+/* Round 13: the ☰ tile scrolls the page when swiped up or down; only the
+   number and the grip pick a player up for dragging. */
+html[data-home="next"] #setupScreen .player-order-drag { touch-action: pan-y; }
+html[data-home="next"] #setupScreen .player-order-drag > span { touch-action: none; }
+@media (max-width: 340px) {
+    html[data-home="next"] #setupScreen .dev-app-nav :is(a, button):has(.feature-test-badge) { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1.1; }
+    html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: 0.625rem; padding: 0 5px; }
+}
+
+/* Round 13: Resume's lines grow with the text size, so large text never
+   cuts the second player's name. */
+html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-main { line-height: 1.2; }
+html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-names { line-height: 1.25; max-height: 2.5em; }
+@media (max-width: 720px) and (max-height: 500px), (min-width: 721px) and (max-width: 1000px) and (max-height: 560px) {
+    html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-names { line-height: 1.2; max-height: 2.4em; }
+}
+@media (max-width: 360px) {
+    html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-names { line-height: 1.25; max-height: 2.5em; }
+}
+html[data-home="next"][data-hn-tight] #setupScreen #resumeGameBtn .hn-resume-names { max-height: none; }
+
+/* Round 13: the header title measures its own width (home-next.js checks
+   whether title and buttons fit side by side). */
+html[data-home="next"] .setup-screen .setup-header-text h1 { width: max-content; max-width: 100%; }
+html[data-home="next"] .setup-screen .setup-header[data-hn-wrap] { flex-wrap: wrap; row-gap: 12px; }
+html[data-home="next"] .setup-screen .setup-header[data-hn-wrap] .setup-header-side { flex: 1 1 100%; flex-wrap: wrap; margin-left: 0; justify-content: flex-start; padding-left: calc(118px + 14px); }
+html[data-home="next"] .setup-screen .setup-header[data-hn-wrap] .setup-header-text h1 { white-space: normal; }
+/* Round 13: a narrow Start card on a wide screen puts the game above Start. */
+html[data-home="next"] #setupScreen #playSection[data-hn-stack] { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+html[data-home="next"] #setupScreen #playSection[data-hn-stack] #startGameBtn { width: 100%; white-space: normal; padding: 8px 16px; }
+html[data-home="next"] #setupScreen #playSection[data-hn-stack] :is(.setup-match-title, .home-next-summary) { overflow-wrap: break-word; }
+html[data-home="next"] #setupScreen .home-next-summary { overflow-wrap: break-word; }
+
+/* Round 13: on shorter laptops the game library stays in view too; it fits
+   the window and its list scrolls inside it. */
+@media (min-width: 721px) and (min-height: 561px) and (max-height: 819px) {
+    html[data-home="next"] #setupScreen #gamePickerSection { position: sticky; top: 16px; z-index: 1; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; scrollbar-gutter: stable; }
+}
+
+/* Round 13: Home is always blue and Away always green, whatever the theme,
+   so the two teams never look alike (Neon) or turn red and green (Crimson). */
+html[data-home="next"] #teamBuilderScreen { --hn-home: #3b8cf0; --hn-away: #34a853; }
+html[data-home="next"] #teamBuilderScreen .team-zone-member {
+    background: color-mix(in srgb, var(--hn-home) 20%, var(--color-surface));
+    border-color: color-mix(in srgb, var(--hn-home) 60%, transparent);
+    box-shadow: inset 4px 0 0 var(--hn-home);
+}
+html[data-home="next"] #teamBuilderScreen #teamZone1 .team-zone-member {
+    background: color-mix(in srgb, var(--hn-away) 18%, var(--color-surface));
+    border-color: color-mix(in srgb, var(--hn-away) 60%, transparent);
+    box-shadow: inset 4px 0 0 var(--hn-away);
+}
+/* The bot's skill picker matches the "Bot skill level" field above it. */
+html[data-home="next"] #teamBuilderScreen .team-zone-member > label { font-size: 0.875rem; font-weight: 700; }
+html[data-home="next"] #teamBuilderScreen select { padding-right: calc(max(12px, 0.75rem) + 28px); }
+/* Round 13: "Recent" sits on its own line, so wrapped chips line up. */
+html[data-home="next"] #setupScreen .picker-recents-label { flex: 0 0 100%; margin-bottom: -2px; }
+/* Round 13: the same 16px between cards across and down on wide screens. */
+@media (min-width: 1001px) {
+    html[data-home="next"] #setupScreen .setup-card { column-gap: var(--hn-gap); }
+}
+/* Round 13: "Throw order" uses the same field-label style as "Players at the board". */
+html[data-home="next"] #setupScreen .player-order-hint strong { font-size: 0.8125rem; font-weight: 700; color: var(--color-text-muted); margin: 0 0 2px; }
+html[data-home="next"] #setupScreen .player-order-hint { font-size: 0.75rem; }
+/* Round 13: in the dark Fable 5.2 and Neon dialogs the wallpaper names take
+   the dialog's own light text, not a light theme's dark text. */
+html[data-home="next"][data-menu-style="fable52"] #settingsModal .hn-dialog .wallpaper-label { color: inherit; }
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog .wallpaper-label { color: var(--nm-ink, var(--neon-ink, #f5fbff)); }
+/* Round 13: the chosen layout is marked without :has() too. */
+.home-layout-option input:checked + strong::after { content: ' \2713'; }
+#homeLayoutSection[hidden] { display: none !important; }

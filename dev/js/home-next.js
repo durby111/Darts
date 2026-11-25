@@ -395,6 +395,15 @@ function mountLayoutChoice() {
     if (done && done.parentElement === host) host.insertBefore(section, done);
     else host.append(section);
     applyLayout(document.documentElement.dataset.home);
+    // Mid-game Customize leaves the Home screen choice out. CSS does this
+    // with :has(); this also covers browsers without it.
+    const setup = byId('setupScreen');
+    const hideMidGame = () => {
+        const away = !!setup && setup.style.display === 'none';
+        if (away !== section.hidden) section.hidden = away;
+    };
+    hideMidGame();
+    if (setup) new MutationObserver(hideMidGame).observe(setup, { attributes: true, attributeFilter: ['style'] });
 }
 
 // --- Rules popover follows its card while the page scrolls -----------------
@@ -1199,6 +1208,20 @@ function mountSkipLink() {
         target?.focus();
     });
     grid.before(link);
+    // When a game has no options the section is hidden, so the link names
+    // and points at the players instead.
+    const options = byId('gameOptionsSection');
+    const label = () => {
+        const shown = options && !options.classList.contains('hidden') && options.style.display !== 'none' && options.offsetParent !== null;
+        const text = shown ? 'Skip to game options' : 'Skip to players';
+        if (link.textContent !== text) link.textContent = text;
+        link.href = shown ? '#gameOptionsSection' : '#playersSection';
+    };
+    label();
+    if (options) new MutationObserver(label).observe(options, { attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+    link.addEventListener('focus', label);
+    document.addEventListener('homelayoutchange', label);
+    byId('gameTypeGrid')?.addEventListener('click', () => later(label));
 }
 
 // --- While typing on a phone, the Start bar steps aside --------------------
@@ -1370,6 +1393,159 @@ function mountGameExpander() {
 // or 2, so the 12 themes fill whole rows) whose swatches still hold every
 // theme name on one line with room either side, in each menu style and at
 // every text size.
+
+// --- Throw order: focus follows the player, each move is read out ----------
+// setup.js moves names between the fixed rows. In the New look, after ▲ or ▼
+// focus goes to the same button in the player's new row (or the other arrow
+// there when that one is off), and every move, tap-to-place and Randomize
+// says what changed.
+
+function mountOrderA11y() {
+    const list = document.querySelector('#playersSection .player-order-list') || byId('playersSection');
+    if (!list) return;
+    const live = document.createElement('div');
+    live.id = 'homeNextOrderLive';
+    live.className = 'hn-visually-hidden';
+    live.setAttribute('aria-live', 'polite');
+    document.body.append(live);
+    const say = text => { live.textContent = ''; later(() => { live.textContent = text; }); };
+    const ord = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
+    const count = () => Number(byId('numPlayers')?.value) || 0;
+    const names = () => [1, 2, 3, 4].map(n => byId(`player${n}`)?.value.trim() || '');
+    const nameOf = (list, i) => list[i] || `Player ${i + 1}`;
+    let before = null;
+    let picked = null;
+    const area = byId('playersSection');
+    area?.addEventListener('click', event => {
+        if (!isNext()) { before = null; return; }
+        before = names();
+        const row = area.querySelector('.player-row--picked');
+        picked = row ? Number(row.querySelector('[data-player-drag-index]')?.dataset.playerDragIndex) : null;
+    }, true);
+    area?.addEventListener('click', event => {
+        if (!isNext() || !before) return;
+        const was = before;
+        const from = picked;
+        before = null;
+        const step = event.target.closest?.('[data-player-order-action]');
+        const handle = event.target.closest?.('[data-player-drag-index]');
+        const shuffle = event.target.closest?.('#randomizePlayersBtn');
+        if (step) {
+            const index = Number(step.dataset.playerIndex);
+            const dir = step.dataset.playerOrderAction;
+            const to = index + (dir === 'up' ? -1 : 1);
+            if (to < 0 || to >= count()) return;
+            say(`${nameOf(was, index)} now throws ${ord(to + 1)}`);
+            const other = dir === 'up' ? 'down' : 'up';
+            const row = byId(`player${to + 1}Group`);
+            const same = row?.querySelector(`[data-player-order-action="${dir}"]`);
+            const back = row?.querySelector(`[data-player-order-action="${other}"]`);
+            const target = same && !same.disabled ? same : back;
+            if (target && !target.disabled) later(() => target.focus({ preventScroll: false }));
+        } else if (handle && from != null) {
+            const to = Number(handle.dataset.playerDragIndex);
+            if (to !== from && names().join('\n') !== was.join('\n')) say(`${nameOf(was, from)} now throws ${ord(to + 1)}`);
+            else if (to === from) say(`${nameOf(was, from)} put back`);
+        } else if (handle) {
+            const row = area.querySelector('.player-row--picked');
+            if (row) say(`${nameOf(was, Number(handle.dataset.playerDragIndex))} picked up. Tap where they should throw.`);
+        } else if (shuffle) {
+            const now = names();
+            say(`New throw order: ${now.slice(0, count()).map((n, i) => n || `Player ${i + 1}`).join(', ')}`);
+        }
+    });
+}
+
+// --- UI scale slider says its size -------------------------------------
+// In the New look the slider reads "1.2 times" rather than a bare 1.2.
+
+function mountScaleText() {
+    const scale = byId('uiScale');
+    if (!scale) return;
+    const set = () => {
+        if (isNext()) {
+            scale.setAttribute('aria-valuetext', `${Number(scale.value).toFixed(1)} times`);
+            if (!scale.hasAttribute('aria-label')) { scale.setAttribute('aria-label', 'UI scale'); scale.dataset.hnLabel = '1'; }
+        } else {
+            scale.removeAttribute('aria-valuetext');
+            if (scale.dataset.hnLabel) { scale.removeAttribute('aria-label'); delete scale.dataset.hnLabel; }
+        }
+    };
+    set();
+    scale.addEventListener('input', set);
+    scale.addEventListener('change', set);
+    document.addEventListener('homelayoutchange', set);
+    document.querySelectorAll('#settingsBtn, #settingsBtnSetup').forEach(b => b.addEventListener('click', () => later(set)));
+}
+
+// --- Header and Start card fit their own width ---------------------------
+// On tablets and laptops large text can make the header title run into Login
+// and squeeze the one-row Start card until words break. Each one checks its
+// own room: the header puts Login and Customize on a second line, and the
+// Start card puts the game above a full-width Start. Phones already do both.
+
+function mountFitStack() {
+    const header = document.querySelector('#setupScreen .setup-header');
+    const play = byId('playSection');
+    if (!header && !play) return;
+    const shown = el => el && el.offsetParent !== null;
+    const check = () => {
+        const wide = isNext() && window.innerWidth > 720;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+        if (header) {
+            let wrap = false;
+            if (wide) {
+                const h1 = header.querySelector('h1');
+                const logo = header.querySelector('.setup-logo');
+                const side = header.querySelector('.setup-header-side');
+                const cs = getComputedStyle(header);
+                const gap = parseFloat(cs.columnGap) || 0;
+                const kids = side ? [...side.children].filter(shown) : [];
+                const sideGap = side ? parseFloat(getComputedStyle(side).columnGap) || 0 : 0;
+                const sideWidth = kids.reduce((sum, el) => sum + el.offsetWidth, 0) + sideGap * Math.max(0, kids.length - 1);
+                const need = (shown(logo) ? logo.offsetWidth + gap : 0) + (h1 ? h1.scrollWidth : 0)
+                    + (sideWidth ? sideWidth + gap : 0) + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + 8;
+                wrap = need > header.getBoundingClientRect().width;
+            }
+            if (wrap !== header.hasAttribute('data-hn-wrap')) header.toggleAttribute('data-hn-wrap', wrap);
+        }
+        if (play) {
+            const stack = wide && play.clientWidth / rem < 24;
+            if (stack !== play.hasAttribute('data-hn-stack')) play.toggleAttribute('data-hn-stack', stack);
+        }
+    };
+    let queued = false;
+    const soon = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; check(); }); };
+    check();
+    window.addEventListener('resize', soon, { passive: true });
+    ['homelayoutchange', 'hntightchange'].forEach(name => document.addEventListener(name, soon));
+    document.fonts?.ready?.then(soon);
+    if (window.ResizeObserver) {
+        const observer = new ResizeObserver(soon);
+        [header, play, header?.querySelector('h1'), header?.querySelector('.setup-header-side')].filter(Boolean).forEach(el => observer.observe(el));
+    }
+    new MutationObserver(soon).observe(document.documentElement, { attributes: true, attributeFilter: ['data-home', 'data-menu-style', 'style', 'class'] });
+}
+
+// --- Team builder: skill names start with a capital ----------------------
+// teams.js writes the bot's skill choices in lower case ("medium"); the field
+// above them says "Medium". In the New look they match; Classic keeps its own.
+
+function mountTeamSkillNames() {
+    const screen = byId('teamBuilderScreen');
+    if (!screen) return;
+    const sync = () => {
+        const next = isNext();
+        screen.querySelectorAll('select[data-bot-skill] option').forEach(option => {
+            const word = option.value;
+            const text = next ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+            if (option.textContent !== text) option.textContent = text;
+        });
+    };
+    sync();
+    new MutationObserver(sync).observe(screen, { childList: true, subtree: true });
+    document.addEventListener('homelayoutchange', sync);
+}
 
 function mountSwatchFit() {
     const picker = document.querySelector('#settingsModal .theme-picker');
@@ -1748,6 +1924,10 @@ export function initHomeNext() {
     run('quickStartFirst', mountQuickStartFirst);
     run('skillLabels', mountSkillLabels);
     run('swatchFit', mountSwatchFit);
+    run('orderA11y', mountOrderA11y);
+    run('scaleText', mountScaleText);
+    run('fitStack', mountFitStack);
+    run('teamSkillNames', mountTeamSkillNames);
     run('libraryFit', mountLibraryFit);
     run('zoom', mountZoom);
     run('gameIcons', mountGameIcons);
