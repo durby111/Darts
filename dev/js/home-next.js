@@ -126,10 +126,17 @@ function placePlayerControls(layout) {
 
 // The three numbered steps read as headings to screen readers.
 function markStepHeadings(layout) {
-    document.querySelectorAll('#setupScreen :is(#gamePickerSection, #gameOptionsSection, #playersSection) > .setup-section-label').forEach(label => {
+    // Round 17: the Start card and App Maintenance too, and the setup card is
+    // the page's main landmark.
+    document.querySelectorAll('#setupScreen :is(#gamePickerSection, #gameOptionsSection, #playersSection, #playSection, #maintenanceSection) > .setup-section-label').forEach(label => {
         if (layout === 'next') { label.setAttribute('role', 'heading'); label.setAttribute('aria-level', '2'); }
         else { label.removeAttribute('role'); label.removeAttribute('aria-level'); }
     });
+    const card = document.querySelector('#setupScreen > .setup-card');
+    if (card) {
+        if (layout === 'next') card.setAttribute('role', 'main');
+        else card.removeAttribute('role');
+    }
 }
 
 // Screen readers hear the match summary with the Start button.
@@ -486,8 +493,11 @@ function followRulesPop(event) {
     const titleEl = pop.querySelector('strong');
     if (titleEl && !titleEl.dataset.hnWbr && titleEl.textContent.includes('/')) {
         titleEl.dataset.hnWbr = '1';
-        const parts = titleEl.textContent.split('/');
-        titleEl.replaceChildren(...parts.flatMap((part, i) => i ? ['/', document.createElement('wbr'), part] : [part]));
+        // Split only the text, so the icon keeps its aria-hidden span.
+        [...titleEl.childNodes].filter(n => n.nodeType === Node.TEXT_NODE && n.data.includes('/')).forEach(node => {
+            const parts = node.data.split('/');
+            node.replaceWith(...parts.flatMap((part, i) => i ? ['/', document.createElement('wbr'), part] : [part]));
+        });
     }
     // It stays inside the column of game cards, side to side.
     const cardsBox = () => {
@@ -635,7 +645,7 @@ function mountTeamA11y() {
                 grip.className = 'hn-grip';
                 grip.setAttribute('aria-hidden', 'true');
                 grip.title = 'Drag';
-                grip.textContent = '⠿';
+                grip.textContent = '☰';
                 member.prepend(grip);
             }
             if (!remove) {
@@ -690,16 +700,27 @@ function mountTeamA11y() {
                     const who = document.createElement('span');
                     who.className = 'hn-put-name';
                     who.textContent = chosenName;
-                    put.replaceChildren('Put ', who, ` in\u00a0${zoneName(idx)}`);
+                    // The words round the name are spans of their own, so the
+                    // spaces keep their width beside it in the one-line layout.
+                    const before = document.createElement('span');
+                    before.className = 'hn-put-word';
+                    before.textContent = 'Put ';
+                    const after = document.createElement('span');
+                    after.className = 'hn-put-word';
+                    after.textContent = ` in\u00a0${zoneName(idx)}`;
+                    put.replaceChildren(before, who, after);
                     put.setAttribute('aria-label', text);
                 }
+                markCut(put);
             } else if (put) {
                 const hadFocus = put === document.activeElement;
                 put.remove();
-                const placed = justPlaced && `[data-member-id="${CSS.escape(justPlaced)}"][data-member-action="hn-remove"]`;
+                // Nobody left waiting: Start Match if it is ready, else the placed
+                // player's ⇄ (never their ✕, which a repeated press would hit).
+                const placed = justPlaced && `[data-member-id="${CSS.escape(justPlaced)}"][data-member-action="swap"]`;
                 // Escape let go of the player: focus goes back to that player's chip.
                 const back = letGo && `.team-chip[data-chip-id="${CSS.escape(letGo)}"]`;
-                if (hadFocus) focusFirst(back, '#teamTray .team-chip', placed, `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
+                if (hadFocus) focusFirst(back, '#teamTray .team-chip', '#teamStartMatchBtn:not(:disabled)', placed, '#teamAddName');
             }
         });
         // A new pick: bring the Away button into view (Home sits above it).
@@ -712,6 +733,16 @@ function mountTeamA11y() {
         }
         lastPick = pickId;
     };
+    // A name cut short ends in an ellipsis, whose own spacing would read as a
+    // double gap before "in Home"; the button is marked so CSS can close it.
+    const markCut = put => later(() => {
+        const who = put.querySelector('.hn-put-name');
+        const cut = !!who && who.scrollWidth > who.clientWidth + 1;
+        if (cut !== put.hasAttribute('data-hn-cut')) put.toggleAttribute('data-hn-cut', cut);
+    });
+    const markAllCut = () => screen.querySelectorAll('.hn-zone-put').forEach(markCut);
+    window.addEventListener('resize', markAllCut, { passive: true });
+    document.addEventListener('hntightchange', markAllCut);
     let lastPick = null;
     let justPlaced = null;
     let letGo = null;
@@ -819,7 +850,7 @@ function mountTeamA11y() {
             const active = document.activeElement;
             if (key && (!active || active === document.body || !document.contains(active))) {
                 if (key[0] === 'member') focusFirst(`[data-member-id="${CSS.escape(key[1])}"][data-member-action="${key[2]}"]`, `[data-member-id="${CSS.escape(key[1])}"][data-member-action="swap"]`);
-                else focusChip(`.team-chip[data-chip-id="${CSS.escape(key[1])}"]`, `.team-zone-member[data-zone-member-id="${CSS.escape(key[1])}"] [data-member-action="hn-remove"]`);
+                else focusChip(`.team-chip[data-chip-id="${CSS.escape(key[1])}"]`, '#teamTray .team-chip', '#teamStartMatchBtn:not(:disabled)', `.team-zone-member[data-zone-member-id="${CSS.escape(key[1])}"] [data-member-action="swap"]`);
             }
         });
     }, true);
@@ -891,8 +922,8 @@ function mountTeamA11y() {
         const placed = id && memberNode(id);
         if (placed) { justPlaced = id; say(`${name} added to ${zoneName(idx)}`); }
         else if (id) say(`${zoneName(idx)} is full`);
-        const own = placed && `[data-member-id="${CSS.escape(id)}"][data-member-action="hn-remove"]`;
-        focusFirst('#teamTray .team-chip', own, `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
+        const own = placed && `[data-member-id="${CSS.escape(id)}"][data-member-action="swap"]`;
+        focusFirst('#teamTray .team-chip', '#teamStartMatchBtn:not(:disabled)', own, '#teamAddName');
     });
     // New players and bots are read out as they join Available Players.
     const trayNames = () => [...screen.querySelectorAll('#teamTray .team-chip[data-chip-id]')].map(c => c.textContent.trim());
@@ -1706,6 +1737,14 @@ function mountTeamSkillNames() {
             const text = next ? word.charAt(0).toUpperCase() + word.slice(1) : word;
             if (option.textContent !== text) option.textContent = text;
         });
+        // Each bot's picker is named for its bot, so two bots on a team differ.
+        screen.querySelectorAll('.team-zone-member select[data-bot-skill]').forEach(select => {
+            const nameEl = select.closest('.team-zone-member')?.querySelector('.team-zone-member-name');
+            const name = nameEl && [...nameEl.childNodes].filter(n => !n.classList?.contains('team-chip-order')).map(n => n.textContent).join('').trim();
+            const label = next && name ? `${name} skill level` : null;
+            if (label && select.getAttribute('aria-label') !== label) select.setAttribute('aria-label', label);
+            else if (!label && select.hasAttribute('aria-label')) select.removeAttribute('aria-label');
+        });
     };
     sync();
     new MutationObserver(sync).observe(screen, { childList: true, subtree: true });
@@ -1751,7 +1790,8 @@ function mountSkillLabels() {
     const canvas = document.createElement('canvas');
     const level = value => value === 'auto' ? 'Auto' : value[0].toUpperCase() + value.slice(1);
     const tiers = [
-        option => null,
+        // Round 17: every level reads "BotBlake — Level" (the original says "BotBlake Auto").
+        option => `BotBlake \u2014 ${level(option.value)}`,
         option => `Bot · ${level(option.value)}`,
         option => `\u{1F916} ${level(option.value)}`,
         option => level(option.value),
@@ -1872,6 +1912,54 @@ function mountLibraryFit() {
     new MutationObserver(soon).observe(setup, { attributes: true, attributeFilter: ['style'] });
     document.addEventListener('homelayoutchange', soon);
     fit();
+}
+
+// --- Phones: a swipe on the docked Start bar scrolls the page -------------
+// On portrait phones the bar is fixed to the window, so a swipe that starts on
+// it would reach no scroller; it scrolls the setup screen instead, and a swipe
+// that ends on a button does not press it.
+
+function mountBarSwipe() {
+    const play = byId('playSection');
+    const setup = byId('setupScreen');
+    if (!play || !setup) return;
+    let start = null;
+    let moved = false;
+    let last = null;
+    const active = () => isNext() && getComputedStyle(play).position === 'fixed';
+    play.addEventListener('touchstart', event => {
+        if (event.touches.length !== 1 || !active()) { start = null; return; }
+        const t = event.touches[0];
+        start = { x: t.clientX, y: t.clientY, top: setup.scrollTop };
+        last = { y: t.clientY, time: event.timeStamp, v: 0 };
+        moved = false;
+    }, { passive: true });
+    play.addEventListener('touchmove', event => {
+        if (!start || event.touches.length !== 1) return;
+        const t = event.touches[0];
+        const dy = t.clientY - start.y;
+        if (!moved && Math.abs(dy) < 10) return;
+        if (!moved && Math.abs(t.clientX - start.x) > Math.abs(dy)) { start = null; return; }
+        moved = true;
+        setup.scrollTop = start.top - dy;
+        const dt = Math.max(1, event.timeStamp - last.time);
+        last = { y: t.clientY, time: event.timeStamp, v: (t.clientY - last.y) / dt };
+    }, { passive: true });
+    const end = () => {
+        if (!start) return;
+        start = null;
+        if (!moved) return;
+        // A short glide in the direction of a quick swipe.
+        const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        const glide = Math.max(-600, Math.min(600, -last.v * 220));
+        if (Math.abs(glide) > 24) setup.scrollBy({ top: glide, behavior: reduce ? 'auto' : 'smooth' });
+        // The click a swipe can leave behind on a button is dropped.
+        const drop = event => { event.preventDefault(); event.stopPropagation(); };
+        play.addEventListener('click', drop, { capture: true, once: true });
+        setTimeout(() => { play.removeEventListener('click', drop, { capture: true }); moved = false; }, 400);
+    };
+    play.addEventListener('touchend', end, { passive: true });
+    play.addEventListener('touchcancel', () => { start = null; moved = false; }, { passive: true });
 }
 
 // --- Pinch-zoom on the home screen -----------------------------------------
@@ -2035,7 +2123,7 @@ function mountTeamHintText() {
         if (text === 'Now tap Home or Away.') return 'Now press Put in Home or Put in Away.';
         if (/^Drag a player into Home or Away/.test(text) || /^Tap a player chip/.test(text)) return 'Tap a name, then press Put in Home or Put in Away. ✕ takes a player off a team.';
         if (/Drag or tap players into Home and Away\.$/.test(text)) return text.replace('Drag or tap players into Home and Away.', 'Tap a name, then press Put in Home or Put in Away.');
-        if (/Drag or use ▲▼ to reorder within a team; ⇄ moves a member across\.$/.test(text)) return text.replace('Drag or use ▲▼ to reorder within a team; ⇄ moves a member across.', 'Drag ⠿ or use ▲▼ to reorder; ⇄ moves a player to the other team.');
+        if (/Drag or use ▲▼ to reorder within a team; ⇄ moves a member across\.$/.test(text)) return text.replace('Drag or use ▲▼ to reorder within a team; ⇄ moves a member across.', 'Drag ☰ or use ▲▼ to reorder; ⇄ moves a player to the other team.');
         return text;
     };
     const sync = () => {
@@ -2133,6 +2221,7 @@ export function initHomeNext() {
     run('libraryFit', mountLibraryFit);
     run('zoom', mountZoom);
     run('gameIcons', mountGameIcons);
+    run('barSwipe', mountBarSwipe);
     // The rules popover is fixed to the window: keep it next to its button
     // as the page scrolls, and close it once that button leaves the screen.
     document.addEventListener('scroll', followRulesPop, { capture: true, passive: true });

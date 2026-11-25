@@ -835,7 +835,7 @@ html[data-home="next"] #setupScreen #playSection {
     html[data-home="next"] #setupScreen #playSection .setup-match-title { font-size: 1.0625rem; }
     html[data-home="next"] #setupScreen #startGameBtn { min-height: 44px; padding: 0 18px; font-size: 1.0625rem; }
 }
-html[data-home="next"] #setupScreen #playSection > .setup-section-label { display: none; }
+html[data-home="next"] #setupScreen #playSection > .setup-section-label { display: block !important; position: absolute !important; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 html[data-home="next"] #setupScreen .home-next-match { min-width: 0; }
 html[data-home="next"] #setupScreen .setup-match-title {
     margin: 0;
@@ -1863,7 +1863,7 @@ html[data-home="next"] .game-rules-pop { max-width: calc(100vw - 24px); }
 /* The list fades in at the top too once it is scrolled, so cards slide
    under the search and filters instead of being cut off hard. */
 @property --hn-fade-top { syntax: '<length>'; inherits: false; initial-value: 0px; }
-@keyframes hn-list-fade-top { from { --hn-fade-top: 0px; } 4% { --hn-fade-top: 20px; } to { --hn-fade-top: 20px; } }
+@keyframes hn-list-fade-top { from { --hn-fade-top: 0px; } 4% { --hn-fade-top: 32px; } to { --hn-fade-top: 32px; } }
 @supports (animation-timeline: scroll(self)) {
     @media (min-width: 721px) and (min-height: 820px) {
         html[data-home="next"] #setupScreen .game-grid {
@@ -2419,8 +2419,8 @@ html[data-home="next"] #teamBuilderScreen .team-zone-member > label { color: col
 html[data-home="next"] #setupScreen #gameTypeGrid:has(.picker-empty) { flex: 1 1 auto; align-content: center; }
 
 /* Round 16: "Put NAME in Home" keeps its spaces in the one-line (flex) layout. */
-html[data-home="next"] #teamBuilderScreen .hn-zone-put { column-gap: 0.28em; }
-html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put { column-gap: normal; }
+html[data-home="next"] #teamBuilderScreen .hn-zone-put > .hn-put-word { white-space: pre; flex: 0 0 auto; }
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put > .hn-put-word { white-space: normal; }
 /* Round 16: Customize at large text on small phones. The title fits beside the ✕. */
 html[data-home="next"][data-hn-tight] #settingsModal .hn-dialog > #settingsModalTitle { font-size: min(1.75rem, 9vw); overflow-wrap: anywhere; }
 /* The layout titles wrap (the check mark stays with the last word), one card per line. */
@@ -2490,3 +2490,35 @@ html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog #settin
         }
     }
 }
+/* Round 17: a bot's skill picker drops below its label when the row is too
+   narrow to show the chosen level beside it (large text, small phones). */
+html[data-home="next"] #teamBuilderScreen .team-zone-member > label { flex-wrap: wrap; row-gap: 6px; }
+html[data-home="next"] #teamBuilderScreen .team-zone-member > label select { flex: 1 1 7.5em; min-width: 0; }
+html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .hn-zone-put[data-hn-cut] > .hn-put-name + .hn-put-word { translate: -0.22em 0; }
+
+/* ---------- Round 17 ---------- */
+/* The selected favourite's gold disc has a dark ring, so it stands out on
+   bright selected cards (Sunburst, Neon, Volt) as well as dark ones. */
+html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved::before { box-shadow: 0 0 0 2px #1a1a1a; }
+/* "Throws first" takes its own team's colour (Home blue, Away green). */
+html[data-home="next"] #teamBuilderScreen #teamZone0 .team-zone-first-badge { background: color-mix(in srgb, var(--hn-home) 55%, #000); color: #fff; }
+html[data-home="next"] #teamBuilderScreen #teamZone1 .team-zone-first-badge { background: color-mix(in srgb, var(--hn-away) 55%, #000); color: #fff; }
+/* The all-bots warning wraps in even lines. */
+html[data-home="next"] #setupScreen .hn-summary-part.hn-summary-warn { text-wrap: balance; }
+/* The Sample badge is 12px, like the smallest text elsewhere. */
+html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { font-size: 0.75rem !important; }
+/* On tablets and desktops the page colour under the docked Start card runs to
+   the bottom of the window, so no card corner shows below it. */
+@media (min-width: 1001px), (min-width: 721px) and (min-height: 561px) {
+    @container scroll-state(stuck: bottom) {
+        html[data-home="next"] #setupScreen #playSection > .setup-action-row::after {
+            box-shadow: 0 0 0 12px var(--color-bg), 0 48px 0 12px var(--color-bg);
+        }
+    }
+}
+/* Customize on landscape phones: a smaller title, so the settings show. */
+@media (max-height: 480px) {
+    html[data-home="next"] #settingsModal .hn-dialog > #settingsModalTitle { font-size: 1.5rem; min-height: 44px; }
+}
+/* A field with focus has its own ring; its card does not add a second one. */
+html[data-home="next"] #setupScreen .setup-panel:has(:is(input, select, textarea):focus-visible) { box-shadow: var(--hn-shadow); }
