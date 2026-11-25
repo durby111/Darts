@@ -240,7 +240,7 @@ html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) {
 }
 html[data-home="next"] #setupScreen .dev-app-nav a[aria-current=page] { color: var(--color-on-primary); box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 45%, transparent); }
 html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { font-size: 0.6875rem; padding: 2px 6px; border-radius: 999px; }
-html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; }
+html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { display: inline-flex; flex-direction: row; align-items: center; justify-content: center; gap: 0.375em; }
 @media (max-width: 480px) {
     html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { flex: 1 0 auto; padding: 0 12px; font-size: 0.875rem; }
     html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { font-size: 0.625rem; padding: 1px 5px; }
@@ -2243,7 +2243,7 @@ html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { flex-shri
    number and the grip pick a player up for dragging. */
 html[data-home="next"] #setupScreen .player-order-drag { touch-action: pan-y; }
 html[data-home="next"] #setupScreen .player-order-drag > span { touch-action: none; }
-@media (max-width: 383px) {
+@media (max-width: 449px) {
     html[data-home="next"] #setupScreen .dev-app-nav :is(a, button):has(.feature-test-badge) { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1.1; }
     html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: 0.625rem; padding: 0 5px; }
 }
@@ -2357,7 +2357,7 @@ html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog .menu-s
 /* Fable 5.2 and Astra 6.2: the same card, label and field as the settings above it. */
 html[data-home="next"]:is([data-menu-style="fable52"], [data-menu-style="astra62"]) #settingsModal .hn-dialog .menu-style-picker { border-top: 0; padding-top: 0; }
 html[data-home="next"]:is([data-menu-style="fable52"], [data-menu-style="astra62"]) #settingsModal .hn-dialog .menu-style-picker > .hn-menu-card > label {
-    display: block; margin: 0 0 8px; font-size: 0.78rem; text-transform: uppercase;
+    display: block; margin: 0 0 8px; font-size: var(--font-sm); text-transform: uppercase;
 }
 html[data-home="next"]:is([data-menu-style="fable52"], [data-menu-style="astra62"]) #settingsModal .hn-dialog #settingsCloseBtn { margin-top: 16px; }
 html[data-home="next"][data-menu-style="fable52"] #settingsModal .hn-dialog .hn-menu-card {
@@ -2591,7 +2591,8 @@ html[data-home="next"] #setupScreen .dev-app-nav[data-hn-wrap] { flex-wrap: wrap
 html[data-home="next"] #setupScreen .dev-app-nav[data-hn-wrap] :is(a, button) { flex: 1 1 auto; min-width: min-content; white-space: normal; }
 
 /* Round 20: one even gap round "vs" in the resume names, however a name is cut. */
-html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-vs { display: inline-block; white-space: pre; }
+html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-vs { display: inline-block; white-space: normal; margin-inline: 0 0.3em; }
+html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-names { column-gap: 0.3em; }
 /* Round 20: the Quick Start bolt sits on a small dark disc, so it shows on every accent (Sunburst, Volt...). */
 html[data-home="next"] #setupScreen .picker-recent-chip.picker-quickstart > span[aria-hidden="true"] {
     display: inline-grid; place-items: center; flex: 0 0 auto; width: 1.45em; height: 1.45em; margin-inline-end: 0.4em;
@@ -2673,3 +2674,55 @@ html[data-home="next"]:not([data-hn-tight]) #setupScreen .game-card-fav { right:
 @container hngrid (max-width: 760px) {
     html[data-home="next"]:not([data-hn-tight]) #setupScreen .game-card { padding-right: 100px; }
 }
+
+/* ---------- Round 22 ---------- */
+/* Docked Start card on tablets and desktops: the page-colour cover no longer
+   ends in a hard edge. Above the card the fade softens out at the sides;
+   the same soft cover runs down beside the card and under it, the card's
+   corner cut-outs are filled, and the gap below has a soft shade where the
+   card's shadow falls. */
+@media (min-width: 1001px), (min-width: 721px) and (min-height: 561px) {
+    @container scroll-state(stuck: bottom) {
+        html[data-home="next"] #setupScreen #playSection > .setup-action-row::before {
+            left: -16px;
+            right: -16px;
+            -webkit-mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+            mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+        }
+        html[data-home="next"] #setupScreen #playSection > .setup-action-row::after {
+            --hn-r: var(--hn-radius);
+            inset: -1px -17px auto;
+            height: calc(100% + 62px);
+            border-radius: 0;
+            box-shadow: none;
+            background:
+                linear-gradient(color-mix(in srgb, #000 12%, var(--color-bg)), var(--color-bg) 28px) left bottom / 100% 60px no-repeat,
+                var(--color-bg);
+            -webkit-mask:
+                linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent) left bottom / 100% 60px no-repeat,
+                linear-gradient(to right, transparent, #000 16px, transparent 16px, transparent calc(100% - 16px), #000 calc(100% - 16px), transparent),
+                radial-gradient(circle at 100% 100%, transparent calc(var(--hn-r) - 0.5px), #000 var(--hn-r)) 16px 0 / var(--hn-r) var(--hn-r) no-repeat,
+                radial-gradient(circle at 0 100%, transparent calc(var(--hn-r) - 0.5px), #000 var(--hn-r)) calc(100% - 16px) 0 / var(--hn-r) var(--hn-r) no-repeat,
+                radial-gradient(circle at 100% 0, transparent calc(var(--hn-r) - 0.5px), #000 var(--hn-r)) 16px calc(100% - 60px) / var(--hn-r) var(--hn-r) no-repeat,
+                radial-gradient(circle at 0 0, transparent calc(var(--hn-r) - 0.5px), #000 var(--hn-r)) calc(100% - 16px) calc(100% - 60px) / var(--hn-r) var(--hn-r) no-repeat;
+            mask:
+                linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent) left bottom / 100% 60px no-repeat,
+                linear-gradient(to right, transparent, #000 16px, transparent 16px, transparent calc(100% - 16px), #000 calc(100% - 16px), transparent),
+                radial-gradient(circle at 100% 100%, transparent calc(var(--hn-r) - 0.5px), #000 var(--hn-r)) 16px 0 / var(--hn-r) var(--hn-r) no-repeat,
+                radial-gradient(circle at 0 100%, transparent calc(var(--hn-r) - 0.5px), #000 var(--hn-r)) calc(100% - 16px) 0 / var(--hn-r) var(--hn-r) no-repeat,
+                radial-gradient(circle at 100% 0, transparent calc(var(--hn-r) - 0.5px), #000 var(--hn-r)) 16px calc(100% - 60px) / var(--hn-r) var(--hn-r) no-repeat,
+                radial-gradient(circle at 0 0, transparent calc(var(--hn-r) - 0.5px), #000 var(--hn-r)) calc(100% - 16px) calc(100% - 60px) / var(--hn-r) var(--hn-r) no-repeat;
+        }
+    }
+}
+/* Landscape phones with a game to resume (normal text): the title and the
+   two short name lines sit as one block in the middle of the button, and
+   the second line starts with "vs" flush, never with a blank. */
+@media (max-width: 720px) and (max-height: 500px), (min-width: 721px) and (max-width: 1000px) and (max-height: 560px) {
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:not([data-hn-compact]):has(#resumeGameBtn:not(.hidden)) #resumeGameBtn { justify-content: center; }
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen #playSection:not([data-hn-compact]) #resumeGameBtn .hn-resume-names { display: grid !important; grid-template-columns: minmax(0, max-content); justify-content: start; justify-items: start; text-align: start; }
+}
+/* The hover pad behind ☆ and ⓘ is round, like the favourite's disc. */
+html[data-home="next"] #setupScreen :is(.game-card-fav, .game-card-info) { border-radius: 50%; }
+/* The Put button's name is shortened in script, so the browser adds no "…" of its own. */
+html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .hn-zone-put .hn-put-name { text-overflow: clip; }

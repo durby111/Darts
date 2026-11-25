@@ -833,6 +833,18 @@ function mountTeamA11y() {
     const memberNode = id => screen.querySelector(`.team-zone-member[data-zone-member-id="${CSS.escape(id)}"]`);
     const zoneName = idx => byId(`teamZone${idx}Label`)?.textContent.trim() || (idx ? 'Away' : 'Home');
     const zoneOf = id => { const m = memberNode(id); return m ? Number(m.dataset.zoneIdx) : null; };
+    // Randomize and Load last change the whole line-up at once: read it out.
+    const lineup = () => {
+        const parts = [0, 1].map(idx => {
+            const names = [...(byId(`teamZone${idx}`)?.querySelectorAll('.team-zone-member') || [])].map(nameIn).filter(Boolean);
+            return `${zoneName(idx)}: ${names.length ? names.join(', ') : 'nobody yet'}.`;
+        });
+        return `${parts.join(' ')} ${zoneName(byId('teamZone1')?.classList.contains('first') ? 1 : 0)} throws first.`;
+    };
+    ['teamRandomizeBtn', 'teamLoadLastBtn'].forEach(id => byId(id)?.addEventListener('click', () => {
+        if (!isNext()) return;
+        later(() => say(id === 'teamRandomizeBtn' ? `New team order. ${lineup()}` : `Last team setup loaded. ${lineup()}`));
+    }));
     byId('teamSwapFirstBtn')?.addEventListener('click', () => {
         if (!isNext()) return;
         later(() => say(`${zoneName(byId('teamZone1')?.classList.contains('first') ? 1 : 0)} throws first`));
@@ -905,6 +917,7 @@ function mountTeamA11y() {
                     const who = document.createElement('span');
                     who.className = 'hn-put-name';
                     who.textContent = chosenName;
+                    who.dataset.full = chosenName;
                     // The words round the name are spans of their own, so the
                     // spaces keep their width beside it in the one-line layout.
                     const before = document.createElement('span');
@@ -940,24 +953,47 @@ function mountTeamA11y() {
     };
     // A name cut short ends in an ellipsis, whose own spacing would read as a
     // double gap before "in Home"; the button is marked so CSS can close it.
+    // The name is shortened here, letter by letter, so the "…" is the last
+    // thing in its box and the gap before "in Home" is always the same.
+    // (The button's spoken name is its aria-label, with the whole name.)
+    // Everything is measured without touching the page, and the name is
+    // written only when the shortened text really changes, so redrawing the
+    // button never sets off another round of measuring.
+    const measure = document.createElement('canvas').getContext('2d');
+    const px = value => parseFloat(value) || 0;
     const markCut = put => later(() => {
         const who = put.querySelector('.hn-put-name');
-        if (!who) return;
-        // The name is shortened here, letter by letter, so the "…" is the last
-        // thing in its box and the gap before "in Home" is always the same.
-        // (The button's spoken name is its aria-label, with the whole name.)
+        if (!who || !put.isConnected) return;
         const full = who.dataset.full ?? who.textContent;
-        who.dataset.full = full;
-        if (who.textContent !== full) who.textContent = full;
-        const room = who.clientWidth;
-        const cut = isNext() && !document.documentElement.hasAttribute('data-hn-tight') && who.scrollWidth > room + 1;
-        if (cut) {
-            const chars = [...full];
-            const fits = k => { who.textContent = chars.slice(0, k).join('').trimEnd() + '\u2026'; return who.scrollWidth <= room + 0.5; };
-            let lo = 1, hi = chars.length - 1;
-            while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (fits(mid)) lo = mid; else hi = mid - 1; }
-            fits(lo);
+        if (who.dataset.full !== full) who.dataset.full = full;
+        let text = full;
+        if (isNext() && !document.documentElement.hasAttribute('data-hn-tight') && measure) {
+            const zone = put.parentElement;
+            const zcs = getComputedStyle(zone);
+            const pcs = getComputedStyle(put);
+            // The button is centred with auto side margins, so it may use the zone's whole width.
+            const avail = zone.clientWidth - px(zcs.paddingLeft) - px(zcs.paddingRight);
+            let room = avail - px(pcs.paddingLeft) - px(pcs.paddingRight) - px(pcs.borderLeftWidth) - px(pcs.borderRightWidth);
+            for (const el of put.children) {
+                if (el === who) continue;
+                const ecs = getComputedStyle(el);
+                room -= el.getBoundingClientRect().width + px(ecs.marginLeft) + px(ecs.marginRight);
+            }
+            const wcs = getComputedStyle(who);
+            room -= px(wcs.marginLeft) + px(wcs.marginRight) + px(wcs.paddingLeft) + px(wcs.paddingRight) + 1;
+            measure.font = `${wcs.fontStyle} ${wcs.fontWeight} ${wcs.fontSize} ${wcs.fontFamily}`;
+            const spacing = px(wcs.letterSpacing);
+            const width = str => measure.measureText(str).width + spacing * [...str].length;
+            if (width(full) > room) {
+                const chars = [...full];
+                const shortened = k => chars.slice(0, k).join('').trimEnd() + '\u2026';
+                let lo = 1, hi = chars.length - 1;
+                while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (width(shortened(mid)) <= room) lo = mid; else hi = mid - 1; }
+                text = shortened(lo);
+            }
         }
+        if (who.textContent !== text) who.textContent = text;
+        const cut = text !== full;
         if (cut !== put.hasAttribute('data-hn-cut')) put.toggleAttribute('data-hn-cut', cut);
     });
     const markAllCut = () => screen.querySelectorAll('.hn-zone-put').forEach(markCut);
@@ -1175,7 +1211,11 @@ function mountTeamA11y() {
         if (open === wasOpen) return;
         wasOpen = open;
         if (!isNext()) return;
-        if (open && heading) { heading.tabIndex = -1; later(() => heading.focus()); }
+        if (open && heading) {
+            heading.tabIndex = -1;
+            // Not if someone has already started in a field of the builder.
+            later(() => { const a = document.activeElement; if (!a || a === document.body || !screen.contains(a) || !a.getClientRects().length) heading.focus(); });
+        }
         else if (!open) {
             heading?.removeAttribute('tabindex');
             later(() => {
@@ -1936,7 +1976,18 @@ function mountBackFocus() {
         if (!now || !isNext()) return;
         later(() => {
             const active = document.activeElement;
-            if (back.getClientRects().length && (!active || active === document.body || !active.getClientRects().length)) back.focus({ preventScroll: true });
+            if (!back.getClientRects().length || !(!active || active === document.body || !active.getClientRects().length)) return;
+            back.focus({ preventScroll: true });
+            // Bring it fully into view: below the top of the window and
+            // clear of the docked Start bar.
+            const r = back.getBoundingClientRect();
+            const bar = byId('playSection');
+            const barTop = bar && !bar.contains(back) ? bar.getBoundingClientRect().top : innerHeight;
+            const bottom = Math.min(innerHeight, barTop > r.top ? barTop : innerHeight) - 8;
+            const delta = r.top < 8 ? r.top - 8 : r.bottom > bottom ? Math.min(r.bottom - bottom, r.top - 8) : 0;
+            if (!delta) return;
+            const scroller = screen.scrollHeight > screen.clientHeight + 1 ? screen : document.scrollingElement;
+            scroller.scrollTop += delta;
         });
     }).observe(back, { attributes: true, attributeFilter: ['class'] });
 }
