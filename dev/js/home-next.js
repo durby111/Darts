@@ -1260,6 +1260,8 @@ function mountTeamA11y() {
             }
             for (const [id, was] of before.members) if (!after.members.has(id)) text = `${was.name} is back in Available Players`;
             if (!text && after.chip && after.chip !== before.chip) text = `${after.chipName} chosen. Now pick Home or Away.`;
+            // Tapping the chosen chip again lets it go, and says so, as Enter or Escape does.
+            if (!text && before.chip && !after.chip && before.chipName) text = `${before.chipName} not chosen`;
             if (text) say(text);
             const active = document.activeElement;
             if (key && (!active || active === document.body || !document.contains(active))) {
@@ -2228,6 +2230,10 @@ function mountFitStack() {
                     + (sideWidth ? sideWidth + gap : 0) + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + 8;
                 wrap = need > header.getBoundingClientRect().width;
                 header.style.setProperty('--hn-side-indent', `${shown(logo) ? logo.offsetWidth + gap : 0}px`);
+            } else if (header.style.getPropertyValue('--hn-side-indent')) {
+                // Leaving the New look (or its one-row header) leaves nothing behind.
+                header.style.removeProperty('--hn-side-indent');
+                if (header.getAttribute('style') === '') header.removeAttribute('style');
             }
             if (wrap !== header.hasAttribute('data-hn-wrap')) header.toggleAttribute('data-hn-wrap', wrap);
         }
