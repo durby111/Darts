@@ -882,7 +882,7 @@ html[data-home="next"] #setupScreen #resumeGameBtn {
 @media (max-width: 720px) {
     html[data-home="next"] #setupScreen #playSection { gap: 12px; }
 
-    html[data-home="next"] #setupScreen .setup-match-title { font-size: clamp(16px, 4.9vw, 19px); }
+    html[data-home="next"] #setupScreen .setup-match-title { font-size: clamp(1rem, 4.9vw, 1.1875rem); }
     html[data-home="next"] #setupScreen #startGameBtn { min-height: 52px; padding: 0 18px; }
 }
 
@@ -968,7 +968,7 @@ html[data-home="next"]:not([data-menu-style]):not(:has(#setupScreen[style*="none
 }
 
 /* No search results: hide the selected game's description under the message. */
-html[data-home="next"] #setupScreen .game-grid:has(.picker-empty) ~ .picker-description { display: none; }
+html[data-home="next"] #setupScreen #gamePickerSection:has(.picker-empty) .picker-description { display: none; }
 html[data-home="next"] #setupScreen .picker-empty { padding: 18px 8px; color: var(--color-text-muted); font-size: 0.9375rem; text-align: center; }
 
 /* Favourite star: outline when off, filled when on. */
@@ -1383,7 +1383,7 @@ html[data-home="next"] #setupScreen .game-card.active .game-card-icon { color: v
         }
         html[data-home="next"] #setupScreen #playSection > .setup-action-row::before {
             bottom: calc(100% + 1px);
-            height: 28px;
+            height: 16px;
             background: linear-gradient(color-mix(in srgb, var(--color-bg) 0%, transparent), color-mix(in srgb, var(--color-bg) 75%, transparent) 55%, var(--color-bg));
         }
         html[data-home="next"] #setupScreen #playSection > .setup-action-row::after {
@@ -1569,7 +1569,7 @@ html[data-home="next"] #settingsModal .hn-dialog .wallpaper-upload-btn:focus-vis
 /* Two columns: the library has the left column to itself and stays in view
    while everything else scrolls by on the right. Nothing sits under it, so it
    can never slide over another card. */
-@media (min-width: 721px) and (min-height: 700px) {
+@media (min-width: 721px) and (min-height: 820px) {
     html[data-home="next"] #setupScreen #gamePickerSection { position: sticky; top: 16px; z-index: 1; }
 }
 
@@ -1600,7 +1600,7 @@ html:not([data-home="next"]) .hn-zone-put, html:not([data-home="next"]) .hn-all-
 
 /* Wide screens: the library ends 16px above the bottom of the window, at
    rest and while it stays in view; its list takes whatever room is left. */
-@media (min-width: 721px) and (min-height: 700px) {
+@media (min-width: 721px) and (min-height: 820px) {
     html[data-home="next"] #setupScreen #gamePickerSection {
         display: flex;
         flex-direction: column;
@@ -1613,7 +1613,7 @@ html:not([data-home="next"]) .hn-zone-put, html:not([data-home="next"]) .hn-all-
 
 /* Phones and short screens: a short list in the page, then "Show all games". */
 .hn-all-games { display: none; }
-@media (max-width: 720px), (max-width: 1000px) and (max-height: 560px) {
+@media (max-width: 720px), (max-width: 1000px) and (max-height: 560px), (max-height: 819px) {
     html[data-home="next"] #setupScreen #gamePickerSection .game-grid { max-height: none; overflow: visible; -webkit-mask-image: none; mask-image: none; animation: none; }
     html[data-home="next"] #setupScreen #gamePickerSection[data-hn-games="few"] .game-grid > .game-card-wrap:nth-child(n+6):not(:has(.game-card.active)) { display: none; }
     html[data-home="next"] #setupScreen .hn-all-games {
@@ -1694,7 +1694,6 @@ html[data-home="next"] #settingsModal .hn-dialog .wallpaper-upload-btn { display
 
 /* Small phones: the bar summary keeps to two lines, and Start to one. */
 @media (max-width: 360px) {
-    html[data-home="next"] #setupScreen .hn-summary-row > :nth-child(n+4) { display: none; }
     html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) #startGameBtn { white-space: nowrap; font-size: 0.9375rem; overflow-wrap: normal; }
 }
 
@@ -1711,3 +1710,154 @@ html[data-home="next"] .setup-screen .setup-subtitle::first-letter { text-transf
 html[data-home="next"] .setup-screen .setup-subtitle::after { color: inherit; opacity: 0.85; }
 html[data-home="next"] #setupScreen .setup-section-label,
 html[data-home="next"] #setupScreen .setup-section-label::after { text-wrap: pretty; }
+
+/* ---------- Round 7 ---------- */
+/* Summary parts move to their own line first, and only wrap inside when a
+   part alone is wider than the space (very large text). */
+html[data-home="next"] #setupScreen .home-next-summary .hn-summary-part { white-space: normal; min-width: 0; }
+
+/* Phone tabs keep their whole label: when the three no longer fit on one
+   row, the last moves to a second row instead of overlapping. */
+@media (max-width: 480px) {
+    html[data-home="next"] #setupScreen .dev-app-nav { flex-wrap: wrap; overflow-x: visible; }
+    html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { min-width: min-content; }
+}
+
+/* Large text (narrower than 19em): stack what sat side by side. */
+html[data-home="next"][data-hn-tight] #setupScreen .dev-app-nav { flex-wrap: wrap; overflow-x: visible; }
+html[data-home="next"][data-hn-tight] #setupScreen .dev-app-nav :is(a, button) { flex: 1 1 auto; min-width: min-content; }
+html[data-home="next"][data-hn-tight] .setup-screen .setup-header-side { flex-wrap: wrap; min-width: 0; max-width: 100%; }
+html[data-home="next"][data-hn-tight] .setup-screen .setup-header-side > * { max-width: 100%; }
+html[data-home="next"][data-hn-tight] #setupScreen #playSection { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+html[data-home="next"][data-hn-tight] #setupScreen #startGameBtn { width: 100%; white-space: normal; }
+html[data-home="next"][data-hn-tight] #setupScreen .setup-match-title { white-space: normal; }
+
+/* Team rows: a swipe on the row scrolls the page; drag from the grip. */
+html[data-home="next"] #teamBuilderScreen .team-zone-member { touch-action: pan-y; cursor: default; grid-template-columns: 32px minmax(0, 1fr) repeat(4, 44px); }
+html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip {
+    grid-column: 1; grid-row: 1;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 44px; margin-left: -4px;
+    font-size: 1.25rem; line-height: 1;
+    color: currentColor; opacity: 0.6;
+    cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+html[data-home="next"] #teamBuilderScreen .team-zone-member-name { grid-column: 2; }
+html[data-home="next"] #teamBuilderScreen .team-zone-member-swap-btn { grid-column: 3; }
+html[data-home="next"] #teamBuilderScreen .team-zone-member [data-member-action="up"] { grid-column: 4; }
+html[data-home="next"] #teamBuilderScreen .team-zone-member [data-member-action="down"] { grid-column: 5; }
+html[data-home="next"] #teamBuilderScreen .team-zone-member .hn-member-remove { grid-column: 6; }
+@container (max-width: 420px) {
+    html[data-home="next"] #teamBuilderScreen .team-zone-member { grid-template-columns: 32px minmax(0, 1fr) repeat(4, 44px); }
+    html[data-home="next"] #teamBuilderScreen .team-zone-member-name { grid-column: 1 / -1; grid-row: 1; }
+    html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { grid-row: 2; }
+}
+
+/* iOS zooms into fields under 16px. */
+html[data-home="next"] #teamBuilderScreen #teamAddName { font-size: 1rem; }
+/* Long rules: a fade while more text is below, and a focus ring when tabbed into. */
+/* More text below: the bottom fades into the popover's own colour, so nothing behind it shows through. */
+html[data-home="next"] .game-rules-pop[data-hn-more]::after {
+    content: ""; display: block; position: sticky; bottom: -12px; height: 28px; margin: -28px -14px -12px; pointer-events: none;
+    background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-surface-elevated, var(--color-surface)) 92%, var(--color-text)));
+}
+html[data-home="next"] .game-rules-pop:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+/* Customize: a close button pinned to the top corner while the dialog scrolls. */
+html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-close {
+    position: relative; float: right; z-index: 1;
+    width: 44px; height: 44px; margin: -6px -8px 0 8px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--hn-line, rgba(255,255,255,.14)); border-radius: 999px;
+    background: var(--color-surface, #1e1e1e); color: var(--color-text);
+    font: 600 1.125rem/1 var(--hn-font, inherit); cursor: pointer;
+}
+html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-close:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+/* The title only takes focus so the dialog opens at the top: no ring on it in any menu style. */
+html[data-home="next"] #settingsModal #settingsModalTitle:focus { outline: none !important; box-shadow: none !important; }
+
+/* One type family for every control in the New look. */
+html[data-home="next"] :is(#setupScreen, #teamBuilderScreen) :is(button, input, select, textarea, a.btn, .picker-chip, .picker-recent-chip),
+html[data-home="next"] #settingsModal .hn-dialog :is(button, input, select, textarea, label.btn) { font-family: var(--hn-font); }
+/* Login and Customize: one button style. */
+html[data-home="next"] .setup-screen :is(.home-account-link, .setup-header-side .settings-gear) {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-height: 44px; padding: 0 16px; border-radius: 999px;
+    border: 1px solid #ffffff40; background: #ffffff1a; color: #fff;
+    font: 700 0.875rem/1.2 var(--hn-font); text-decoration: none; white-space: nowrap;
+}
+@media (hover: hover) { html[data-home="next"] .setup-screen :is(.home-account-link, .setup-header-side .settings-gear):hover { background: #ffffff2e; } }
+
+/* "Jump back in": Quick Start and recent games, above the search. */
+html[data-home="next"] #setupScreen .picker-recents {
+    flex-wrap: wrap; overflow: visible;
+    margin: 0 0 12px; padding: 8px 10px;
+    border: 1px solid var(--hn-line); border-radius: 14px;
+    background: var(--hn-tint);
+}
+html[data-home="next"] #setupScreen .picker-recent-chip.picker-quickstart {
+    background: var(--color-primary); border-color: var(--color-primary); color: var(--color-on-primary);
+}
+/* The chosen game's description sits right above the list. */
+html[data-home="next"] #setupScreen .picker-description { margin: 0 0 12px; }
+
+/* Customize: chosen cards all look alike (accent title), and a soft divider. */
+html[data-home="next"] #settingsModal .hn-dialog .home-layout-option:has(input:checked) strong { color: var(--color-primary-light, var(--color-primary)); }
+html[data-home="next"]:not([data-menu-style]) #settingsModal .hn-dialog .menu-style-picker { border-top-color: var(--hn-line); }
+
+/* Rules popover keeps the 12px page gutter. */
+html[data-home="next"] .game-rules-pop { max-width: calc(100vw - 24px); }
+
+/* The list fades in at the top too once it is scrolled, so cards slide
+   under the search and filters instead of being cut off hard. */
+@property --hn-fade-top { syntax: '<length>'; inherits: false; initial-value: 0px; }
+@keyframes hn-list-fade-top { from { --hn-fade-top: 0px; } 4% { --hn-fade-top: 20px; } to { --hn-fade-top: 20px; } }
+@supports (animation-timeline: scroll(self)) {
+    @media (min-width: 721px) and (min-height: 820px) {
+        html[data-home="next"] #setupScreen .game-grid {
+            -webkit-mask-image: linear-gradient(transparent, #000 var(--hn-fade-top), #000 calc(100% - var(--hn-fade)), transparent);
+            mask-image: linear-gradient(transparent, #000 var(--hn-fade-top), #000 calc(100% - var(--hn-fade)), transparent);
+            animation: hn-list-fade linear both, hn-list-fade-top linear both;
+            animation-timeline: scroll(self), scroll(self);
+        }
+    }
+}
+/* Narrow cards: ★ and ⓘ sit closer, so names keep more room. */
+@container hngrid (max-width: 760px) {
+    html[data-home="next"] #setupScreen .game-card { padding-right: 94px; }
+    html[data-home="next"] #setupScreen .game-card-fav { right: 46px; }
+}
+html[data-home="next"] #setupScreen .game-card-label { text-wrap: balance; }
+/* Short laptops with two columns: six games, so both columns end level. */
+@media (min-width: 721px) and (max-height: 819px) {
+    html[data-home="next"] #setupScreen #gamePickerSection[data-hn-games="few"] .game-grid > .game-card-wrap:nth-child(6):not(:has(.game-card.active)) { display: block; }
+}
+/* Docked Start: square bottom corners so the card behind it lines up, and a shorter fade. */
+html[data-home="next"] #setupScreen #playSection.hn-docked { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+html[data-home="next"] #setupScreen #gameTypeGrid { container: hngrid / inline-size; }
+/* Resume: in short landscape each player gets a line too, in smaller type;
+   on small phones the names step down a size so they fit whole. */
+@media (max-width: 720px) and (max-height: 500px), (min-width: 721px) and (max-width: 1000px) and (max-height: 560px) {
+    html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) #resumeGameBtn { height: auto; min-height: 44px; padding: 3px 10px; }
+    html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-names { flex-wrap: wrap; justify-content: flex-start; max-height: 28px; font-size: 0.75rem; line-height: 14px; }
+}
+@media (max-width: 360px) {
+    html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-names { font-size: 0.75rem; line-height: 15px; max-height: 30px; }
+}
+/* Jump back in: one row that scrolls sideways when it can't fit. */
+html[data-home="next"] #setupScreen .picker-recents { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; }
+@media (max-width: 360px) {
+    html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) .setup-action-row { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); }
+    html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) #resumeGameBtn { padding-left: 6px; padding-right: 6px; }
+    html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) #startGameBtn { padding-left: 8px; padding-right: 8px; font-size: 0.875rem; }
+}
+/* One radius scale: 18 for cards and the header strip, 14 for items inside
+   them (games, players, teams, big buttons), 12 for controls. */
+html[data-home="next"] .setup-screen .setup-header,
+html[data-home="next"] #setupScreen .dev-app-nav { border-radius: var(--hn-radius); }
+html[data-home="next"] #setupScreen :is(.game-card, .player-row, #startGameBtn, #backToGameBtn),
+html[data-home="next"] #teamBuilderScreen :is(.team-zone, #teamStartMatchBtn) { border-radius: 14px; }
+html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { border-radius: 13px; }
+/* The DEV tag in the corner never sits on the team builder card. */
+@media (max-width: 720px) {
+    html[data-home="next"] #teamBuilderScreen .setup-card { margin-top: 26px; }
+}

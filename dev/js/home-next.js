@@ -60,6 +60,24 @@ function placeSections(layout) {
     const putAfter = (anchor, el) => { if (anchor && el && anchor.nextElementSibling !== el) anchor.after(el); };
     putAfter(presets, recording);
     putAfter(recording || presets, play);
+    // Game card: "Jump back in" (Quick Start and recent games) above the
+    // search, and the chosen game's description right above the list.
+    const toolbar = document.querySelector('#gamePickerSection .picker-toolbar');
+    const chips = byId('gameCategoryChips');
+    const recents = byId('gameRecentsRow');
+    const grid = byId('gameTypeGrid');
+    const desc = byId('gameDescription');
+    const select = byId('gameType');
+    // Each moves with the line break in front of it, so Classic's markup comes
+    // back exactly as it was.
+    const withGap = el => (el.previousSibling?.nodeType === 3 && !el.previousSibling.textContent.trim() ? [el.previousSibling, el] : [el]);
+    if (layout === 'next') {
+        if (toolbar && recents && toolbar.previousElementSibling !== recents) toolbar.before(...withGap(recents));
+        if (grid && desc && grid.previousElementSibling !== desc) grid.before(...withGap(desc));
+    } else {
+        if (chips && recents && chips.nextElementSibling !== recents) chips.after(...withGap(recents));
+        if (grid && desc && grid.nextElementSibling !== desc) grid.after(...withGap(desc));
+    }
     if (layout === 'next') {
         let anchor = play;
         for (const el of [help, maintenance, roster]) {
@@ -144,7 +162,10 @@ function summaryText() {
         parts.push(count === 1 ? '1 player' : `${count} players`);
         const bots = [1, 2, 3, 4].slice(0, count)
             .filter(n => (byId(`player${n}Skill`)?.value || 'off') !== 'off').length;
-        if (bots) parts.push(bots === 1 ? '1 BotBlake' : `${bots} BotBlakes`);
+        const short = document.documentElement.hasAttribute('data-hn-tight') || window.matchMedia?.('(max-width: 360px)').matches;
+        // "4 players · all BotBlake" reads better than "4 BotBlakes".
+        if (bots && bots === count && count > 1) parts.push(short ? 'all bots' : 'all BotBlake');
+        else if (bots) parts.push(short ? (bots === 1 ? '1 bot' : `${bots} bots`) : (bots === 1 ? '1 BotBlake' : `${bots} BotBlakes`));
     }
     const finish = byId('finishType');
     // 121 always plays double out, whatever the dropdown says.
@@ -187,6 +208,8 @@ function mountSummary() {
         }));
     };
     document.addEventListener('change', () => later(update), true);
+    document.addEventListener('hntightchange', update);
+    window.matchMedia?.('(max-width: 360px)').addEventListener?.('change', update);
     update();
 }
 
@@ -340,11 +363,38 @@ function mountLayoutChoice() {
 
 // --- Rules popover follows its card while the page scrolls -----------------
 
+function markRulesEnd(pop) {
+    const end = !pop.hasAttribute('tabindex') || pop.scrollTop + pop.clientHeight >= pop.scrollHeight - 2;
+    pop.toggleAttribute('data-hn-more', !end);
+}
+// Tab from an open ⓘ goes into its scrollable rules; Tab from the rules goes
+// on to whatever follows the ⓘ, and Shift+Tab goes back to the ⓘ.
+function rulesTab(event) {
+    if (event.key !== 'Tab' || !isNext()) return;
+    const pop = byId('gameRulesPop');
+    if (!pop || !pop.hasAttribute('tabindex')) return;
+    const button = [...document.querySelectorAll('[data-rules-toggle]')].find(el => el.dataset.rulesToggle === pop.dataset.gameId);
+    if (!button) return;
+    if (document.activeElement === button && !event.shiftKey) {
+        event.preventDefault();
+        pop.focus();
+    } else if (document.activeElement === pop) {
+        event.preventDefault();
+        if (event.shiftKey) { button.focus(); return; }
+        const all = [...document.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+            .filter(el => el !== pop && !el.disabled && el.offsetParent !== null && el.tabIndex >= 0);
+        const after = all.find(el => button.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING && !button.contains(el));
+        pop.remove();
+        syncRulesExpanded();
+        (after || button).focus();
+    }
+}
+
 function followRulesPop(event) {
     const pop = byId('gameRulesPop');
     if (!pop || !isNext()) return;
-    // Scrolling the popover's own text moves nothing.
-    if (event?.target === pop) return;
+    // Scrolling the popover's own text moves nothing, but updates its fade.
+    if (event?.target === pop) { markRulesEnd(pop); return; }
     const id = pop.dataset.gameId;
     const button = id && [...document.querySelectorAll('[data-rules-toggle]')]
         .find(el => el.dataset.rulesToggle === id);
@@ -365,8 +415,10 @@ function followRulesPop(event) {
     const visTop = Math.max(0, list ? list.top : 0) - 2;
     const visBottom = Math.min(window.innerHeight, list ? list.bottom : window.innerHeight, barTop) + 2;
     if (!anchor.width || anchor.top < visTop || anchor.bottom > visBottom) { close(); return; }
-    const margin = 8;
-    const floor = Math.min(window.innerHeight, barTop) - margin;
+    const margin = 12;
+    // While the rules are open the Start bar isn't needed: the popover may
+    // run over it, so long rules get the whole height of the window.
+    const floor = window.innerHeight - margin;
     // Below the button if it fits, otherwise above; if neither fits, the
     // larger side with the text scrolling, so it never covers its button.
     pop.style.maxHeight = '';
@@ -379,6 +431,11 @@ function followRulesPop(event) {
     const room = side === 'below' ? below : above;
     const height = Math.min(box.height, Math.max(48, room));
     if (height < box.height) { pop.style.maxHeight = `${Math.floor(height)}px`; pop.style.overflowY = 'auto'; }
+    // Text that still doesn't fit can be reached from the keyboard (Tab from
+    // its ⓘ moves into it) and shows a fade while more is below.
+    if (height < box.height) { pop.tabIndex = 0; if (!pop.hasAttribute('aria-label')) pop.setAttribute('aria-label', 'Rules, scrollable'); }
+    else { pop.removeAttribute('tabindex'); pop.removeAttribute('aria-label'); }
+    markRulesEnd(pop);
     let left = anchor.left + anchor.width / 2 - box.width / 2;
     left = Math.max(margin, Math.min(left, window.innerWidth - box.width - margin));
     const top = side === 'below' ? anchor.bottom + 8 : anchor.top - 8 - height;
@@ -485,7 +542,17 @@ function mountTeamA11y() {
         const next = isNext();
         screen.querySelectorAll('.team-zone-member').forEach(member => {
             let remove = member.querySelector('[data-member-action="hn-remove"]');
-            if (!next) { remove?.remove(); return; }
+            let grip = member.querySelector(':scope > .hn-grip');
+            if (!next) { remove?.remove(); grip?.remove(); return; }
+            // Swipes on the row scroll the page; dragging starts from this grip.
+            if (!grip) {
+                grip = document.createElement('span');
+                grip.className = 'hn-grip';
+                grip.setAttribute('aria-hidden', 'true');
+                grip.title = 'Drag';
+                grip.textContent = '⠿';
+                member.prepend(grip);
+            }
             if (!remove) {
                 remove = document.createElement('button');
                 remove.type = 'button';
@@ -540,7 +607,16 @@ function mountTeamA11y() {
                 if (hadFocus) focusFirst('#teamTray .team-chip', `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
             }
         });
+        // A new pick: bring the Away button into view (Home sits above it).
+        const pickId = chosen?.dataset.chipId || null;
+        if (pickId && pickId !== lastPick) {
+            const away = byId('teamZone1')?.querySelector(':scope > .hn-zone-put');
+            const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+            if (away) later(() => away.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' }));
+        }
+        lastPick = pickId;
     };
+    let lastPick = null;
     const point = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
     const pointer = (type, target, at) => (target || document).dispatchEvent(new PointerEvent(type, {
         bubbles: true, cancelable: true, button: 0, pointerId: 31337, isPrimary: true, clientX: at.x, clientY: at.y,
@@ -562,7 +638,10 @@ function mountTeamA11y() {
             if (el && !el.disabled && el.offsetParent !== null) { el.focus({ preventScroll: false }); return; }
         }
     });
-    let lastRealPress = { target: null, at: 0 };
+    // The builder redraws its buttons on pointerdown, so the click that follows
+    // a real press can land on a different button. Any no-detail click soon
+    // after a real press belongs to that press.
+    let lastRealPress = 0;
     // A real tap or click (VoiceOver's double-tap included) gets the same
     // feedback as a keyboard press: the move is read out and focus stays.
     const snapshot = () => {
@@ -577,7 +656,7 @@ function mountTeamA11y() {
     let pending = null;
     screen.addEventListener('pointerdown', event => {
         if (!event.isTrusted) return;
-        lastRealPress = { target: event.target, at: performance.now() };
+        lastRealPress = performance.now();
         if (!isNext()) return;
         const control = event.target.closest?.('[data-member-action], .team-chip[data-chip-id], .team-zone-label, .team-zone');
         if (!control || control.matches('[data-member-action="hn-remove"]')) { pending = null; return; }
@@ -608,7 +687,7 @@ function mountTeamA11y() {
             }
         });
     }, true);
-    const recentlyPressed = el => lastRealPress.target && el.contains(lastRealPress.target) && performance.now() - lastRealPress.at < 600;
+    const recentlyPressed = () => performance.now() - lastRealPress < 600;
     screen.addEventListener('click', event => {
         if (!isNext()) return;
         const action = event.target.closest('[data-member-action]');
@@ -738,8 +817,35 @@ function mountCustomizeDialog() {
         else if (!last && done.nextElementSibling !== menu) menu.before(done);
     };
     new MutationObserver(placeDone).observe(document.documentElement, { attributes: true, attributeFilter: ['data-menu-style'] });
+    // Theme and wallpaper buttons say which one is chosen.
+    const syncPressed = () => {
+        content?.querySelectorAll('.theme-swatch, .wallpaper-choice').forEach(button => {
+            if (active) {
+                const on = button.classList.contains('active') ? 'true' : 'false';
+                if (button.getAttribute('aria-pressed') !== on) button.setAttribute('aria-pressed', on);
+            } else if (button.hasAttribute('aria-pressed')) {
+                button.removeAttribute('aria-pressed');
+            }
+        });
+    };
+    ['themePicker', 'wallpaperChoices'].map(byId).filter(Boolean).forEach(el =>
+        new MutationObserver(syncPressed).observe(el, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] }));
+    // A close button that stays at the top of the dialog as it scrolls.
+    let closeX = null;
+    const addClose = () => {
+        if (closeX || !content) return;
+        closeX = document.createElement('button');
+        closeX.type = 'button';
+        closeX.className = 'hn-dialog-close';
+        closeX.setAttribute('aria-label', 'Close Customize');
+        closeX.textContent = '✕';
+        closeX.addEventListener('click', () => byId('settingsCloseBtn')?.click());
+        content.prepend(closeX);
+    };
     const activate = (keepFocus = false) => {
         active = true;
+        addClose();
+        syncPressed();
         if (!keepFocus) returnTo = document.activeElement;
         content.setAttribute('role', 'dialog');
         content.setAttribute('aria-modal', 'true');
@@ -758,6 +864,9 @@ function mountCustomizeDialog() {
     };
     const deactivate = () => {
         active = false;
+        closeX?.remove();
+        closeX = null;
+        syncPressed();
         content.removeAttribute('role');
         content.removeAttribute('aria-modal');
         content.removeAttribute('aria-labelledby');
@@ -795,7 +904,9 @@ function mountCustomizeDialog() {
             if (!list.length) return;
             const first = list[0];
             const last = list[list.length - 1];
-            if (event.shiftKey && (document.activeElement === first || document.activeElement === title)) { event.preventDefault(); last.focus(); }
+            // The title opens the dialog; the close button is the next stop after it.
+            if (!event.shiftKey && closeX && document.activeElement === title) { event.preventDefault(); closeX.focus(); }
+            else if (event.shiftKey && (document.activeElement === first || document.activeElement === title)) { event.preventDefault(); last.focus(); }
             else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
         }
     });
@@ -1016,7 +1127,16 @@ function mountLibraryFit() {
     let frame = 0;
     const fit = () => {
         frame = 0;
-        if (!isNext() || setup.style.display === 'none') { section.style.removeProperty('--hn-lib-h'); return; }
+        if (!isNext() || setup.style.display === 'none') { section.style.removeProperty('--hn-lib-h'); byId('playSection')?.classList.remove('hn-docked'); return; }
+        // A docked Start card (sticky at the bottom of the window) gets square
+        // bottom corners, so the card scrolling behind it lines up with it.
+        const play = byId('playSection');
+        if (play) {
+            const cs = getComputedStyle(play);
+            const docked = cs.position === 'sticky' && Math.abs(play.getBoundingClientRect().bottom - (window.innerHeight - (parseFloat(cs.bottom) || 0))) < 1.5
+                && !!play.previousElementSibling && play.previousElementSibling.getBoundingClientRect().bottom > play.getBoundingClientRect().top + 1;
+            play.classList.toggle('hn-docked', docked);
+        }
         const top = Math.max(16, section.getBoundingClientRect().top);
         const height = Math.floor(window.innerHeight - top - 16);
         const value = `${height}px`;
@@ -1087,11 +1207,32 @@ function mountGameIcons() {
     sync();
 }
 
+// --- Large text -------------------------------------------------------------
+// With big system text the screen is narrow in letters even on a normal phone.
+// data-hn-tight marks under 19em of width, so the tabs, header and Start bar
+// can stack instead of overlapping or cutting words.
+function mountTextFit() {
+    const root = document.documentElement;
+    const sync = () => {
+        const rem = parseFloat(getComputedStyle(root).fontSize) || 16;
+        const tight = isNext() && window.innerWidth / rem < 19;
+        if (tight === root.hasAttribute('data-hn-tight')) return;
+        root.toggleAttribute('data-hn-tight', tight);
+        document.dispatchEvent(new Event('hntightchange'));
+    };
+    window.addEventListener('resize', sync, { passive: true });
+    document.addEventListener('homelayoutchange', sync);
+    // Text size changes resize the page.
+    if (window.ResizeObserver) new ResizeObserver(sync).observe(document.body);
+    sync();
+}
+
 export function initHomeNext() {
     applyLayout(storedLayout());
     const run = (name, fn) => {
         try { fn(); } catch (error) { console.warn(`BlakeOut new look: ${name} skipped`, error); }
     };
+    run('textFit', mountTextFit);
     run('summary', mountSummary);
     run('playerCount', mountPlayerCount);
     applyLayout(document.documentElement.dataset.home);
@@ -1114,6 +1255,7 @@ export function initHomeNext() {
     // The rules popover is fixed to the window: keep it next to its button
     // as the page scrolls, and close it once that button leaves the screen.
     document.addEventListener('scroll', followRulesPop, { capture: true, passive: true });
+    document.addEventListener('keydown', rulesTab, true);
     // Place it right after it opens too, and let Escape close it.
     byId('gameTypeGrid')?.addEventListener('click', event => {
         if (event.target.closest('[data-rules-toggle]')) later(followRulesPop);
