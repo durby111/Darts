@@ -45,6 +45,8 @@ async def main():
                         await page.reload()
                         await page.locator('#startupNotice').wait_for(state='hidden')
                     await page.evaluate('(open)=>document.querySelectorAll("#setupScreen details").forEach(d=>d.open=open)',expanded)
+                    # The dev New look shows a short list on phones; open the full one.
+                    await page.evaluate('()=>{const b=document.getElementById("homeNextAllGames");if(b&&!b.hidden&&b.offsetParent!==null)b.click()}')
                     before=await page.evaluate('JSON.stringify(localStorage)')
                     # Move the page just enough to expose a touchable area of the
                     # grid; its bottom rows remain below the fixed action panel.
@@ -83,6 +85,9 @@ async def main():
                             const target=overlaps?Math.min(innerHeight,bar.top):innerHeight;
                             setupScreen.scrollTop+=r.bottom-target+20;
                         }''',ident)
+                        # Let one frame pass: the dev New look sizes its sticky
+                        # game library to the window as the page scrolls.
+                        await page.evaluate('()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
                         box=await card.bounding_box()
                         x,y=box['x']+box['width']/2,box['y']+box['height']/2
                         assert box['height']>=44 and box['width']>=44

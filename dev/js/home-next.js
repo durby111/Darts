@@ -514,22 +514,31 @@ function mountTeamA11y() {
         [0, 1].forEach(idx => {
             const zone = byId(`teamZone${idx}`);
             if (!zone) return;
-            if (next && chosen) {
-                // With a player chosen, Home and Away are buttons that take them.
-                const text = `Put ${chosenName} in ${zoneName(idx)}`;
-                zone.setAttribute('role', 'button');
-                zone.removeAttribute('aria-labelledby');
-                if (zone.getAttribute('aria-label') !== text) zone.setAttribute('aria-label', text);
-                zone.tabIndex = 0;
-            } else if (next) {
+            let put = zone.querySelector(':scope > .hn-zone-put');
+            if (next) {
                 zone.setAttribute('role', 'group');
-                zone.setAttribute('aria-labelledby', `teamZone${idx}Label`);
-                zone.removeAttribute('aria-label');
-                zone.removeAttribute('tabindex');
+                if (zone.getAttribute('aria-labelledby') !== `teamZone${idx}Label`) zone.setAttribute('aria-labelledby', `teamZone${idx}Label`);
+                ['aria-label', 'tabindex', 'aria-describedby'].forEach(a => zone.removeAttribute(a));
             } else {
                 ['tabindex', 'role', 'aria-labelledby', 'aria-label', 'aria-describedby'].forEach(a => zone.removeAttribute(a));
             }
-            zone.removeAttribute('aria-describedby');
+            // With a player chosen, each team shows its own button that takes them.
+            if (next && chosen) {
+                const text = `Put ${chosenName} in ${zoneName(idx)}`;
+                if (!put) {
+                    put = document.createElement('button');
+                    put.type = 'button';
+                    put.className = 'hn-zone-put';
+                    put.dataset.zone = String(idx);
+                    const anchor = byId(`teamZone${idx}FirstBadge`) || byId(`teamZone${idx}Label`);
+                    if (anchor?.parentElement === zone) anchor.after(put); else zone.prepend(put);
+                }
+                if (put.textContent !== text) put.textContent = text;
+            } else if (put) {
+                const hadFocus = put === document.activeElement;
+                put.remove();
+                if (hadFocus) focusFirst('#teamTray .team-chip', `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
+            }
         });
     };
     const point = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
@@ -635,22 +644,34 @@ function mountTeamA11y() {
             focusFirst(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
         }
     });
-    // Enter or Space on Home or Away places the chosen player there.
-    screen.addEventListener('keydown', event => {
-        if (!isNext() || (event.key !== 'Enter' && event.key !== ' ')) return;
-        const zone = event.target.closest?.('.team-zone[tabindex]');
-        if (!zone || event.target !== zone) return;
-        event.preventDefault();
+    // "Put … in Home": a real tap already reached the team itself; a key
+    // press arrives as a click with no pointer behind it.
+    screen.addEventListener('click', event => {
+        const put = event.target.closest?.('.hn-zone-put');
+        if (!put || !isNext() || event.detail !== 0) return;
+        const idx = Number(put.dataset.zone);
         const chip = screen.querySelector('.team-chip.selected');
         const id = chip?.dataset.chipId;
         const name = chip?.textContent.trim();
-        const zoneLabel = zone.querySelector('.team-zone-label');
+        const zoneLabel = byId(`teamZone${idx}Label`);
         if (zoneLabel) press(zoneLabel);
         const placed = id && memberNode(id);
-        if (placed) say(`${name} added to ${zoneName(Number(zone.dataset.team))}`);
-        else if (id) say(`${zoneName(Number(zone.dataset.team))} is full`);
-        focusFirst('#teamTray .team-chip', `#${zone.id} [data-member-action="hn-remove"]`, '#teamAddName');
+        if (placed) say(`${name} added to ${zoneName(idx)}`);
+        else if (id) say(`${zoneName(idx)} is full`);
+        focusFirst('#teamTray .team-chip', `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
     });
+    // New players and bots are read out as they join Available Players.
+    const trayNames = () => [...screen.querySelectorAll('#teamTray .team-chip[data-chip-id]')].map(c => c.textContent.trim());
+    const watchAdd = () => {
+        if (!isNext()) return;
+        const before = trayNames();
+        later(() => {
+            const added = trayNames().filter((n, i, all) => all.filter(x => x === n).length > before.filter(x => x === n).length && all.indexOf(n) === i);
+            if (added.length) say(`${added.join(', ')} added to Available Players`);
+        });
+    };
+    byId('teamAddName')?.addEventListener('keydown', event => { if (event.key === 'Enter') watchAdd(); }, true);
+    ['teamAddBtn', 'teamAddBotBtn'].forEach(id => byId(id)?.addEventListener('click', watchAdd, true));
     // Opening the builder puts focus on its heading; going back returns it to Start.
     const heading = screen.querySelector('h1');
     let wasOpen = getComputedStyle(screen).display !== 'none';
@@ -703,9 +724,23 @@ function mountCustomizeDialog() {
         event.preventDefault();
         uploadInput?.click();
     });
-    const activate = () => {
+    // Done goes last, after Menu Style, on screen and in the Tab order. Menu
+    // Style keeps itself the dialog's last child, so Done goes at the end of
+    // its section. The menu styles lay that section out themselves, so with
+    // one of them on, and outside the New look dialog, Done stays where the
+    // original puts it: just before Menu Style.
+    const placeDone = () => {
+        const done = byId('settingsCloseBtn');
+        const menu = content?.querySelector(':scope > .menu-style-picker');
+        if (!done || !menu) return;
+        const last = active && !document.documentElement.dataset.menuStyle;
+        if (last && menu.lastElementChild !== done) menu.append(done);
+        else if (!last && done.nextElementSibling !== menu) menu.before(done);
+    };
+    new MutationObserver(placeDone).observe(document.documentElement, { attributes: true, attributeFilter: ['data-menu-style'] });
+    const activate = (keepFocus = false) => {
         active = true;
-        returnTo = document.activeElement;
+        if (!keepFocus) returnTo = document.activeElement;
         content.setAttribute('role', 'dialog');
         content.setAttribute('aria-modal', 'true');
         content.classList.add('hn-dialog');
@@ -717,7 +752,9 @@ function mountCustomizeDialog() {
         }
         scale?.setAttribute('aria-label', 'UI scale');
         if (upload) { upload.tabIndex = 0; upload.setAttribute('role', 'button'); }
-        later(() => (title || focusables()[0])?.focus());
+        // Done goes last, after Menu Style, on screen and in the Tab order.
+        placeDone();
+        if (!keepFocus) later(() => (title || focusables()[0])?.focus());
     };
     const deactivate = () => {
         active = false;
@@ -728,6 +765,7 @@ function mountCustomizeDialog() {
         if (title) { if (titleText) title.textContent = titleText; title.removeAttribute('tabindex'); }
         scale?.removeAttribute('aria-label');
         if (upload) { upload.removeAttribute('tabindex'); upload.removeAttribute('role'); }
+        placeDone();
     };
     new MutationObserver(() => {
         const open = modal.style.display !== 'none';
@@ -739,8 +777,13 @@ function mountCustomizeDialog() {
             later(() => back?.focus());
         }
     }).observe(modal, { attributes: true, attributeFilter: ['style'] });
-    // Switching to Classic inside the open dialog hands it back to the original behaviour.
-    document.addEventListener('homelayoutchange', () => { if (active && !isNext()) deactivate(); });
+    // Switching to Classic inside the open dialog hands it back to the original
+    // behaviour; switching back to the New look makes it a dialog again.
+    document.addEventListener('homelayoutchange', () => {
+        const open = modal.style.display !== 'none' && getComputedStyle(modal).display !== 'none';
+        if (active && !isNext()) deactivate();
+        else if (!active && isNext() && open && setupShowing() && content) activate(true);
+    });
     modal.addEventListener('keydown', event => {
         if (!active) return;
         if (event.key === 'Escape') {
@@ -898,6 +941,152 @@ function mountTypingBar() {
     update();
 }
 
+// --- Phones: a short game list with "Show all games" -----------------------
+// A tall inner list would catch most swipes meant for the page. On phones
+// the New look shows the first few games (plus the chosen one) in the page
+// itself, and one button opens the rest. A search or a game type shows
+// every match.
+
+const FEW_GAMES = 5;
+function mountGameExpander() {
+    const section = byId('gamePickerSection');
+    const grid = byId('gameTypeGrid');
+    if (!section || !grid || byId('homeNextAllGames')) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.id = 'homeNextAllGames';
+    button.className = 'hn-all-games';
+    button.setAttribute('aria-controls', 'gameTypeGrid');
+    grid.after(button);
+    let open = false;
+    const search = section.querySelector('.picker-search');
+    const sync = () => {
+        if (!isNext()) { delete section.dataset.hnGames; button.hidden = true; return; }
+        const count = grid.querySelectorAll('[data-game-value]').length;
+        const chip = byId('gameCategoryChips')?.querySelector('.picker-chip.active');
+        const filtered = !!search?.value.trim() || (chip && chip.dataset.category !== 'all');
+        const short = count <= FEW_GAMES + 1;
+        const state = filtered || short ? 'all' : open ? 'all' : 'few';
+        if (section.dataset.hnGames !== state) section.dataset.hnGames = state;
+        button.hidden = filtered || short;
+        const text = open ? 'Show fewer games' : `Show all ${count} games`;
+        if (button.textContent !== text) button.textContent = text;
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    button.addEventListener('click', () => {
+        open = !open;
+        sync();
+        if (!open) later(() => button.scrollIntoView({ block: 'nearest' }));
+    });
+    search?.addEventListener('input', sync);
+    new MutationObserver(sync).observe(grid, { childList: true });
+    const chips = byId('gameCategoryChips');
+    if (chips) new MutationObserver(sync).observe(chips, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
+// --- Small phones: short names for the BotBlake levels ---------------------
+// "BotBlake — Medium" does not fit a 320px-wide row. Below 361px the closed
+// select shows "Bot · Medium"; the option values never change.
+
+function mountSkillLabels() {
+    const narrow = window.matchMedia('(max-width: 360px)');
+    const selects = () => document.querySelectorAll('#playersSection select[id^="player"][id$="Skill"]');
+    const sync = () => {
+        const on = isNext() && narrow.matches;
+        selects().forEach(select => [...select.options].forEach(option => {
+            if (on && option.value !== 'off') option.label = `Bot · ${option.value === 'auto' ? 'Auto' : option.value[0].toUpperCase() + option.value.slice(1)}`;
+            else option.removeAttribute('label');
+        }));
+    };
+    narrow.addEventListener?.('change', sync);
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
+// --- Wide screens: the game library ends at the bottom of the window -------
+// It stays in view on the left; its height follows the space left below it,
+// so its bottom edge is always on screen, at rest and while scrolled.
+
+function mountLibraryFit() {
+    const section = byId('gamePickerSection');
+    const setup = byId('setupScreen');
+    if (!section || !setup) return;
+    let frame = 0;
+    const fit = () => {
+        frame = 0;
+        if (!isNext() || setup.style.display === 'none') { section.style.removeProperty('--hn-lib-h'); return; }
+        const top = Math.max(16, section.getBoundingClientRect().top);
+        const height = Math.floor(window.innerHeight - top - 16);
+        const value = `${height}px`;
+        if (section.style.getPropertyValue('--hn-lib-h') === value) return;
+        // A list scrolled to its end stays at its end as it grows or shrinks.
+        const grid = byId('gameTypeGrid');
+        const atEnd = grid && grid.scrollTop > 0 && grid.scrollTop + grid.clientHeight >= grid.scrollHeight - 2;
+        section.style.setProperty('--hn-lib-h', value);
+        if (atEnd) grid.scrollTop = grid.scrollHeight;
+    };
+    const soon = () => { if (!frame) frame = requestAnimationFrame(fit); };
+    setup.addEventListener('scroll', soon, { passive: true });
+    window.addEventListener('scroll', soon, { passive: true });
+    window.addEventListener('resize', soon);
+    const card = setup.querySelector('.setup-card');
+    if (card && 'ResizeObserver' in window) new ResizeObserver(soon).observe(card);
+    new MutationObserver(soon).observe(setup, { attributes: true, attributeFilter: ['style'] });
+    document.addEventListener('homelayoutchange', soon);
+    fit();
+}
+
+// --- Pinch-zoom on the home screen -----------------------------------------
+// The scoreboards keep zoom off (fast taps must not zoom). On the New look's
+// setup and team screens people can pinch to enlarge text.
+
+function mountZoom() {
+    const meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) return;
+    const original = meta.getAttribute('content') || '';
+    const zoomable = original.split(',').map(part => part.trim()).filter(part => part && !/^(user-scalable|maximum-scale)\s*=/i.test(part)).join(', ');
+    const screens = ['setupScreen', 'teamBuilderScreen'].map(byId).filter(Boolean);
+    const game = byId('gameScreen');
+    const showing = el => el.style.display !== 'none' && getComputedStyle(el).display !== 'none';
+    // Never while a game is live underneath ("Change settings"), so the
+    // scoreboard always comes back at its own fixed scale.
+    const sync = () => {
+        const content = isNext() && screens.some(showing) && !(game && showing(game)) ? zoomable : original;
+        if (meta.getAttribute('content') !== content) meta.setAttribute('content', content);
+    };
+    [...screens, game].filter(Boolean).forEach(el => new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ['style'] }));
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
+// --- One family of game icons ----------------------------------------------
+// The game list mixes text symbols (♥ ✕ ⚡) with colour emoji, and two emoji
+// bring their own square. In the New look every game shows a colour emoji
+// with no frame of its own; the registry and Classic keep the originals.
+
+const ICON_SWAP = new Map([
+    ['♥', '❤️'], ['✕', '❌'], ['⚡', '⚡️'], ['⏱', '⏱️'], ['⚾', '⚾️'],
+    ['⛳', '⛳️'], ['❎', '⭕'], ['⏬', '📉'],
+]);
+function mountGameIcons() {
+    const grid = byId('gameTypeGrid');
+    if (!grid) return;
+    const sync = () => {
+        const next = isNext();
+        grid.querySelectorAll('.game-card-icon').forEach(icon => {
+            const from = icon.textContent.trim();
+            const to = next ? ICON_SWAP.get(from) : undefined;
+            if (to && icon.dataset.hnIcon !== to) icon.dataset.hnIcon = to;
+            else if (!to && icon.dataset.hnIcon) delete icon.dataset.hnIcon;
+        });
+    };
+    new MutationObserver(sync).observe(grid, { childList: true, subtree: true, characterData: true });
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
 export function initHomeNext() {
     applyLayout(storedLayout());
     const run = (name, fn) => {
@@ -917,6 +1106,11 @@ export function initHomeNext() {
     run('chipA11y', mountChipA11y);
     run('skipLink', mountSkipLink);
     run('typingBar', mountTypingBar);
+    run('gameExpander', mountGameExpander);
+    run('skillLabels', mountSkillLabels);
+    run('libraryFit', mountLibraryFit);
+    run('zoom', mountZoom);
+    run('gameIcons', mountGameIcons);
     // The rules popover is fixed to the window: keep it next to its button
     // as the page scrolls, and close it once that button leaves the screen.
     document.addEventListener('scroll', followRulesPop, { capture: true, passive: true });
