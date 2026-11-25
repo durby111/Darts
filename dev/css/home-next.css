@@ -2271,7 +2271,7 @@ html[data-home="next"] #setupScreen .home-next-summary { overflow-wrap: break-wo
 /* Round 13: on shorter laptops the game library stays in view too; it fits
    the window and its list scrolls inside it. */
 @media (min-width: 721px) and (min-height: 561px) and (max-height: 819px) {
-    html[data-home="next"] #setupScreen #gamePickerSection { position: sticky; top: 16px; z-index: 1; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; scrollbar-gutter: stable; }
+    html[data-home="next"] #setupScreen #gamePickerSection { position: sticky; top: 16px; z-index: 1; max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow-y: auto; }
 }
 
 /* Round 13: Home is always blue and Away always green, whatever the theme,
@@ -2417,3 +2417,76 @@ html[data-home="next"] #teamBuilderScreen .team-zone-member > label { color: col
     html[data-home="next"] #setupScreen #gamePickerSection:has(.picker-empty) > * { flex: 0 0 auto; }
 }
 html[data-home="next"] #setupScreen #gameTypeGrid:has(.picker-empty) { flex: 1 1 auto; align-content: center; }
+
+/* Round 16: "Put NAME in Home" keeps its spaces in the one-line (flex) layout. */
+html[data-home="next"] #teamBuilderScreen .hn-zone-put { column-gap: 0.28em; }
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put { column-gap: normal; }
+/* Round 16: Customize at large text on small phones. The title fits beside the ✕. */
+html[data-home="next"][data-hn-tight] #settingsModal .hn-dialog > #settingsModalTitle { font-size: min(1.75rem, 9vw); overflow-wrap: anywhere; }
+/* The layout titles wrap (the check mark stays with the last word), one card per line. */
+.home-layout-option strong { white-space: normal; }
+html[data-hn-tight] .home-layout-choice-row { grid-template-columns: minmax(0, 1fr); }
+/* Pickers keep their whole value: a little less padding and a size smaller. */
+html[data-home="next"][data-hn-tight] #settingsModal .hn-dialog select { font-size: 0.8125rem !important; padding-left: 10px !important; padding-right: 30px !important; background-position: right 10px center !important; }
+html[data-home="next"][data-hn-tight][data-menu-style="fable52"] #settingsModal .hn-dialog :is(.settings-section, .hn-menu-card) { padding: 8px; }
+/* Round 16: a Start bar that would cover more than a fifth of a phone at large
+   text keeps only Start, which names the game; the summary stays for screen
+   readers, and an all-bots warning still shows. */
+html[data-home="next"] #setupScreen #playSection[data-hn-compact] > .home-next-match:not(:has(.hn-summary-warn)) {
+    position: absolute !important; width: 1px; height: 1px; margin: 0; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+html[data-home="next"] #setupScreen #playSection[data-hn-compact] > .home-next-match:has(.hn-summary-warn) :is(.setup-match-title, .hn-summary-part:not(.hn-summary-warn)) {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+html[data-home="next"] #setupScreen #playSection[data-hn-compact] #startGameBtn[data-hn-game] { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+html[data-home="next"] #setupScreen #playSection[data-hn-compact] #startGameBtn[data-hn-game]::after {
+    content: attr(data-hn-game) / ""; display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 0.8125rem; font-weight: 700; line-height: 1.2; text-transform: none; letter-spacing: normal;
+}
+/* With a game to resume, Resume already names its game. */
+html[data-home="next"] #setupScreen #playSection[data-hn-compact]:has(#resumeGameBtn:not(.hidden)) #startGameBtn[data-hn-game]::after { display: none !important; }
+/* ...and with a game to resume, its players share one line, each cut short. */
+html[data-home="next"] #setupScreen #playSection[data-hn-compact] { padding-top: 8px; padding-bottom: 8px; }
+html[data-home="next"][data-hn-tight] #setupScreen #playSection[data-hn-compact] #resumeGameBtn .hn-resume-names { flex-direction: row !important; flex-wrap: nowrap !important; justify-content: center; max-width: 100%; min-width: 0; }
+html[data-home="next"][data-hn-tight] #setupScreen #playSection[data-hn-compact] #resumeGameBtn .hn-resume-player { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: pre !important; }
+/* Round 16: "N more games" under a library list that scrolls (tall wide screens). */
+.hn-more-cue { display: none; }
+@media (min-width: 721px) and (min-height: 820px) {
+    html[data-home="next"] #setupScreen #gamePickerSection > .hn-more-cue:not([hidden]) {
+        display: flex; flex: 0 0 auto; align-items: center; justify-content: center; gap: 6px;
+        margin: 10px 0 0; min-height: 20px; font-size: 0.8125rem; font-weight: 700; line-height: 1.2;
+        color: var(--color-text-muted); cursor: pointer; user-select: none;
+    }
+    html[data-home="next"] #setupScreen #gamePickerSection > .hn-more-cue:not([hidden])::after {
+        content: ""; width: 0.45em; height: 0.45em; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-0.15em) rotate(45deg);
+    }
+    html[data-home="next"] #setupScreen #gamePickerSection > .hn-more-cue[data-end] { visibility: hidden; }
+}
+html:not([data-home="next"]) .hn-more-cue { display: none !important; }
+/* Round 16: Customize ends the same way in every style. Menu Style is a card
+   like the settings above it, the same distance below them, with no rule
+   above it; Done follows the card. */
+html[data-home="next"] #settingsModal .hn-dialog > .menu-style-picker { border-top: 0; padding-top: 0; margin-top: 16px; }
+html[data-home="next"][data-menu-style="astra62"] #settingsModal .hn-dialog > .menu-style-picker { margin-top: 8px; }
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog > .menu-style-picker {
+    margin-top: 16px; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+}
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog .hn-menu-card {
+    display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 10px;
+    border-radius: 14px; border: 1px solid var(--nm-line);
+    background: linear-gradient(180deg, rgba(20, 29, 52, 0.78), var(--nm-plate));
+    box-shadow: inset 0 1px 0 rgba(245, 251, 255, 0.08), 0 4px 14px rgba(0, 0, 0, 0.34);
+}
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog .hn-menu-card > label { margin: 0; }
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog #settingsCloseBtn { margin-top: 16px; }
+/* Round 16: a taller fade above the docked Start card on wide screens, so the
+   top edge of a card passing behind it never shows as a stray sliver. */
+@media (min-width: 1001px), (min-width: 721px) and (min-height: 561px) {
+    @container scroll-state(stuck: bottom) {
+        html[data-home="next"] #setupScreen #playSection > .setup-action-row::before {
+            bottom: calc(100% + 1px);
+            height: 60px;
+            background: linear-gradient(color-mix(in srgb, var(--color-bg) 0%, transparent), color-mix(in srgb, var(--color-bg) 80%, transparent) 25%, var(--color-bg) 45%);
+        }
+    }
+}

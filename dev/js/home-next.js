@@ -873,7 +873,8 @@ function mountTeamA11y() {
         letGo = id;
         press(chip);
         if (!screen.querySelector('.team-chip.selected')) say(`${name} not chosen`);
-        focusChip(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
+        // The chip may have scrolled out of view while Home and Away were in use.
+        focusFirst(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
         later(() => later(() => { letGo = null; }));
     });
     // "Put … in Home": a real tap already reached the team itself; a key
@@ -1664,6 +1665,16 @@ function mountFitStack() {
                     || [...names.querySelectorAll('.hn-resume-player')].some(cut));
             }
             if (resumeStack !== play.hasAttribute('data-hn-resume-stack')) play.toggleAttribute('data-hn-resume-stack', resumeStack);
+            // Phones and landscape phones at large text: a docked Start bar
+            // taller than a fifth of the window drops its summary line (the
+            // game name moves into Start), so the page keeps room to work.
+            let compact = false;
+            const phone = window.innerWidth <= 720 || !!window.matchMedia?.('(max-height: 500px)').matches;
+            if (isNext() && phone && play.getClientRects().length && /^(fixed|sticky)$/.test(getComputedStyle(play).position)) {
+                play.removeAttribute('data-hn-compact');
+                compact = play.offsetHeight > window.innerHeight * 0.2;
+            }
+            if (compact !== play.hasAttribute('data-hn-compact')) play.toggleAttribute('data-hn-compact', compact);
         }
     };
     let queued = false;
@@ -1808,13 +1819,50 @@ function mountLibraryFit() {
         const top = Math.max(16, section.getBoundingClientRect().top);
         const height = Math.floor(window.innerHeight - top - gap);
         const value = `${height}px`;
-        if (section.style.getPropertyValue('--hn-lib-h') === value) return;
-        // A list scrolled to its end stays at its end as it grows or shrinks.
-        const grid = byId('gameTypeGrid');
-        const atEnd = grid && grid.scrollTop > 0 && grid.scrollTop + grid.clientHeight >= grid.scrollHeight - 2;
-        section.style.setProperty('--hn-lib-h', value);
-        if (atEnd) grid.scrollTop = grid.scrollHeight;
+        if (section.style.getPropertyValue('--hn-lib-h') !== value) {
+            // A list scrolled to its end stays at its end as it grows or shrinks.
+            const grid = byId('gameTypeGrid');
+            const atEnd = grid && grid.scrollTop > 0 && grid.scrollTop + grid.clientHeight >= grid.scrollHeight - 2;
+            section.style.setProperty('--hn-lib-h', value);
+            if (atEnd) grid.scrollTop = grid.scrollHeight;
+        }
+        moreCue();
     };
+    // Round 16: under a list that scrolls, a quiet "N more games" line, so a
+    // list whose last visible row happens to end cleanly still shows there is more.
+    const TALL_WIDE = window.matchMedia?.('(min-width: 721px) and (min-height: 820px)');
+    let cue = null;
+    const moreCue = () => {
+        const grid = byId('gameTypeGrid');
+        if (!grid) return;
+        const on = isNext() && !!TALL_WIDE?.matches && setup.style.display !== 'none';
+        if (on && !cue) {
+            cue = document.createElement('div');
+            cue.className = 'hn-more-cue';
+            cue.setAttribute('aria-hidden', 'true');
+            cue.hidden = true;
+            cue.addEventListener('click', () => grid.scrollBy({ top: Math.max(80, grid.clientHeight * 0.8), behavior: 'smooth' }));
+            grid.after(cue);
+        }
+        if (!cue) return;
+        if (cue.previousElementSibling !== grid) grid.after(cue);
+        const scrolls = on && grid.scrollHeight > grid.clientHeight + 1;
+        if (cue.hidden === scrolls) cue.hidden = !scrolls;
+        if (!scrolls) return;
+        const bottom = grid.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(grid).paddingBottom) || 0);
+        const below = [...grid.children].filter(el => el.getClientRects().length && el.getBoundingClientRect().bottom > bottom + 1).length;
+        const text = below === 1 ? '1 more game' : `${below} more games`;
+        if (below && cue.textContent !== text) cue.textContent = text;
+        if (!below !== cue.hasAttribute('data-end')) cue.toggleAttribute('data-end', !below);
+    };
+    let cueFrame = 0;
+    const cueSoon = () => { if (!cueFrame) cueFrame = requestAnimationFrame(() => { cueFrame = 0; moreCue(); }); };
+    const gridEl = byId('gameTypeGrid');
+    if (gridEl) {
+        gridEl.addEventListener('scroll', cueSoon, { passive: true });
+        new MutationObserver(cueSoon).observe(gridEl, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+    }
+    TALL_WIDE?.addEventListener?.('change', cueSoon);
     const soon = () => { if (!frame) frame = requestAnimationFrame(fit); };
     setup.addEventListener('scroll', soon, { passive: true });
     window.addEventListener('scroll', soon, { passive: true });
