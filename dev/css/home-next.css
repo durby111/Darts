@@ -2833,11 +2833,11 @@ html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll] > * { flex: 
 html[data-home="next"] #setupScreen .hn-recents-more { position: relative; height: 0; margin: 0; pointer-events: none; }
 html[data-home="next"] #setupScreen .hn-recents-more::before { content: ''; position: absolute; left: var(--hn-row-x, 0px); top: var(--hn-row-y, 0px); width: var(--hn-row-w, 0px); height: var(--hn-row-h, 0px); box-sizing: border-box; border: 1px solid var(--hn-line); border-radius: 14px; background: var(--hn-tint); }
 html[data-home="next"] #setupScreen .hn-recents-more { font-size: 0.8125rem; font-weight: 700; color: var(--color-text-muted); }
-html[data-home="next"] #setupScreen .hn-recents-more > .hn-recents-count { position: absolute; top: var(--hn-row-y, 0px); left: calc(var(--hn-row-x, 0px) + var(--hn-row-w, 0px) - 48px); width: 40px; height: var(--hn-row-h, 0px); display: flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
+html[data-home="next"] #setupScreen .hn-recents-more > .hn-recents-count { position: absolute; top: var(--hn-row-y, 0px); left: calc(var(--hn-row-x, 0px) + var(--hn-row-w, 0px) - 8px); transform: translateX(-100%); height: var(--hn-row-h, 0px); display: flex; align-items: center; white-space: nowrap; }
 html:not([data-home="next"]) .hn-recents-more { display: none !important; }
-html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-more] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 52px), transparent calc(100% - 40px)); mask-image: linear-gradient(to right, #000 calc(100% - 52px), transparent calc(100% - 40px)); }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-more] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--hn-fade, 52px) - 14px), transparent calc(100% - var(--hn-fade, 52px))); mask-image: linear-gradient(to right, #000 calc(100% - var(--hn-fade, 52px) - 14px), transparent calc(100% - var(--hn-fade, 52px))); }
 html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-less] { -webkit-mask-image: linear-gradient(to right, transparent 1px, #000 28px); mask-image: linear-gradient(to right, transparent 1px, #000 28px); }
-html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-less][data-hn-more] { -webkit-mask-image: linear-gradient(to right, transparent 1px, #000 28px, #000 calc(100% - 52px), transparent calc(100% - 40px)); mask-image: linear-gradient(to right, transparent 1px, #000 28px, #000 calc(100% - 52px), transparent calc(100% - 40px)); }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-less][data-hn-more] { -webkit-mask-image: linear-gradient(to right, transparent 1px, #000 28px, #000 calc(100% - var(--hn-fade, 52px) - 14px), transparent calc(100% - var(--hn-fade, 52px))); mask-image: linear-gradient(to right, transparent 1px, #000 28px, #000 calc(100% - var(--hn-fade, 52px) - 14px), transparent calc(100% - var(--hn-fade, 52px))); }
 html[data-home="next"] #setupScreen [data-hn-clip] { clip-path: inset(0 -8px var(--hn-clip, 0px) -8px); }
 html:not([data-home="next"]) [data-hn-clip] { clip-path: none !important; }
 /* Round 25: Start Game beside (or under) Resume keeps even room above its
@@ -2858,3 +2858,31 @@ html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #play
 html[data-home="next"] #setupScreen .setup-credit a[href^="mailto:"] { max-width: 100%; flex-wrap: wrap; justify-content: center; text-align: center; }
 html[data-home="next"] #teamBuilderScreen .team-add-row > .hn-team-add-label { grid-column: 1 / -1; margin: 4px 0 -2px; font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted); }
 html:not([data-home="next"]) .hn-team-add-label { display: none !important; }
+/* ---------- Round 26 ---------- */
+/* Large text: game chips, recent chips and the app tabs grow with it, the
+   way the Login and Customize pills do. */
+html[data-home="next"] #setupScreen#setupScreen .dev-app-nav :is(a, button) { height: auto; min-height: 46px; padding-top: 0.3em; padding-bottom: 0.3em; }
+html[data-home="next"] #setupScreen#setupScreen :is(.picker-chip, .picker-recent-chip) { height: auto; min-height: max(44px, 1.9em); padding-top: 0.25em; padding-bottom: 0.25em; line-height: 1.2; }
+html[data-home="next"] #setupScreen#setupScreen .dev-app-nav .feature-test-badge { padding: 0.15em 0.4em; }
+/* Team builder: "Bot skill level" sits above its picker, like "Add a player
+   by name" in the row below, at every width. */
+html[data-home="next"] #teamBuilderScreen .team-add-row > label:not(.hn-team-add-label) { flex-direction: column; align-items: stretch; gap: 4px; font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted); }
+html[data-home="next"] #teamBuilderScreen .team-add-row > label:not(.hn-team-add-label) > select { flex: 0 0 auto; width: 100%; font-size: 1rem; font-weight: 400; color: var(--color-text); }
+@media (min-width: 721px) {
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .team-add-row > label:not(.hn-team-add-label) > select { width: 15rem; flex: 0 0 auto; }
+}
+/* Manage Players: the status sub-line starts under the label, not the chevron. */
+html[data-home="next"] #setupScreen #rosterSection > summary .roster-status { padding-left: 22px; }
+/* Round 26: big text on a phone gives each Customize choice its own row. */
+html[data-hn-tight] #settingsModal .hn-dialog .score-skin-row { grid-template-columns: minmax(0, 1fr); }
+/* Round 26: wrapped app tabs are three equal cells, or one tab per row. */
+html[data-home="next"] #setupScreen#setupScreen .dev-app-nav[data-hn-cols] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+html[data-home="next"] #setupScreen#setupScreen .dev-app-nav[data-hn-cols="1"] { grid-template-columns: minmax(0, 1fr); }
+html[data-home="next"] #setupScreen#setupScreen .dev-app-nav[data-hn-cols] :is(a, button) { min-width: 0; max-width: none; width: auto; white-space: normal; overflow-wrap: normal; word-break: normal; text-align: center; padding-left: 6px; padding-right: 6px; }
+/* Round 26: on a phone with big text the title stops at 48px, so the logo
+   can stay beside it (the DEV mark may drop under the name). */
+@media (max-width: 480px) {
+    html[data-home="next"][data-hn-tight] .setup-screen .setup-header-text h1 { font-size: min(1.875rem, 48px); }
+    html[data-home="next"][data-hn-tight] .setup-screen .setup-header-text { flex: 1 1 0; min-width: 0; }
+    html[data-home="next"][data-hn-tight] .setup-screen .setup-header .setup-logo { align-self: flex-start; margin-top: 12px; }
+}
