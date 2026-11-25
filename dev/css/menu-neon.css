@@ -1172,7 +1172,7 @@ html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content
   min-width: 0;
 }
 
-html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker :is(button, [role="radio"], .menu-style-option) {
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker :is(button:not(.btn), [role="radio"], .menu-style-option) {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -1193,7 +1193,7 @@ html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content
   transition: border-color 140ms ease, box-shadow 140ms ease, color 140ms ease, transform 90ms ease;
 }
 
-html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker :is(button, [role="radio"], .menu-style-option):is(.active, .is-active, .selected, [aria-pressed="true"], [aria-checked="true"], [data-menu-style-option="neon"]) {
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker :is(button:not(.btn), [role="radio"], .menu-style-option):is(.active, .is-active, .selected, [aria-pressed="true"], [aria-checked="true"], [data-menu-style-option="neon"]) {
   border-color: var(--nm-cyan);
   background: linear-gradient(135deg, rgba(28, 242, 255, 0.24), rgba(182, 107, 255, 0.2));
   color: #ffffff;
@@ -1203,7 +1203,7 @@ html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content
     inset 0 1px 0 rgba(245, 251, 255, 0.28);
 }
 
-html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker :is(button, [role="radio"], .menu-style-option):is(.active, .is-active, .selected, [aria-pressed="true"], [aria-checked="true"])::before {
+html[data-menu-style="neon"] :is(#gameMenuModal,#settingsModal) > .modal-content .menu-style-picker :is(button:not(.btn), [role="radio"], .menu-style-option):is(.active, .is-active, .selected, [aria-pressed="true"], [aria-checked="true"])::before {
   content: "";
   width: 7px;
   height: 7px;

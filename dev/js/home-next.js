@@ -230,8 +230,15 @@ function mountSummary() {
             comma.textContent = ', ';
             return [comma, span];
         }));
+        // While the warning shows, Start looks and reads as unavailable. A
+        // press still gets the game's own message about adding a human.
+        if (start) {
+            if (warn && isNext()) { if (start.getAttribute('aria-disabled') !== 'true') start.setAttribute('aria-disabled', 'true'); }
+            else if (start.hasAttribute('aria-disabled')) start.removeAttribute('aria-disabled');
+        }
     };
     document.addEventListener('change', () => later(update), true);
+    document.addEventListener('homelayoutchange', update);
     document.addEventListener('hntightchange', update);
     window.matchMedia?.('(max-width: 360px)').addEventListener?.('change', update);
     update();
@@ -650,7 +657,9 @@ function mountTeamA11y() {
                 const hadFocus = put === document.activeElement;
                 put.remove();
                 const placed = justPlaced && `[data-member-id="${CSS.escape(justPlaced)}"][data-member-action="hn-remove"]`;
-                if (hadFocus) focusFirst('#teamTray .team-chip', placed, `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
+                // Escape let go of the player: focus goes back to that player's chip.
+                const back = letGo && `.team-chip[data-chip-id="${CSS.escape(letGo)}"]`;
+                if (hadFocus) focusFirst(back, '#teamTray .team-chip', placed, `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
             }
         });
         // A new pick: bring the Away button into view (Home sits above it).
@@ -665,6 +674,7 @@ function mountTeamA11y() {
     };
     let lastPick = null;
     let justPlaced = null;
+    let letGo = null;
     const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
     const point = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
     const pointer = (type, target, at) => (target || document).dispatchEvent(new PointerEvent(type, {
@@ -723,6 +733,28 @@ function mountTeamA11y() {
             : control.dataset.chipId ? ['chip', control.dataset.chipId] : null;
         pending = { before: snapshot(), key };
     }, true);
+    // ⇄ ▲ ▼ act when a tap ends, not when a finger lands, so a swipe that
+    // starts on one of them scrolls the page and moves nobody.
+    let tap = null;
+    screen.addEventListener('pointerdown', event => {
+        if (!event.isTrusted || !isNext()) { tap = null; return; }
+        const action = event.target.closest?.('[data-member-action]');
+        if (!action || action.dataset.memberAction === 'hn-remove') { tap = null; return; }
+        event.preventDefault();
+        event.stopPropagation();
+        pending = null;
+        tap = action.disabled ? null : { id: action.dataset.memberId, act: action.dataset.memberAction, x: event.clientX, y: event.clientY, pointer: event.pointerId };
+    }, true);
+    document.addEventListener('pointermove', event => {
+        if (tap && event.pointerId === tap.pointer && Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 10) tap = null;
+    }, true);
+    document.addEventListener('pointercancel', () => { tap = null; }, true);
+    window.addEventListener('scroll', () => { tap = null; }, true);
+    const tapped = action => {
+        const hit = tap && action && action.dataset.memberId === tap.id && action.dataset.memberAction === tap.act;
+        tap = null;
+        return hit && !action.disabled;
+    };
     // A key press is the user's own, so it ends that window.
     screen.addEventListener('keydown', event => {
         if (event.isTrusted && (event.key === 'Enter' || event.key === ' ')) lastRealPress = 0;
@@ -764,10 +796,11 @@ function mountTeamA11y() {
             focusFirst(`#teamZone${zone} [data-member-action="hn-remove"]`, `.team-chip[data-chip-id="${CSS.escape(id)}"]`, '#teamTray .team-chip', '#teamAddName');
             return;
         }
+        const isTap = tapped(action);
         // A keyboard press reaches a button as a click with no pointer behind it.
-        if (event.detail !== 0) return;
+        if (event.detail !== 0 && !isTap) return;
         const chip = event.target.closest('.team-chip[data-chip-id]');
-        if (action && !action.disabled && !recentlyPressed(action)) {
+        if (action && !action.disabled && (isTap || !recentlyPressed(action))) {
             const { memberId, memberAction } = action.dataset;
             const id = CSS.escape(memberId);
             const name = nameIn(memberNode(memberId));
@@ -797,9 +830,11 @@ function mountTeamA11y() {
         event.preventDefault();
         const id = chip.dataset.chipId;
         const name = chip.textContent.trim();
+        letGo = id;
         press(chip);
         if (!screen.querySelector('.team-chip.selected')) say(`${name} not chosen`);
         focusChip(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
+        later(() => later(() => { letGo = null; }));
     });
     // "Put … in Home": a real tap already reached the team itself; a key
     // press arrives as a click with no pointer behind it.
@@ -887,16 +922,15 @@ function mountCustomizeDialog() {
         event.preventDefault();
         uploadInput?.click();
     });
-    // Done goes last, after Menu Style, on screen and in the Tab order. Menu
-    // Style keeps itself the dialog's last child, so Done goes at the end of
-    // its section. The menu styles lay that section out themselves, so with
-    // one of them on, and outside the New look dialog, Done stays where the
-    // original puts it: just before Menu Style.
+    // Done goes last, after Menu Style, on screen and in the Tab order, in
+    // every menu style. Menu Style keeps itself the dialog's last child, so
+    // Done goes at the end of its section. Outside the New look dialog, Done
+    // stays where the original puts it: just before Menu Style.
     const placeDone = () => {
         const done = byId('settingsCloseBtn');
         const menu = content?.querySelector(':scope > .menu-style-picker');
         if (!done || !menu) return;
-        const last = active && !document.documentElement.dataset.menuStyle;
+        const last = active;
         if (last && menu.lastElementChild !== done) menu.append(done);
         else if (!last && done.nextElementSibling !== menu) menu.before(done);
     };
@@ -970,8 +1004,14 @@ function mountCustomizeDialog() {
     };
     content?.addEventListener('scroll', syncBar, { passive: true });
     // A tap on the dimmed backdrop closes it too (New look only).
+    // Only a press that starts and ends on the backdrop closes it, so a text
+    // selection that overshoots the dialog's edge leaves it open.
+    let downOnBackdrop = false;
+    modal.addEventListener('pointerdown', event => { downOnBackdrop = active && event.target === modal; });
     modal.addEventListener('click', event => {
-        if (active && event.target === modal) byId('settingsCloseBtn')?.click();
+        const close = active && downOnBackdrop && event.target === modal;
+        downOnBackdrop = false;
+        if (close) byId('settingsCloseBtn')?.click();
     });
     const activate = (keepFocus = false) => {
         active = true;
@@ -1191,6 +1231,18 @@ function mountSearchStatus() {
             live.textContent = text;
         }, 700);
     });
+    // A type chip changes the list too, so it says how many games it shows.
+    byId('gameCategoryChips')?.addEventListener('click', event => {
+        const chip = event.target.closest?.('[data-category]');
+        if (!chip || !isNext()) return;
+        clearTimeout(timer);
+        later(() => {
+            if (!isNext()) return;
+            const count = grid.querySelectorAll('.game-card').length;
+            const name = chip.textContent.trim();
+            live.textContent = count ? `${name}, ${count} ${count === 1 ? 'game' : 'games'}` : `${name}, no games`;
+        });
+    });
 }
 
 function mountTypingBar() {
@@ -1312,6 +1364,46 @@ function mountGameExpander() {
 // leave. The closed select then shows "Bot · Medium", "🤖 Medium" or just
 // "Medium", whichever is the longest that fits. Decided by measuring, so it follows the text size too.
 // The option values never change.
+
+// --- Customize: theme swatches as wide as their longest name --------------
+// The swatches sit in an even grid. The grid takes the most columns (6, 4, 3
+// or 2, so the 12 themes fill whole rows) whose swatches still hold every
+// theme name on one line with room either side, in each menu style and at
+// every text size.
+
+function mountSwatchFit() {
+    const picker = document.querySelector('#settingsModal .theme-picker');
+    if (!picker) return;
+    const fit = () => {
+        if (!isNext()) { picker.style.removeProperty('--hn-swatch-cols'); return; }
+        const swatches = [...picker.querySelectorAll('.theme-swatch')];
+        const width = picker.clientWidth;
+        if (!swatches.length || !width) return;
+        let need = 0;
+        for (const swatch of swatches) {
+            const label = swatch.querySelector('.theme-swatch-label');
+            if (!label) continue;
+            const cs = getComputedStyle(swatch);
+            // 6px clear of the edge on each side, inside the border.
+            const border = (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
+            need = Math.max(need, label.getBoundingClientRect().width + border + 12);
+        }
+        const gap = parseFloat(getComputedStyle(picker).columnGap) || 0;
+        const cols = [6, 4, 3, 2].find(c => (width - gap * (c - 1)) / c >= need) || 2;
+        if (picker.style.getPropertyValue('--hn-swatch-cols') !== String(cols)) picker.style.setProperty('--hn-swatch-cols', String(cols));
+    };
+    let frame = 0;
+    const queue = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(fit); };
+    let lastWidth = -1;
+    new ResizeObserver(() => { if (picker.clientWidth !== lastWidth) { lastWidth = picker.clientWidth; queue(); } }).observe(picker);
+    new MutationObserver(queue).observe(document.documentElement, { attributes: true, attributeFilter: ['data-menu-style', 'data-theme', 'style'] });
+    new MutationObserver(queue).observe(picker, { childList: true });
+    document.addEventListener('homelayoutchange', queue);
+    document.addEventListener('hntightchange', queue);
+    window.addEventListener('resize', queue);
+    document.fonts?.ready?.then(queue);
+    fit();
+}
 
 function mountSkillLabels() {
     const selects = () => [...document.querySelectorAll('#playersSection select[id^="player"][id$="Skill"]')];
@@ -1655,6 +1747,7 @@ export function initHomeNext() {
     run('gameExpander', mountGameExpander);
     run('quickStartFirst', mountQuickStartFirst);
     run('skillLabels', mountSkillLabels);
+    run('swatchFit', mountSwatchFit);
     run('libraryFit', mountLibraryFit);
     run('zoom', mountZoom);
     run('gameIcons', mountGameIcons);

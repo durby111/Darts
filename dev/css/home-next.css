@@ -2161,3 +2161,44 @@ html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game
 
 /* Section hints don't leave a word alone on their last line. */
 html[data-home="next"] #setupScreen :is(#gamePickerSection, #gameOptionsSection, #playersSection) > .setup-section-label::after { text-wrap: balance; }
+
+/* Customize theme swatches: the grid takes as many columns as their names
+   allow (set by home-next.js); each name stays whole on one line. */
+html[data-home="next"] #settingsModal .hn-dialog .theme-picker { grid-template-columns: repeat(var(--hn-swatch-cols, 4), minmax(0, 1fr)); }
+html[data-home="next"] #settingsModal .hn-dialog .theme-swatch-label { white-space: nowrap; word-break: keep-all; overflow-wrap: normal; letter-spacing: 0.02em; }
+
+/* Astra 6.2 lays Customize on paper: wallpaper names in its dark ink. */
+html[data-home="next"][data-menu-style="astra62"] #settingsModal .hn-dialog .wallpaper-label { color: var(--am-ink, #17251d); }
+
+/* Neon: Customize section labels at least 12px. */
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog :is(.settings-section > :is(h2, h3, h4, .settings-section-label), .menu-style-picker > label) { font-size: max(0.75rem, 12px); }
+
+/* Large text: the stacked header lines up on the left and its logo grows with the text. */
+html[data-home="next"][data-hn-tight] .setup-screen .setup-header-side { padding-left: 0; justify-content: flex-start; }
+html[data-home="next"][data-hn-tight] .setup-screen .setup-header .setup-logo { width: 5rem; height: 2.75rem; flex-basis: 5rem; }
+
+/* Small icons grow with the text: step discs, search glass, field caret,
+   throw-order grip and arrows. At the normal size nothing changes. */
+html[data-home="next"] #setupScreen :is(#gamePickerSection, #gameOptionsSection, #playersSection) > .setup-section-label::before { width: max(30px, 1.875rem); height: max(30px, 1.875rem); }
+html[data-home="next"] #setupScreen :is(#gamePickerSection, #gameOptionsSection, #playersSection) > .setup-section-label { grid-template-columns: max(30px, 1.875rem) minmax(0, 1fr); }
+html[data-home="next"] #setupScreen .picker-search { height: max(48px, 3rem); min-height: max(48px, 3rem); padding-left: calc(max(16px, 0.75rem) + max(20px, 1rem) + 10px); background-size: max(20px, 1rem); background-position: max(16px, 0.75rem) 50%; }
+html[data-home="next"] #setupScreen select:not(.visually-hidden),
+html[data-home="next"] #teamBuilderScreen select,
+html[data-home="next"]:not([data-menu-style]) #settingsModal .hn-dialog select { background-size: max(12px, 0.75rem) max(12px, 0.75rem); background-position: right max(14px, 0.875rem) center; }
+html[data-home="next"] #setupScreen .player-order-grip { font-size: max(20px, 1.25rem); }
+html[data-home="next"] #setupScreen .player-order-stepper button { font-size: max(18px, 1.125rem); }
+
+/* Utility cards: their buttons share one width and one corner. */
+html[data-home="next"] #setupScreen .home-player-help > button,
+html[data-home="next"] #setupScreen #rosterShareBtn { width: 100%; margin: 4px 0 8px; }
+html[data-home="next"] #setupScreen :is(#rosterAddBtn, #rosterShareBtn) { border-radius: 12px; }
+
+/* Typography: no lone word on the description's last line. */
+html[data-home="next"] #setupScreen .picker-description { text-wrap: pretty; }
+html[data-home="next"] #setupScreen #gamePickerSection > .setup-section-label::after { content: 'Tap a game to choose\00a0it. ⓘ shows the\00a0rules.' / ''; }
+
+/* With only bots at the board, Start reads as unavailable. */
+html[data-home="next"] #setupScreen #startGameBtn[aria-disabled="true"] { filter: saturate(0.25); opacity: 0.6; box-shadow: none; }
+
+/* Large text: a tab label too long for the row wraps inside its tab. */
+html[data-home="next"][data-hn-tight] #setupScreen .dev-app-nav :is(a, button) { white-space: normal; text-align: center; text-wrap: balance; max-width: 100%; }
