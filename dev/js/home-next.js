@@ -78,6 +78,15 @@ function placeSections(layout) {
         if (chips && recents && chips.nextElementSibling !== recents) chips.after(...withGap(recents));
         if (grid && desc && grid.nextElementSibling !== desc) grid.after(...withGap(desc));
     }
+    // The BotBlake note goes under the player rows, so the first name shows
+    // without scrolling; Classic keeps it under the heading.
+    const players = byId('playersSection');
+    const botNote = players?.querySelector('.players-bot-note');
+    const playersLabel = players?.querySelector(':scope > .setup-section-label');
+    if (botNote && playersLabel) {
+        if (layout === 'next') { if (players.lastElementChild !== botNote) players.append(botNote); }
+        else if (playersLabel.nextSibling !== botNote) playersLabel.after(botNote);
+    }
     if (layout === 'next') {
         let anchor = play;
         for (const el of [help, roster, maintenance]) {
@@ -189,6 +198,17 @@ function mountSummary() {
     title.before(wrap);
     wrap.append(title, summary);
     describeStart(document.documentElement.dataset.home);
+    // With a game to resume, the summary gives way to Resume, so Start Game
+    // carries the chosen game's name on a second line (drawn by CSS).
+    const start = byId('startGameBtn');
+    const nameStart = () => {
+        if (!start) return;
+        if (!isNext()) { delete start.dataset.hnGame; return; }
+        if (start.dataset.hnGame !== title.textContent.trim()) start.dataset.hnGame = title.textContent.trim();
+    };
+    new MutationObserver(nameStart).observe(title, { childList: true, characterData: true, subtree: true });
+    document.addEventListener('homelayoutchange', nameStart);
+    nameStart();
     // Each part stays whole, so a line only ever breaks between parts. The
     // dots between parts are drawn by CSS (and dropped at the start of a
     // line); screen readers hear commas.
@@ -429,6 +449,11 @@ function followRulesPop(event) {
     // larger side with the text scrolling, so it never covers its button.
     pop.style.maxHeight = '';
     pop.style.overflowY = '';
+    // It stays inside the game card, side to side.
+    const panel = byId('gamePickerSection')?.getBoundingClientRect();
+    const lo = Math.max(margin, panel?.width ? panel.left : 0);
+    const hi = Math.min(window.innerWidth - margin, panel?.width ? panel.right : window.innerWidth);
+    pop.style.maxWidth = `${Math.floor(hi - lo)}px`;
     const box = pop.getBoundingClientRect();
     const below = floor - (anchor.bottom + 8);
     const above = anchor.top - 8 - margin;
@@ -443,7 +468,7 @@ function followRulesPop(event) {
     else { pop.removeAttribute('tabindex'); pop.removeAttribute('aria-label'); }
     markRulesEnd(pop);
     let left = anchor.left + anchor.width / 2 - box.width / 2;
-    left = Math.max(margin, Math.min(left, window.innerWidth - box.width - margin));
+    left = Math.max(lo, Math.min(left, hi - box.width));
     const top = side === 'below' ? anchor.bottom + 8 : anchor.top - 8 - height;
     pop.dataset.hnSide = side;
     pop.style.setProperty('--hn-arrow-x', `${Math.round(Math.max(14, Math.min(box.width - 14, anchor.left + anchor.width / 2 - left)))}px`);
@@ -614,7 +639,8 @@ function mountTeamA11y() {
             } else if (put) {
                 const hadFocus = put === document.activeElement;
                 put.remove();
-                if (hadFocus) focusFirst('#teamTray .team-chip', `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
+                const placed = justPlaced && `[data-member-id="${CSS.escape(justPlaced)}"][data-member-action="hn-remove"]`;
+                if (hadFocus) focusFirst('#teamTray .team-chip', placed, `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
             }
         });
         // A new pick: bring the Away button into view (Home sits above it).
@@ -628,6 +654,8 @@ function mountTeamA11y() {
         lastPick = pickId;
     };
     let lastPick = null;
+    let justPlaced = null;
+    const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
     const point = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
     const pointer = (type, target, at) => (target || document).dispatchEvent(new PointerEvent(type, {
         bubbles: true, cancelable: true, button: 0, pointerId: 31337, isPrimary: true, clientX: at.x, clientY: at.y,
@@ -673,6 +701,12 @@ function mountTeamA11y() {
         if (!event.isTrusted) return;
         lastRealPress = performance.now();
         if (!isNext()) return;
+        const grip = event.target.closest?.('.hn-grip');
+        if (grip) {
+            const id = grip.closest('.team-zone-member')?.dataset.zoneMemberId;
+            pending = { before: snapshot(), key: id ? ['grip', id] : null };
+            return;
+        }
         const control = event.target.closest?.('[data-member-action], .team-chip[data-chip-id], .team-zone-label, .team-zone');
         if (!control || control.matches('[data-member-action="hn-remove"]')) { pending = null; return; }
         const key = control.dataset.memberAction ? ['member', control.dataset.memberId, control.dataset.memberAction]
@@ -695,6 +729,7 @@ function mountTeamA11y() {
                 if (!was) text = `${now.name} added to ${zoneName(now.zone)}`;
                 else if (was.zone !== now.zone) text = `${now.name} moved to ${zoneName(now.zone)}`;
                 else if (key?.[0] === 'member' && key[1] === id && was.index !== now.index) text = `${now.name} moved ${now.index < was.index ? 'up' : 'down'}`;
+                else if (key?.[0] === 'grip' && key[1] === id && was.index !== now.index) text = `${now.name} moved ${now.index < was.index ? 'up' : 'down'}, now ${ordinal(now.index + 1)}`;
             }
             for (const [id, was] of before.members) if (!after.members.has(id)) text = `${was.name} is back in Available Players`;
             if (!text && after.chip && after.chip !== before.chip) text = `${after.chipName} chosen. Now pick Home or Away.`;
@@ -739,7 +774,9 @@ function mountTeamA11y() {
             press(chip);
             const chosen = screen.querySelector(`.team-chip.selected[data-chip-id="${CSS.escape(id)}"]`);
             say(chosen ? `${name} chosen. Now pick Home or Away.` : `${name} not chosen`);
-            focusChip(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
+            // Chosen: the next press is "Put … in Home", so focus goes there.
+            if (chosen) focusFirst('#teamZone0 > .hn-zone-put', '#teamZone1 > .hn-zone-put', `.team-chip[data-chip-id="${CSS.escape(id)}"]`);
+            else focusChip(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
         }
     });
     // "Put … in Home": a real tap already reached the team itself; a key
@@ -754,9 +791,10 @@ function mountTeamA11y() {
         const zoneLabel = byId(`teamZone${idx}Label`);
         if (zoneLabel) press(zoneLabel);
         const placed = id && memberNode(id);
-        if (placed) say(`${name} added to ${zoneName(idx)}`);
+        if (placed) { justPlaced = id; say(`${name} added to ${zoneName(idx)}`); }
         else if (id) say(`${zoneName(idx)} is full`);
-        focusFirst('#teamTray .team-chip', `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
+        const own = placed && `[data-member-id="${CSS.escape(id)}"][data-member-action="hn-remove"]`;
+        focusFirst('#teamTray .team-chip', own, `#teamZone${idx} [data-member-action="hn-remove"]`, '#teamAddName');
     });
     // New players and bots are read out as they join Available Players.
     const trayNames = () => [...screen.querySelectorAll('#teamTray .team-chip[data-chip-id]')].map(c => c.textContent.trim());
@@ -779,13 +817,15 @@ function mountTeamA11y() {
         wasOpen = open;
         if (!isNext()) return;
         if (open && heading) { heading.tabIndex = -1; later(() => heading.focus()); }
-        if (!open) heading?.removeAttribute('tabindex');
-        else if (!open) later(() => {
-            const setup = byId('setupScreen');
-            const active = document.activeElement;
-            const lost = !active || active === document.body || screen.contains(active) || active.offsetParent === null;
-            if (setup && setup.style.display !== 'none' && lost) byId('startGameBtn')?.focus();
-        });
+        else if (!open) {
+            heading?.removeAttribute('tabindex');
+            later(() => {
+                const setup = byId('setupScreen');
+                const active = document.activeElement;
+                const lost = !active || active === document.body || screen.contains(active) || active.offsetParent === null;
+                if (setup && setup.style.display !== 'none' && lost) byId('startGameBtn')?.focus();
+            });
+        }
     }).observe(screen, { attributes: true, attributeFilter: ['style'] });
     new MutationObserver(label).observe(screen, { childList: true, subtree: true });
     document.addEventListener('homelayoutchange', label);
@@ -862,8 +902,27 @@ function mountCustomizeDialog() {
         closeX.setAttribute('aria-label', 'Close Customize');
         closeX.textContent = '✕';
         closeX.addEventListener('click', () => byId('settingsCloseBtn')?.click());
-        content.prepend(closeX);
+        // It sits in a strip across the top that turns solid once the dialog
+        // scrolls, so nothing scrolls into view underneath it.
+        closeBar = document.createElement('div');
+        closeBar.className = 'hn-dialog-bar';
+        closeBar.append(closeX);
+        content.prepend(closeBar);
+        // It spans the dialog edge to edge, whatever padding the menu style gives it.
+        const pad = getComputedStyle(content);
+        // A see-through dialog colour is made solid for the strip.
+        const rgb = pad.backgroundColor.match(/[\d.]+/g);
+        if (rgb && rgb.length >= 3) closeBar.style.setProperty('--hn-bar-bg', `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`);
+        // The ✕ lines up with the title; the strip ends just below it.
+        Object.assign(closeBar.style, {
+            top: `-${pad.paddingTop}`, marginTop: `-${pad.paddingTop}`, marginLeft: `-${pad.paddingLeft}`, marginRight: `-${pad.paddingRight}`,
+            paddingTop: pad.paddingTop, height: `calc(${pad.paddingTop} + 54px)`, marginBottom: `calc(-54px)`,
+        });
+        syncBar();
     };
+    let closeBar = null;
+    const syncBar = () => closeBar?.classList.toggle('hn-stuck', content.scrollTop > 4);
+    content?.addEventListener('scroll', syncBar, { passive: true });
     // A tap on the dimmed backdrop closes it too (New look only).
     modal.addEventListener('click', event => {
         if (active && event.target === modal) byId('settingsCloseBtn')?.click();
@@ -891,7 +950,8 @@ function mountCustomizeDialog() {
     };
     const deactivate = () => {
         active = false;
-        closeX?.remove();
+        closeBar?.remove();
+        closeBar = null;
         closeX = null;
         syncPressed();
         content.removeAttribute('role');
@@ -1059,6 +1119,34 @@ function mountSkipLink() {
 // With the on-screen keyboard up there is little room left; the docked bar
 // would cover the search results or the field being typed in.
 
+// --- Search results read out -----------------------------------------------
+// After a short pause in typing, the New look says how many games match, so
+// a screen reader hears the result of the search and not every keystroke.
+
+function mountSearchStatus() {
+    const grid = byId('gameTypeGrid');
+    const search = byId('gameSearchInput');
+    if (!grid || !search) return;
+    const live = document.createElement('div');
+    live.id = 'homeNextSearchLive';
+    live.className = 'hn-visually-hidden';
+    live.setAttribute('aria-live', 'polite');
+    live.setAttribute('role', 'status');
+    document.body.append(live);
+    let timer = 0;
+    search.addEventListener('input', () => {
+        clearTimeout(timer);
+        if (!isNext()) return;
+        timer = setTimeout(() => {
+            if (!isNext()) return;
+            const count = grid.querySelectorAll('.game-card').length;
+            const text = !search.value.trim() ? ''
+                : count ? `${count} ${count === 1 ? 'game' : 'games'}` : 'No games match';
+            live.textContent = text;
+        }, 700);
+    });
+}
+
 function mountTypingBar() {
     const setup = byId('setupScreen');
     if (!setup) return;
@@ -1068,7 +1156,9 @@ function mountTypingBar() {
         const vh = window.visualViewport?.height || window.innerHeight;
         const typing = isField(document.activeElement);
         if (!typing) tallest = Math.max(vh, window.innerHeight);
-        const squeezed = typing && window.innerWidth <= 720 && vh < tallest - 120;
+        const touch = window.matchMedia?.('(pointer: coarse)').matches;
+        const small = window.innerWidth <= 720 || touch || vh <= 500;
+        const squeezed = typing && small && vh < tallest - 120;
         if (squeezed) document.documentElement.dataset.hnTyping = '1';
         else delete document.documentElement.dataset.hnTyping;
     };
@@ -1269,7 +1359,10 @@ function mountGameIcons() {
 // can stack instead of overlapping or cutting words.
 function mountTextFit() {
     const root = document.documentElement;
+    let probe = null;
     const sync = () => {
+        // The probe lives only in the New look, so Classic's page is untouched.
+        if (probe && isNext() !== probe.isConnected) { if (isNext()) document.body.append(probe); else probe.remove(); }
         const rem = parseFloat(getComputedStyle(root).fontSize) || 16;
         const tight = isNext() && window.innerWidth / rem < 19;
         if (tight === root.hasAttribute('data-hn-tight')) return;
@@ -1278,8 +1371,17 @@ function mountTextFit() {
     };
     window.addEventListener('resize', sync, { passive: true });
     document.addEventListener('homelayoutchange', sync);
-    // Text size changes resize the page.
-    if (window.ResizeObserver) new ResizeObserver(sync).observe(document.body);
+    // Text size changes resize the page, and always this 1rem probe (the
+    // page itself may keep the window's height whatever the text size).
+    if (window.ResizeObserver) {
+        probe = document.createElement('span');
+        probe.setAttribute('aria-hidden', 'true');
+        probe.style.cssText = 'position:absolute;top:0;left:0;width:1rem;height:1rem;visibility:hidden;pointer-events:none;';
+        if (isNext()) document.body.append(probe);
+        const observer = new ResizeObserver(sync);
+        observer.observe(document.body);
+        observer.observe(probe);
+    }
     sync();
 }
 
@@ -1303,6 +1405,7 @@ export function initHomeNext() {
     run('chipA11y', mountChipA11y);
     run('skipLink', mountSkipLink);
     run('typingBar', mountTypingBar);
+    run('searchStatus', mountSearchStatus);
     run('gameExpander', mountGameExpander);
     run('quickStartFirst', mountQuickStartFirst);
     run('skillLabels', mountSkillLabels);

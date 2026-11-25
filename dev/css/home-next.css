@@ -279,7 +279,8 @@ html[data-home="next"] #setupScreen :is(#gamePickerSection, #gameOptionsSection,
     display: grid;
     place-items: center;
     grid-column: 1;
-    grid-row: 1 / span 2;
+    grid-row: 1;
+    align-self: center;
     width: 30px;
     height: 30px;
     margin: 0;
@@ -324,7 +325,8 @@ html[data-home="next"] #setupScreen .home-player-help > summary {
 html[data-home="next"] #setupScreen .picker-toolbar { margin: 0 0 12px; position: relative; }
 html[data-home="next"] #setupScreen .picker-search {
     width: 100%;
-    min-height: 50px;
+    min-height: 48px;
+    height: 48px;
     padding: 0 16px 0 46px;
     border-radius: 14px;
     border: 1px solid var(--hn-line-strong);
@@ -598,7 +600,7 @@ html[data-home="next"] #setupScreen :is(.checkbox-label, #casualRecordingSetup l
 html[data-home="next"] #setupScreen .players-bot-note {
     display: flex;
     gap: 8px;
-    margin: -4px 0 16px;
+    margin: 14px 0 0;
     font-size: 0.8125rem;
     line-height: 1.45;
     color: var(--color-text-muted);
@@ -784,7 +786,7 @@ html[data-home="next"] #setupScreen #playSection {
     padding: 16px 18px;
     border: 1px solid var(--hn-line-strong);
     border-radius: var(--hn-radius);
-    background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+    background: var(--color-surface);
     -webkit-backdrop-filter: blur(14px) saturate(140%);
     backdrop-filter: blur(14px) saturate(140%);
     box-shadow: 0 10px 28px color-mix(in srgb, #000 28%, transparent);
@@ -1090,8 +1092,9 @@ html[data-home="next"][data-theme="royal"] :is(#setupScreen, #teamBuilderScreen)
 html[data-home="next"][data-theme="red"] :is(#setupScreen, #teamBuilderScreen) { --color-success: #2e7d32; }
 /* Blue's green Start and Resume: a deeper green keeps white text readable. */
 html[data-home="next"][data-theme="blue"] :is(#setupScreen, #teamBuilderScreen) { --color-success: #00800a; }
-/* A selected favourite keeps a readable star on every theme. */
-html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved { color: var(--color-on-primary); }
+/* A selected favourite keeps its gold: a dark star on a gold disc reads on every theme. */
+html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved { color: #1a1a1a; background: #ffd54a; }
+html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved:hover { background: #ffe07a; }
 /* Footer links (support, email) use the body text colour so they read on every theme. */
 html[data-home="next"] #setupScreen .setup-credit a:not(.support-btn) { color: var(--color-text); text-decoration: underline; text-underline-offset: 3px; }
 
@@ -1171,8 +1174,15 @@ html[data-home="next"] #teamBuilderScreen .btn { min-height: 44px; }
     html[data-home="next"] #teamBuilderScreen .team-zones { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
     html[data-home="next"] #teamBuilderScreen .team-zone { min-height: 0; }
 }
-html[data-home="next"] #teamBuilderScreen .team-add-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-html[data-home="next"] #teamBuilderScreen .team-add-row > label { display: inline-flex; align-items: center; gap: 8px; }
+/* Two full-width rows: bot skill + Add BotBlake, then a name + Add. */
+html[data-home="next"] #teamBuilderScreen .team-add-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; gap: 8px; }
+html[data-home="next"] #teamBuilderScreen .team-add-row > label { grid-column: 1; }
+html[data-home="next"] #teamBuilderScreen #teamAddBotBtn { grid-column: 2 / span 2; }
+html[data-home="next"] #teamBuilderScreen #teamAddName { grid-column: 1 / span 2; }
+html[data-home="next"] #teamBuilderScreen #teamAddBtn { grid-column: 3; }
+html[data-home="next"] #teamBuilderScreen .team-add-row > label { display: flex; align-items: center; gap: 8px; min-width: 0; }
+html[data-home="next"] #teamBuilderScreen .team-add-row > label > select { flex: 1 1 auto; min-width: 0; }
+html[data-home="next"] #teamBuilderScreen .team-add-row > :is(#teamAddBotBtn, #teamAddBtn) { width: 100%; }
 html[data-home="next"] #teamBuilderScreen #teamAddName { flex: 1 1 60%; min-width: 0; }
 html[data-home="next"] #teamBuilderScreen #teamAddBtn { flex: 0 0 auto; }
 
@@ -1499,10 +1509,10 @@ html[data-home="next"] #setupScreen .game-card.active :is(.game-card-fav, .game-
 html[data-home="next"] #setupScreen :is(.setup-credit a, .setup-qr a, .setup-qr):focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 3px; border-radius: 8px; }
 html[data-home="next"] :is(#teamBuilderScreen h1, #settingsModal h2)[tabindex="-1"]:focus { outline: none; }
 
-/* While typing on a phone with the keyboard up, the docked bar steps aside. */
-@media (max-width: 720px) {
-    html[data-home="next"][data-hn-typing] #setupScreen #playSection { display: none; }
-}
+/* While typing with an on-screen keyboard up, the Start bar steps aside.
+   home-next.js sets data-hn-typing only on phones, touch screens and short
+   windows when the keyboard takes real height. */
+html[data-home="next"][data-hn-typing] #setupScreen #playSection { display: none; }
 
 /* Collapsed cards with one line of text stay compact. */
 html[data-home="next"] #setupScreen :is(details.setup-panel, details.home-player-help, details.roster-section):not([open]) { padding-top: 6px; padding-bottom: 6px; }
@@ -1706,9 +1716,9 @@ html[data-home="next"] #settingsModal .hn-dialog .wallpaper-upload-btn { display
 /* Game types wrap onto a second line instead of running off the edge. */
 html[data-home="next"] #setupScreen .picker-chips { flex-wrap: wrap; overflow: visible; -webkit-mask-image: none; mask-image: none; animation: none; }
 
-/* Header: the DEV corner tag sits above it on every phone; the subtitle reads
+/* Header: the DEV corner tag sits above it wherever the card reaches the corner; the subtitle reads
    as one line of sentence case; step subtitles never leave one word alone. */
-@media (max-width: 720px) {
+@media (max-width: 1290px) {
     html[data-home="next"] .setup-screen .setup-header { margin-top: 26px; }
 }
 html[data-home="next"] .setup-screen .setup-subtitle { text-transform: lowercase; }
@@ -1747,7 +1757,10 @@ html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip {
     font-size: 1.25rem; line-height: 1;
     color: currentColor; opacity: 0.6;
     cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+    position: relative;
 }
+/* Its touch area reaches into the row's padding, so it is at least 44px wide. */
+html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip::after { content: ''; position: absolute; inset: 0 -6px 0 -10px; }
 html[data-home="next"] #teamBuilderScreen .team-zone-member-name { grid-column: 2; }
 html[data-home="next"] #teamBuilderScreen .team-zone-member-swap-btn { grid-column: 3; }
 html[data-home="next"] #teamBuilderScreen .team-zone-member [data-member-action="up"] { grid-column: 4; }
@@ -1755,13 +1768,16 @@ html[data-home="next"] #teamBuilderScreen .team-zone-member [data-member-action=
 html[data-home="next"] #teamBuilderScreen .team-zone-member .hn-member-remove { grid-column: 6; }
 @container (max-width: 420px) {
     html[data-home="next"] #teamBuilderScreen .team-zone-member { grid-template-columns: 32px minmax(0, 1fr) repeat(4, 44px); }
-    html[data-home="next"] #teamBuilderScreen .team-zone-member-name { grid-column: 1 / -1; grid-row: 1; }
-    html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { grid-row: 2; }
+    html[data-home="next"] #teamBuilderScreen .team-zone-member-name { grid-column: 2 / -1; grid-row: 1; }
+    html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { grid-row: 1 / span 2; align-self: stretch; height: auto; min-height: 44px; }
 }
 /* The narrowest phones: a slimmer grip and tighter gaps keep the four 44px buttons inside the row. */
 @container (max-width: 300px) {
     html[data-home="next"] #teamBuilderScreen .team-zone-member { grid-template-columns: 28px minmax(0, 1fr) repeat(4, 44px); column-gap: 4px; padding-left: 8px; padding-right: 8px; }
     html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { width: 28px; margin-left: 0; }
+    html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip::after { inset: 0 -4px 0 -8px; }
+    html[data-home="next"] #teamBuilderScreen .team-zone-member-name { grid-column: 1 / -1; }
+    html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { grid-row: 2; }
 }
 
 /* iOS zooms into fields under 16px. */
@@ -1774,15 +1790,29 @@ html[data-home="next"] .game-rules-pop[data-hn-more]::after {
 }
 html[data-home="next"] .game-rules-pop:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
 /* Customize: a close button pinned to the top corner while the dialog scrolls. */
-html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-close {
-    position: sticky; top: 0; float: right; z-index: 3; box-shadow: 0 4px 14px color-mix(in srgb, #000 40%, transparent);
-    width: 44px; height: 44px; margin: -6px -8px 0 8px; padding: 0;
+html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-bar {
+    position: sticky; top: 0; z-index: 3;
+    display: flex; justify-content: flex-end; align-items: flex-start;
+    box-sizing: border-box; padding-right: 10px; padding-left: 10px; flex: 0 0 auto;
+    pointer-events: none;
+    background: transparent;
+    transition: background-color .15s, box-shadow .15s;
+}
+html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-bar.hn-stuck {
+    background: inherit;
+    background-color: var(--hn-bar-bg, var(--color-surface));
+    box-shadow: 0 6px 14px -8px color-mix(in srgb, #000 60%, transparent);
+}
+html[data-home="next"] #settingsModal .hn-dialog .hn-dialog-close {
+    pointer-events: auto;
+    width: 44px; height: 44px; margin: 0; padding: 0;
     display: inline-flex; align-items: center; justify-content: center;
-    border: 1px solid var(--hn-line, rgba(255,255,255,.14)); border-radius: 999px;
-    background: var(--color-surface, #1e1e1e); color: var(--color-text);
+    border: 1px solid color-mix(in srgb, currentColor 40%, transparent); border-radius: 999px;
+    background: transparent; color: inherit;
     font: 600 1.125rem/1 var(--hn-font, inherit); cursor: pointer;
 }
-html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-close:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+html[data-home="next"] #settingsModal .hn-dialog > #settingsModalTitle { padding-right: 56px; min-height: 48px; box-sizing: border-box; }
+html[data-home="next"] #settingsModal .hn-dialog .hn-dialog-close:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
 /* The title only takes focus so the dialog opens at the top: no ring on it in any menu style. */
 html[data-home="next"] #settingsModal #settingsModalTitle:focus { outline: none !important; box-shadow: none !important; }
 
@@ -1871,7 +1901,7 @@ html[data-home="next"] #setupScreen :is(.game-card, .player-row, #startGameBtn, 
 html[data-home="next"] #teamBuilderScreen :is(.team-zone, #teamStartMatchBtn) { border-radius: 14px; }
 html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { border-radius: 13px; }
 /* The DEV tag in the corner never sits on the team builder card. */
-@media (max-width: 720px) {
+@media (max-width: 1290px) {
     html[data-home="next"] #teamBuilderScreen .setup-card { margin-top: 26px; }
 }
 
@@ -1897,12 +1927,6 @@ html[data-home="next"] #settingsModal .hn-dialog .home-layout-option:has(input:f
 html[data-home="next"] #setupScreen .picker-recents-label { color: var(--color-text); }
 html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { opacity: 0.9; }
 html[data-home="next"] #setupScreen .picker-chip:not(.active) { border-color: var(--hn-field-line); }
-/* Neon menu style lays the dialog out as a column: pin Close to the right of the title row. */
-html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog > .hn-dialog-close {
-    float: none; align-self: flex-end; flex: 0 0 auto; margin: 0 0 -56px; position: sticky; top: 0;
-}
-html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog > #settingsModalTitle { padding-right: 56px; }
-
 /* Team builder rows wear the same colours as the home screen's player rows:
    a tinted card with a blue (Home) or green (Away) edge, normal text colour. */
 html[data-home="next"] #teamBuilderScreen .team-zone-member {
@@ -1928,8 +1952,59 @@ html[data-home="next"] #teamBuilderScreen .team-chip { border-radius: 12px; }
 /* Start Match is the biggest button on the screen; the two helpers below
    the zones share one row in equal halves, in the home screen's type size. */
 html[data-home="next"] #teamBuilderScreen #teamStartMatchBtn { font-size: 1.1875rem; font-weight: 800; }
-html[data-home="next"] #teamBuilderScreen .team-builder-actions .btn { font-size: 0.9375rem; }
 @media (min-width: 900px) {
     html[data-home="next"] #teamBuilderScreen .team-builder-actions { flex-wrap: nowrap; }
-    html[data-home="next"] #teamBuilderScreen .team-builder-actions .btn { flex: 1 1 0; min-width: max-content; white-space: nowrap; }
+    html[data-home="next"] #teamBuilderScreen .team-builder-actions .btn { flex: 1 1 0; min-width: max-content; white-space: nowrap; padding-left: 12px; padding-right: 12px; }
 }
+
+/* Every text field and picker shares one shape: 48px tall, 14px inset, normal weight. */
+html[data-home="next"] #setupScreen :is(.player-row input[type="text"], .player-row select, #gameOptionsSection select, #gameOptionsSection input[type="number"]),
+html[data-home="next"] #teamBuilderScreen :is(input[type="text"], select) {
+    min-height: 48px;
+    padding-left: 14px;
+    font-weight: 400;
+}
+html[data-home="next"] #teamBuilderScreen :is(#teamAddBotBtn, #teamAddBtn) { min-height: 48px; }
+/* Outline buttons share the chips' edge, which reads at 3:1 or better. */
+html[data-home="next"] #setupScreen :is(#randomizePlayersBtn, #homeAccountLink, #settingsBtnSetup, .player-order-stepper > button:not(:disabled)) {
+    border-color: var(--hn-field-line);
+}
+/* Team builder buttons: one size for every secondary button, Start Match the largest. */
+html[data-home="next"] #teamBuilderScreen :is(#teamAddBotBtn, #teamAddBtn, #teamBackBtn, .hn-zone-put, .team-builder-actions .btn) { font-size: 1rem; font-weight: 700; }
+/* "Recent:" starts its own group, apart from Quick Start. */
+html[data-home="next"] #setupScreen #gameRecentsRow [data-quickstart] + .picker-recents-label { margin-left: 6px; padding-left: 12px; border-left: 1px solid var(--hn-field-line); }
+
+/* One focus ring everywhere: Done, Login and the app tabs get the same 3px
+   accent ring as the other controls. The tabs sit in a scrolling strip with
+   5px of padding, so their ring stays inside it. */
+html[data-home="next"] #settingsModal .hn-dialog #settingsCloseBtn:focus-visible,
+html[data-home="next"] #setupScreen #homeAccountLink:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 3px; }
+html[data-home="next"] #setupScreen .dev-app-nav :is(a, button):focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
+
+/* With a game to resume, Start Game names the game it starts on a second line.
+   Screen readers already hear it from the match summary. */
+html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) #startGameBtn[data-hn-game] { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; }
+html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) #startGameBtn[data-hn-game]::after {
+    content: attr(data-hn-game) / "";
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 16px;
+    letter-spacing: normal;
+    text-transform: none;
+    color: inherit;
+}
+
+/* Placeholders fit at large text sizes: the empty search drops the room kept
+   for its clear button, and any that still don't fit end in an ellipsis. */
+html[data-home="next"] #setupScreen .picker-search:placeholder-shown { padding-right: 14px; }
+html[data-home="next"] :is(#setupScreen, #teamBuilderScreen) input:is([type="text"], [type="search"], :not([type])) { text-overflow: ellipsis; }
+/* Large text: the bot skill label sits above its menu, and the bot button
+   gets its own row, so neither is squeezed to a sliver. */
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .team-add-row > label { grid-column: 1 / -1; flex-wrap: wrap; }
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .team-add-row > label > select { flex-basis: 100%; }
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .team-add-row > #teamAddBotBtn { grid-column: 1 / -1; }

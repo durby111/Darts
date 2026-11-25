@@ -114,7 +114,10 @@ function renderGrid() {
     const current = selectedGameId();
     const games = searchGames(currentQuery, currentCategory, favs);
     const selectedTitle = el('selectedGameTitle');
-    if (selectedTitle) selectedTitle.textContent = getGame(current)?.label || current;
+    const selectedLabel = getGame(current)?.label || current;
+    // Only touch the title when it changes, so screen readers don't hear it
+    // again on every keystroke in the search.
+    if (selectedTitle && selectedTitle.textContent !== selectedLabel) selectedTitle.textContent = selectedLabel;
 
     if (games.length === 0) {
         grid.innerHTML = `<div class="picker-empty">No games match “${escapeHtml(currentQuery)}”.</div>`;
