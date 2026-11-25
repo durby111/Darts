@@ -1258,7 +1258,8 @@ html[data-home="next"] .game-rules-pop {
     color: var(--color-text);
     font-size: 0.875rem;
     line-height: 1.45;
-    box-shadow: 0 12px 32px color-mix(in srgb, #000 45%, transparent);
+    /* A soft scrim behind the card so the covered cards read as background. */
+    box-shadow: 0 12px 32px color-mix(in srgb, #000 55%, transparent), 0 0 0 100vmax color-mix(in srgb, #000 50%, transparent);
     overscroll-behavior: contain;
 }
 html[data-home="next"] .game-rules-pop strong { margin-bottom: 4px; font-size: 0.9375rem; }
@@ -2422,8 +2423,12 @@ html[data-home="next"] #teamBuilderScreen .team-zone-member > label { color: col
 html[data-home="next"] #setupScreen #gameTypeGrid:has(.picker-empty) { flex: 1 1 auto; align-content: center; }
 
 /* Round 16: "Put NAME in Home" keeps its spaces in the one-line (flex) layout. */
-html[data-home="next"] #teamBuilderScreen .hn-zone-put > .hn-put-word { white-space: pre; flex: 0 0 auto; }
-html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put > .hn-put-word { white-space: normal; }
+html[data-home="next"] #teamBuilderScreen .hn-zone-put > .hn-put-word { white-space: pre; flex: 0 0 auto; margin-inline-end: 0.3em; }
+html[data-home="next"] #teamBuilderScreen .hn-zone-put > .hn-put-word--after { margin-inline: 0.3em 0; }
+/* Large text: the button wraps as plain text, so the gaps are real spaces. */
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put > .hn-put-word { white-space: normal; margin-inline: 0; }
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put > .hn-put-word:not(.hn-put-word--after)::after { content: " "; }
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put > .hn-put-word--after::before { content: " "; }
 /* Round 16: Customize at large text on small phones. The title fits beside the ✕. */
 html[data-home="next"][data-hn-tight] #settingsModal .hn-dialog > #settingsModalTitle { font-size: min(1.75rem, 9vw); overflow-wrap: anywhere; }
 /* The layout titles wrap (the check mark stays with the last word), one card per line. */
@@ -2497,7 +2502,6 @@ html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog #settin
    narrow to show the chosen level beside it (large text, small phones). */
 html[data-home="next"] #teamBuilderScreen .team-zone-member > label { flex-wrap: wrap; row-gap: 6px; }
 html[data-home="next"] #teamBuilderScreen .team-zone-member > label select { flex: 1 1 7.5em; min-width: 0; }
-html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .hn-zone-put[data-hn-cut] > .hn-put-name + .hn-put-word { translate: -0.22em 0; }
 
 /* ---------- Round 17 ---------- */
 /* The selected favourite's gold disc has a dark ring, so it stands out on
@@ -2553,7 +2557,7 @@ html[data-home="next"] #setupScreen .support-btn-sub { font-size: 0.75rem; }
 html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-quiet] > :is(.picker-recents-label, .hn-recents-break) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* Reduced motion: controls change state at once, with no transitions. */
 @media (prefers-reduced-motion: reduce) {
-    html[data-home="next"] :is(#setupScreen, #playSection, #teamBuilderScreen, #settingsModal) :is(*, *::before, *::after) { transition: none !important; }
+    html[data-home="next"] :is(#setupScreen, #playSection, #teamBuilderScreen, #settingsModal > .modal-content.hn-dialog) :is(*, *::before, *::after) { transition: none !important; }
 }
 /* Neon menu style: the light stripe stays on the dialog's edge while its
    content scrolls (a background layer, which doesn't scroll with content). */
@@ -2578,3 +2582,36 @@ html[data-home="next"] #teamBuilderScreen #teamZone1 .hn-zone-put { background: 
     html[data-home="next"][data-hn-tight] .setup-screen .setup-header .setup-logo { width: 60px; height: 34px; flex: 0 0 60px; }
 }
 html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog .hn-dialog-bar { box-shadow: inset 3.5px 0 0 var(--nm-cyan, #1cf2ff); }
+/* Compact screens: when even the latest recent game is too long for the
+   one line, its chip shortens with an ellipsis. */
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-squeeze] { flex-wrap: nowrap; }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-squeeze] > .picker-recent-chip:not([data-quickstart]) { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-squeeze] > [data-quickstart] { flex: 0 0 auto; }
+html[data-home="next"] #setupScreen .dev-app-nav[data-hn-wrap] { flex-wrap: wrap; overflow-x: visible; width: auto; justify-self: stretch; align-self: stretch; }
+html[data-home="next"] #setupScreen .dev-app-nav[data-hn-wrap] :is(a, button) { flex: 1 1 auto; min-width: min-content; white-space: normal; }
+
+/* Round 20: one even gap round "vs" in the resume names, however a name is cut. */
+html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-vs { display: inline-block; white-space: normal; margin-inline: 0.3em; }
+/* Round 20: the Quick Start bolt sits on a small dark disc, so it shows on every accent (Sunburst, Volt...). */
+html[data-home="next"] #setupScreen .picker-recent-chip.picker-quickstart > span[aria-hidden="true"] {
+    display: inline-grid; place-items: center; width: 1.45em; height: 1.45em; margin-inline-end: 0.15em;
+    border-radius: 50%; background: rgba(0, 0, 0, 0.55); font-size: 0.85em; line-height: 1; vertical-align: -0.2em;
+}
+/* Round 20: a toggle right under a field gets the same gap as any other field. */
+html[data-home="next"] #setupScreen .form-group > :is(select, input:not([type="checkbox"])) + .checkbox-label { margin-top: 10px; }
+html[data-home="next"] #teamBuilderScreen :is(.team-builder-actions .btn, #teamBackBtn) { min-height: 48px; }
+/* Round 20: team builder from tablet width up. Tray chips in the body size,
+   one control height, and the three helpers stacked full width, as on phones. */
+@media (min-width: 721px) {
+    html[data-home="next"] #teamBuilderScreen #teamTray .team-chip { font-size: 1rem; }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .team-builder-actions {
+        display: grid; grid-template-columns: minmax(0, 1fr); align-items: stretch;
+    }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .team-builder-actions .btn { min-width: 0; }
+}
+/* Round 20: phone tab strip, equal cells so the active pill keeps one width. */
+@media (max-width: 480px) {
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen .dev-app-nav:not([data-hn-wrap]) :is(a, button) {
+        flex: 1 1 0; min-width: 0; padding: 2px 6px; white-space: normal; text-align: center; text-wrap: balance; line-height: 1.15;
+    }
+}

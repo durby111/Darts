@@ -165,6 +165,40 @@ const isNext = () => document.documentElement.dataset.home === 'next';
 const byId = id => document.getElementById(id);
 const later = fn => setTimeout(fn, 0);
 
+// A name cut short with an ellipsis can leave up to a letter's width of blank
+// space after the "…" (the letter that did not fit). That reads as a double
+// gap before the next word, so the words after it are pulled back by that
+// amount. Returns the gap in pixels (0 when the text is not cut).
+let ellipsisCanvas = null;
+function ellipsisGap(el) {
+    if (!el?.isConnected || !isNext() || el.scrollWidth <= el.clientWidth + 1) return 0;
+    const text = [...el.childNodes].filter(node => node.nodeType === Node.TEXT_NODE && node.data.length).pop();
+    if (!text) return 0;
+    const cs = getComputedStyle(el);
+    if (cs.textOverflow !== 'ellipsis' || cs.direction !== 'ltr') return 0;
+    ellipsisCanvas ||= document.createElement('canvas').getContext('2d');
+    ellipsisCanvas.font = cs.font;
+    const dots = ellipsisCanvas.measureText('\u2026').width;
+    const box = el.getBoundingClientRect();
+    const limit = box.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight);
+    const range = document.createRange();
+    const rightAt = k => { range.setStart(text, 0); range.setEnd(text, k); return range.getBoundingClientRect().right; };
+    let lo = 0, hi = text.data.length;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (rightAt(mid) + dots <= limit + 0.5) lo = mid; else hi = mid - 1; }
+    if (!lo) return 0;
+    const gap = limit - (rightAt(lo) + dots);
+    return gap > 0.5 && gap < box.width ? gap : 0;
+}
+// Pulls each element back by the gaps of the cut texts before it.
+function closeEllipsisGaps(pairs) {
+    pairs.forEach(([, next]) => next?.style.removeProperty('translate'));
+    let shift = 0;
+    pairs.forEach(([el, next]) => {
+        shift += ellipsisGap(el);
+        if (next && shift) next.style.translate = `${-shift.toFixed(1)}px 0`;
+    });
+}
+
 // --- Match summary in the Start bar -----------------------------------------
 
 function visible(el) {
@@ -263,7 +297,7 @@ function mountSummary() {
     document.addEventListener('change', () => later(update), true);
     document.addEventListener('homelayoutchange', update);
     document.addEventListener('hntightchange', update);
-    window.matchMedia?.('(max-width: 360px)').addEventListener?.('change', update);
+    window.matchMedia?.('(max-width: 480px)').addEventListener?.('change', update);
     update();
 }
 
@@ -306,7 +340,13 @@ function splitResume(button) {
     (list || inner.split(' vs ')).forEach((name, i) => {
         const player = document.createElement('span');
         player.className = 'hn-resume-player';
-        player.textContent = i ? ` vs ${name}` : name;
+        if (i) {
+            // " vs " keeps its spaces in the text; on screen it is a fixed gap.
+            const vs = document.createElement('span');
+            vs.className = 'hn-resume-vs';
+            vs.textContent = ' vs ';
+            player.append(vs, name);
+        } else player.textContent = name;
         names.append(player);
     });
     names.append(paren(')'));
@@ -316,9 +356,16 @@ function splitResume(button) {
 function mountResumeLabel() {
     const button = byId('resumeGameBtn');
     if (!button) return;
-    const split = () => splitResume(button);
+    const gaps = () => later(() => {
+        const players = [...button.querySelectorAll('.hn-resume-player')];
+        closeEllipsisGaps(players.map((player, i) => [player, players[i + 1]]));
+    });
+    const split = () => { splitResume(button); gaps(); };
     new MutationObserver(split).observe(button, { childList: true });
     document.addEventListener('homelayoutchange', split);
+    window.addEventListener('resize', gaps, { passive: true });
+    document.addEventListener('hntightchange', gaps);
+    if (window.ResizeObserver) new ResizeObserver(gaps).observe(button);
     split();
 }
 
@@ -661,6 +708,50 @@ function mountFavToggles() {
     sync();
 }
 
+// --- "Jump back in": keep keyboard focus when the row is redrawn ------------
+// Choosing a recent game redraws the row; focus goes back to the same chip.
+
+function mountRecentsFocus() {
+    const row = byId('gameRecentsRow');
+    if (!row) return;
+    let last = null;
+    const keyOf = el => {
+        const chip = el.closest?.('.picker-recent-chip');
+        if (!chip || !row.contains(chip)) return null;
+        return chip.hasAttribute('data-quickstart') ? ['data-quickstart', null] : ['data-recent', chip.dataset.recent];
+    };
+    row.addEventListener('focusin', event => { last = keyOf(event.target); });
+    document.addEventListener('focusin', event => { if (!row.contains(event.target)) last = null; });
+    new MutationObserver(() => {
+        if (!last || !isNext()) return;
+        const active = document.activeElement;
+        if (active && active !== document.body && document.contains(active)) return;
+        const [attr, value] = last;
+        const el = [...row.querySelectorAll(`[${attr}]`)].find(node => value === null || node.getAttribute(attr) === value);
+        if (el && el.getClientRects().length) el.focus({ preventScroll: true });
+    }).observe(row, { childList: true });
+}
+
+// --- App tabs: wrap rather than scroll when they don't fit -----------------
+// At large text sizes the three tabs may not fit on one row at any width;
+// then they wrap onto two rows (as Classic does) instead of hiding the last.
+
+function mountTabsFit() {
+    const nav = document.querySelector('#setupScreen .dev-app-nav');
+    if (!nav) return;
+    const fit = () => {
+        nav.removeAttribute('data-hn-wrap');
+        if (!isNext() || !nav.clientWidth) return;
+        if (nav.scrollWidth > nav.clientWidth + 1) nav.setAttribute('data-hn-wrap', '');
+    };
+    let width = -1;
+    new ResizeObserver(() => { if (nav.clientWidth !== width) { width = nav.clientWidth; fit(); } }).observe(nav);
+    ['homelayoutchange', 'hntightchange'].forEach(name => document.addEventListener(name, fit));
+    window.addEventListener('resize', () => later(fit));
+    document.fonts?.ready?.then(fit);
+    fit();
+}
+
 // --- Team builder by keyboard and screen reader ----------------------------
 // teams.js works on pointer presses. In the New look, keyboard presses on its
 // buttons are passed through as the same press, every button says what it
@@ -759,10 +850,10 @@ function mountTeamA11y() {
                     // spaces keep their width beside it in the one-line layout.
                     const before = document.createElement('span');
                     before.className = 'hn-put-word';
-                    before.textContent = 'Put ';
+                    before.textContent = 'Put';
                     const after = document.createElement('span');
-                    after.className = 'hn-put-word';
-                    after.textContent = ` in\u00a0${zoneName(idx)}`;
+                    after.className = 'hn-put-word hn-put-word--after';
+                    after.textContent = `in\u00a0${zoneName(idx)}`;
                     put.replaceChildren(before, who, after);
                     put.setAttribute('aria-label', text);
                 }
@@ -794,6 +885,7 @@ function mountTeamA11y() {
         const who = put.querySelector('.hn-put-name');
         const cut = !!who && who.scrollWidth > who.clientWidth + 1;
         if (cut !== put.hasAttribute('data-hn-cut')) put.toggleAttribute('data-hn-cut', cut);
+        if (who) closeEllipsisGaps([[who, who.nextElementSibling]]);
     });
     const markAllCut = () => screen.querySelectorAll('.hn-zone-put').forEach(markCut);
     window.addEventListener('resize', markAllCut, { passive: true });
@@ -919,7 +1011,9 @@ function mountTeamA11y() {
             const zone = zoneOf(id);
             dragToTray(memberNode(id));
             if (!memberNode(id)) say(`${name} is back in Available Players`);
-            focusFirst(`#teamZone${zone} [data-member-action="hn-remove"]`, `.team-chip[data-chip-id="${CSS.escape(id)}"]`, '#teamTray .team-chip', '#teamAddName');
+            // Focus goes to the player's chip back in Available Players (or a
+            // teammate's ⇄), never straight onto another ✕ a repeated press would hit.
+            focusFirst(`.team-chip[data-chip-id="${CSS.escape(id)}"]`, `#teamZone${zone} [data-member-action="swap"]`, '#teamTray .team-chip', '#teamAddName', `#teamZone${zone} [data-member-action="hn-remove"]`);
             return;
         }
         const isTap = tapped(action);
@@ -1164,9 +1258,18 @@ function mountCustomizeDialog() {
     // selection that overshoots the dialog's edge leaves it open.
     let downOnBackdrop = false;
     const inerted = [];
-    modal.addEventListener('pointerdown', event => { downOnBackdrop = active && event.target === modal; });
+    // While the dialog is still opening, ui.js lets early taps fall through
+    // to the backdrop so they do nothing: those never close it, and neither
+    // does a press inside the dialog's box.
+    const onBackdrop = event => {
+        if (!active || event.target !== modal || !content) return false;
+        if (content.style.pointerEvents === 'none') return false;
+        const r = content.getBoundingClientRect();
+        return !(event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom);
+    };
+    modal.addEventListener('pointerdown', event => { downOnBackdrop = onBackdrop(event); });
     modal.addEventListener('click', event => {
-        const close = active && downOnBackdrop && event.target === modal;
+        const close = downOnBackdrop && onBackdrop(event);
         downOnBackdrop = false;
         if (close) byId('settingsCloseBtn')?.click();
     });
@@ -1465,15 +1568,20 @@ function mountQuickStartFirst() {
         const chips = [...row.querySelectorAll(':scope > .picker-recent-chip:not([data-quickstart])')];
         row.removeAttribute('data-hn-stack');
         row.removeAttribute('data-hn-quiet');
+        row.removeAttribute('data-hn-squeeze');
         chips.forEach(chip => chip.removeAttribute('data-hn-overflow'));
         if (!isNext() || !quick || !row.clientWidth) return;
         const lastShown = () => [...row.children].filter(child => child.getClientRects().length).pop();
         const wraps = () => { const last = lastShown(); return !!last && last !== quick && last.offsetTop > quick.offsetTop + 4; };
-        if (compact.matches) {
-            for (let i = chips.length - 1; i > 0 && wraps(); i--) chips[i].setAttribute('data-hn-overflow', '');
+        // Any width: the oldest recent games give way before the row wraps.
+        for (let i = chips.length - 1; i > 0 && wraps(); i--) chips[i].setAttribute('data-hn-overflow', '');
+        // Small screens, or a narrow column on a tablet.
+        if (compact.matches || row.clientWidth < 480) {
             // Still too wide: the "Recent" label is kept for screen readers only.
             if (wraps()) row.setAttribute('data-hn-quiet', '');
-            if (wraps()) row.removeAttribute('data-hn-quiet');
+            // Still too wide: the one game left shortens with an ellipsis.
+            if (wraps()) row.setAttribute('data-hn-squeeze', '');
+            if (wraps()) { row.removeAttribute('data-hn-squeeze'); row.removeAttribute('data-hn-quiet'); }
         }
         if (wraps()) row.setAttribute('data-hn-stack', '');
     };
@@ -2287,6 +2395,8 @@ export function initHomeNext() {
     run('rulesA11y', mountRulesA11y);
     run('gridFocus', mountGridFocus);
     run('favToggles', mountFavToggles);
+    run('recentsFocus', mountRecentsFocus);
+    run('tabsFit', mountTabsFit);
     run('teamA11y', mountTeamA11y);
     run('customizeDialog', mountCustomizeDialog);
     run('fieldNames', mountFieldNames);
