@@ -958,7 +958,7 @@ html[data-home="next"]:not([data-menu-style]):not(:has(#setupScreen[style*="none
 
 /* ---------- Motion ---------- */
 @media (prefers-reduced-motion: no-preference) {
-    html[data-home="next"] #setupScreen .setup-card > * { animation: hn-rise 260ms ease-out both; }
+    html[data-home="next"] #setupScreen .setup-card > * { animation: hn-rise 260ms ease-out backwards; }
     @keyframes hn-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 }
 
@@ -2557,7 +2557,7 @@ html[data-home="next"] #setupScreen .support-btn-sub { font-size: 0.75rem; }
 /* Team builder: the bot skill picker is sized for its words, beside Add BotBlake. */
 @media (min-width: 721px) {
     html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .team-add-row { grid-template-columns: max-content auto minmax(0, 1fr) auto; }
-    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddBotBtn { grid-column: 2; }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddBotBtn { grid-column: 2 / -1; }
     html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddName { grid-column: 1 / span 3; }
     html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddBtn { grid-column: 4; }
     html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .team-add-row > label > select { flex: 0 0 15rem; width: 15rem; }
@@ -2822,7 +2822,39 @@ html[data-home="next"] #teamBuilderScreen .hn-zone-put[data-hn-wrap] > .hn-put-w
 /* Rows faded out above the docked Start card take no taps or clicks. */
 html[data-home="next"] #setupScreen [data-hn-sliver] { pointer-events: none; }
 /* Phones: "Jump back in" keeps all its games on one sideways-scrolling line. */
-html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll] { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; padding-block: 5px; margin-block: -5px; padding-inline-end: 8px; scroll-padding-inline: 8px; }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll] { position: relative; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; border-color: transparent; background: transparent; scroll-padding-inline: 28px 56px; }
 html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll]::-webkit-scrollbar { display: none; }
 html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll] > * { flex: 0 0 auto; }
-html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-more] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }
+/* "+N ›" over the fade while recent games are off to the right (phones). */
+
+/* Round 25: the phone recents row. A box behind the row draws the panel
+   (border and tint), so the fade only touches the games: at the right while
+   more is off-screen, with "+N ›" past it, and at the left once scrolled. */
+html[data-home="next"] #setupScreen .hn-recents-more { position: relative; height: 0; margin: 0; pointer-events: none; }
+html[data-home="next"] #setupScreen .hn-recents-more::before { content: ''; position: absolute; left: var(--hn-row-x, 0px); top: var(--hn-row-y, 0px); width: var(--hn-row-w, 0px); height: var(--hn-row-h, 0px); box-sizing: border-box; border: 1px solid var(--hn-line); border-radius: 14px; background: var(--hn-tint); }
+html[data-home="next"] #setupScreen .hn-recents-more { font-size: 0.8125rem; font-weight: 700; color: var(--color-text-muted); }
+html[data-home="next"] #setupScreen .hn-recents-more > .hn-recents-count { position: absolute; top: var(--hn-row-y, 0px); left: calc(var(--hn-row-x, 0px) + var(--hn-row-w, 0px) - 48px); width: 40px; height: var(--hn-row-h, 0px); display: flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
+html:not([data-home="next"]) .hn-recents-more { display: none !important; }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-more] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 52px), transparent calc(100% - 40px)); mask-image: linear-gradient(to right, #000 calc(100% - 52px), transparent calc(100% - 40px)); }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-less] { -webkit-mask-image: linear-gradient(to right, transparent 1px, #000 28px); mask-image: linear-gradient(to right, transparent 1px, #000 28px); }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-less][data-hn-more] { -webkit-mask-image: linear-gradient(to right, transparent 1px, #000 28px, #000 calc(100% - 52px), transparent calc(100% - 40px)); mask-image: linear-gradient(to right, transparent 1px, #000 28px, #000 calc(100% - 52px), transparent calc(100% - 40px)); }
+html[data-home="next"] #setupScreen [data-hn-clip] { clip-path: inset(0 -8px var(--hn-clip, 0px) -8px); }
+html:not([data-home="next"]) [data-hn-clip] { clip-path: none !important; }
+/* Round 25: Start Game beside (or under) Resume keeps even room above its
+   label and below the game name, at any text size. */
+html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) #startGameBtn[data-hn-game] { padding-top: 6px; padding-bottom: 6px; line-height: 1.15; }
+html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) #startGameBtn[data-hn-game]::after { line-height: 1.2; }
+/* Round 25: on tablets and desktop the library keeps its fades while a card
+   has keyboard focus; the focused card scrolls in clear of them. */
+@supports (animation-timeline: scroll(self)) {
+    @media (min-width: 721px) and (min-height: 820px) {
+        html[data-home="next"] #setupScreen .game-grid { scroll-padding-block: 44px; }
+        html[data-home="next"] #setupScreen .game-grid:has(:focus-visible) {
+            -webkit-mask-image: linear-gradient(transparent, #000 var(--hn-fade-top), #000 calc(100% - var(--hn-fade)), transparent);
+            mask-image: linear-gradient(transparent, #000 var(--hn-fade-top), #000 calc(100% - var(--hn-fade)), transparent);
+        }
+    }
+}
+html[data-home="next"] #setupScreen .setup-credit a[href^="mailto:"] { max-width: 100%; flex-wrap: wrap; justify-content: center; text-align: center; }
+html[data-home="next"] #teamBuilderScreen .team-add-row > .hn-team-add-label { grid-column: 1 / -1; margin: 4px 0 -2px; font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted); }
+html:not([data-home="next"]) .hn-team-add-label { display: none !important; }

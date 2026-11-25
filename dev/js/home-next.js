@@ -979,7 +979,13 @@ function mountTeamA11y() {
         screen.querySelectorAll('.team-zone-member').forEach(member => {
             let remove = member.querySelector('[data-member-action="hn-remove"]');
             let grip = member.querySelector(':scope > .hn-grip');
-            if (!next) { remove?.remove(); grip?.remove(); return; }
+            const skill = member.querySelector(':scope > label');
+            if (!next) {
+                remove?.remove(); grip?.remove();
+                // Classic: the skill picker goes back to its original place.
+                if (skill?.hnHome?.parentNode === member && skill.nextSibling !== skill.hnHome) member.insertBefore(skill, skill.hnHome);
+                return;
+            }
             // Swipes on the row scroll the page; dragging starts from this grip.
             if (!grip) {
                 grip = document.createElement('span');
@@ -997,6 +1003,12 @@ function mountTeamA11y() {
                 remove.dataset.memberId = member.dataset.zoneMemberId;
                 remove.textContent = '✕';
                 member.append(remove);
+            }
+            // Round 24: a bot's skill picker shows below the row's buttons, so
+            // it comes after them for Tab and screen readers too.
+            if (skill && member.lastElementChild !== skill) {
+                if (!skill.hnHome) skill.hnHome = skill.nextSibling;
+                member.append(skill);
             }
         });
         screen.querySelectorAll('[data-member-action]').forEach(button => {
@@ -1215,7 +1227,7 @@ function mountTeamA11y() {
         // that player; focus then goes where the keyboard path sends it.
         const key = control.dataset.memberAction ? ['member', control.dataset.memberId, control.dataset.memberAction]
             : control.dataset.chipId ? ['chip', control.dataset.chipId]
-            : before.chip && control.matches('.team-zone') ? ['place', before.chip] : null;
+            : before.chip && control.closest('.team-zone') ? ['place', before.chip] : null;
         pending = { before, key };
     }, true);
     // ⇄ ▲ ▼ act when a tap ends, not when a finger lands, so a swipe that
@@ -1843,6 +1855,8 @@ function mountQuickStartFirst() {
     // keeping at least the latest one.
     const compact = window.matchMedia('(max-width: 480px), (max-height: 480px)');
     const fit = () => {
+        // A redraw (after a tap) keeps the row where it was scrolled.
+        const keep = row.scrollLeft;
         const quick = row.querySelector(':scope > [data-quickstart]');
         const chips = [...row.querySelectorAll(':scope > .picker-recent-chip:not([data-quickstart])')];
         row.removeAttribute('data-hn-stack');
@@ -1851,13 +1865,42 @@ function mountQuickStartFirst() {
         row.removeAttribute('data-hn-alone');
         row.removeAttribute('data-hn-scroll');
         row.removeAttribute('data-hn-more');
+        row.removeAttribute('data-hn-less');
         chips.forEach(chip => chip.removeAttribute('data-hn-overflow'));
+        edge();
         if (!isNext() || !quick || !row.clientWidth) return;
         // Round 24: phones and short landscape screens keep every recent
         // game on one line that scrolls sideways, with a fade at the edge
         // while more is off to the right.
         if (compact.matches) {
             row.setAttribute('data-hn-scroll', '');
+            // Measured from the start; the kept position comes back below.
+            row.scrollLeft = 0;
+            edge();
+            // Games are read only up to where the fade starts.
+            const line = () => row.getBoundingClientRect().right - FADE;
+            const label = row.querySelector(':scope > .picker-recents-label');
+            if (label?.getClientRects().length && label.getBoundingClientRect().right > line()) row.setAttribute('data-hn-quiet', '');
+            // Too narrow to show the latest game whole (or most of a long
+            // one): the "Recent" label goes first, then Quick Start stays alone.
+            const shows = () => { const first = chips[0]; if (!first) return true; const r = first.getBoundingClientRect(); return line() - r.left >= Math.min(r.width, 72) - 1; };
+            if (!shows()) row.setAttribute('data-hn-quiet', '');
+            if (!shows()) {
+                chips.forEach(chip => chip.setAttribute('data-hn-overflow', ''));
+                row.setAttribute('data-hn-alone', '');
+                row.removeAttribute('data-hn-scroll');
+            }
+            if (row.hasAttribute('data-hn-scroll')) {
+                row.scrollLeft = keep;
+                // The focused game stays whole and clear of the fades.
+                const focused = row.contains(document.activeElement) ? document.activeElement.closest('.picker-recent-chip') : null;
+                if (focused) {
+                    const box = row.getBoundingClientRect();
+                    const r = focused.getBoundingClientRect();
+                    if (r.right > box.right - FADE - 4) row.scrollLeft += r.right - (box.right - FADE - 4);
+                    else if (r.left < box.left + 28) row.scrollLeft -= box.left + 28 - r.left;
+                }
+            }
             edge();
             return;
         }
@@ -1881,9 +1924,34 @@ function mountQuickStartFirst() {
         }
         if (wraps()) row.setAttribute('data-hn-stack', '');
     };
+    // While games are off to the right, a quiet "+N ›" sits past the fade
+    // (it takes no taps; a swipe or Tab scrolls the row), so the row never
+    // looks complete when it isn't. Screen readers get every game already.
+    // The panel's border and tint are drawn by a box behind the row, so
+    // the fade touches the games and never the panel's own edge.
+    const FADE = 52;
+    let cue = null;
     const edge = () => {
-        const more = row.hasAttribute('data-hn-scroll') && row.scrollLeft + row.clientWidth < row.scrollWidth - 2;
+        const scrolling = isNext() && row.hasAttribute('data-hn-scroll') && !row.classList.contains('hidden');
+        const more = scrolling && row.scrollLeft + row.clientWidth < row.scrollWidth - 2;
+        const less = scrolling && row.scrollLeft > 2;
         if (more !== row.hasAttribute('data-hn-more')) row.toggleAttribute('data-hn-more', more);
+        if (less !== row.hasAttribute('data-hn-less')) row.toggleAttribute('data-hn-less', less);
+        if (!scrolling) { cue?.remove(); cue = null; return; }
+        if (!cue) {
+            cue = document.createElement('div'); cue.className = 'hn-recents-more'; cue.setAttribute('aria-hidden', 'true');
+            cue.append(Object.assign(document.createElement('span'), { className: 'hn-recents-count' }));
+        }
+        if (row.previousElementSibling !== cue) row.before(cue);
+        const box = row.getBoundingClientRect();
+        const hidden = more ? [...row.querySelectorAll(':scope > .picker-recent-chip')].filter(chip => { if (!chip.getClientRects().length) return false; const r = chip.getBoundingClientRect(); return box.right - FADE - r.left < r.width / 2; }).length : 0;
+        const text = hidden ? `+${hidden} \u203a` : '';
+        if (cue.firstChild.textContent !== text) cue.firstChild.textContent = text;
+        // The box sits just before the row and takes no height, so it stays
+        // on the row when anything above it moves.
+        const at = cue.getBoundingClientRect();
+        const place = { '--hn-row-x': `${box.left - at.left}px`, '--hn-row-y': `${box.top - at.top}px`, '--hn-row-w': `${box.width}px`, '--hn-row-h': `${box.height}px` };
+        for (const [k, v] of Object.entries(place)) if (cue.style.getPropertyValue(k) !== v) cue.style.setProperty(k, v);
     };
     row.addEventListener('scroll', edge, { passive: true });
     compact.addEventListener?.('change', () => fit());
@@ -1908,7 +1976,7 @@ function mountQuickStartFirst() {
     };
     new MutationObserver(sync).observe(row, { childList: true });
     let width = -1;
-    new ResizeObserver(() => { if (row.clientWidth !== width) { width = row.clientWidth; fit(); } }).observe(row);
+    new ResizeObserver(() => { if (row.clientWidth !== width) { width = row.clientWidth; fit(); } else edge(); }).observe(row);
     ['homelayoutchange', 'hntightchange'].forEach(name => document.addEventListener(name, sync));
     document.fonts?.ready?.then(fit);
     sync();
@@ -2166,9 +2234,22 @@ function mountBackFocus() {
             const active = document.activeElement;
             if (!back.getClientRects().length || !(!active || active === document.body || !active.getClientRects().length)) return;
             back.focus({ preventScroll: true });
-            clear();
-            requestAnimationFrame(() => requestAnimationFrame(clear));
-            [250, 700, 1500].forEach(ms => setTimeout(clear, ms));
+            // Round 25: the re-checks stop the moment the user scrolls,
+            // taps or types, so the page never jumps back on them.
+            let stopped = false;
+            const EVENTS = ['wheel', 'touchstart', 'pointerdown', 'keydown'];
+            const stop = () => { stopped = true; EVENTS.forEach(name => window.removeEventListener(name, stop, true)); };
+            EVENTS.forEach(name => window.addEventListener(name, stop, { capture: true, passive: true }));
+            // Any scroll since the last check (a scrollbar drag, a page
+            // script) also counts as the user's move.
+            const scroller = () => screen.scrollHeight > screen.clientHeight + 1 ? screen : document.scrollingElement;
+            let at = 0;
+            const check = () => { clear(); at = scroller().scrollTop; };
+            const again = () => { if (stopped) return; if (Math.abs(scroller().scrollTop - at) > 2) { stop(); return; } check(); };
+            check();
+            requestAnimationFrame(() => requestAnimationFrame(again));
+            [250, 700].forEach(ms => setTimeout(again, ms));
+            setTimeout(() => { again(); stop(); }, 1500);
         });
     }).observe(back, { attributes: true, attributeFilter: ['class'] });
 }
@@ -2374,12 +2455,25 @@ function mountSkillLabels() {
         // Round 17: every level reads "BotBlake — Level" (the original says "BotBlake Auto").
         option => `BotBlake \u2014 ${level(option.value)}`,
         option => `Bot · ${level(option.value)}`,
-        option => `\u{1F916} ${level(option.value)}`,
+        option => `Bot ${level(option.value)}`,
         option => level(option.value),
     ];
+    // Round 25: the list that opens (full screen on phones) shows the full
+    // names; the short ones are only for the closed picker.
+    let open = null;
+    document.addEventListener('pointerdown', event => {
+        const select = event.target.closest?.('#playersSection select[id^="player"][id$="Skill"]');
+        if (!select || !isNext()) return;
+        open = select;
+        [...select.options].forEach(option => option.removeAttribute('label'));
+    }, true);
+    const shut = event => { if (open && event.target === open) { open = null; soon(); } };
+    document.addEventListener('change', shut, true);
+    document.addEventListener('blur', shut, true);
     const sync = () => {
         const next = isNext();
         selects().forEach(select => {
+            if (select === open) return;
             const bots = [...select.options].filter(option => option.value !== 'off');
             if (!next || !select.clientWidth) {
                 if (!next) bots.forEach(option => option.removeAttribute('label'));
@@ -2408,6 +2502,43 @@ function mountSkillLabels() {
     sync();
 }
 
+// --- Team builder: the name box has a visible label ------------------------
+// A placeholder disappears as soon as you type, so the New look puts a
+// short label above the box. Classic keeps the original row.
+
+function mountTeamAddLabel() {
+    const input = byId('teamAddName');
+    if (!input) return;
+    let label = null;
+    const sync = () => {
+        if (isNext()) {
+            if (!label) { label = document.createElement('label'); label.className = 'hn-team-add-label'; label.htmlFor = 'teamAddName'; label.textContent = 'Add a player by name'; }
+            if (input.previousElementSibling !== label) input.before(label);
+        } else { label?.remove(); }
+    };
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
+// --- The contact address breaks after its "@" on narrow screens -----------
+// At large text sizes the address is wider than a phone. In the New look it
+// may break after the "@" (and nowhere else); Classic keeps the plain text.
+
+function mountEmailBreak() {
+    const link = document.querySelector('#setupScreen .setup-credit a[href^="mailto:"]');
+    if (!link) return;
+    const plain = link.textContent;
+    const at = plain.indexOf('@');
+    if (at < 1) return;
+    const sync = () => {
+        const has = !!link.querySelector('wbr');
+        if (isNext() && !has) link.replaceChildren(plain.slice(0, at + 1), document.createElement('wbr'), plain.slice(at + 1));
+        else if (!isNext() && has) link.textContent = plain;
+    };
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
 // --- Wide screens: whole controls only above the docked Start card --------
 // While the Start card is docked at the bottom of the right column, the page
 // fades out above it. A control that would show only a sliver there (the
@@ -2422,7 +2553,46 @@ function mountDockSlivers() {
     const WIDE = window.matchMedia?.('(min-width: 1001px), (min-width: 721px) and (min-height: 561px)');
     const BLOCKS = '#gameOptionsSection, #playersSection, #presetsSection, #casualRecordingSetup';
     let marked = [];
-    const clear = () => { marked.forEach(el => el.removeAttribute('data-hn-sliver')); marked = []; };
+    let clipped = new Map();
+    const unclip = el => { el.removeAttribute('data-hn-clip'); el.style.removeProperty('--hn-clip'); if (el.getAttribute('style') === '') el.removeAttribute('style'); };
+    const clear = () => { marked.forEach(el => el.removeAttribute('data-hn-sliver')); marked = []; clipped.forEach((_, el) => unclip(el)); clipped = new Map(); };
+    // Round 25: a row the fade crosses is cut just above the first text
+    // line or control that reaches into the fade, so nothing shows half
+    // faded. A boxed piece (a tile with its own border or tint) counts as
+    // one piece.
+    const boxed = el => { const cs = getComputedStyle(el); return parseFloat(cs.borderTopWidth) > 0 || parseFloat(cs.borderBottomWidth) > 0 || (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent') || cs.backgroundImage !== 'none'; };
+    const ATOM = 'input, select, textarea, button, img, svg, canvas, video, [role="button"], [role="switch"], [role="checkbox"], [role="radio"], [role="slider"]';
+    const cutAt = (row, band) => {
+        let cut = Infinity;
+        let above = -Infinity;
+        const take = r => {
+            if (!r.width || !r.height) return;
+            if (r.bottom > band + 1) { if (r.top < cut) cut = r.top; }
+            else if (r.bottom > above) above = r.bottom;
+        };
+        const walk = el => {
+            for (const node of el.childNodes) {
+                if (node.nodeType === 3) {
+                    if (!node.textContent.trim()) continue;
+                    const range = document.createRange();
+                    range.selectNodeContents(node);
+                    for (const r of range.getClientRects()) take(r);
+                } else if (node.nodeType === 1) {
+                    if (!node.getClientRects().length) continue;
+                    const cs = getComputedStyle(node);
+                    if (cs.visibility === 'hidden' || cs.position === 'absolute' || cs.position === 'fixed') continue;
+                    if (node.matches(ATOM) || boxed(node)) take(node.getBoundingClientRect());
+                    else walk(node);
+                }
+            }
+        };
+        walk(row);
+        // Nothing measurable reaches the fade, yet the row does (text drawn
+        // by CSS, like a card's hint line, can't be measured): the row is
+        // cut just below the last piece that is clear of it.
+        if (cut === Infinity) cut = above === -Infinity ? row.getBoundingClientRect().top : Math.min(band, above + 4);
+        return cut;
+    };
     // The rows a card is made of: its children, opening any child taller
     // than a row into its own children.
     const rows = card => {
@@ -2447,6 +2617,7 @@ function mountDockSlivers() {
         const after = [byId('rosterSection'), document.querySelector('#setupScreen .home-player-help'), byId('maintenanceSection')].find(el => el && el.getClientRects().length);
         const docked = Math.abs(p.bottom - (innerHeight - bottom)) < 2 && (!after || after.getBoundingClientRect().top - p.bottom > 24);
         const next = [];
+        const clips = new Map();
         let behind = false;
         if (docked) {
             // Round 24: the fade above the card is 24px and mostly opaque
@@ -2469,11 +2640,14 @@ function mountDockSlivers() {
             document.querySelectorAll(BLOCKS).forEach(card => {
                 if (!card.getClientRects().length || shells.has(card)) return;
                 const c = card.getBoundingClientRect();
-                if (c.bottom <= line || c.top >= p.top) return;
+                if (c.bottom <= band || c.top >= p.top) return;
                 rows(card).forEach(row => {
                     const r = row.getBoundingClientRect();
-                    if (r.bottom <= line + 2 || r.top >= p.top) return;
-                    if (line - r.top < 24 && !row.contains(document.activeElement)) next.push(row);
+                    if (r.bottom <= band + 1 || r.top >= p.top || row.contains(document.activeElement)) return;
+                    const cut = boxed(row) || row.matches(ATOM) ? r.top : cutAt(row, band);
+                    // Less than 24px would be left above the cut: the row hides whole.
+                    if (cut - r.top < 24) next.push(row);
+                    else clips.set(row, Math.ceil(r.bottom - cut + 2));
                 });
             });
         }
@@ -2483,6 +2657,12 @@ function mountDockSlivers() {
         marked.filter(el => !next.includes(el)).forEach(el => el.removeAttribute('data-hn-sliver'));
         next.filter(el => !marked.includes(el)).forEach(el => el.setAttribute('data-hn-sliver', ''));
         marked = next;
+        clipped.forEach((_, el) => { if (!clips.has(el)) unclip(el); });
+        clips.forEach((px, el) => {
+            if (el.style.getPropertyValue('--hn-clip') !== `${px}px`) el.style.setProperty('--hn-clip', `${px}px`);
+            if (!el.hasAttribute('data-hn-clip')) el.setAttribute('data-hn-clip', '');
+        });
+        clipped = clips;
     };
     const soon = () => { if (!frame) frame = requestAnimationFrame(check); };
     setup.addEventListener('scroll', soon, { passive: true });
@@ -2906,6 +3086,8 @@ export function initHomeNext() {
     run('teamSkillNames', mountTeamSkillNames);
     run('libraryFit', mountLibraryFit);
     run('dockSlivers', mountDockSlivers);
+    run('emailBreak', mountEmailBreak);
+    run('teamAddLabel', mountTeamAddLabel);
     run('zoom', mountZoom);
     run('gameIcons', mountGameIcons);
     run('barSwipe', mountBarSwipe);
