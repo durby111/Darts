@@ -523,7 +523,8 @@ function followRulesPop(event) {
     // Text that still doesn't fit can be reached from the keyboard (Tab from
     // its ⓘ moves into it) and shows a fade while more is below.
     const heading = pop.querySelector('strong');
-    const gameName = (heading?.textContent || '').replace(/^\P{L}+/u, '').trim();
+    // The name is the heading without its hidden icon, so "501" keeps its digits.
+    const gameName = heading ? [...heading.childNodes].filter(n => !(n.nodeType === Node.ELEMENT_NODE && n.getAttribute('aria-hidden') === 'true')).map(n => n.textContent).join('').trim() : '';
     if (height < box.height) { pop.tabIndex = 0; pop.setAttribute('aria-label', gameName ? `${gameName} rules, scrollable` : 'Rules, scrollable'); }
     else { pop.removeAttribute('tabindex'); pop.removeAttribute('aria-label'); }
     markRulesEnd(pop);
@@ -1881,7 +1882,10 @@ function mountLibraryFit() {
             cue.className = 'hn-more-cue';
             cue.setAttribute('aria-hidden', 'true');
             cue.hidden = true;
-            cue.addEventListener('click', () => grid.scrollBy({ top: Math.max(80, grid.clientHeight * 0.8), behavior: 'smooth' }));
+            cue.addEventListener('click', () => {
+                const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+                grid.scrollBy({ top: Math.max(80, grid.clientHeight * 0.8), behavior: reduce ? 'auto' : 'smooth' });
+            });
             grid.after(cue);
         }
         if (!cue) return;
@@ -1945,7 +1949,7 @@ function mountBarSwipe() {
         const dt = Math.max(1, event.timeStamp - last.time);
         last = { y: t.clientY, time: event.timeStamp, v: (t.clientY - last.y) / dt };
     }, { passive: true });
-    const end = () => {
+    const end = event => {
         if (!start) return;
         start = null;
         if (!moved) return;
@@ -1953,10 +1957,18 @@ function mountBarSwipe() {
         const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
         const glide = Math.max(-600, Math.min(600, -last.v * 220));
         if (Math.abs(glide) > 24) setup.scrollBy({ top: glide, behavior: reduce ? 'auto' : 'smooth' });
-        // The click a swipe can leave behind on a button is dropped.
-        const drop = event => { event.preventDefault(); event.stopPropagation(); };
+        // A click the swipe itself leaves behind arrives at once and is
+        // dropped; the next real tap always goes through.
+        const endedAt = event.timeStamp;
+        const drop = click => {
+            if (click.timeStamp - endedAt > 60) return;
+            click.preventDefault(); click.stopPropagation();
+        };
         play.addEventListener('click', drop, { capture: true, once: true });
-        setTimeout(() => { play.removeEventListener('click', drop, { capture: true }); moved = false; }, 400);
+        const clear = () => { play.removeEventListener('click', drop, { capture: true }); play.removeEventListener('touchstart', clear, true); };
+        play.addEventListener('touchstart', clear, { capture: true, passive: true, once: true });
+        setTimeout(clear, 400);
+        moved = false;
     };
     play.addEventListener('touchend', end, { passive: true });
     play.addEventListener('touchcancel', () => { start = null; moved = false; }, { passive: true });

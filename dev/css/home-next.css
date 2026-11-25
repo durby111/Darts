@@ -1544,6 +1544,9 @@ html[data-home="next"] #setupScreen :is(details.setup-panel, details.home-player
     html[data-home="next"] .setup-screen .setup-header-side { justify-content: flex-start; padding-left: 94px; }
 }
 @media (max-width: 360px) and (min-height: 501px) {
+    html[data-home="next"] .setup-screen .setup-header-side { padding-left: 70px; }
+}
+@media (max-width: 339px) and (min-height: 501px) {
     html[data-home="next"] .setup-screen .setup-header-side { padding-left: 0; }
 }
 /* The DEV corner tag sits above the header, never on it. */
@@ -2239,7 +2242,7 @@ html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { flex-shri
    number and the grip pick a player up for dragging. */
 html[data-home="next"] #setupScreen .player-order-drag { touch-action: pan-y; }
 html[data-home="next"] #setupScreen .player-order-drag > span { touch-action: none; }
-@media (max-width: 340px) {
+@media (max-width: 383px) {
     html[data-home="next"] #setupScreen .dev-app-nav :is(a, button):has(.feature-test-badge) { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1.1; }
     html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: 0.625rem; padding: 0 5px; }
 }
@@ -2522,3 +2525,30 @@ html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { font-size
 }
 /* A field with focus has its own ring; its card does not add a second one. */
 html[data-home="next"] #setupScreen .setup-panel:has(:is(input, select, textarea):focus-visible) { box-shadow: var(--hn-shadow); }
+
+/* Round 18 */
+/* Phones: "Jump back in" keeps to the two latest games on one row, so the first game card
+   stays on the first screen. */
+@media (max-width: 480px) {
+    html[data-home="next"] #setupScreen #gameRecentsRow .picker-recent-chip:not(.picker-quickstart) ~ .picker-recent-chip ~ .picker-recent-chip { display: none; }
+}
+/* Customize: a focused setting scrolls fully into view, clear of the pinned
+   title bar at the top and the rounded edge at the bottom. */
+html[data-home="next"] #settingsModal .hn-dialog { scroll-padding-top: 92px; scroll-padding-bottom: 16px; }
+/* Fable 5.2 and Neon: Customize's pickers use the same ▾ caret as every other
+   select in the New look. */
+html[data-home="next"]:is([data-menu-style="fable52"], [data-menu-style="neon"]) #settingsModal .hn-dialog select {
+    -webkit-appearance: none; appearance: none; padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f6f2e7' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; background-size: 12px 12px;
+}
+/* The support button's second line meets the 12px floor. */
+html[data-home="next"] #setupScreen .support-btn-sub { font-size: 0.75rem; }
+/* Team builder: the bot skill picker is sized for its words, beside Add BotBlake. */
+@media (min-width: 721px) {
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .team-add-row { grid-template-columns: max-content auto minmax(0, 1fr) auto; }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddBotBtn { grid-column: 2; }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddName { grid-column: 1 / span 3; }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddBtn { grid-column: 4; }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .team-add-row > label > select { flex: 0 0 15rem; width: 15rem; }
+}
