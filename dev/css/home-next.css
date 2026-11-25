@@ -1294,7 +1294,9 @@ html[data-home="next"] #setupScreen .hn-clear-search:focus-visible { outline: 3p
 /* Header: compact on any short screen; the logo itself gets the rounded corners. */
 html[data-home="next"] .setup-screen .setup-header .setup-logo { padding: 0; border: 0; background: none; border-radius: 0; overflow: visible; }
 html[data-home="next"] .setup-screen .setup-header .setup-logo img { border-radius: 12px; object-fit: cover; }
-@media (max-height: 500px) {
+/* One header row only where it fits (landscape phones, short laptops); a short
+   portrait window (split screen, keyboard) keeps the wrapping header. */
+@media (max-height: 500px) and (min-width: 540px) {
     html[data-home="next"] .setup-screen .setup-header { flex-wrap: nowrap; padding: 10px 14px; margin-top: 8px; gap: 12px; }
     html[data-home="next"] .setup-screen .setup-header .setup-logo { width: 60px; height: 34px; flex: 0 0 60px; }
     html[data-home="next"] .setup-screen .setup-header .setup-logo img { border-radius: 8px; }
@@ -1395,14 +1397,19 @@ html[data-home="next"] #setupScreen .game-card.active .game-card-icon { color: v
             pointer-events: none;
         }
         html[data-home="next"] #setupScreen #playSection > .setup-action-row::before {
-            bottom: calc(100% + 1px);
+            bottom: calc(100% + 12px);
+            left: -12px;
+            right: -12px;
             height: 16px;
             background: linear-gradient(color-mix(in srgb, var(--color-bg) 0%, transparent), color-mix(in srgb, var(--color-bg) 75%, transparent) 55%, var(--color-bg));
         }
+        /* A ring of page colour round the card's rounded edge covers the
+           corners and the gap below, so no card behind shows its edges. */
         html[data-home="next"] #setupScreen #playSection > .setup-action-row::after {
-            top: calc(100% + 1px);
-            height: 14px;
-            background: var(--color-bg);
+            inset: -1px;
+            z-index: -1;
+            border-radius: var(--hn-radius);
+            box-shadow: 0 0 0 12px var(--color-bg);
         }
     }
     /* Footer cards in a row share one height. */
@@ -1823,7 +1830,7 @@ html[data-home="next"] #settingsModal .hn-dialog :is(button, input, select, text
 html[data-home="next"] .setup-screen :is(.home-account-link, .setup-header-side .settings-gear) {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     min-height: 44px; padding: 0 16px; border-radius: 999px;
-    border: 1px solid #ffffff40; background: #ffffff1a; color: #fff;
+    border: 1px solid #ffffff80; background: #ffffff1a; color: #fff;
     font: 700 0.875rem/1.2 var(--hn-font); text-decoration: none; white-space: nowrap;
 }
 @media (hover: hover) { html[data-home="next"] .setup-screen :is(.home-account-link, .setup-header-side .settings-gear):hover { background: #ffffff2e; } }
@@ -1886,8 +1893,8 @@ html[data-home="next"] #setupScreen #gameTypeGrid { container: hngrid / inline-s
 @media (max-width: 360px) {
     html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-names { font-size: 0.75rem; line-height: 15px; max-height: 30px; }
 }
-/* Jump back in: one row that scrolls sideways when it can't fit. */
-html[data-home="next"] #setupScreen .picker-recents { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; }
+/* Jump back in: the chips wrap onto a second line rather than being cut at the edge. */
+html[data-home="next"] #setupScreen .picker-recents { flex-wrap: wrap; overflow: visible; row-gap: 8px; }
 @media (max-width: 360px) {
     html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) .setup-action-row { grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr); }
     html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) #resumeGameBtn { padding-left: 6px; padding-right: 6px; }
@@ -1966,7 +1973,7 @@ html[data-home="next"] #teamBuilderScreen :is(input[type="text"], select) {
 }
 html[data-home="next"] #teamBuilderScreen :is(#teamAddBotBtn, #teamAddBtn) { min-height: 48px; }
 /* Outline buttons share the chips' edge, which reads at 3:1 or better. */
-html[data-home="next"] #setupScreen :is(#randomizePlayersBtn, #homeAccountLink, #settingsBtnSetup, .player-order-stepper > button:not(:disabled)) {
+html[data-home="next"] #setupScreen :is(#randomizePlayersBtn, .player-order-stepper > button:not(:disabled)) {
     border-color: var(--hn-field-line);
 }
 /* Team builder buttons: one size for every secondary button, Start Match the largest. */
@@ -2008,3 +2015,97 @@ html[data-home="next"] :is(#setupScreen, #teamBuilderScreen) input:is([type="tex
 html[data-home="next"][data-hn-tight] #teamBuilderScreen .team-add-row > label { grid-column: 1 / -1; flex-wrap: wrap; }
 html[data-home="next"][data-hn-tight] #teamBuilderScreen .team-add-row > label > select { flex-basis: 100%; }
 html[data-home="next"][data-hn-tight] #teamBuilderScreen .team-add-row > #teamAddBotBtn { grid-column: 1 / -1; }
+
+/* Game cards grow with the text size: line heights scale (the same 20px and
+   16px at normal size) and the icon tile is sized in rem. */
+html[data-home="next"] #setupScreen .game-card { grid-template-columns: 2.5rem minmax(0, 1fr); }
+html[data-home="next"] #setupScreen .game-card-icon { width: 2.5rem; height: 2.5rem; }
+html[data-home="next"] #setupScreen .game-card-label { line-height: 1.18; }
+html[data-home="next"] #setupScreen .game-card-sub { line-height: 1.23; }
+/* The throw-order tile grows with the text, so "2nd" stays inside it. */
+html[data-home="next"] #setupScreen .player-row { grid-template-columns: max(52px, 2.75rem) minmax(0, 1fr) 44px; }
+html[data-home="next"] #setupScreen .player-order-drag { width: max(52px, 2.75rem); }
+
+/* Large text with a game to resume: Resume above a full-width Start. */
+html[data-home="next"][data-hn-tight] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) .setup-action-row { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-flow: row; gap: 8px; }
+html[data-home="next"][data-hn-tight] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) :is(#resumeGameBtn, #startGameBtn) { width: 100%; height: auto; min-height: 48px; white-space: normal; }
+html[data-home="next"][data-hn-tight] #setupScreen #resumeGameBtn :is(.hn-resume-main, .hn-resume-names) { line-height: 1.2; white-space: normal; }
+html[data-home="next"][data-hn-tight] #setupScreen #resumeGameBtn .hn-resume-names { display: block; -webkit-line-clamp: unset; line-clamp: none; }
+
+/* The drag grip is a full 44px wide at every width (the buttons keep room). */
+html[data-home="next"] #teamBuilderScreen .team-zone-member { grid-template-columns: 44px minmax(0, 1fr) repeat(4, 44px); }
+html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { width: 44px; margin-left: -4px; }
+html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip::after { inset: 0; }
+@container (max-width: 300px) {
+    html[data-home="next"] #teamBuilderScreen .team-zone-member { grid-template-columns: 44px minmax(0, 1fr) repeat(4, 44px); }
+    html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { width: 44px; margin-left: 0; }
+}
+/* Large text: the add-player field gets its own full row, so its placeholder reads whole. */
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .team-add-row > #teamAddName,
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .team-add-row > #teamAddBtn { grid-column: 1 / -1; }
+
+/* Team rows, one layout at every width: the name on top, the grip and the four
+   buttons on one line below it. A name short enough to fit beside the buttons
+   shares their line instead (data-hn-inline, set by home-next.js). */
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member { grid-template-columns: 44px minmax(0, 1fr) repeat(4, 44px); row-gap: 4px; }
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member-name { grid-column: 1 / -1; grid-row: 1; padding-left: 6px; }
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member > .hn-grip { grid-column: 1; grid-row: 2; align-self: center; height: 44px; min-height: 44px; }
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member .team-zone-member-swap-btn { grid-column: 3; grid-row: 2; }
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member [data-member-action="up"] { grid-column: 4; grid-row: 2; }
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member [data-member-action="down"] { grid-column: 5; grid-row: 2; }
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member .hn-member-remove { grid-column: 6; grid-row: 2; }
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member > label { grid-column: 1 / -1; grid-row: 3; }
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member[data-hn-inline] :is(.hn-grip, .team-zone-member-swap-btn, [data-member-action="up"], [data-member-action="down"], .hn-member-remove) { grid-row: 1; }
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member[data-hn-inline] .team-zone-member-name { grid-column: 2; padding-left: 0; min-width: 0; white-space: nowrap; overflow: hidden; }
+html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member[data-hn-inline] > label { grid-row: 2; }
+
+/* "Put … in Home": a long name gets an ellipsis, the team name always shows. */
+html[data-home="next"] #teamBuilderScreen .hn-zone-put { display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+html[data-home="next"] #teamBuilderScreen .hn-zone-put .hn-put-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* Team builder: the bot skill label matches the other section labels. */
+html[data-home="next"] #teamBuilderScreen .team-add-row > label { font-size: 0.875rem; font-weight: 700; color: var(--color-text-muted); }
+html[data-home="next"] #teamBuilderScreen .team-add-row > label > select { font-size: 1rem; font-weight: 400; color: var(--color-text); }
+
+/* Short lines don't leave one word alone. */
+html[data-home="next"] #teamBuilderScreen :is(#teamSwapFirstBtn, .team-builder-hint, .hn-team-hint, #teamRandomizeBtn) { text-wrap: balance; }
+
+/* The selected favourite: a round gold disc, like the round info button beside it. */
+html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved { border-radius: 50%; }
+
+/* Tabs: on every screen wider than a phone the strip hugs its tabs, as on desktop. */
+@media (min-width: 481px) {
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen .dev-app-nav { width: fit-content; justify-self: start; align-self: flex-start; }
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen .dev-app-nav :is(a, button) { flex: 0 0 auto; padding: 0 20px; }
+}
+
+/* Customize, scrolled: the pinned strip carries a small title beside the ✕. */
+html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-bar { justify-content: space-between; gap: 12px; }
+html[data-home="next"] #settingsModal .hn-dialog .hn-dialog-bar-title {
+    flex: 1 1 auto; min-width: 0; padding-left: max(0px, calc(var(--hn-bar-pad, 16px) - 10px));
+    font: 700 1.0625rem/44px var(--hn-font, inherit);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    opacity: 0; visibility: hidden; transition: opacity .15s, visibility .15s;
+}
+html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-bar.hn-stuck .hn-dialog-bar-title { opacity: 1; visibility: visible; }
+@media (prefers-reduced-motion: reduce) { html[data-home="next"] #settingsModal .hn-dialog .hn-dialog-bar-title { transition: none; } }
+
+/* Only bots at the board: "Add a human player" on a line of its own, in the warning colour. */
+html[data-home="next"] #setupScreen .hn-summary-part.hn-summary-warn { flex: 1 0 100%; padding-left: 1em; color: color-mix(in srgb, var(--color-warning) 70%, var(--color-text)); font-weight: 700; white-space: normal; }
+html[data-home="next"] #setupScreen .hn-summary-part.hn-summary-warn::before { content: '\26A0\FE0E' / ''; width: auto; margin-right: 0.35em; }
+/* The narrowest phones: the team boxes give their rows a little more room,
+   and the grip plus four 44px buttons fill the row's second line. */
+@media (max-width: 340px) {
+    html[data-home="next"] #teamBuilderScreen .team-zone { padding-left: 6px; padding-right: 6px; }
+}
+@container (max-width: 300px) {
+    html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member { grid-template-columns: 44px repeat(4, 44px); justify-content: space-between; column-gap: 4px; padding-left: 8px; padding-right: 8px; }
+    html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member .team-zone-member-swap-btn { grid-column: 2; }
+    html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member [data-member-action="up"] { grid-column: 3; }
+    html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member [data-member-action="down"] { grid-column: 4; }
+    html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member .hn-member-remove { grid-column: 5; }
+    html[data-home="next"] #teamBuilderScreen .team-zone .team-zone-member > .hn-grip { margin-left: 0; }
+}
+/* Large text: the whole name shows, over two lines if it must. */
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put { display: inline-block; white-space: normal; text-wrap: balance; padding: 6px 16px; line-height: 1.25; }
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put .hn-put-name { overflow: visible; }

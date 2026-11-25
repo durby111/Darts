@@ -216,10 +216,13 @@ function mountSummary() {
     row.className = 'hn-summary-row';
     summary.append(row);
     const update = () => {
-        const parts = summaryText().split(' · ');
+        // "Add a human player" is a warning, not a fact: it goes last, on its own line.
+        let parts = summaryText().split(' · ');
+        const warn = parts.includes('add a human');
+        if (warn) parts = [...parts.filter(part => part !== 'add a human'), 'Add a human player'];
         row.replaceChildren(...parts.flatMap((part, i) => {
             const span = document.createElement('span');
-            span.className = 'hn-summary-part';
+            span.className = warn && i === parts.length - 1 ? 'hn-summary-part hn-summary-warn' : 'hn-summary-part';
             span.textContent = part;
             if (!i) return [span];
             const comma = document.createElement('span');
@@ -635,7 +638,14 @@ function mountTeamA11y() {
                     const anchor = byId(`teamZone${idx}FirstBadge`) || byId(`teamZone${idx}Label`);
                     if (anchor?.parentElement === zone) anchor.after(put); else zone.prepend(put);
                 }
-                if (put.textContent !== text) put.textContent = text;
+                if (put.getAttribute('aria-label') !== text) {
+                    // A long name is cut short with an ellipsis so the team name stays on the button.
+                    const who = document.createElement('span');
+                    who.className = 'hn-put-name';
+                    who.textContent = chosenName;
+                    put.replaceChildren('Put\u00a0', who, `\u00a0in ${zoneName(idx)}`);
+                    put.setAttribute('aria-label', text);
+                }
             } else if (put) {
                 const hadFocus = put === document.activeElement;
                 put.remove();
@@ -779,6 +789,18 @@ function mountTeamA11y() {
             else focusChip(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
         }
     });
+    // Escape lets go of a chosen player.
+    screen.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || !isNext()) return;
+        const chip = screen.querySelector('.team-chip.selected[data-chip-id]');
+        if (!chip) return;
+        event.preventDefault();
+        const id = chip.dataset.chipId;
+        const name = chip.textContent.trim();
+        press(chip);
+        if (!screen.querySelector('.team-chip.selected')) say(`${name} not chosen`);
+        focusChip(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
+    });
     // "Put … in Home": a real tap already reached the team itself; a key
     // press arrives as a click with no pointer behind it.
     screen.addEventListener('click', event => {
@@ -906,13 +928,19 @@ function mountCustomizeDialog() {
         // scrolls, so nothing scrolls into view underneath it.
         closeBar = document.createElement('div');
         closeBar.className = 'hn-dialog-bar';
-        closeBar.append(closeX);
+        // Once the real title scrolls away, the strip shows its own small title.
+        const barTitle = document.createElement('span');
+        barTitle.className = 'hn-dialog-bar-title';
+        barTitle.setAttribute('aria-hidden', 'true');
+        barTitle.textContent = 'Customize';
+        closeBar.append(barTitle, closeX);
         content.prepend(closeBar);
         // It spans the dialog edge to edge, whatever padding the menu style gives it.
         const pad = getComputedStyle(content);
         // A see-through dialog colour is made solid for the strip.
         const rgb = pad.backgroundColor.match(/[\d.]+/g);
         if (rgb && rgb.length >= 3) closeBar.style.setProperty('--hn-bar-bg', `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`);
+        closeBar.style.setProperty('--hn-bar-pad', pad.paddingLeft);
         // The ✕ lines up with the title; the strip ends just below it.
         Object.assign(closeBar.style, {
             top: `-${pad.paddingTop}`, marginTop: `-${pad.paddingTop}`, marginLeft: `-${pad.paddingLeft}`, marginRight: `-${pad.paddingRight}`,
@@ -1159,7 +1187,7 @@ function mountTypingBar() {
         const touch = window.matchMedia?.('(pointer: coarse)').matches;
         const small = window.innerWidth <= 720 || touch || vh <= 500;
         const squeezed = typing && small && vh < tallest - 120;
-        if (squeezed) document.documentElement.dataset.hnTyping = '1';
+        if (squeezed && isNext()) document.documentElement.dataset.hnTyping = '1';
         else delete document.documentElement.dataset.hnTyping;
     };
     document.addEventListener('focusin', () => later(update));
@@ -1270,7 +1298,11 @@ function mountLibraryFit() {
     const fit = () => {
         frame = 0;
         const list = byId('gameTypeGrid');
-        if (!isNext() || setup.style.display === 'none') { section.style.removeProperty('--hn-lib-h'); list?.style.removeProperty('--hn-sbw'); return; }
+        if (!isNext() || setup.style.display === 'none') {
+            section.style.removeProperty('--hn-lib-h'); list?.style.removeProperty('--hn-sbw');
+            if (!isNext()) [section, list].forEach(el => { if (el && el.getAttribute('style') === '') el.removeAttribute('style'); });
+            return;
+        }
         if (list) {
             // No further than the card's own padding allows (wide scrollbars on
             // some systems keep a few pixels of their gap).
@@ -1334,7 +1366,7 @@ function mountZoom() {
 
 const ICON_SWAP = new Map([
     ['♥', '❤️'], ['✕', '❌'], ['⚡', '⚡️'], ['⏱', '⏱️'], ['⚾', '⚾️'],
-    ['⛳', '⛳️'], ['❎', '⭕'], ['⏬', '📉'],
+    ['⛳', '⛳️'], ['❎', '⭕'], ['⏬', '📉'], ['🔺', '🏝️'],
 ]);
 function mountGameIcons() {
     const grid = byId('gameTypeGrid');
@@ -1351,6 +1383,35 @@ function mountGameIcons() {
     new MutationObserver(sync).observe(grid, { childList: true, subtree: true, characterData: true });
     document.addEventListener('homelayoutchange', sync);
     sync();
+    // "Jump back in" chips show the same icons as the cards.
+    const recents = byId('gameRecentsRow');
+    const syncChips = () => {
+        recents?.querySelectorAll('.picker-recent-chip').forEach(chip => {
+            if (!isNext()) {
+                if (chip.dataset.hnText != null) { chip.textContent = chip.dataset.hnText; delete chip.dataset.hnText; }
+                return;
+            }
+            if (chip.dataset.hnText != null || chip.children.length) return;
+            const text = chip.textContent;
+            const [first, ...rest] = text.split(' ');
+            const to = ICON_SWAP.get(first);
+            if (!to) return;
+            chip.dataset.hnText = text;
+            chip.textContent = [to, ...rest].join(' ');
+        });
+    };
+    if (recents) new MutationObserver(syncChips).observe(recents, { childList: true });
+    document.addEventListener('homelayoutchange', syncChips);
+    syncChips();
+    // The rules popover's title shows the same icon as its card.
+    new MutationObserver(() => {
+        const title = isNext() && byId('gameRulesPop')?.querySelector('strong');
+        if (!title || title.dataset.hnIcon) return;
+        const [first, ...rest] = title.textContent.split(' ');
+        const to = ICON_SWAP.get(first);
+        title.dataset.hnIcon = to || first;
+        if (to) title.textContent = [to, ...rest].join(' ');
+    }).observe(document.body, { childList: true });
 }
 
 // --- Large text -------------------------------------------------------------
@@ -1385,12 +1446,87 @@ function mountTextFit() {
     sync();
 }
 
+// --- Team mode hint for screen readers ---------------------------------------
+// The Players subtitle "You split into teams after Start" is drawn by CSS, so
+// the Team mode switch carries the same hint for screen readers.
+// Team rows: a name that fits beside the grip and buttons shares their line;
+// a longer one keeps its own line above them.
+function mountTeamRowFit() {
+    const zones = byId('teamZones');
+    if (!zones) return;
+    let width = -1;
+    const fit = () => {
+        const rows = [...zones.querySelectorAll('.team-zone-member')];
+        if (!isNext()) { rows.forEach(row => row.removeAttribute('data-hn-inline')); return; }
+        rows.forEach(row => row.setAttribute('data-hn-inline', ''));
+        // One team keeps one layout: if any name there needs its own line, all of them get one.
+        const tooLong = new Set(rows.filter(row => {
+            const name = row.querySelector('.team-zone-member-name');
+            return !name || name.clientWidth < 40 || getComputedStyle(row).gridTemplateColumns.split(' ').length !== 6 || name.scrollWidth > name.clientWidth + 1;
+        }).map(row => row.closest('.team-zone')));
+        rows.forEach(row => { if (tooLong.has(row.closest('.team-zone'))) row.removeAttribute('data-hn-inline'); });
+    };
+    let queued = false;
+    const soon = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; fit(); }); };
+    new MutationObserver(soon).observe(zones, { childList: true, subtree: true });
+    new ResizeObserver(() => { if (zones.clientWidth !== width) { width = zones.clientWidth; soon(); } }).observe(zones);
+    ['homelayoutchange', 'hntightchange'].forEach(name => document.addEventListener(name, soon));
+    window.addEventListener('resize', soon);
+    document.fonts?.ready?.then(soon);
+    fit();
+}
+
+function mountTeamHint() {
+    const team = byId('teamMode');
+    if (!team) return;
+    const hint = document.createElement('span');
+    hint.id = 'homeNextTeamHint';
+    hint.className = 'hn-visually-hidden';
+    hint.textContent = 'You split into teams after Start.';
+    const sync = () => {
+        if (isNext()) {
+            if (!hint.isConnected) team.closest('label')?.after(hint);
+            if (!team.hasAttribute('aria-describedby')) team.setAttribute('aria-describedby', hint.id);
+        } else {
+            hint.remove();
+            if (team.getAttribute('aria-describedby') === hint.id) team.removeAttribute('aria-describedby');
+        }
+    };
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
+// --- Room for a tall Start bar ---------------------------------------------
+// With large text the docked Start bar grows, so the page keeps room for its
+// real height (the CSS default fits normal text).
+function mountBarRoom() {
+    const bar = byId('playSection');
+    if (!bar || !window.ResizeObserver) return;
+    const root = document.documentElement;
+    const sync = () => {
+        const docked = isNext() && root.hasAttribute('data-hn-tight') && getComputedStyle(bar).position === 'fixed';
+        const value = docked && bar.offsetHeight ? `${Math.ceil(bar.offsetHeight)}px` : '';
+        if (root.style.getPropertyValue('--hn-bar-height') !== value) {
+            if (value) root.style.setProperty('--hn-bar-height', value);
+            else root.style.removeProperty('--hn-bar-height');
+        }
+    };
+    new ResizeObserver(sync).observe(bar);
+    document.addEventListener('hntightchange', sync);
+    document.addEventListener('homelayoutchange', sync);
+    window.addEventListener('resize', sync, { passive: true });
+    sync();
+}
+
 export function initHomeNext() {
     applyLayout(storedLayout());
     const run = (name, fn) => {
         try { fn(); } catch (error) { console.warn(`BlakeOut new look: ${name} skipped`, error); }
     };
     run('textFit', mountTextFit);
+    run('barRoom', mountBarRoom);
+    run('teamHint', mountTeamHint);
+    run('teamRowFit', mountTeamRowFit);
     run('summary', mountSummary);
     run('playerCount', mountPlayerCount);
     applyLayout(document.documentElement.dataset.home);
