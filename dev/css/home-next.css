@@ -60,8 +60,8 @@ html[data-home="next"] #setupScreen .setup-card {
         'library recording'
         'library play'
         'library account'
-        'library maintenance'
         'library roster'
+        'library maintenance'
         'library credit'
         'library qr'
         'library .';
@@ -118,8 +118,8 @@ html[data-home="next"] #setupScreen #backToGameBtn { grid-area: back; margin: 0 
     html[data-home="next"] #setupScreen #casualRecordingSetup { order: 7; }
     html[data-home="next"] #setupScreen #playSection { order: 8; }
     html[data-home="next"] #setupScreen .home-player-help { order: 9; }
-    html[data-home="next"] #setupScreen #maintenanceSection { order: 10; }
-    html[data-home="next"] #setupScreen #rosterSection { order: 11; align-self: stretch; }
+    html[data-home="next"] #setupScreen #rosterSection { order: 10; align-self: stretch; }
+    html[data-home="next"] #setupScreen #maintenanceSection { order: 11; }
     html[data-home="next"] #setupScreen .setup-credit { order: 12; }
     html[data-home="next"] #setupScreen .setup-qr { order: 13; }
 }
@@ -377,9 +377,8 @@ html[data-home="next"] #setupScreen .picker-recents {
 }
 html[data-home="next"] #setupScreen .picker-recents.hidden { display: none; }
 html[data-home="next"] #setupScreen .picker-recents::-webkit-scrollbar { display: none; }
-html[data-home="next"] #setupScreen .picker-recents-label { order: 1; flex: 0 0 auto; font-size: 0.75rem; color: var(--color-text-muted); }
+html[data-home="next"] #setupScreen .picker-recents-label { flex: 0 0 auto; font-size: 0.75rem; color: var(--color-text-muted); }
 html[data-home="next"] #setupScreen .picker-recent-chip {
-    order: 2;
     flex: 0 0 auto;
     min-height: 44px;
     padding: 0 14px;
@@ -392,7 +391,6 @@ html[data-home="next"] #setupScreen .picker-recent-chip {
     white-space: nowrap;
 }
 html[data-home="next"] #setupScreen .picker-recent-chip.picker-quickstart {
-    order: 0;
     border-color: var(--hn-accent);
 }
 
@@ -411,6 +409,9 @@ html[data-home="next"] #setupScreen .game-grid {
     overscroll-behavior-y: auto;
     padding: 6px;
     margin: -6px;
+    /* The scrollbar's own width goes into the card's padding, so the cards
+       line up with the search box above them. */
+    margin-right: calc(-6px - var(--hn-sbw, 0px));
     scrollbar-width: thin;
 }
 /* As many columns as fit at a comfortable card width (never a cramped pair). */
@@ -931,22 +932,23 @@ html[data-home="next"]:not([data-menu-style]):not(:has(#setupScreen[style*="none
 .home-layout-choice-row { clear: both; }
 .home-layout-choice-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .home-layout-option {
+    /* Same tile as the X01 & Cricket style choices right above it. */
     position: relative;
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 2px;
-    min-height: 60px;
-    padding: 10px 12px;
+    padding: var(--space-md);
     border: 2px solid var(--color-border);
-    border-radius: 12px;
-    background: var(--color-surface-alt);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
     color: var(--color-text);
     cursor: pointer;
 }
 .home-layout-option input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.home-layout-option strong { font-size: 0.9375rem; }
-.home-layout-option span { font-size: 0.75rem; color: var(--color-text-muted); }
-.home-layout-option:has(input:checked) { border-color: var(--color-primary-light); background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface-alt)); }
+.home-layout-option strong { font-size: var(--font-md); font-weight: 800; }
+.home-layout-option span { font-size: var(--font-xs); line-height: 1.25; color: var(--color-text-muted); }
+.home-layout-option:has(input:checked) { border-color: var(--color-primary); background: color-mix(in srgb, var(--color-primary) 18%, var(--color-surface)); }
 .home-layout-option:has(input:focus-visible) { outline: 3px solid var(--color-primary-light); outline-offset: 2px; }
 
 /* ---------- Motion ---------- */
@@ -1265,6 +1267,7 @@ html[data-home="next"] .game-rules-pop[data-hn-side="above"]:not([style*="overfl
 
 /* Empty search: a clear way back. */
 html[data-home="next"] #setupScreen .picker-empty { display: grid; justify-items: center; gap: 12px; padding: 24px 12px; }
+html[data-home="next"] #setupScreen #gameTypeGrid:has(.picker-empty) { min-height: 0; }
 html[data-home="next"] #setupScreen .hn-clear-search {
     min-height: 44px;
     padding: 0 18px;
@@ -1293,7 +1296,7 @@ html[data-home="next"] .setup-screen .setup-header .setup-logo img { border-radi
 
 /* Players: names fit, and one player needs no throw-order controls. */
 html[data-home="next"] #setupScreen .player-row input[type="text"] { font-size: 1rem; }
-html[data-home="next"] #setupScreen #playersSection:has(#numPlayers > option[value="1"]:checked) :is(.player-order-drag, .player-order-stepper) { display: none; }
+html[data-home="next"] #setupScreen #playersSection:has(#numPlayers > option[value="1"]:checked) :is(.player-order-drag, .player-order-stepper > button) { display: none; }
 
 /* Readable text in fields and small print. */
 html[data-home="next"] #setupScreen :is(input, textarea)::placeholder { color: var(--color-text-muted); opacity: 1; }
@@ -1469,15 +1472,18 @@ html:not([data-home="next"]) .hn-search-clear, html:not([data-home="next"]) .hn-
 /* Skip link past the game list, shown when it has focus. */
 html[data-home="next"] #setupScreen .hn-skip-link { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 html[data-home="next"] #setupScreen .hn-skip-link:focus {
-    position: static;
+    /* Drawn over the top of the list, so nothing below it moves. */
+    position: absolute;
+    z-index: 5;
     display: flex;
     align-items: center;
     width: auto;
     height: auto;
     min-height: 44px;
-    margin: 0 0 10px;
+    margin: 0;
     padding: 0 14px;
     clip-path: none;
+    box-shadow: 0 6px 18px color-mix(in srgb, #000 45%, transparent);
     border-radius: 12px;
     background: var(--color-primary);
     color: var(--color-on-primary);
@@ -1752,6 +1758,11 @@ html[data-home="next"] #teamBuilderScreen .team-zone-member .hn-member-remove { 
     html[data-home="next"] #teamBuilderScreen .team-zone-member-name { grid-column: 1 / -1; grid-row: 1; }
     html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { grid-row: 2; }
 }
+/* The narrowest phones: a slimmer grip and tighter gaps keep the four 44px buttons inside the row. */
+@container (max-width: 300px) {
+    html[data-home="next"] #teamBuilderScreen .team-zone-member { grid-template-columns: 28px minmax(0, 1fr) repeat(4, 44px); column-gap: 4px; padding-left: 8px; padding-right: 8px; }
+    html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { width: 28px; margin-left: 0; }
+}
 
 /* iOS zooms into fields under 16px. */
 html[data-home="next"] #teamBuilderScreen #teamAddName { font-size: 1rem; }
@@ -1764,7 +1775,7 @@ html[data-home="next"] .game-rules-pop[data-hn-more]::after {
 html[data-home="next"] .game-rules-pop:focus-visible { outline: 3px solid var(--hn-accent); outline-offset: 2px; }
 /* Customize: a close button pinned to the top corner while the dialog scrolls. */
 html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-close {
-    position: relative; float: right; z-index: 1;
+    position: sticky; top: 0; float: right; z-index: 3; box-shadow: 0 4px 14px color-mix(in srgb, #000 40%, transparent);
     width: 44px; height: 44px; margin: -6px -8px 0 8px; padding: 0;
     display: inline-flex; align-items: center; justify-content: center;
     border: 1px solid var(--hn-line, rgba(255,255,255,.14)); border-radius: 999px;
@@ -1801,7 +1812,10 @@ html[data-home="next"] #setupScreen .picker-recent-chip.picker-quickstart {
 html[data-home="next"] #setupScreen .picker-description { margin: 0 0 12px; }
 
 /* Customize: chosen cards all look alike (accent title), and a soft divider. */
-html[data-home="next"] #settingsModal .hn-dialog .home-layout-option:has(input:checked) strong { color: var(--color-primary-light, var(--color-primary)); }
+/* The chosen tile's title keeps the normal text colour (readable on every
+   theme); its border and tint show the choice. */
+html[data-home="next"] #settingsModal .hn-dialog .home-layout-option:has(input:checked) strong { color: var(--color-text); }
+html[data-home="next"]:not([data-menu-style]) #settingsModal .hn-dialog .score-skin-choice.active .score-skin-label { color: var(--color-text); }
 html[data-home="next"]:not([data-menu-style]) #settingsModal .hn-dialog .menu-style-picker { border-top-color: var(--hn-line); }
 
 /* Rules popover keeps the 12px page gutter. */
@@ -1831,8 +1845,7 @@ html[data-home="next"] #setupScreen .game-card-label { text-wrap: balance; }
 @media (min-width: 721px) and (max-height: 819px) {
     html[data-home="next"] #setupScreen #gamePickerSection[data-hn-games="few"] .game-grid > .game-card-wrap:nth-child(6):not(:has(.game-card.active)) { display: block; }
 }
-/* Docked Start: square bottom corners so the card behind it lines up, and a shorter fade. */
-html[data-home="next"] #setupScreen #playSection.hn-docked { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+/* The library list sizes its cards by its own width. */
 html[data-home="next"] #setupScreen #gameTypeGrid { container: hngrid / inline-size; }
 /* Resume: in short landscape each player gets a line too, in smaller type;
    on small phones the names step down a size so they fit whole. */
@@ -1860,4 +1873,63 @@ html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { border-radius:
 /* The DEV tag in the corner never sits on the team builder card. */
 @media (max-width: 720px) {
     html[data-home="next"] #teamBuilderScreen .setup-card { margin-top: 26px; }
+}
+
+/* Round 8: Customize choices show the same strong focus ring as the rest of the dialog,
+   set apart from the chosen item's ring by a gap. */
+html[data-home="next"] #settingsModal .hn-dialog :is(.theme-swatch, .wallpaper-choice, .score-skin-choice):focus-visible {
+    outline: 3px solid var(--hn-accent); outline-offset: 3px;
+}
+html[data-home="next"] #settingsModal .hn-dialog .home-layout-option:has(input:focus-visible) {
+    outline: 3px solid var(--hn-accent); outline-offset: 3px;
+}
+
+/* Round 8: two-column screens shorter than 950px get a one-row Start card
+   (what you are playing on the left, Start on the right), so the Players
+   card stays in view above it. */
+@media (min-width: 721px) and (min-height: 561px) and (max-height: 949px) {
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen #playSection { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 12px 14px 12px 18px; }
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen #playSection #startGameBtn { min-height: 52px; padding: 0 24px; white-space: nowrap; }
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen #playSection .setup-match-title { white-space: normal; overflow-wrap: anywhere; }
+}
+/* Contrast: "Recent:" in full text colour, a stronger drag grip, and filter
+   chip edges that read at 3:1. */
+html[data-home="next"] #setupScreen .picker-recents-label { color: var(--color-text); }
+html[data-home="next"] #teamBuilderScreen .team-zone-member > .hn-grip { opacity: 0.9; }
+html[data-home="next"] #setupScreen .picker-chip:not(.active) { border-color: var(--hn-field-line); }
+/* Neon menu style lays the dialog out as a column: pin Close to the right of the title row. */
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog > .hn-dialog-close {
+    float: none; align-self: flex-end; flex: 0 0 auto; margin: 0 0 -56px; position: sticky; top: 0;
+}
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog > #settingsModalTitle { padding-right: 56px; }
+
+/* Team builder rows wear the same colours as the home screen's player rows:
+   a tinted card with a blue (Home) or green (Away) edge, normal text colour. */
+html[data-home="next"] #teamBuilderScreen .team-zone-member {
+    border-radius: 14px;
+    color: var(--color-text);
+    background: color-mix(in srgb, var(--color-primary) 22%, var(--color-surface));
+    border: 2px solid color-mix(in srgb, var(--color-primary) 60%, transparent);
+    box-shadow: inset 4px 0 0 var(--hn-accent);
+}
+html[data-home="next"] #teamBuilderScreen #teamZone1 .team-zone-member {
+    background: color-mix(in srgb, var(--color-success) 20%, var(--color-surface));
+    border-color: color-mix(in srgb, var(--color-success) 60%, transparent);
+    box-shadow: inset 4px 0 0 var(--color-success);
+}
+html[data-home="next"] #teamBuilderScreen .team-zone-member :is(.team-zone-member-name, .team-chip-order),
+html[data-home="next"] #teamBuilderScreen .team-zone-member > label { color: var(--color-text); }
+html[data-home="next"] #teamBuilderScreen .team-zone-member :is(.team-zone-member-swap-btn, .team-zone-member-order-btns button, .hn-member-remove) {
+    color: var(--color-text);
+    border-color: var(--hn-field-line);
+    background: color-mix(in srgb, var(--color-text) 8%, transparent);
+}
+html[data-home="next"] #teamBuilderScreen .team-chip { border-radius: 12px; }
+/* Start Match is the biggest button on the screen; the two helpers below
+   the zones share one row in equal halves, in the home screen's type size. */
+html[data-home="next"] #teamBuilderScreen #teamStartMatchBtn { font-size: 1.1875rem; font-weight: 800; }
+html[data-home="next"] #teamBuilderScreen .team-builder-actions .btn { font-size: 0.9375rem; }
+@media (min-width: 900px) {
+    html[data-home="next"] #teamBuilderScreen .team-builder-actions { flex-wrap: nowrap; }
+    html[data-home="next"] #teamBuilderScreen .team-builder-actions .btn { flex: 1 1 0; min-width: max-content; white-space: nowrap; }
 }

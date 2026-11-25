@@ -80,7 +80,7 @@ function placeSections(layout) {
     }
     if (layout === 'next') {
         let anchor = play;
-        for (const el of [help, maintenance, roster]) {
+        for (const el of [help, roster, maintenance]) {
             if (!el) continue;
             putAfter(anchor, el);
             anchor = el;
@@ -163,8 +163,9 @@ function summaryText() {
         const bots = [1, 2, 3, 4].slice(0, count)
             .filter(n => (byId(`player${n}Skill`)?.value || 'off') !== 'off').length;
         const short = document.documentElement.hasAttribute('data-hn-tight') || window.matchMedia?.('(max-width: 360px)').matches;
-        // "4 players · all BotBlake" reads better than "4 BotBlakes".
-        if (bots && bots === count && count > 1) parts.push(short ? 'all bots' : 'all BotBlake');
+        // "4 players · all BotBlake" reads better than "4 BotBlakes". Start
+        // refuses a match with no human, so the summary says what is missing.
+        if (bots && bots === count) parts.push(count > 1 ? (short ? 'all bots' : 'all BotBlake') : 'BotBlake', 'add a human');
         else if (bots) parts.push(short ? (bots === 1 ? '1 bot' : `${bots} bots`) : (bots === 1 ? '1 BotBlake' : `${bots} BotBlakes`));
     }
     const finish = byId('finishType');
@@ -221,13 +222,18 @@ function mountSummary() {
 function splitResume(button) {
     const text = button.textContent;
     const wrapped = button.querySelector('.hn-resume-main');
+    // The split spans read as "( name vs name )"; the label keeps the
+    // button's spoken name exactly as setup.js wrote it.
     if (!isNext()) {
         if (wrapped) button.textContent = text;
+        button.removeAttribute('aria-label');
         return;
     }
     if (wrapped) return;
+    button.removeAttribute('aria-label');
     const at = text.indexOf(' (');
     if (at < 0 || !text.endsWith(')')) return;
+    button.setAttribute('aria-label', text);
     const main = document.createElement('span');
     main.className = 'hn-resume-main';
     main.textContent = text.slice(0, at + 1);
@@ -538,6 +544,10 @@ function mountTeamA11y() {
     const memberNode = id => screen.querySelector(`.team-zone-member[data-zone-member-id="${CSS.escape(id)}"]`);
     const zoneName = idx => byId(`teamZone${idx}Label`)?.textContent.trim() || (idx ? 'Away' : 'Home');
     const zoneOf = id => { const m = memberNode(id); return m ? Number(m.dataset.zoneIdx) : null; };
+    byId('teamSwapFirstBtn')?.addEventListener('click', () => {
+        if (!isNext()) return;
+        later(() => say(`${zoneName(byId('teamZone1')?.classList.contains('first') ? 1 : 0)} throws first`));
+    });
     const label = () => {
         const next = isNext();
         screen.querySelectorAll('.team-zone-member').forEach(member => {
@@ -612,7 +622,8 @@ function mountTeamA11y() {
         if (pickId && pickId !== lastPick) {
             const away = byId('teamZone1')?.querySelector(':scope > .hn-zone-put');
             const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-            if (away) later(() => away.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' }));
+            // After any refocus of the chip, so nothing cancels the scroll.
+            if (away) later(() => later(() => away.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' })));
         }
         lastPick = pickId;
     };
@@ -632,15 +643,19 @@ function mountTeamA11y() {
         pointer('pointermove', null, to);
         pointer('pointerup', null, to);
     };
-    const focusFirst = (...selectors) => later(() => {
+    const focusIn = (preventScroll, selectors) => later(() => {
         for (const selector of selectors) {
             const el = selector && screen.querySelector(selector);
-            if (el && !el.disabled && el.offsetParent !== null) { el.focus({ preventScroll: false }); return; }
+            if (el && !el.disabled && el.offsetParent !== null) { el.focus({ preventScroll }); return; }
         }
     });
+    const focusFirst = (...selectors) => focusIn(false, selectors);
+    // A chip that was just pressed is already on screen; refocusing it must not
+    // undo the scroll that brings the Home and Away buttons into view.
+    const focusChip = (...selectors) => focusIn(true, selectors);
     // The builder redraws its buttons on pointerdown, so the click that follows
     // a real press can land on a different button. Any no-detail click soon
-    // after a real press belongs to that press.
+    // after a real press, with no key pressed since, belongs to that press.
     let lastRealPress = 0;
     // A real tap or click (VoiceOver's double-tap included) gets the same
     // feedback as a keyboard press: the move is read out and focus stays.
@@ -664,6 +679,10 @@ function mountTeamA11y() {
             : control.dataset.chipId ? ['chip', control.dataset.chipId] : null;
         pending = { before: snapshot(), key };
     }, true);
+    // A key press is the user's own, so it ends that window.
+    screen.addEventListener('keydown', event => {
+        if (event.isTrusted && (event.key === 'Enter' || event.key === ' ')) lastRealPress = 0;
+    }, true);
     document.addEventListener('pointerup', event => {
         if (!event.isTrusted || !pending) return;
         const { before, key } = pending;
@@ -683,7 +702,7 @@ function mountTeamA11y() {
             const active = document.activeElement;
             if (key && (!active || active === document.body || !document.contains(active))) {
                 if (key[0] === 'member') focusFirst(`[data-member-id="${CSS.escape(key[1])}"][data-member-action="${key[2]}"]`, `[data-member-id="${CSS.escape(key[1])}"][data-member-action="swap"]`);
-                else focusFirst(`.team-chip[data-chip-id="${CSS.escape(key[1])}"]`, `.team-zone-member[data-zone-member-id="${CSS.escape(key[1])}"] [data-member-action="hn-remove"]`);
+                else focusChip(`.team-chip[data-chip-id="${CSS.escape(key[1])}"]`, `.team-zone-member[data-zone-member-id="${CSS.escape(key[1])}"] [data-member-action="hn-remove"]`);
             }
         });
     }, true);
@@ -720,7 +739,7 @@ function mountTeamA11y() {
             press(chip);
             const chosen = screen.querySelector(`.team-chip.selected[data-chip-id="${CSS.escape(id)}"]`);
             say(chosen ? `${name} chosen. Now pick Home or Away.` : `${name} not chosen`);
-            focusFirst(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
+            focusChip(`.team-chip[data-chip-id="${CSS.escape(id)}"]`);
         }
     });
     // "Put … in Home": a real tap already reached the team itself; a key
@@ -760,6 +779,7 @@ function mountTeamA11y() {
         wasOpen = open;
         if (!isNext()) return;
         if (open && heading) { heading.tabIndex = -1; later(() => heading.focus()); }
+        if (!open) heading?.removeAttribute('tabindex');
         else if (!open) later(() => {
             const setup = byId('setupScreen');
             const active = document.activeElement;
@@ -769,6 +789,7 @@ function mountTeamA11y() {
     }).observe(screen, { attributes: true, attributeFilter: ['style'] });
     new MutationObserver(label).observe(screen, { childList: true, subtree: true });
     document.addEventListener('homelayoutchange', label);
+    document.addEventListener('homelayoutchange', () => { if (!isNext()) heading?.removeAttribute('tabindex'); });
     label();
 }
 
@@ -782,7 +803,8 @@ function mountCustomizeDialog() {
     if (!modal) return;
     const content = modal.querySelector('.modal-content');
     const title = content?.querySelector('h2');
-    if (title && !title.id) title.id = 'settingsModalTitle';
+    // The title gets its id only while it names the dialog.
+    const ownId = title && !title.id;
     const nameOpener = () => {
         if (!opener) return;
         if (isNext()) opener.setAttribute('aria-label', 'Customize');
@@ -842,6 +864,10 @@ function mountCustomizeDialog() {
         closeX.addEventListener('click', () => byId('settingsCloseBtn')?.click());
         content.prepend(closeX);
     };
+    // A tap on the dimmed backdrop closes it too (New look only).
+    modal.addEventListener('click', event => {
+        if (active && event.target === modal) byId('settingsCloseBtn')?.click();
+    });
     const activate = (keepFocus = false) => {
         active = true;
         addClose();
@@ -853,6 +879,7 @@ function mountCustomizeDialog() {
         if (title) {
             titleText = title.textContent;
             title.textContent = 'Customize';
+            if (ownId) title.id = 'settingsModalTitle';
             content.setAttribute('aria-labelledby', title.id);
             title.tabIndex = -1;
         }
@@ -871,7 +898,7 @@ function mountCustomizeDialog() {
         content.removeAttribute('aria-modal');
         content.removeAttribute('aria-labelledby');
         content.classList.remove('hn-dialog');
-        if (title) { if (titleText) title.textContent = titleText; title.removeAttribute('tabindex'); }
+        if (title) { if (titleText) title.textContent = titleText; title.removeAttribute('tabindex'); if (ownId) title.removeAttribute('id'); }
         scale?.removeAttribute('aria-label');
         if (upload) { upload.removeAttribute('tabindex'); upload.removeAttribute('role'); }
         placeDone();
@@ -1052,6 +1079,24 @@ function mountTypingBar() {
     update();
 }
 
+// --- "Jump back in": Quick Start first --------------------------------------
+// The New look draws Quick Start before the recent games, so it comes first
+// for Tab and screen readers too. Classic keeps it last, as the original.
+
+function mountQuickStartFirst() {
+    const row = byId('gameRecentsRow');
+    if (!row) return;
+    const sync = () => {
+        const quick = row.querySelector(':scope > [data-quickstart]');
+        if (!quick) return;
+        if (isNext()) { if (row.firstElementChild !== quick) row.prepend(quick); }
+        else if (row.lastElementChild !== quick) row.append(quick);
+    };
+    new MutationObserver(sync).observe(row, { childList: true });
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
 // --- Phones: a short game list with "Show all games" -----------------------
 // A tall inner list would catch most swipes meant for the page. On phones
 // the New look shows the first few games (plus the chosen one) in the page
@@ -1084,10 +1129,17 @@ function mountGameExpander() {
         if (button.textContent !== text) button.textContent = text;
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
     };
+    const shownCards = () => [...grid.querySelectorAll('.game-card')].filter(card => card.offsetParent !== null);
     button.addEventListener('click', () => {
+        const before = new Set(shownCards());
         open = !open;
         sync();
-        if (!open) later(() => button.scrollIntoView({ block: 'nearest' }));
+        if (!open) { later(() => button.scrollIntoView({ block: 'nearest' })); return; }
+        // Focus goes on to the first game that just appeared, so the next Tab
+        // walks through the rest instead of jumping past them.
+        const first = shownCards().find(card => !before.has(card));
+        // It takes the place of the button that was just pressed, so it is already in view.
+        if (first) later(() => first.focus({ preventScroll: true }));
     });
     search?.addEventListener('input', sync);
     new MutationObserver(sync).observe(grid, { childList: true });
@@ -1127,18 +1179,22 @@ function mountLibraryFit() {
     let frame = 0;
     const fit = () => {
         frame = 0;
-        if (!isNext() || setup.style.display === 'none') { section.style.removeProperty('--hn-lib-h'); byId('playSection')?.classList.remove('hn-docked'); return; }
-        // A docked Start card (sticky at the bottom of the window) gets square
-        // bottom corners, so the card scrolling behind it lines up with it.
-        const play = byId('playSection');
-        if (play) {
-            const cs = getComputedStyle(play);
-            const docked = cs.position === 'sticky' && Math.abs(play.getBoundingClientRect().bottom - (window.innerHeight - (parseFloat(cs.bottom) || 0))) < 1.5
-                && !!play.previousElementSibling && play.previousElementSibling.getBoundingClientRect().bottom > play.getBoundingClientRect().top + 1;
-            play.classList.toggle('hn-docked', docked);
+        const list = byId('gameTypeGrid');
+        if (!isNext() || setup.style.display === 'none') { section.style.removeProperty('--hn-lib-h'); list?.style.removeProperty('--hn-sbw'); return; }
+        if (list) {
+            // No further than the card's own padding allows (wide scrollbars on
+            // some systems keep a few pixels of their gap).
+            const room = Math.max(0, (parseFloat(getComputedStyle(section).paddingRight) || 0) - 8);
+            const sbw = `${Math.min(room, Math.max(0, list.offsetWidth - list.clientWidth))}px`;
+            if (list.style.getPropertyValue('--hn-sbw') !== sbw) list.style.setProperty('--hn-sbw', sbw);
         }
+        // The library ends where the sticky Start card ends, so their bottom
+        // edges line up.
+        const play = byId('playSection');
+        const cs = play && getComputedStyle(play);
+        const gap = cs?.position === 'sticky' ? (parseFloat(cs.bottom) || 16) : 16;
         const top = Math.max(16, section.getBoundingClientRect().top);
-        const height = Math.floor(window.innerHeight - top - 16);
+        const height = Math.floor(window.innerHeight - top - gap);
         const value = `${height}px`;
         if (section.style.getPropertyValue('--hn-lib-h') === value) return;
         // A list scrolled to its end stays at its end as it grows or shrinks.
@@ -1248,6 +1304,7 @@ export function initHomeNext() {
     run('skipLink', mountSkipLink);
     run('typingBar', mountTypingBar);
     run('gameExpander', mountGameExpander);
+    run('quickStartFirst', mountQuickStartFirst);
     run('skillLabels', mountSkillLabels);
     run('libraryFit', mountLibraryFit);
     run('zoom', mountZoom);
