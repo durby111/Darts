@@ -2109,3 +2109,55 @@ html[data-home="next"] #setupScreen .hn-summary-part.hn-summary-warn::before { c
 /* Large text: the whole name shows, over two lines if it must. */
 html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put { display: inline-block; white-space: normal; text-wrap: balance; padding: 6px 16px; line-height: 1.25; }
 html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-zone-put .hn-put-name { overflow: visible; }
+
+/* Landscape phones and short tablets with a game to resume: the slim bar needs
+   no extra room under the card (repeats the earlier rule, which a later phone rule overrode). */
+@media (max-width: 720px) and (max-height: 500px), (min-width: 721px) and (max-width: 1000px) and (max-height: 560px) {
+    html[data-home="next"] #setupScreen .setup-card:has(#resumeGameBtn:not(.hidden)) { padding-bottom: 12px; }
+}
+
+/* "Jump back in": the divider now follows the hidden break after Quick Start.
+   When the row wraps, Quick Start keeps its own line and "Recent:" leads the next. */
+html[data-home="next"] #setupScreen #gameRecentsRow .hn-recents-break { display: none; }
+html[data-home="next"] #setupScreen #gameRecentsRow .hn-recents-break + .picker-recents-label { margin-left: 6px; padding-left: 12px; border-left: 1px solid var(--hn-field-line); }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-stack] .hn-recents-break { display: block; flex: 0 0 100%; height: 0; margin: 0; }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-stack] .hn-recents-break + .picker-recents-label { margin-left: 0; padding-left: 4px; border-left: 0; }
+html:not([data-home="next"]) .hn-recents-break { display: none !important; }
+
+/* Utility cards (Presets, App Maintenance, Manage Players, Players on this device):
+   one secondary-button size and one hint style. */
+html[data-home="next"] #setupScreen :is(#presetsSection, #maintenanceSection, #rosterSection, .home-player-help) .btn {
+    font-size: 0.9375rem; font-weight: 700; min-height: 44px;
+}
+html[data-home="next"] #setupScreen :is(#maintenanceSection #updateStatus, #maintenanceSection .setup-forget-names-status, #rosterSection .roster-hint, #rosterSection .roster-empty, #rosterSection .roster-share-status, .home-player-help p) {
+    font-size: 0.8125rem; font-style: normal; line-height: 1.45; color: var(--color-text-muted);
+}
+/* Their buttons start on the same edge as the text above them. */
+html[data-home="next"] #setupScreen .home-player-help > button { margin: 4px 8px 8px 0; }
+/* Manage Players: the name gets a full row, then email beside Add, so the
+   email placeholder reads whole. */
+html[data-home="next"] #setupScreen #rosterSection .roster-add-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+html[data-home="next"] #setupScreen #rosterSection .roster-add-row > #rosterAddName { grid-column: 1 / -1; }
+html[data-home="next"] #setupScreen #rosterSection .roster-add-row > * { min-width: 0; width: auto; margin: 0; }
+
+/* Customize: labels and descriptions at least 12px, in the text colour where
+   they sat on busy tiles; the theme swatches in an even grid. */
+html[data-home="next"] #settingsModal .hn-dialog :is(.theme-swatch-label, .wallpaper-label, .score-skin-desc, .home-layout-option span) { font-size: max(0.75rem, 12px); line-height: 1.3; }
+html[data-home="next"] #settingsModal .hn-dialog .wallpaper-label { color: var(--color-text); }
+html[data-home="next"] #settingsModal .hn-dialog .theme-picker { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+html[data-home="next"] #settingsModal .hn-dialog .theme-picker .theme-swatch { min-width: 0; width: auto; min-height: 52px; justify-content: center; }
+@media (min-width: 560px) {
+    html[data-home="next"] #settingsModal .hn-dialog .theme-picker { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* The selected favourite: a 32px gold disc inside the 44px button. */
+html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved,
+html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved:hover { background: transparent; color: #1a1a1a; }
+html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved::before {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 50%; background: #ffd54a; font-size: 1.125rem;
+}
+@media (hover: hover) { html[data-home="next"] #setupScreen .game-card-wrap:has(.game-card.active) .game-card-fav.faved:hover::before { background: #ffe07a; } }
+
+/* Section hints don't leave a word alone on their last line. */
+html[data-home="next"] #setupScreen :is(#gamePickerSection, #gameOptionsSection, #playersSection) > .setup-section-label::after { text-wrap: balance; }

@@ -935,7 +935,15 @@ function mountCustomizeDialog() {
         barTitle.textContent = 'Customize';
         closeBar.append(barTitle, closeX);
         content.prepend(closeBar);
-        // It spans the dialog edge to edge, whatever padding the menu style gives it.
+        measureBar();
+        requestAnimationFrame(measureBar);
+        syncBar();
+    };
+    // It spans the dialog edge to edge, whatever padding the menu style gives
+    // it, in the dialog's own colour. Measured again whenever the theme or
+    // menu style changes while the dialog is open.
+    const measureBar = () => {
+        if (!closeBar || !content) return;
         const pad = getComputedStyle(content);
         // A see-through dialog colour is made solid for the strip.
         const rgb = pad.backgroundColor.match(/[\d.]+/g);
@@ -946,10 +954,20 @@ function mountCustomizeDialog() {
             top: `-${pad.paddingTop}`, marginTop: `-${pad.paddingTop}`, marginLeft: `-${pad.paddingLeft}`, marginRight: `-${pad.paddingRight}`,
             paddingTop: pad.paddingTop, height: `calc(${pad.paddingTop} + 54px)`, marginBottom: `calc(-54px)`,
         });
-        syncBar();
     };
+    new MutationObserver(() => {
+        if (!closeBar) return;
+        requestAnimationFrame(measureBar);
+        // Themes fade their colours in; measure again once that is done.
+        setTimeout(measureBar, 450);
+    }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-menu-style'] });
     let closeBar = null;
-    const syncBar = () => closeBar?.classList.toggle('hn-stuck', content.scrollTop > 4);
+    const syncBar = () => {
+        if (!closeBar) return;
+        const stuck = content.scrollTop > 4;
+        if (stuck && !closeBar.classList.contains('hn-stuck')) measureBar();
+        closeBar.classList.toggle('hn-stuck', stuck);
+    };
     content?.addEventListener('scroll', syncBar, { passive: true });
     // A tap on the dimmed backdrop closes it too (New look only).
     modal.addEventListener('click', event => {
@@ -1204,14 +1222,36 @@ function mountTypingBar() {
 function mountQuickStartFirst() {
     const row = byId('gameRecentsRow');
     if (!row) return;
+    // When the row has to wrap, Quick Start takes a line of its own and
+    // "Recent:" starts the next one with its games, so the label never ends
+    // a line alone.
+    const fit = () => {
+        const quick = row.querySelector(':scope > [data-quickstart]');
+        row.removeAttribute('data-hn-stack');
+        if (!isNext() || !quick || !row.clientWidth) return;
+        const last = row.lastElementChild;
+        if (last && last !== quick && last.offsetTop > quick.offsetTop + 4) row.setAttribute('data-hn-stack', '');
+    };
     const sync = () => {
         const quick = row.querySelector(':scope > [data-quickstart]');
-        if (!quick) return;
-        if (isNext()) { if (row.firstElementChild !== quick) row.prepend(quick); }
-        else if (row.lastElementChild !== quick) row.append(quick);
+        let gap = row.querySelector(':scope > .hn-recents-break');
+        if (!quick) { gap?.remove(); return; }
+        if (isNext()) {
+            if (row.firstElementChild !== quick) row.prepend(quick);
+            if (!gap) { gap = document.createElement('span'); gap.className = 'hn-recents-break'; gap.setAttribute('aria-hidden', 'true'); }
+            if (quick.nextElementSibling !== gap) quick.after(gap);
+        } else {
+            gap?.remove();
+            row.removeAttribute('data-hn-stack');
+            if (row.lastElementChild !== quick) row.append(quick);
+        }
+        fit();
     };
     new MutationObserver(sync).observe(row, { childList: true });
-    document.addEventListener('homelayoutchange', sync);
+    let width = -1;
+    new ResizeObserver(() => { if (row.clientWidth !== width) { width = row.clientWidth; fit(); } }).observe(row);
+    ['homelayoutchange', 'hntightchange'].forEach(name => document.addEventListener(name, sync));
+    document.fonts?.ready?.then(fit);
     sync();
 }
 
@@ -1267,22 +1307,50 @@ function mountGameExpander() {
     sync();
 }
 
-// --- Small phones: short names for the BotBlake levels ---------------------
-// "BotBlake — Medium" does not fit a 320px-wide row. Below 361px the closed
-// select shows "Bot · Medium"; the option values never change.
+// --- Short names for the BotBlake levels when the full one won't fit ------
+// "BotBlake — Medium" needs room that a narrow row or large text doesn't
+// leave. The closed select then shows "Bot · Medium", "🤖 Medium" or just
+// "Medium", whichever is the longest that fits. Decided by measuring, so it follows the text size too.
+// The option values never change.
 
 function mountSkillLabels() {
-    const narrow = window.matchMedia('(max-width: 360px)');
-    const selects = () => document.querySelectorAll('#playersSection select[id^="player"][id$="Skill"]');
+    const selects = () => [...document.querySelectorAll('#playersSection select[id^="player"][id$="Skill"]')];
+    const canvas = document.createElement('canvas');
+    const level = value => value === 'auto' ? 'Auto' : value[0].toUpperCase() + value.slice(1);
+    const tiers = [
+        option => null,
+        option => `Bot · ${level(option.value)}`,
+        option => `\u{1F916} ${level(option.value)}`,
+        option => level(option.value),
+    ];
     const sync = () => {
-        const on = isNext() && narrow.matches;
-        selects().forEach(select => [...select.options].forEach(option => {
-            if (on && option.value !== 'off') option.label = `Bot · ${option.value === 'auto' ? 'Auto' : option.value[0].toUpperCase() + option.value.slice(1)}`;
-            else option.removeAttribute('label');
-        }));
+        const next = isNext();
+        selects().forEach(select => {
+            const bots = [...select.options].filter(option => option.value !== 'off');
+            if (!next || !select.clientWidth) {
+                if (!next) bots.forEach(option => option.removeAttribute('label'));
+                return;
+            }
+            const cs = getComputedStyle(select);
+            const room = select.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+            const widest = make => Math.max(...bots.map(option => ctx.measureText(make(option) ?? option.text).width));
+            const pick = tiers.find(make => widest(make) <= room) || tiers[tiers.length - 1];
+            bots.forEach(option => {
+                const text = pick(option);
+                if (text == null) option.removeAttribute('label');
+                else if (option.getAttribute('label') !== text) option.label = text;
+            });
+        });
     };
-    narrow.addEventListener?.('change', sync);
-    document.addEventListener('homelayoutchange', sync);
+    let queued = false;
+    const soon = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; sync(); }); };
+    const watch = new ResizeObserver(soon);
+    selects().forEach(select => watch.observe(select));
+    ['homelayoutchange', 'hntightchange'].forEach(name => document.addEventListener(name, soon));
+    window.addEventListener('resize', soon);
+    document.fonts?.ready?.then(soon);
     sync();
 }
 
@@ -1365,9 +1433,12 @@ function mountZoom() {
 // with no frame of its own; the registry and Classic keep the originals.
 
 const ICON_SWAP = new Map([
-    ['♥', '❤️'], ['✕', '❌'], ['⚡', '⚡️'], ['⏱', '⏱️'], ['⚾', '⚾️'],
+    ['♥', '❤️'], ['✕', '🏏'], ['⚡', '⚡️'], ['⏱', '⏱️'], ['⚾', '⚾️'],
     ['⛳', '⛳️'], ['❎', '⭕'], ['⏬', '📉'], ['🔺', '🏝️'],
 ]);
+// Games that share a symbol but should look different at a glance.
+const GAME_ICON = new Map([['bullshit', '🐂']]);
+const iconFor = (id, from) => GAME_ICON.get(id) || ICON_SWAP.get(from);
 function mountGameIcons() {
     const grid = byId('gameTypeGrid');
     if (!grid) return;
@@ -1375,7 +1446,7 @@ function mountGameIcons() {
         const next = isNext();
         grid.querySelectorAll('.game-card-icon').forEach(icon => {
             const from = icon.textContent.trim();
-            const to = next ? ICON_SWAP.get(from) : undefined;
+            const to = next ? iconFor(icon.closest('[data-game-value]')?.dataset.gameValue, from) : undefined;
             if (to && icon.dataset.hnIcon !== to) icon.dataset.hnIcon = to;
             else if (!to && icon.dataset.hnIcon) delete icon.dataset.hnIcon;
         });
@@ -1394,10 +1465,13 @@ function mountGameIcons() {
             if (chip.dataset.hnText != null || chip.children.length) return;
             const text = chip.textContent;
             const [first, ...rest] = text.split(' ');
-            const to = ICON_SWAP.get(first);
-            if (!to) return;
+            if (!rest.length) return;
+            // The icon is decoration: screen readers hear only the game's name.
+            const icon = document.createElement('span');
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = iconFor(chip.dataset.recent, first) || first;
             chip.dataset.hnText = text;
-            chip.textContent = [to, ...rest].join(' ');
+            chip.replaceChildren(icon, ` ${rest.join(' ')}`);
         });
     };
     if (recents) new MutationObserver(syncChips).observe(recents, { childList: true });
@@ -1408,9 +1482,13 @@ function mountGameIcons() {
         const title = isNext() && byId('gameRulesPop')?.querySelector('strong');
         if (!title || title.dataset.hnIcon) return;
         const [first, ...rest] = title.textContent.split(' ');
-        const to = ICON_SWAP.get(first);
+        const to = iconFor(byId('gameRulesPop')?.dataset.gameId, first);
         title.dataset.hnIcon = to || first;
-        if (to) title.textContent = [to, ...rest].join(' ');
+        if (!rest.length || title.children.length) return;
+        const icon = document.createElement('span');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = to || first;
+        title.replaceChildren(icon, ` ${rest.join(' ')}`);
     }).observe(document.body, { childList: true });
 }
 
@@ -1476,6 +1554,37 @@ function mountTeamRowFit() {
     fit();
 }
 
+// Team builder hint: in the New look players go in with the "Put … in Home"
+// buttons, so the hint names those instead of tapping a zone.
+function mountTeamHintText() {
+    const hint = byId('teamBuilderHint');
+    if (!hint) return;
+    let original = null;
+    let shown = null;
+    const rewrite = text => {
+        if (text === 'Now tap Home or Away.') return 'Now press Put in Home or Put in Away.';
+        if (/^Drag a player into Home or Away/.test(text) || /^Tap a player chip/.test(text)) return 'Tap a name, then press Put in Home or Put in Away. ✕ takes a player off a team.';
+        if (/Drag or tap players into Home and Away\.$/.test(text)) return text.replace('Drag or tap players into Home and Away.', 'Tap a name, then press Put in Home or Put in Away.');
+        if (/Drag or use ▲▼ to reorder within a team; ⇄ moves a member across\.$/.test(text)) return text.replace('Drag or use ▲▼ to reorder within a team; ⇄ moves a member across.', 'Drag ⠿ or use ▲▼ to reorder; ⇄ moves a player to the other team.');
+        return text;
+    };
+    const sync = () => {
+        const text = hint.textContent;
+        if (text !== shown) original = text;
+        if (!isNext()) {
+            if (shown != null && text === shown) hint.textContent = original;
+            shown = null;
+            return;
+        }
+        const next = rewrite(original);
+        shown = next;
+        if (text !== next) hint.textContent = next;
+    };
+    new MutationObserver(sync).observe(hint, { childList: true, characterData: true, subtree: true });
+    document.addEventListener('homelayoutchange', sync);
+    sync();
+}
+
 function mountTeamHint() {
     const team = byId('teamMode');
     if (!team) return;
@@ -1527,6 +1636,7 @@ export function initHomeNext() {
     run('barRoom', mountBarRoom);
     run('teamHint', mountTeamHint);
     run('teamRowFit', mountTeamRowFit);
+    run('teamHintText', mountTeamHintText);
     run('summary', mountSummary);
     run('playerCount', mountPlayerCount);
     applyLayout(document.documentElement.dataset.home);
