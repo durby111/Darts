@@ -2527,11 +2527,9 @@ html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { font-size
 html[data-home="next"] #setupScreen .setup-panel:has(:is(input, select, textarea):focus-visible) { box-shadow: var(--hn-shadow); }
 
 /* Round 18 */
-/* Phones: "Jump back in" keeps to the two latest games on one row, so the first game card
-   stays on the first screen. */
-@media (max-width: 480px) {
-    html[data-home="next"] #setupScreen #gameRecentsRow .picker-recent-chip:not(.picker-quickstart) ~ .picker-recent-chip ~ .picker-recent-chip { display: none; }
-}
+/* Phones and short landscape: recent games that don't fit on the one row of
+   "Jump back in" give way (home-next.js marks them). */
+html[data-home="next"] #setupScreen #gameRecentsRow .picker-recent-chip[data-hn-overflow] { display: none; }
 /* Customize: a focused setting scrolls fully into view, clear of the pinned
    title bar at the top and the rounded edge at the bottom. */
 html[data-home="next"] #settingsModal .hn-dialog { scroll-padding-top: 92px; scroll-padding-bottom: 16px; }
@@ -2552,3 +2550,31 @@ html[data-home="next"] #setupScreen .support-btn-sub { font-size: 0.75rem; }
     html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddBtn { grid-column: 4; }
     html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .team-add-row > label > select { flex: 0 0 15rem; width: 15rem; }
 }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-quiet] > :is(.picker-recents-label, .hn-recents-break) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* Reduced motion: controls change state at once, with no transitions. */
+@media (prefers-reduced-motion: reduce) {
+    html[data-home="next"] :is(#setupScreen, #playSection, #teamBuilderScreen, #settingsModal) :is(*, *::before, *::after) { transition: none !important; }
+}
+/* Neon menu style: the light stripe stays on the dialog's edge while its
+   content scrolls (a background layer, which doesn't scroll with content). */
+html[data-home="next"][data-menu-style="neon"] #settingsModal > .modal-content.hn-dialog::before { display: none; }
+html[data-home="next"][data-menu-style="neon"] #settingsModal > .modal-content.hn-dialog:not([hidden]):not(.hidden):not(:empty) {
+    background-image:
+        linear-gradient(180deg, var(--nm-cyan, #1cf2ff) 0%, #77a8ff 44%, var(--nm-violet, #b66bff) 74%, var(--nm-crimson, #ff3b6b) 100%),
+        radial-gradient(120% 35% at 0% 0%, rgba(28, 242, 255, 0.14), rgba(0, 0, 0, 0) 62%),
+        radial-gradient(120% 35% at 100% 100%, rgba(182, 107, 255, 0.14), rgba(0, 0, 0, 0) 62%);
+    background-size: 3.5px 100%, auto, auto;
+    background-position: left top, 0 0, 0 0;
+    background-repeat: no-repeat;
+}
+/* Customize, X01 & Cricket style cards: the chosen card's words stay readable. */
+html[data-home="next"][data-theme="neon"] #settingsModal .hn-dialog .score-skin-choice.active .score-skin-desc { color: #b4b8e0; }
+html[data-home="next"][data-theme="arctic"] #settingsModal .hn-dialog .score-skin-choice.active .score-skin-label { color: #0b4fc4; }
+/* Team builder: each Put button wears its team's colour, so colour always means team. */
+html[data-home="next"] #teamBuilderScreen #teamZone0 .hn-zone-put { background: color-mix(in srgb, var(--hn-home) 62%, #000); color: #fff; }
+html[data-home="next"] #teamBuilderScreen #teamZone1 .hn-zone-put { background: color-mix(in srgb, var(--hn-away) 55%, #000); color: #fff; }
+/* Large text on phones: the logo stays at its usual size beside the title. */
+@media (max-width: 480px) {
+    html[data-home="next"][data-hn-tight] .setup-screen .setup-header .setup-logo { width: 60px; height: 34px; flex: 0 0 60px; }
+}
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog .hn-dialog-bar { box-shadow: inset 3.5px 0 0 var(--nm-cyan, #1cf2ff); }

@@ -4,6 +4,8 @@
 // (and fires its normal 'change' event) so setup.js keeps working unchanged.
 // The Classic layout stays one tap away in Customize.
 
+import { BUILD_STORAGE } from './build-context.js';
+
 export const HOME_LAYOUT_KEY = 'blakeout_dev_home_layout_v1';
 const LAYOUTS = ['next', 'classic'];
 
@@ -179,7 +181,7 @@ function summaryText() {
         parts.push(count === 1 ? '1 player' : `${count} players`);
         const bots = [1, 2, 3, 4].slice(0, count)
             .filter(n => (byId(`player${n}Skill`)?.value || 'off') !== 'off').length;
-        const short = document.documentElement.hasAttribute('data-hn-tight') || window.matchMedia?.('(max-width: 360px)').matches;
+        const short = document.documentElement.hasAttribute('data-hn-tight') || window.matchMedia?.('(max-width: 480px)').matches;
         // "4 players · all BotBlake" reads better than "4 BotBlakes". Start
         // refuses a match with no human, so the summary says what is missing.
         if (bots && bots === count) parts.push(count > 1 ? (short ? 'all bots' : 'all BotBlake') : 'BotBlake', 'add a human');
@@ -293,7 +295,15 @@ function splitResume(button) {
     const inner = text.slice(at + 2, -1);
     const paren = ch => { const el = document.createElement('span'); el.className = 'hn-resume-paren'; el.textContent = ch; return el; };
     names.append(paren('('));
-    inner.split(' vs ').forEach((name, i) => {
+    // Split on the saved game's own names, so a name like "Tom vs Jerry"
+    // stays whole; fall back to " vs " if they don't match the label.
+    let list = null;
+    try {
+        const saved = JSON.parse(localStorage.getItem(BUILD_STORAGE.activeGame) || 'null');
+        const savedNames = Array.isArray(saved?.players) ? saved.players.map(p => String(p?.name ?? '')) : null;
+        if (savedNames?.length && savedNames.join(' vs ') === inner) list = savedNames;
+    } catch { /* Unreadable storage: split on " vs ". */ }
+    (list || inner.split(' vs ')).forEach((name, i) => {
         const player = document.createElement('span');
         player.className = 'hn-resume-player';
         player.textContent = i ? ` vs ${name}` : name;
@@ -605,6 +615,50 @@ function mountGridFocus() {
         const el = [...grid.querySelectorAll(`[${attr}]`)].find(node => node.getAttribute(attr) === value);
         el?.focus({ preventScroll: true });
     }).observe(grid, { childList: true });
+}
+
+// --- Favourite stars as toggle buttons --------------------------------------
+// In the New look each star keeps one name ("Favorite 701") with
+// aria-pressed for its state, and a change is read out. Classic keeps the
+// original "Favorite" / "Unfavorite" names.
+
+function mountFavToggles() {
+    const grid = byId('gameTypeGrid');
+    if (!grid) return;
+    const nameOf = button => (button.getAttribute('aria-label') || '').replace(/^(Unfavorite|Favorite)\s+/, '');
+    const sync = () => {
+        grid.querySelectorAll('[data-fav-toggle]').forEach(button => {
+            const faved = button.classList.contains('faved');
+            const name = button.dataset.hnFavName || nameOf(button);
+            button.dataset.hnFavName = name;
+            if (isNext()) {
+                const label = `Favorite ${name}`;
+                if (button.getAttribute('aria-label') !== label) button.setAttribute('aria-label', label);
+                if (button.getAttribute('aria-pressed') !== String(faved)) button.setAttribute('aria-pressed', String(faved));
+            } else {
+                const label = `${faved ? 'Unfavorite' : 'Favorite'} ${name}`;
+                if (button.getAttribute('aria-label') !== label) button.setAttribute('aria-label', label);
+                button.removeAttribute('aria-pressed');
+                delete button.dataset.hnFavName;
+            }
+        });
+    };
+    grid.addEventListener('click', event => {
+        const button = event.target.closest?.('[data-fav-toggle]');
+        if (!button || !grid.contains(button) || !isNext()) return;
+        const id = button.dataset.favToggle;
+        const name = button.dataset.hnFavName || nameOf(button);
+        setTimeout(() => {
+            const now = [...grid.querySelectorAll('[data-fav-toggle]')].find(node => node.dataset.favToggle === id);
+            const live = byId('homeNextSearchLive');
+            if (!now || !live) return;
+            live.textContent = '';
+            requestAnimationFrame(() => { live.textContent = `${name} ${now.classList.contains('faved') ? 'added to' : 'removed from'} favorites`; });
+        }, 0);
+    }, true);
+    new MutationObserver(sync).observe(grid, { childList: true });
+    document.addEventListener('homelayoutchange', sync);
+    sync();
 }
 
 // --- Team builder by keyboard and screen reader ----------------------------
@@ -1402,13 +1456,28 @@ function mountQuickStartFirst() {
     // When the row has to wrap, Quick Start takes a line of its own and
     // "Recent:" starts the next one with its games, so the label never ends
     // a line alone.
+    // On phones and short landscape screens the row keeps to one line: the
+    // oldest recent games give way first (they are all in the list below),
+    // keeping at least the latest one.
+    const compact = window.matchMedia('(max-width: 480px), (max-height: 480px)');
     const fit = () => {
         const quick = row.querySelector(':scope > [data-quickstart]');
+        const chips = [...row.querySelectorAll(':scope > .picker-recent-chip:not([data-quickstart])')];
         row.removeAttribute('data-hn-stack');
+        row.removeAttribute('data-hn-quiet');
+        chips.forEach(chip => chip.removeAttribute('data-hn-overflow'));
         if (!isNext() || !quick || !row.clientWidth) return;
-        const last = row.lastElementChild;
-        if (last && last !== quick && last.offsetTop > quick.offsetTop + 4) row.setAttribute('data-hn-stack', '');
+        const lastShown = () => [...row.children].filter(child => child.getClientRects().length).pop();
+        const wraps = () => { const last = lastShown(); return !!last && last !== quick && last.offsetTop > quick.offsetTop + 4; };
+        if (compact.matches) {
+            for (let i = chips.length - 1; i > 0 && wraps(); i--) chips[i].setAttribute('data-hn-overflow', '');
+            // Still too wide: the "Recent" label is kept for screen readers only.
+            if (wraps()) row.setAttribute('data-hn-quiet', '');
+            if (wraps()) row.removeAttribute('data-hn-quiet');
+        }
+        if (wraps()) row.setAttribute('data-hn-stack', '');
     };
+    compact.addEventListener?.('change', () => fit());
     const sync = () => {
         const quick = row.querySelector(':scope > [data-quickstart]');
         let gap = row.querySelector(':scope > .hn-recents-break');
@@ -1571,12 +1640,15 @@ function mountOrderA11y() {
     let picked = null;
     const area = byId('playersSection');
     // Escape puts a picked-up player back, and says so.
+    // It speaks only once the player really was put back (a dialog or the
+    // rules popover may take that Escape for itself).
     document.addEventListener('keydown', event => {
         if (event.key !== 'Escape' || !isNext() || !area) return;
         const row = area.querySelector('.player-row--picked');
         if (!row) return;
         const index = Number(row.querySelector('[data-player-drag-index]')?.dataset.playerDragIndex);
-        say(`${nameOf(names(), index)} put back`);
+        const name = nameOf(names(), index);
+        later(() => { if (!area.querySelector('.player-row--picked')) say(`${name} put back`); });
     }, true);
     area?.addEventListener('click', event => {
         if (!isNext()) { before = null; return; }
@@ -2214,6 +2286,7 @@ export function initHomeNext() {
     run('resumeLabel', mountResumeLabel);
     run('rulesA11y', mountRulesA11y);
     run('gridFocus', mountGridFocus);
+    run('favToggles', mountFavToggles);
     run('teamA11y', mountTeamA11y);
     run('customizeDialog', mountCustomizeDialog);
     run('fieldNames', mountFieldNames);
@@ -2247,14 +2320,16 @@ export function initHomeNext() {
     new MutationObserver(records => {
         if (records.some(r => [...r.addedNodes, ...r.removedNodes].some(n => n.id === 'gameRulesPop'))) syncRulesExpanded();
     }).observe(document.body, { childList: true });
+    // One Escape does one thing: while the rules are open it only closes them.
     document.addEventListener('keydown', event => {
         const pop = byId('gameRulesPop');
         if (event.key !== 'Escape' || !pop || !isNext()) return;
+        event.stopImmediatePropagation();
         const button = [...document.querySelectorAll('[data-rules-toggle]')].find(el => el.dataset.rulesToggle === pop.dataset.gameId);
         pop.remove();
         syncRulesExpanded();
         button?.focus();
-    });
+    }, true);
     // The account panel can mount after this runs.
     const card = document.querySelector('#setupScreen .setup-card');
     if (card) new MutationObserver(() => placeSections(document.documentElement.dataset.home)).observe(card, { childList: true });
