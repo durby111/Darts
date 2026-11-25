@@ -2790,3 +2790,39 @@ html[data-home="next"][data-menu-style="neon"] #settingsModal > .modal-content.h
 }
 /* Round 23: the rules popover's scrim dims the fixed DEV badge too. */
 html[data-home="next"] body.dev-build:has(#gameRulesPop)::before { filter: brightness(0.5); }
+/* ---------- Round 24 ---------- */
+/* Docked Start card on tablets and desktops: a short 24px fade above it.
+   It takes the panels' colour (side borders left showing) only while a card
+   passes behind it; over a gap between cards it is the page colour. */
+@media (min-width: 1001px), (min-width: 721px) and (min-height: 561px) {
+    @container scroll-state(stuck: bottom) {
+        html[data-home="next"] #setupScreen #playSection > .setup-action-row::before {
+            height: 24px;
+            background: linear-gradient(color-mix(in srgb, var(--color-bg) 0%, transparent), color-mix(in srgb, var(--color-bg) 80%, transparent) 40%, var(--color-bg) 70%);
+        }
+        html[data-home="next"] #setupScreen #playSection[data-hn-cover] > .setup-action-row::before {
+            background:
+                linear-gradient(color-mix(in srgb, var(--hn-card) 0%, transparent), color-mix(in srgb, var(--hn-card) 80%, transparent) 40%, var(--hn-card) 70%) 17px 0 / calc(100% - 34px) 100% no-repeat,
+                linear-gradient(color-mix(in srgb, var(--color-bg) 0%, transparent), color-mix(in srgb, var(--color-bg) 80%, transparent) 40%, var(--color-bg) 70%) 0 0 / 16px 100% no-repeat,
+                linear-gradient(color-mix(in srgb, var(--color-bg) 0%, transparent), color-mix(in srgb, var(--color-bg) 80%, transparent) 40%, var(--color-bg) 70%) 100% 0 / 16px 100% no-repeat;
+        }
+    }
+}
+/* Header pills and app tabs grow with large text instead of squeezing it
+   into a fixed 44px. */
+html[data-home="next"] .setup-screen :is(.home-account-link, .setup-header-side .settings-gear) { padding-top: 0.35em; padding-bottom: 0.35em; line-height: 1.2; }
+html[data-home="next"] #setupScreen .dev-app-nav :is(a, button) { padding-top: max(4px, 0.3em); padding-bottom: max(4px, 0.3em); }
+/* A Put button whose name can't keep three letters on one line wraps the
+   full name, as on narrow phones. */
+html[data-home="next"] #teamBuilderScreen .hn-zone-put[data-hn-wrap] { display: inline-block; white-space: normal; text-wrap: balance; padding-top: 6px; padding-bottom: 6px; line-height: 1.25; }
+html[data-home="next"] #teamBuilderScreen .hn-zone-put[data-hn-wrap] .hn-put-name { overflow: visible; overflow-wrap: anywhere; }
+html[data-home="next"] #teamBuilderScreen .hn-zone-put[data-hn-wrap] > .hn-put-word { white-space: normal; margin-inline: 0; }
+html[data-home="next"] #teamBuilderScreen .hn-zone-put[data-hn-wrap] > .hn-put-word:not(.hn-put-word--after)::after { content: " "; }
+html[data-home="next"] #teamBuilderScreen .hn-zone-put[data-hn-wrap] > .hn-put-word--after::before { content: " "; }
+/* Rows faded out above the docked Start card take no taps or clicks. */
+html[data-home="next"] #setupScreen [data-hn-sliver] { pointer-events: none; }
+/* Phones: "Jump back in" keeps all its games on one sideways-scrolling line. */
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll] { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; padding-block: 5px; margin-block: -5px; padding-inline-end: 8px; scroll-padding-inline: 8px; }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll]::-webkit-scrollbar { display: none; }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll] > * { flex: 0 0 auto; }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-more] { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 36px), transparent); }

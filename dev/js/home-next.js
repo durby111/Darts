@@ -228,11 +228,11 @@ function summaryText() {
         parts.push(count === 1 ? '1 player' : `${count} players`);
         const bots = [1, 2, 3, 4].slice(0, count)
             .filter(n => (byId(`player${n}Skill`)?.value || 'off') !== 'off').length;
-        const short = document.documentElement.hasAttribute('data-hn-tight') || window.matchMedia?.('(max-width: 480px)').matches;
         // "4 players · all BotBlakes" reads better than "4 BotBlakes". Start
         // refuses a match with no human, so the summary says what is missing.
-        if (bots && bots === count) parts.push(count > 1 ? (short ? 'all bots' : 'all BotBlakes') : 'BotBlake', 'add a human');
-        else if (bots) parts.push(short ? (bots === 1 ? '1 bot' : `${bots} bots`) : (bots === 1 ? '1 BotBlake' : `${bots} BotBlakes`));
+        // Round 24: one wording at every size ("bots", as on phones).
+        if (bots && bots === count) parts.push(count > 1 ? 'all bots' : 'BotBlake', 'add a human');
+        else if (bots) parts.push(bots === 1 ? '1 bot' : `${bots} bots`);
     }
     const finish = byId('finishType');
     // 121 always plays double out, whatever the dropdown says.
@@ -1129,10 +1129,17 @@ function mountTeamA11y() {
             puts.forEach(item => { item.full = item.who.dataset.full ?? item.who.textContent; if (item.who.dataset.full !== item.full) item.who.dataset.full = item.full; });
             const chars = [...puts[0].full];
             let k = chars.length;
+            // Measured on one line; the wrapped layout comes off first.
+            puts.forEach(({ put }) => put.removeAttribute('data-hn-wrap'));
             if (isNext() && !document.documentElement.hasAttribute('data-hn-tight') && measure) {
                 puts.forEach(item => { if (item.full === puts[0].full) k = Math.min(k, fitLength(item.put, item.who, chars)); });
             }
+            // Round 24: a cut that would keep fewer than three letters says
+            // nothing about who is placed, so the full name wraps instead.
+            const wrap = k < chars.length && k < 3;
+            if (wrap) k = chars.length;
             puts.forEach(({ put, who, full }) => {
+                if (wrap && full === puts[0].full) put.setAttribute('data-hn-wrap', '');
                 const text = full === puts[0].full && k < chars.length ? shortened(chars, k) : full;
                 if (who.textContent !== text) who.textContent = text;
                 const cut = text !== full;
@@ -1840,8 +1847,18 @@ function mountQuickStartFirst() {
         row.removeAttribute('data-hn-quiet');
         row.removeAttribute('data-hn-squeeze');
         row.removeAttribute('data-hn-alone');
+        row.removeAttribute('data-hn-scroll');
+        row.removeAttribute('data-hn-more');
         chips.forEach(chip => chip.removeAttribute('data-hn-overflow'));
         if (!isNext() || !quick || !row.clientWidth) return;
+        // Round 24: phones and short landscape screens keep every recent
+        // game on one line that scrolls sideways, with a fade at the edge
+        // while more is off to the right.
+        if (compact.matches) {
+            row.setAttribute('data-hn-scroll', '');
+            edge();
+            return;
+        }
         const lastShown = () => [...row.children].filter(child => child.getClientRects().length).pop();
         const wraps = () => { const last = lastShown(); return !!last && last !== quick && last.offsetTop > quick.offsetTop + 4; };
         // Any width: the oldest recent games give way before the row wraps.
@@ -1862,6 +1879,11 @@ function mountQuickStartFirst() {
         }
         if (wraps()) row.setAttribute('data-hn-stack', '');
     };
+    const edge = () => {
+        const more = row.hasAttribute('data-hn-scroll') && row.scrollLeft + row.clientWidth < row.scrollWidth - 2;
+        if (more !== row.hasAttribute('data-hn-more')) row.toggleAttribute('data-hn-more', more);
+    };
+    row.addEventListener('scroll', edge, { passive: true });
     compact.addEventListener?.('change', () => fit());
     const sync = () => {
         const quick = row.querySelector(':scope > [data-quickstart]');
@@ -2123,20 +2145,28 @@ function mountBackFocus() {
         if (now === shown) return;
         shown = now;
         if (!now || !isNext()) return;
-        later(() => {
-            const active = document.activeElement;
-            if (!back.getClientRects().length || !(!active || active === document.body || !active.getClientRects().length)) return;
-            back.focus({ preventScroll: true });
-            // Bring it fully into view: below the top of the window and
-            // clear of the docked Start bar.
+        // Bring it fully into view: below the top of the window and clear
+        // of the docked Start bar. Measured again as the large-text header
+        // and the compact bar settle, while focus is still on it.
+        const clear = () => {
+            if (document.activeElement !== back || back.classList.contains('hidden')) return;
             const r = back.getBoundingClientRect();
             const bar = byId('playSection');
-            const barTop = bar && !bar.contains(back) ? bar.getBoundingClientRect().top : innerHeight;
-            const bottom = Math.min(innerHeight, barTop > r.top ? barTop : innerHeight) - 8;
+            const floating = bar && !bar.contains(back) && /fixed|sticky/.test(getComputedStyle(bar).position);
+            const barTop = floating ? bar.getBoundingClientRect().top : innerHeight;
+            const bottom = Math.min(innerHeight, barTop) - 8;
             const delta = r.top < 8 ? r.top - 8 : r.bottom > bottom ? Math.min(r.bottom - bottom, r.top - 8) : 0;
             if (!delta) return;
             const scroller = screen.scrollHeight > screen.clientHeight + 1 ? screen : document.scrollingElement;
             scroller.scrollTop += delta;
+        };
+        later(() => {
+            const active = document.activeElement;
+            if (!back.getClientRects().length || !(!active || active === document.body || !active.getClientRects().length)) return;
+            back.focus({ preventScroll: true });
+            clear();
+            requestAnimationFrame(() => requestAnimationFrame(clear));
+            [250, 700, 1500].forEach(ms => setTimeout(clear, ms));
         });
     }).observe(back, { attributes: true, attributeFilter: ['class'] });
 }
@@ -2403,7 +2433,7 @@ function mountDockSlivers() {
     let frame = 0;
     const check = () => {
         frame = 0;
-        if (!isNext() || !WIDE?.matches || setup.style.display === 'none' || getComputedStyle(play).position !== 'sticky') { clear(); return; }
+        if (!isNext() || !WIDE?.matches || setup.style.display === 'none' || getComputedStyle(play).position !== 'sticky') { clear(); play.removeAttribute('data-hn-cover'); return; }
         const p = play.getBoundingClientRect();
         const bottom = parseFloat(getComputedStyle(play).bottom) || 0;
         // Docked: at its sticky spot, with the cards that follow it pushed
@@ -2411,24 +2441,39 @@ function mountDockSlivers() {
         const after = [byId('rosterSection'), document.querySelector('#setupScreen .home-player-help'), byId('maintenanceSection')].find(el => el && el.getClientRects().length);
         const docked = Math.abs(p.bottom - (innerHeight - bottom)) < 2 && (!after || after.getBoundingClientRect().top - p.bottom > 24);
         const next = [];
+        let behind = false;
         if (docked) {
-            // The fade starts about 60px above the card and is mostly opaque
-            // from about 46px above it: a row reaching more than a fifth of
-            // its height past that line, or showing less than 24px above it,
-            // fades out whole.
-            const line = p.top - 46;
-            document.querySelectorAll(BLOCKS).forEach(card => {
+            // Round 24: the fade above the card is 24px and mostly opaque
+            // from about 14px above it. Only a row cut by that line and
+            // showing less than 24px above it is hidden; rows clear of the
+            // line always show.
+            const line = p.top - 14;
+            const band = p.top - 24;
+            const shells = new Set();
+            document.querySelectorAll('#setupScreen .setup-panel:not(#playSection), ' + BLOCKS).forEach(card => {
                 if (!card.getClientRects().length) return;
+                const c = card.getBoundingClientRect();
+                if (!(c.right > p.left + 8 && c.left < p.right - 8 && c.bottom > band + 2 && c.top < p.top)) return;
+                // A card whose top edge shows less than 24px above the line
+                // would read as an empty strip: it hides whole.
+                if (line - c.top < 24 && !card.contains(document.activeElement)) { next.push(card); shells.add(card); }
+                // The fade's colour follows what is right under its solid end.
+                else if (c.bottom > p.top - 4) behind = true;
+            });
+            document.querySelectorAll(BLOCKS).forEach(card => {
+                if (!card.getClientRects().length || shells.has(card)) return;
                 const c = card.getBoundingClientRect();
                 if (c.bottom <= line || c.top >= p.top) return;
                 rows(card).forEach(row => {
                     const r = row.getBoundingClientRect();
                     if (r.bottom <= line + 2 || r.top >= p.top) return;
-                    const shown = line - r.top;
-                    if ((shown < 24 || r.bottom - line > r.height * 0.2) && !row.contains(document.activeElement)) next.push(row);
+                    if (line - r.top < 24 && !row.contains(document.activeElement)) next.push(row);
                 });
             });
         }
+        // The fade takes the panels' colour only while a card passes behind
+        // it; over a gap between cards it stays the page colour.
+        if (play.hasAttribute('data-hn-cover') !== behind) play.toggleAttribute('data-hn-cover', behind);
         marked.filter(el => !next.includes(el)).forEach(el => el.removeAttribute('data-hn-sliver'));
         next.filter(el => !marked.includes(el)).forEach(el => el.setAttribute('data-hn-sliver', ''));
         marked = next;
