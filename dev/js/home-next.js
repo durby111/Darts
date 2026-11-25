@@ -329,13 +329,15 @@ function mountSummary() {
 // label mid-word. The text itself stays exactly as setup.js wrote it.
 
 function splitResume(button) {
-    const text = button.textContent;
     const wrapped = button.querySelector('.hn-resume-main');
+    // A split label's own text is in aria-label (its spans add "N players").
+    const text = wrapped && button.hasAttribute('aria-label') ? button.getAttribute('aria-label') : button.textContent;
     // The split spans read as "( name vs name )"; the label keeps the
     // button's spoken name exactly as setup.js wrote it.
     if (!isNext()) {
         if (wrapped) button.textContent = text;
         button.removeAttribute('aria-label');
+        ['data-hn-many', 'data-hn-count'].forEach(a => button.removeAttribute(a));
         return;
     }
     if (wrapped) return;
@@ -359,28 +361,106 @@ function splitResume(button) {
         const savedNames = Array.isArray(saved?.players) ? saved.players.map(p => String(p?.name ?? '')) : null;
         if (savedNames?.length && savedNames.join(' vs ') === inner) list = savedNames;
     } catch { /* Unreadable storage: split on " vs ". */ }
-    (list || inner.split(' vs ')).forEach((name, i) => {
+    const all = list || inner.split(' vs ');
+    all.forEach((name, i) => {
         const player = document.createElement('span');
         player.className = 'hn-resume-player';
+        // The name has a box of its own, so a one-line row can cut each name
+        // with its own "…" and keep every "vs" whole.
+        const who = document.createElement('span');
+        who.className = 'hn-resume-who';
+        who.textContent = name;
         if (i) {
             // " vs " keeps its spaces in the text; on screen it is a fixed gap.
             const vs = document.createElement('span');
             vs.className = 'hn-resume-vs';
             vs.textContent = ' vs ';
-            player.append(vs, name);
-        } else player.textContent = name;
+            player.append(vs, who);
+        } else player.append(who);
         names.append(player);
     });
-    names.append(paren(')'));
+    // Shown in place of the names when they would keep almost no letters
+    // (the spoken name stays whole in aria-label).
+    const count = document.createElement('span');
+    count.className = 'hn-resume-count';
+    count.setAttribute('aria-hidden', 'true');
+    count.textContent = `${all.length} players`;
+    names.append(count, paren(')'));
+    button.toggleAttribute('data-hn-many', all.length > 2);
     button.replaceChildren(main, names);
 }
 
 function mountResumeLabel() {
     const button = byId('resumeGameBtn');
     if (!button) return;
+    // In the one-line row (three or four players, or a compact bar) the
+    // names are shortened here, so each ends in its own "…" right before the
+    // next "vs" and the row stays centred: names short enough keep their full
+    // text and the rest share what is left evenly. If a name would keep
+    // fewer than three letters, the row reads "4 players" instead.
+    const measure = document.createElement('canvas').getContext('2d');
+    const px = value => parseFloat(value) || 0;
     const gaps = () => later(() => {
         const players = [...button.querySelectorAll('.hn-resume-player')];
-        closeEllipsisGaps(players.map((player, i) => [player, players[i + 1]]));
+        const whos = [...button.querySelectorAll('.hn-resume-who')];
+        whos.forEach(who => { if (who.dataset.full == null) who.dataset.full = who.textContent; });
+        const restore = () => whos.forEach(who => { if (who.textContent !== who.dataset.full) who.textContent = who.dataset.full; });
+        const setCount = on => { if (on !== button.hasAttribute('data-hn-count')) button.toggleAttribute('data-hn-count', on); };
+        if (!players.length || !isNext()) { restore(); setCount(false); closeEllipsisGaps(players.map((player, i) => [player, players[i + 1]])); return; }
+        // Measured with the names showing (setCount puts "4 players" back).
+        button.removeAttribute('data-hn-count');
+        const oneLine = getComputedStyle(players[0]).display === 'flex';
+        if (!oneLine || !measure) {
+            restore(); setCount(false);
+            closeEllipsisGaps(players.map((player, i) => [player, players[i + 1]]));
+            return;
+        }
+        players.forEach(player => player.style.removeProperty('translate'));
+        const names = button.querySelector('.hn-resume-names');
+        const main = button.querySelector('.hn-resume-main');
+        const bcs = getComputedStyle(button);
+        let avail = button.clientWidth - px(bcs.paddingLeft) - px(bcs.paddingRight);
+        if (main && names) {
+            const m = main.getBoundingClientRect(), n = names.getBoundingClientRect();
+            // Title and names side by side (landscape): the names get what the title leaves.
+            if (m.height && m.bottom > n.top + 1 && n.bottom > m.top + 1) avail -= m.width + px(getComputedStyle(main).marginRight) + px(bcs.columnGap);
+        }
+        const ncs = names && getComputedStyle(names);
+        if (ncs) avail -= px(ncs.marginLeft) + px(ncs.marginRight) + px(ncs.paddingLeft) + px(ncs.paddingRight);
+        let budget = avail - 2;
+        button.querySelectorAll('.hn-resume-vs').forEach(vs => {
+            const vcs = getComputedStyle(vs);
+            budget -= vs.getBoundingClientRect().width + px(vcs.marginLeft) + px(vcs.marginRight);
+        });
+        const wcs = getComputedStyle(whos[0]);
+        measure.font = `${wcs.fontStyle} ${wcs.fontWeight} ${wcs.fontSize} ${wcs.fontFamily}`;
+        const width = str => measure.measureText(str).width;
+        const fulls = whos.map(who => who.dataset.full);
+        const sizes = fulls.map(width);
+        // Even shares: a name narrower than its share keeps all of it, and
+        // the room it leaves goes to the others.
+        const share = new Array(whos.length).fill(0);
+        let left = budget, open = whos.map((_, i) => i);
+        while (open.length) {
+            const each = left / open.length;
+            const fits = open.filter(i => sizes[i] <= each);
+            if (!fits.length) { open.forEach(i => { share[i] = each; }); break; }
+            fits.forEach(i => { share[i] = sizes[i]; left -= sizes[i]; });
+            open = open.filter(i => sizes[i] > each);
+        }
+        let few = false;
+        const texts = fulls.map((full, i) => {
+            if (sizes[i] <= share[i] + 0.5) return full;
+            const chars = [...full];
+            const cut = k => chars.slice(0, k).join('').trimEnd() + '\u2026';
+            let lo = 0, hi = chars.length - 1;
+            while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (width(cut(mid)) <= share[i]) lo = mid; else hi = mid - 1; }
+            if (lo < 3) few = true;
+            return cut(Math.max(lo, 1));
+        });
+        if (few) { restore(); setCount(true); return; }
+        setCount(false);
+        whos.forEach((who, i) => { if (who.textContent !== texts[i]) who.textContent = texts[i]; });
     });
     const split = () => { splitResume(button); gaps(); };
     new MutationObserver(split).observe(button, { childList: true });
@@ -805,6 +885,12 @@ function mountTabsFit() {
     };
     let width = -1;
     new ResizeObserver(() => { if (nav.clientWidth !== width) { width = nav.clientWidth; fit(); } }).observe(nav);
+    // A text-size change at the same width resizes the badges, so they are
+    // watched too (the result only changes when the fit really changes).
+    let queued = false;
+    const soon = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; fit(); }); };
+    const badges = new ResizeObserver(soon);
+    nav.querySelectorAll('.feature-test-badge').forEach(badge => badges.observe(badge));
     ['homelayoutchange', 'hntightchange'].forEach(name => document.addEventListener(name, fit));
     window.addEventListener('resize', () => later(fit));
     document.fonts?.ready?.then(fit);
@@ -1117,9 +1203,13 @@ function mountTeamA11y() {
         }
         const control = event.target.closest?.('[data-member-action], .team-chip[data-chip-id], .team-zone-label, .team-zone');
         if (!control || control.matches('[data-member-action="hn-remove"]')) { pending = null; return; }
+        const before = snapshot();
+        // A tap on a team (or its Put button) with a player chosen places
+        // that player; focus then goes where the keyboard path sends it.
         const key = control.dataset.memberAction ? ['member', control.dataset.memberId, control.dataset.memberAction]
-            : control.dataset.chipId ? ['chip', control.dataset.chipId] : null;
-        pending = { before: snapshot(), key };
+            : control.dataset.chipId ? ['chip', control.dataset.chipId]
+            : before.chip && control.matches('.team-zone') ? ['place', before.chip] : null;
+        pending = { before, key };
     }, true);
     // ⇄ ▲ ▼ act when a tap ends, not when a finger lands, so a swipe that
     // starts on one of them scrolls the page and moves nobody.
@@ -1166,7 +1256,8 @@ function mountTeamA11y() {
             if (text) say(text);
             const active = document.activeElement;
             if (key && (!active || active === document.body || !document.contains(active))) {
-                if (key[0] === 'member') focusFirst(`[data-member-id="${CSS.escape(key[1])}"][data-member-action="${key[2]}"]`, `[data-member-id="${CSS.escape(key[1])}"][data-member-action="swap"]`);
+                if (key[0] === 'place') focusChip('#teamTray .team-chip', '#teamStartMatchBtn:not(:disabled)', `.team-zone-member[data-zone-member-id="${CSS.escape(key[1])}"] [data-member-action="swap"]`);
+                else if (key[0] === 'member') focusFirst(`[data-member-id="${CSS.escape(key[1])}"][data-member-action="${key[2]}"]`, `[data-member-id="${CSS.escape(key[1])}"][data-member-action="swap"]`);
                 else focusChip(`.team-chip[data-chip-id="${CSS.escape(key[1])}"]`, '#teamTray .team-chip', '#teamStartMatchBtn:not(:disabled)', `.team-zone-member[data-zone-member-id="${CSS.escape(key[1])}"] [data-member-action="swap"]`);
             }
         });
@@ -2185,7 +2276,16 @@ function mountSwatchFit() {
     const picker = document.querySelector('#settingsModal .theme-picker');
     if (!picker) return;
     const fit = () => {
-        if (!isNext()) { picker.style.removeProperty('--hn-swatch-cols'); byId('wallpaperChoices')?.style.removeProperty('grid-template-columns'); return; }
+        // Only in Customize opened from home; mid-game Visual Settings
+        // keeps the original grids exactly.
+        if (!isNext() || !picker.closest('.hn-dialog')) {
+            const walls = byId('wallpaperChoices');
+            picker.style.removeProperty('--hn-swatch-cols');
+            walls?.style.removeProperty('grid-template-columns');
+            // Leave no empty style attribute behind, as the original has none.
+            for (const el of [picker, walls]) if (el && el.getAttribute('style') === '') el.removeAttribute('style');
+            return;
+        }
         const swatches = [...picker.querySelectorAll('.theme-swatch')];
         const width = picker.clientWidth;
         if (!swatches.length || !width) return;
@@ -2219,6 +2319,8 @@ function mountSwatchFit() {
     new ResizeObserver(() => { if (picker.clientWidth !== lastWidth) { lastWidth = picker.clientWidth; queue(); } }).observe(picker);
     new MutationObserver(queue).observe(document.documentElement, { attributes: true, attributeFilter: ['data-menu-style', 'data-theme', 'style'] });
     new MutationObserver(queue).observe(picker, { childList: true });
+    const dialog = picker.closest('.modal-content');
+    if (dialog) new MutationObserver(queue).observe(dialog, { attributes: true, attributeFilter: ['class'] });
     const wallGrid = byId('wallpaperChoices');
     if (wallGrid) new MutationObserver(queue).observe(wallGrid, { childList: true });
     document.addEventListener('homelayoutchange', queue);
@@ -2268,6 +2370,78 @@ function mountSkillLabels() {
     window.addEventListener('resize', soon);
     document.fonts?.ready?.then(soon);
     sync();
+}
+
+// --- Wide screens: whole controls only above the docked Start card --------
+// While the Start card is docked at the bottom of the right column, the page
+// fades out above it. A control that would show only a sliver there (the
+// tops of a row, half a segmented control) fades out with it, so the column
+// only ever shows whole controls, like the game list's whole rows. It is
+// still there for the keyboard: focusing it scrolls it into full view.
+
+function mountDockSlivers() {
+    const play = byId('playSection');
+    const setup = byId('setupScreen');
+    if (!play || !setup) return;
+    const WIDE = window.matchMedia?.('(min-width: 1001px), (min-width: 721px) and (min-height: 561px)');
+    const BLOCKS = '#gameOptionsSection, #playersSection, #presetsSection, #casualRecordingSetup';
+    let marked = [];
+    const clear = () => { marked.forEach(el => el.removeAttribute('data-hn-sliver')); marked = []; };
+    // The rows a card is made of: its children, opening any child taller
+    // than a row into its own children.
+    const rows = card => {
+        const out = [];
+        const walk = (el, depth) => [...el.children].forEach(child => {
+            if (!child.getClientRects().length || getComputedStyle(child).position === 'absolute') return;
+            const h = child.getBoundingClientRect().height;
+            if (h > 140 && depth < 4 && child.children.length) walk(child, depth + 1);
+            else if (h > 0) out.push(child);
+        });
+        walk(card, 0);
+        return out;
+    };
+    let frame = 0;
+    const check = () => {
+        frame = 0;
+        if (!isNext() || !WIDE?.matches || setup.style.display === 'none' || getComputedStyle(play).position !== 'sticky') { clear(); return; }
+        const p = play.getBoundingClientRect();
+        const bottom = parseFloat(getComputedStyle(play).bottom) || 0;
+        // Docked: at its sticky spot, with the cards that follow it pushed
+        // further down than its own margin (at rest they sit right below it).
+        const after = [byId('rosterSection'), document.querySelector('#setupScreen .home-player-help'), byId('maintenanceSection')].find(el => el && el.getClientRects().length);
+        const docked = Math.abs(p.bottom - (innerHeight - bottom)) < 2 && (!after || after.getBoundingClientRect().top - p.bottom > 24);
+        const next = [];
+        if (docked) {
+            // The fade starts about 60px above the card and is mostly opaque
+            // from about 46px above it: a row reaching more than a fifth of
+            // its height past that line, or showing less than 24px above it,
+            // fades out whole.
+            const line = p.top - 46;
+            document.querySelectorAll(BLOCKS).forEach(card => {
+                if (!card.getClientRects().length) return;
+                const c = card.getBoundingClientRect();
+                if (c.bottom <= line || c.top >= p.top) return;
+                rows(card).forEach(row => {
+                    const r = row.getBoundingClientRect();
+                    if (r.bottom <= line + 2 || r.top >= p.top) return;
+                    const shown = line - r.top;
+                    if ((shown < 24 || r.bottom - line > r.height * 0.2) && !row.contains(document.activeElement)) next.push(row);
+                });
+            });
+        }
+        marked.filter(el => !next.includes(el)).forEach(el => el.removeAttribute('data-hn-sliver'));
+        next.filter(el => !marked.includes(el)).forEach(el => el.setAttribute('data-hn-sliver', ''));
+        marked = next;
+    };
+    const soon = () => { if (!frame) frame = requestAnimationFrame(check); };
+    setup.addEventListener('scroll', soon, { passive: true });
+    window.addEventListener('scroll', soon, { passive: true });
+    window.addEventListener('resize', soon);
+    setup.addEventListener('focusin', soon);
+    ['homelayoutchange', 'hntightchange', 'change'].forEach(name => document.addEventListener(name, soon));
+    if (window.ResizeObserver) new ResizeObserver(soon).observe(document.querySelector('#setupScreen .setup-card') || setup);
+    document.fonts?.ready?.then(soon);
+    soon();
 }
 
 // --- Wide screens: the game library ends at the bottom of the window -------
@@ -2680,6 +2854,7 @@ export function initHomeNext() {
     run('fitStack', mountFitStack);
     run('teamSkillNames', mountTeamSkillNames);
     run('libraryFit', mountLibraryFit);
+    run('dockSlivers', mountDockSlivers);
     run('zoom', mountZoom);
     run('gameIcons', mountGameIcons);
     run('barSwipe', mountBarSwipe);

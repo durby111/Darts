@@ -1142,7 +1142,7 @@ html[data-home="next"] #teamBuilderScreen .btn { min-height: 44px; }
     html[data-home="next"] .setup-screen .setup-header { padding: 10px 12px; row-gap: 8px; gap: 10px; }
     html[data-home="next"] .setup-screen .setup-header .setup-logo { width: 60px; height: 34px; flex-basis: 60px; }
     html[data-home="next"] .setup-screen .setup-header-text h1 { font-size: 1.5rem; }
-    html[data-home="next"] .setup-screen .setup-subtitle { font-size: 0.6875rem; margin-top: 2px; }
+    html[data-home="next"] .setup-screen .setup-subtitle { font-size: 0.75rem; margin-top: 2px; }
     /* Room for a two-line game name in the Start bar. */
     html[data-home="next"] #setupScreen #playSection:not(:has(#resumeGameBtn:not(.hidden))) .setup-match-title {
         display: -webkit-box;
@@ -1305,7 +1305,7 @@ html[data-home="next"] .setup-screen .setup-header .setup-logo img { border-radi
     html[data-home="next"] .setup-screen .setup-header .setup-logo { width: 60px; height: 34px; flex: 0 0 60px; }
     html[data-home="next"] .setup-screen .setup-header .setup-logo img { border-radius: 8px; }
     html[data-home="next"] .setup-screen .setup-header-text h1 { font-size: 1.5rem; }
-    html[data-home="next"] .setup-screen .setup-subtitle { font-size: 0.6875rem; margin-top: 2px; }
+    html[data-home="next"] .setup-screen .setup-subtitle { font-size: 0.75rem; margin-top: 2px; }
     html[data-home="next"] .setup-screen .setup-subtitle::after { content: none; }
     html[data-home="next"] .setup-screen .setup-header-side { flex: 0 0 auto; margin-left: auto; }
 }
@@ -2744,10 +2744,49 @@ html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .hn-zone-put .hn-
    card; outside the column it ends in the page colour. */
 @media (min-width: 1001px), (min-width: 721px) and (min-height: 561px) {
     @container scroll-state(stuck: bottom) {
+        /* Round 23: the card's own 1px side borders stay uncovered, so a card
+           passing behind keeps its edges right down to the Start card. */
         html[data-home="next"] #setupScreen #playSection > .setup-action-row::before {
             background:
-                linear-gradient(color-mix(in srgb, var(--hn-card) 0%, transparent), color-mix(in srgb, var(--hn-card) 80%, transparent) 25%, var(--hn-card) 45%) 16px 0 / calc(100% - 32px) 100% no-repeat,
-                linear-gradient(color-mix(in srgb, var(--color-bg) 0%, transparent), color-mix(in srgb, var(--color-bg) 80%, transparent) 25%, var(--color-bg) 45%);
+                linear-gradient(color-mix(in srgb, var(--hn-card) 0%, transparent), color-mix(in srgb, var(--hn-card) 80%, transparent) 25%, var(--hn-card) 45%) 17px 0 / calc(100% - 34px) 100% no-repeat,
+                linear-gradient(color-mix(in srgb, var(--color-bg) 0%, transparent), color-mix(in srgb, var(--color-bg) 80%, transparent) 25%, var(--color-bg) 45%) 0 0 / 16px 100% no-repeat,
+                linear-gradient(color-mix(in srgb, var(--color-bg) 0%, transparent), color-mix(in srgb, var(--color-bg) 80%, transparent) 25%, var(--color-bg) 45%) 100% 0 / 16px 100% no-repeat;
         }
     }
 }
+/* Round 23: Resume's names on one line (three or four players, and every
+   compact bar). Each name is cut inside its own box with its own "…", every
+   "vs" stays whole, the row is centred, and when a name would keep fewer
+   than three letters the row reads "4 players" instead. Two players outside
+   a compact bar keep their own layouts. */
+html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-count { display: none; }
+html[data-home="next"] #setupScreen #playSection:not([data-hn-resume-stack]) #resumeGameBtn[data-hn-many] .hn-resume-names,
+html[data-home="next"] #setupScreen #playSection[data-hn-compact]:not([data-hn-resume-stack]) #resumeGameBtn .hn-resume-names {
+    display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; justify-content: center !important; align-items: baseline;
+    min-width: 0; max-width: 100%; max-height: none !important; overflow: hidden; white-space: nowrap; column-gap: 0 !important;
+    -webkit-line-clamp: unset; line-clamp: none; text-align: center;
+}
+html[data-home="next"] #setupScreen #playSection:not([data-hn-resume-stack]) #resumeGameBtn[data-hn-many] .hn-resume-player,
+html[data-home="next"] #setupScreen #playSection[data-hn-compact]:not([data-hn-resume-stack]) #resumeGameBtn .hn-resume-player {
+    display: flex !important; flex: 0 1 auto !important; min-width: 0 !important; max-width: none; overflow: hidden; white-space: pre !important; text-overflow: clip !important; translate: none !important;
+}
+html[data-home="next"] #setupScreen #playSection:not([data-hn-resume-stack]) #resumeGameBtn[data-hn-many] .hn-resume-vs,
+html[data-home="next"] #setupScreen #playSection[data-hn-compact]:not([data-hn-resume-stack]) #resumeGameBtn .hn-resume-vs { flex: none; display: inline-block; white-space: normal; margin-inline: 0.3em; }
+html[data-home="next"] #setupScreen #playSection:not([data-hn-resume-stack]) #resumeGameBtn[data-hn-many] .hn-resume-who,
+html[data-home="next"] #setupScreen #playSection[data-hn-compact]:not([data-hn-resume-stack]) #resumeGameBtn .hn-resume-who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+html[data-home="next"] #setupScreen #playSection:not([data-hn-resume-stack]) #resumeGameBtn[data-hn-count] .hn-resume-player { display: none !important; }
+html[data-home="next"] #setupScreen #playSection:not([data-hn-resume-stack]) #resumeGameBtn[data-hn-count] .hn-resume-count { display: inline; }
+/* Round 23: a control that would show only a sliver above the docked
+   Start card fades out (it comes back as soon as it can be seen whole). */
+html[data-home="next"] #setupScreen [data-hn-sliver] { opacity: 0; transition: opacity 0.15s ease; }
+@media (prefers-reduced-motion: reduce) { html[data-home="next"] #setupScreen [data-hn-sliver] { transition: none; } }
+/* Round 23: Manage Players' three lines share the one hint style: 13px,
+   muted and flush with the card's content edge, like Players on this device. */
+html[data-home="next"] #setupScreen #rosterSection > summary .roster-status { padding-left: 0; font-size: 0.8125rem; font-weight: 400; line-height: 1.45; }
+html[data-home="next"] #setupScreen #rosterSection .roster-empty { text-align: left; padding-left: 0; padding-right: 0; }
+/* Round 23: in Neon the Menu Style picker matches Cricket Mark Color above it. */
+html[data-home="next"][data-menu-style="neon"] #settingsModal > .modal-content.hn-dialog .menu-style-picker select#settingsModalMenuStyle {
+    border-color: rgba(28, 242, 255, 0.38); background-color: rgb(7, 11, 21); font-weight: 600; padding-left: 10px;
+}
+/* Round 23: the rules popover's scrim dims the fixed DEV badge too. */
+html[data-home="next"] body.dev-build:has(#gameRulesPop)::before { filter: brightness(0.5); }
