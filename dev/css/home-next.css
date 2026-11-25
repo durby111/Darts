@@ -1701,7 +1701,8 @@ html[data-home="next"] #settingsModal .hn-dialog :is(select, input[type="range"]
 /* Customize: the last two settings match the rest, and Done comes last. */
 html[data-home="next"]:not([data-menu-style]) #settingsModal .hn-dialog :is(#cricketMarkColorHelp, .menu-style-picker p) { margin: 6px 0 0; font-size: 0.8125rem; line-height: 1.45; color: var(--color-text-muted); }
 html[data-home="next"]:not([data-menu-style]) #settingsModal .hn-dialog .menu-style-picker { margin: 14px 0 0; }
-html[data-home="next"]:not([data-menu-style]) #settingsModal .hn-dialog .menu-style-picker > label {
+html[data-home="next"]:not([data-menu-style]) #settingsModal .hn-dialog .menu-style-picker > label,
+html[data-home="next"]:not([data-menu-style]) #settingsModal .hn-dialog .menu-style-picker > .hn-menu-card > label {
     display: block;
     margin: 0 0 8px;
     font-size: 0.8125rem;
@@ -1881,7 +1882,7 @@ html[data-home="next"] .game-rules-pop { max-width: calc(100vw - 24px); }
 html[data-home="next"] #setupScreen .game-card-label { text-wrap: balance; }
 /* Short laptops with two columns: six games, so both columns end level. */
 @media (min-width: 721px) and (max-height: 819px) {
-    html[data-home="next"] #setupScreen #gamePickerSection[data-hn-games="few"] .game-grid > .game-card-wrap:nth-child(6):not(:has(.game-card.active)) { display: block; }
+    html[data-home="next"] #setupScreen #gamePickerSection[data-hn-games="few"] .game-grid > .game-card-wrap:nth-child(6):not(:has(.game-card.active)) { display: flex; }
 }
 /* The library list sizes its cards by its own width. */
 html[data-home="next"] #setupScreen #gameTypeGrid { container: hngrid / inline-size; }
@@ -2172,7 +2173,7 @@ html[data-home="next"] #settingsModal .hn-dialog .theme-swatch-label { white-spa
 html[data-home="next"][data-menu-style="astra62"] #settingsModal .hn-dialog .wallpaper-label { color: var(--am-ink, #17251d); }
 
 /* Neon: Customize section labels at least 12px. */
-html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog :is(.settings-section > :is(h2, h3, h4, .settings-section-label), .menu-style-picker > label) { font-size: max(0.75rem, 12px); }
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog :is(.settings-section > :is(h2, h3, h4, .settings-section-label), .menu-style-picker > label, .menu-style-picker > .hn-menu-card > label) { font-size: max(0.75rem, 12px); }
 
 /* Large text: the stacked header lines up on the left and its logo grows with the text. */
 html[data-home="next"][data-hn-tight] .setup-screen .setup-header-side { padding-left: 0; justify-content: flex-start; }
@@ -2228,7 +2229,7 @@ html[data-home="next"] #setupScreen .player-order-list { container: hn-players /
    accent sits near 3:1 against their page, so their ring gets its own colour. */
 html[data-home="next"][data-theme="red"] { --hn-focus: #ff8f8f; }
 html[data-home="next"][data-theme="arctic"] { --hn-focus: #1d4fae; }
-html[data-home="next"] :is(#setupScreen, #teamBuilderScreen, #settingsModal) :focus-visible { outline-color: var(--hn-focus); }
+html[data-home="next"] :is(#setupScreen, #teamBuilderScreen, #settingsModal .hn-dialog) :focus-visible { outline-color: var(--hn-focus); }
 html[data-home="next"] #setupScreen .setup-panel:has(:focus-visible) { box-shadow: 0 0 0 2px color-mix(in srgb, var(--hn-focus) 45%, transparent), var(--hn-shadow); }
 
 /* Round 13: the Sample badge in the app tabs keeps its size on narrow phones. */
@@ -2259,7 +2260,7 @@ html[data-home="next"][data-hn-tight] #setupScreen #resumeGameBtn .hn-resume-nam
    whether title and buttons fit side by side). */
 html[data-home="next"] .setup-screen .setup-header-text h1 { width: max-content; max-width: 100%; }
 html[data-home="next"] .setup-screen .setup-header[data-hn-wrap] { flex-wrap: wrap; row-gap: 12px; }
-html[data-home="next"] .setup-screen .setup-header[data-hn-wrap] .setup-header-side { flex: 1 1 100%; flex-wrap: wrap; margin-left: 0; justify-content: flex-start; padding-left: calc(118px + 14px); }
+html[data-home="next"] .setup-screen .setup-header[data-hn-wrap] .setup-header-side { flex: 1 1 100%; flex-wrap: wrap; margin-left: 0; justify-content: flex-start; padding-left: var(--hn-side-indent, 132px); }
 html[data-home="next"] .setup-screen .setup-header[data-hn-wrap] .setup-header-text h1 { white-space: normal; }
 /* Round 13: a narrow Start card on a wide screen puts the game above Start. */
 html[data-home="next"] #setupScreen #playSection[data-hn-stack] { grid-template-columns: minmax(0, 1fr); gap: 8px; }
@@ -2290,7 +2291,7 @@ html[data-home="next"] #teamBuilderScreen #teamZone1 .team-zone-member {
 html[data-home="next"] #teamBuilderScreen .team-zone-member > label { font-size: 0.875rem; font-weight: 700; }
 html[data-home="next"] #teamBuilderScreen select { padding-right: calc(max(12px, 0.75rem) + 28px); }
 /* Round 13: "Recent" sits on its own line, so wrapped chips line up. */
-html[data-home="next"] #setupScreen .picker-recents-label { flex: 0 0 100%; margin-bottom: -2px; }
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-stack] .picker-recents-label { flex: 0 0 100%; margin-bottom: -2px; }
 /* Round 13: the same 16px between cards across and down on wide screens. */
 @media (min-width: 1001px) {
     html[data-home="next"] #setupScreen .setup-card { column-gap: var(--hn-gap); }
@@ -2305,3 +2306,114 @@ html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog .wallpa
 /* Round 13: the chosen layout is marked without :has() too. */
 .home-layout-option input:checked + strong::after { content: ' \2713'; }
 #homeLayoutSection[hidden] { display: none !important; }
+
+/* Round 14: the long name in "Put NAME in Home" wraps inside its button at large text. */
+
+html[data-home="next"][data-hn-tight] #teamBuilderScreen .hn-put-name { overflow-wrap: anywhere; }
+/* Round 14: the check mark on the chosen layout is decoration: it stays on the
+   title's line and screen readers skip it (the radio already says checked). */
+.home-layout-option input:checked + strong::after { content: '\00a0\2713' / ''; white-space: nowrap; }
+.home-layout-option strong { white-space: nowrap; }
+/* Round 14: the footer email address never pushes the page sideways. */
+html[data-home="next"] #setupScreen .setup-credit a { overflow-wrap: anywhere; }
+/* Round 14: Customize uses more of a landscape phone's width. */
+@media (max-height: 500px) and (min-width: 560px) {
+    html[data-home="next"] #settingsModal .hn-dialog { width: min(560px, calc(100vw - 32px)); max-width: min(560px, calc(100vw - 32px)); }
+}
+/* Round 14: at large text on phones "BlakeOut DEV" may wrap rather than run past the header. */
+html[data-home="next"][data-hn-tight] .setup-screen .setup-header-text h1 { white-space: normal; }
+
+/* Round 15: on shorter laptops the short game list fits the window whole
+   (home-next.js takes games off the end); if it can't, the library joins
+   the page instead of scrolling inside itself. */
+html[data-home="next"] #setupScreen #gameTypeGrid > .game-card-wrap[data-hn-over] { display: none !important; }
+@media (min-width: 721px) and (min-height: 561px) and (max-height: 819px) {
+    html[data-home="next"] #setupScreen #gamePickerSection[data-hn-flow] { position: static; max-height: none; overflow: visible; }
+}
+/* Round 15: a docked Start card too narrow for both names puts Resume above a
+   full-width Start, and the names wrap rather than being cut short. */
+html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection[data-hn-resume-stack]:has(#resumeGameBtn:not(.hidden)) .setup-action-row { display: grid; grid-template-columns: minmax(0, 1fr); grid-auto-flow: row; gap: 8px; }
+html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection[data-hn-resume-stack]:has(#resumeGameBtn:not(.hidden)) :is(#resumeGameBtn, #startGameBtn) { width: 100%; height: auto; min-height: 48px; white-space: normal; }
+html[data-home="next"] #setupScreen #playSection[data-hn-resume-stack] #resumeGameBtn .hn-resume-names { max-height: none; }
+html[data-home="next"] #setupScreen #playSection[data-hn-resume-stack] #resumeGameBtn .hn-resume-player { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; }
+/* Round 15: cards in one row are the same height at every text size. */
+html[data-home="next"] #setupScreen #gameTypeGrid > .game-card-wrap { display: flex; flex-direction: column; }
+html[data-home="next"] #setupScreen #gameTypeGrid > .game-card-wrap > .game-card { flex: 1 1 auto; }
+/* Round 15: the ✕ sits level with the Customize title in every menu style. */
+html[data-home="next"] #settingsModal .hn-dialog > .hn-dialog-bar:not(.hn-stuck) .hn-dialog-close { translate: 0 var(--hn-close-dy, 0px); }
+
+/* Round 15: Customize. Menu Style's label, field and note share a card
+   (home-next.js wraps them); Done follows it. */
+html[data-home="next"] #settingsModal .hn-dialog .hn-menu-card { display: contents; }
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog .menu-style-picker > .hn-menu-card > label {
+    display: block; margin: 0 0 8px;
+    font-family: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+    font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--nm-ink-muted);
+}
+/* Fable 5.2 and Astra 6.2: the same card, label and field as the settings above it. */
+html[data-home="next"]:is([data-menu-style="fable52"], [data-menu-style="astra62"]) #settingsModal .hn-dialog .menu-style-picker { border-top: 0; padding-top: 0; }
+html[data-home="next"]:is([data-menu-style="fable52"], [data-menu-style="astra62"]) #settingsModal .hn-dialog .menu-style-picker > .hn-menu-card > label {
+    display: block; margin: 0 0 8px; font-size: 0.78rem; text-transform: uppercase;
+}
+html[data-home="next"]:is([data-menu-style="fable52"], [data-menu-style="astra62"]) #settingsModal .hn-dialog #settingsCloseBtn { margin-top: 16px; }
+html[data-home="next"][data-menu-style="fable52"] #settingsModal .hn-dialog .hn-menu-card {
+    display: block; min-inline-size: 0; padding: .75rem;
+    background: rgba(10, 14, 19, .55); border: 1px solid var(--f52-line); border-radius: var(--f52-radius);
+}
+html[data-home="next"][data-menu-style="fable52"] #settingsModal .hn-dialog .hn-menu-card > label {
+    color: var(--f52-brass); padding-inline-start: .625rem; border-inline-start: 4px solid var(--f52-brass);
+    font-weight: 800; letter-spacing: .08em; line-height: 1.35;
+}
+html[data-home="next"][data-menu-style="fable52"] #settingsModal .hn-dialog .hn-menu-card > select {
+    min-height: var(--f52-tap); color: var(--f52-chalk); background-color: var(--f52-ink);
+    border: 2px solid var(--f52-line); border-radius: .625rem; padding-inline: .5rem; font-size: 1rem;
+}
+html[data-home="next"][data-menu-style="fable52"] #settingsModal .hn-dialog .hn-menu-card > p { color: var(--f52-muted); }
+html[data-home="next"][data-menu-style="astra62"] #settingsModal .hn-dialog .hn-menu-card {
+    display: block; min-width: 0; padding: 12px;
+    background: #fffdf3; color: var(--am-ink); border: 1px solid var(--am-line); border-radius: 4px;
+}
+html[data-home="next"][data-menu-style="astra62"] #settingsModal .hn-dialog .hn-menu-card > label { color: var(--am-ink); font-weight: 700; letter-spacing: .06em; }
+/* Astra 6.2: both pickers are full-size fields with the ▾ caret. */
+html[data-home="next"][data-menu-style="astra62"] #settingsModal .hn-dialog :is(.hn-menu-card > select, #cricketMarkColor) {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; min-height: 44px; padding: 0 40px 0 12px;
+    border: 1px solid var(--am-line); border-radius: 4px;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23152820' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 14px center / 12px 12px;
+    color: var(--am-ink); font: inherit; font-size: 1rem;
+}
+/* One hint size under every setting. */
+html[data-home="next"][data-menu-style] #settingsModal .hn-dialog :is(#cricketMarkColorHelp, .menu-style-picker p) { font-size: 0.8125rem; line-height: 1.45; margin: 6px 0 0; }
+html[data-home="next"][data-menu-style] #settingsModal .hn-dialog .menu-style-picker p:empty { display: none; }
+/* Neon: Done is the main button, centred and full width, like Done in every other style. */
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog #settingsCloseBtn {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    width: 100%; min-height: 48px; margin-top: 12px; padding: 10px 16px;
+    border: 1px solid var(--nm-cyan, #1cf2ff); border-radius: 12px;
+    background: var(--nm-cyan, #1cf2ff); color: #00161c; text-shadow: none;
+    font-size: 1rem; font-weight: 800; letter-spacing: 0.02em;
+    box-shadow: 0 0 16px rgba(28, 242, 255, 0.32);
+}
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog #settingsCloseBtn::before { display: none; }
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog #settingsCloseBtn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog .menu-style-picker > .hn-menu-card > label {
+    display: flex; align-items: center; gap: 7px; padding: 0 4px;
+    color: var(--nm-cyan); text-shadow: 0 0 10px rgba(28, 242, 255, 0.4);
+}
+html[data-home="next"][data-menu-style="neon"] #settingsModal .hn-dialog .menu-style-picker > .hn-menu-card > label::before {
+    content: ""; width: 6px; height: 6px; border-radius: 2px; flex: 0 0 auto;
+    background: var(--nm-cyan); box-shadow: 0 0 8px var(--nm-cyan);
+}
+/* Round 15: the bot row's "Skill level" matches the other field labels and
+   starts where the name above it starts. */
+html[data-home="next"] #teamBuilderScreen .team-zone-member > label { color: color-mix(in srgb, var(--color-text-muted) 70%, var(--color-text)); padding-left: 6px; }
+/* Round 15: a search with no matches keeps the library its usual height on
+   wide screens, with the message in the middle of the list area. */
+@media (min-width: 721px) and (min-height: 820px) {
+    html[data-home="next"] #setupScreen #gamePickerSection:has(.picker-empty) { height: max(var(--hn-lib-h, calc(100dvh - 32px)), 440px); }
+}
+@media (min-width: 721px) and (min-height: 561px) and (max-height: 819px) {
+    html[data-home="next"] #setupScreen #gamePickerSection:has(.picker-empty) { display: flex; flex-direction: column; min-height: min(32rem, calc(100dvh - 32px)); }
+    html[data-home="next"] #setupScreen #gamePickerSection:has(.picker-empty) > * { flex: 0 0 auto; }
+}
+html[data-home="next"] #setupScreen #gameTypeGrid:has(.picker-empty) { flex: 1 1 auto; align-content: center; }

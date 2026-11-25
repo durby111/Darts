@@ -136,8 +136,9 @@ function markStepHeadings(layout) {
 function describeStart(layout) {
     const start = document.getElementById('startGameBtn');
     if (!start) return;
-    if (layout === 'next' && document.getElementById('homeNextSummary')) start.setAttribute('aria-describedby', 'homeNextSummary');
-    else if (start.getAttribute('aria-describedby') === 'homeNextSummary') start.removeAttribute('aria-describedby');
+    const ids = 'selectedGameTitle homeNextSummary';
+    if (layout === 'next' && document.getElementById('homeNextSummary')) start.setAttribute('aria-describedby', ids);
+    else if (['homeNextSummary', ids].includes(start.getAttribute('aria-describedby'))) start.removeAttribute('aria-describedby');
 }
 
 // Each ⓘ button says whether its rules are showing.
@@ -215,6 +216,12 @@ function mountSummary() {
     const row = document.createElement('span');
     row.className = 'hn-summary-row';
     summary.append(row);
+    const startLive = document.createElement('div');
+    startLive.id = 'homeNextStartLive';
+    startLive.className = 'hn-visually-hidden';
+    startLive.setAttribute('aria-live', 'polite');
+    document.body.append(startLive);
+    let warned = false;
     const update = () => {
         // "Add a human player" is a warning, not a fact: it goes last, on its own line.
         let parts = summaryText().split(' · ');
@@ -235,6 +242,13 @@ function mountSummary() {
         if (start) {
             if (warn && isNext()) { if (start.getAttribute('aria-disabled') !== 'true') start.setAttribute('aria-disabled', 'true'); }
             else if (start.hasAttribute('aria-disabled')) start.removeAttribute('aria-disabled');
+        }
+        // The change is read out once, when it happens.
+        const warnNow = warn && isNext();
+        if (warnNow !== warned) {
+            warned = warnNow;
+            startLive.textContent = '';
+            if (warnNow) later(() => { startLive.textContent = 'Start needs a human player. Change a player from BotBlake to Human.'; });
         }
     };
     document.addEventListener('change', () => later(update), true);
@@ -468,8 +482,23 @@ function followRulesPop(event) {
     // larger side with the text scrolling, so it never covers its button.
     pop.style.maxHeight = '';
     pop.style.overflowY = '';
-    // It stays inside the game card, side to side.
-    const panel = byId('gamePickerSection')?.getBoundingClientRect();
+    // A long name like "Team Cricket/400" may break after its slash, never inside "400".
+    const titleEl = pop.querySelector('strong');
+    if (titleEl && !titleEl.dataset.hnWbr && titleEl.textContent.includes('/')) {
+        titleEl.dataset.hnWbr = '1';
+        const parts = titleEl.textContent.split('/');
+        titleEl.replaceChildren(...parts.flatMap((part, i) => i ? ['/', document.createElement('wbr'), part] : [part]));
+    }
+    // It stays inside the column of game cards, side to side.
+    const cardsBox = () => {
+        const grid = byId('gameTypeGrid');
+        if (!grid || !grid.clientWidth) return byId('gamePickerSection')?.getBoundingClientRect();
+        const r = grid.getBoundingClientRect();
+        const cs = getComputedStyle(grid);
+        const left = r.left + grid.clientLeft + (parseFloat(cs.paddingLeft) || 0);
+        return { left, right: r.left + grid.clientLeft + grid.clientWidth - (parseFloat(cs.paddingRight) || 0), width: 1 };
+    };
+    const panel = cardsBox();
     const lo = Math.max(margin, panel?.width ? panel.left : 0);
     const hi = Math.min(window.innerWidth - margin, panel?.width ? panel.right : window.innerWidth);
     pop.style.maxWidth = `${Math.floor(hi - lo)}px`;
@@ -483,7 +512,9 @@ function followRulesPop(event) {
     if (height < box.height) { pop.style.maxHeight = `${Math.floor(height)}px`; pop.style.overflowY = 'auto'; }
     // Text that still doesn't fit can be reached from the keyboard (Tab from
     // its ⓘ moves into it) and shows a fade while more is below.
-    if (height < box.height) { pop.tabIndex = 0; if (!pop.hasAttribute('aria-label')) pop.setAttribute('aria-label', 'Rules, scrollable'); }
+    const heading = pop.querySelector('strong');
+    const gameName = (heading?.textContent || '').replace(/^\P{L}+/u, '').trim();
+    if (height < box.height) { pop.tabIndex = 0; pop.setAttribute('aria-label', gameName ? `${gameName} rules, scrollable` : 'Rules, scrollable'); }
     else { pop.removeAttribute('tabindex'); pop.removeAttribute('aria-label'); }
     markRulesEnd(pop);
     let left = anchor.left + anchor.width / 2 - box.width / 2;
@@ -659,7 +690,7 @@ function mountTeamA11y() {
                     const who = document.createElement('span');
                     who.className = 'hn-put-name';
                     who.textContent = chosenName;
-                    put.replaceChildren('Put\u00a0', who, `\u00a0in ${zoneName(idx)}`);
+                    put.replaceChildren('Put ', who, ` in\u00a0${zoneName(idx)}`);
                     put.setAttribute('aria-label', text);
                 }
             } else if (put) {
@@ -940,6 +971,18 @@ function mountCustomizeDialog() {
         const menu = content?.querySelector(':scope > .menu-style-picker');
         if (!done || !menu) return;
         const last = active;
+        // In the dialog, Menu Style's own label, field and note sit together in
+        // a card of their own (as every other setting does in the Fable 5.2 and
+        // Astra 6.2 styles), with Done after it rather than inside it.
+        let card = menu.querySelector(':scope > .hn-menu-card');
+        if (last && !card) {
+            card = document.createElement('div');
+            card.className = 'hn-menu-card';
+            card.append(...[...menu.children].filter(el => el !== done));
+            menu.prepend(card);
+        } else if (!last && card) {
+            card.replaceWith(...card.childNodes);
+        }
         if (last && menu.lastElementChild !== done) menu.append(done);
         else if (!last && done.nextElementSibling !== menu) menu.before(done);
     };
@@ -997,7 +1040,24 @@ function mountCustomizeDialog() {
             top: `-${pad.paddingTop}`, marginTop: `-${pad.paddingTop}`, marginLeft: `-${pad.paddingLeft}`, marginRight: `-${pad.paddingRight}`,
             paddingTop: pad.paddingTop, height: `calc(${pad.paddingTop} + 54px)`, marginBottom: `calc(-54px)`,
         });
+        alignClose();
     };
+    // Each menu style sets its title in its own size and spacing, so the ✕ is
+    // nudged to sit level with the middle of the title's text (until the
+    // dialog scrolls and the ✕ pins to the top).
+    const alignClose = () => {
+        if (!closeX || !title || !closeBar || closeBar.classList.contains('hn-stuck')) return;
+        const range = document.createRange();
+        range.selectNodeContents(title);
+        const line = [...range.getClientRects()].find(r => r.height > 0);
+        if (!line) return;
+        const now = parseFloat(closeX.style.getPropertyValue('--hn-close-dy')) || 0;
+        const box = closeX.getBoundingClientRect();
+        const dy = Math.round((line.top + line.bottom) / 2 - ((box.top + box.bottom) / 2 - now));
+        closeX.style.setProperty('--hn-close-dy', `${Math.max(-24, Math.min(24, dy))}px`);
+    };
+    addEventListener('resize', () => { if (active) measureBar(); });
+    document.fonts?.ready?.then(() => { if (active) measureBar(); });
     new MutationObserver(() => {
         if (!closeBar) return;
         requestAnimationFrame(measureBar);
@@ -1016,6 +1076,7 @@ function mountCustomizeDialog() {
     // Only a press that starts and ends on the backdrop closes it, so a text
     // selection that overshoots the dialog's edge leaves it open.
     let downOnBackdrop = false;
+    const inerted = [];
     modal.addEventListener('pointerdown', event => { downOnBackdrop = active && event.target === modal; });
     modal.addEventListener('click', event => {
         const close = active && downOnBackdrop && event.target === modal;
@@ -1030,6 +1091,12 @@ function mountCustomizeDialog() {
         content.setAttribute('role', 'dialog');
         content.setAttribute('aria-modal', 'true');
         content.classList.add('hn-dialog');
+        // The page behind is out of reach for screen readers too.
+        [...document.body.children].forEach(el => {
+            if (el === modal || el.contains(modal) || el.inert || /^(SCRIPT|STYLE|TEMPLATE)$/.test(el.tagName)) return;
+            el.inert = true;
+            inerted.push(el);
+        });
         if (title) {
             titleText = title.textContent;
             title.textContent = 'Customize';
@@ -1042,6 +1109,7 @@ function mountCustomizeDialog() {
         // Done goes last, after Menu Style, on screen and in the Tab order.
         placeDone();
         if (!keepFocus) later(() => (title || focusables()[0])?.focus());
+        requestAnimationFrame(measureBar);
     };
     const deactivate = () => {
         active = false;
@@ -1053,6 +1121,7 @@ function mountCustomizeDialog() {
         content.removeAttribute('aria-modal');
         content.removeAttribute('aria-labelledby');
         content.classList.remove('hn-dialog');
+        inerted.splice(0).forEach(el => { el.inert = false; });
         if (title) { if (titleText) title.textContent = titleText; title.removeAttribute('tabindex'); if (ownId) title.removeAttribute('id'); }
         scale?.removeAttribute('aria-label');
         if (upload) { upload.removeAttribute('tabindex'); upload.removeAttribute('role'); }
@@ -1310,6 +1379,10 @@ function mountQuickStartFirst() {
     const sync = () => {
         const quick = row.querySelector(':scope > [data-quickstart]');
         let gap = row.querySelector(':scope > .hn-recents-break');
+        // "Recent" matches the other labels in the New look (no colon).
+        const label = row.querySelector(':scope > .picker-recents-label');
+        const want = isNext() ? 'Recent' : 'Recent:';
+        if (label && /^Recent:?$/.test(label.textContent) && label.textContent !== want) label.textContent = want;
         if (!quick) { gap?.remove(); return; }
         if (isNext()) {
             if (row.firstElementChild !== quick) row.prepend(quick);
@@ -1361,13 +1434,26 @@ function mountGameExpander() {
         const text = open ? 'Show fewer games' : `Show all ${count} games`;
         if (button.textContent !== text) button.textContent = text;
         button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        refit();
     };
     const shownCards = () => [...grid.querySelectorAll('.game-card')].filter(card => card.offsetParent !== null);
     button.addEventListener('click', () => {
         const before = new Set(shownCards());
+        // Collapsing keeps the button where it was on screen, so the
+        // finger or pointer that pressed it is still on it.
+        const y = button.getBoundingClientRect().top;
         open = !open;
         sync();
-        if (!open) { later(() => button.scrollIntoView({ block: 'nearest' })); return; }
+        if (!open) {
+            later(() => {
+                const now = button.getBoundingClientRect().top;
+                const scroller = document.scrollingElement;
+                let el = button.parentElement;
+                while (el && el !== document.body && !(el.scrollHeight > el.clientHeight && /(auto|scroll)/.test(getComputedStyle(el).overflowY))) el = el.parentElement;
+                (el && el !== document.body ? el : scroller).scrollBy(0, now - y);
+            });
+            return;
+        }
         // Focus goes on to the first game that just appeared, so the next Tab
         // walks through the rest instead of jumping past them.
         const first = shownCards().find(card => !before.has(card));
@@ -1379,6 +1465,41 @@ function mountGameExpander() {
     const chips = byId('gameCategoryChips');
     if (chips) new MutationObserver(sync).observe(chips, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     document.addEventListener('homelayoutchange', sync);
+    // Shorter laptops keep the library in view, so its short list has to fit
+    // the window: games come off the end (a row at a time) until the list and
+    // "Show all games" fit whole. If even three won't fit, the library joins
+    // the page instead of scrolling inside itself.
+    const SHORT_WIDE = matchMedia('(min-width: 721px) and (min-height: 561px) and (max-height: 819px)');
+    let fitting = false;
+    const fit = () => {
+        if (fitting) return;
+        fitting = true;
+        grid.querySelectorAll(':scope > [data-hn-over]').forEach(wrap => wrap.removeAttribute('data-hn-over'));
+        section.removeAttribute('data-hn-flow');
+        if (isNext() && SHORT_WIDE.matches && section.dataset.hnGames === 'few') {
+            const cols = Math.max(1, getComputedStyle(grid).gridTemplateColumns.split(' ').filter(Boolean).length);
+            const spare = () => [...grid.children].filter(wrap => wrap.classList.contains('game-card-wrap') && wrap.offsetParent !== null && !wrap.querySelector('.game-card.active'));
+            const over = () => section.scrollHeight > section.clientHeight + 1;
+            let list = spare();
+            while (over() && list.length > 3) {
+                list.splice(-Math.min(cols, list.length - 3)).forEach(wrap => wrap.setAttribute('data-hn-over', ''));
+            }
+            if (over()) {
+                grid.querySelectorAll(':scope > [data-hn-over]').forEach(wrap => wrap.removeAttribute('data-hn-over'));
+                section.setAttribute('data-hn-flow', '');
+            }
+        }
+        fitting = false;
+    };
+    let queued = 0;
+    const refit = () => { if (!queued) queued = requestAnimationFrame(() => { queued = 0; fit(); }); };
+    addEventListener('resize', refit);
+    SHORT_WIDE.addEventListener?.('change', refit);
+    document.addEventListener('hntightchange', refit);
+    document.fonts?.ready?.then(refit);
+    new MutationObserver(refit).observe(grid, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    const watch = new ResizeObserver(refit);
+    [...section.children].filter(el => el !== grid && el !== button).forEach(el => watch.observe(el));
     sync();
 }
 
@@ -1416,6 +1537,14 @@ function mountOrderA11y() {
     let before = null;
     let picked = null;
     const area = byId('playersSection');
+    // Escape puts a picked-up player back, and says so.
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' || !isNext() || !area) return;
+        const row = area.querySelector('.player-row--picked');
+        if (!row) return;
+        const index = Number(row.querySelector('[data-player-drag-index]')?.dataset.playerDragIndex);
+        say(`${nameOf(names(), index)} put back`);
+    }, true);
     area?.addEventListener('click', event => {
         if (!isNext()) { before = null; return; }
         before = names();
@@ -1446,6 +1575,9 @@ function mountOrderA11y() {
             const to = Number(handle.dataset.playerDragIndex);
             if (to !== from && names().join('\n') !== was.join('\n')) say(`${nameOf(was, from)} now throws ${ord(to + 1)}`);
             else if (to === from) say(`${nameOf(was, from)} put back`);
+            // Focus stays with the player who moved, on their new tile.
+            const tile = byId(`player${to + 1}Group`)?.querySelector('[data-player-drag-index]');
+            if (tile) later(() => tile.focus({ preventScroll: true }));
         } else if (handle) {
             const row = area.querySelector('.player-row--picked');
             if (row) say(`${nameOf(was, Number(handle.dataset.playerDragIndex))} picked up. Tap where they should throw.`);
@@ -1462,15 +1594,19 @@ function mountOrderA11y() {
 function mountScaleText() {
     const scale = byId('uiScale');
     if (!scale) return;
+    // Only in Customize opened from the home screen; mid-game Visual
+    // Settings keeps the original slider exactly.
     const set = () => {
-        if (isNext()) {
+        if (isNext() && scale.closest('.hn-dialog')) {
             scale.setAttribute('aria-valuetext', `${Number(scale.value).toFixed(1)} times`);
             if (!scale.hasAttribute('aria-label')) { scale.setAttribute('aria-label', 'UI scale'); scale.dataset.hnLabel = '1'; }
         } else {
             scale.removeAttribute('aria-valuetext');
-            if (scale.dataset.hnLabel) { scale.removeAttribute('aria-label'); delete scale.dataset.hnLabel; }
+            if (scale.dataset.hnLabel || scale.getAttribute('aria-label') === 'UI scale') { scale.removeAttribute('aria-label'); delete scale.dataset.hnLabel; }
         }
     };
+    const content = scale.closest('.modal-content');
+    if (content) new MutationObserver(set).observe(content, { attributes: true, attributeFilter: ['class'] });
     set();
     scale.addEventListener('input', set);
     scale.addEventListener('change', set);
@@ -1491,10 +1627,12 @@ function mountFitStack() {
     const shown = el => el && el.offsetParent !== null;
     const check = () => {
         const wide = isNext() && window.innerWidth > 720;
+        // Short landscape phones keep the header on one row too, so they check as well.
+        const oneRow = wide || (isNext() && !!window.matchMedia?.('(max-height: 500px)').matches);
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
         if (header) {
             let wrap = false;
-            if (wide) {
+            if (oneRow) {
                 const h1 = header.querySelector('h1');
                 const logo = header.querySelector('.setup-logo');
                 const side = header.querySelector('.setup-header-side');
@@ -1506,12 +1644,26 @@ function mountFitStack() {
                 const need = (shown(logo) ? logo.offsetWidth + gap : 0) + (h1 ? h1.scrollWidth : 0)
                     + (sideWidth ? sideWidth + gap : 0) + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + 8;
                 wrap = need > header.getBoundingClientRect().width;
+                header.style.setProperty('--hn-side-indent', `${shown(logo) ? logo.offsetWidth + gap : 0}px`);
             }
             if (wrap !== header.hasAttribute('data-hn-wrap')) header.toggleAttribute('data-hn-wrap', wrap);
         }
         if (play) {
             const stack = wide && play.clientWidth / rem < 24;
             if (stack !== play.hasAttribute('data-hn-stack')) play.toggleAttribute('data-hn-stack', stack);
+            // Resume beside Start on a docked card: if either player's name
+            // would be cut short, Resume goes above a full-width Start and the
+            // names may wrap (as on phones).
+            const resume = byId('resumeGameBtn');
+            let resumeStack = false;
+            if (wide && shown(resume)) {
+                play.removeAttribute('data-hn-resume-stack');
+                const names = resume.querySelector('.hn-resume-names');
+                const cut = el => el.scrollWidth > el.clientWidth + 1;
+                resumeStack = !!names && (names.scrollHeight > names.clientHeight + 1
+                    || [...names.querySelectorAll('.hn-resume-player')].some(cut));
+            }
+            if (resumeStack !== play.hasAttribute('data-hn-resume-stack')) play.toggleAttribute('data-hn-resume-stack', resumeStack);
         }
     };
     let queued = false;
@@ -1525,6 +1677,8 @@ function mountFitStack() {
         [header, play, header?.querySelector('h1'), header?.querySelector('.setup-header-side')].filter(Boolean).forEach(el => observer.observe(el));
     }
     new MutationObserver(soon).observe(document.documentElement, { attributes: true, attributeFilter: ['data-home', 'data-menu-style', 'style', 'class'] });
+    const resume = byId('resumeGameBtn');
+    if (resume) new MutationObserver(soon).observe(resume, { attributes: true, attributeFilter: ['class'], childList: true, subtree: true, characterData: true });
 }
 
 // --- Team builder: skill names start with a capital ----------------------
