@@ -270,15 +270,19 @@ function mountSummary() {
         let parts = summaryText().split(' · ');
         const warn = parts.includes('add a human');
         if (warn) parts = [...parts.filter(part => part !== 'add a human'), 'Add a human player'];
-        row.replaceChildren(...parts.flatMap((part, i) => {
+        // The spoken comma sits inside the part before it, so screen readers
+        // hear "2 players, Double Out" with no space before the comma.
+        row.replaceChildren(...parts.map((part, i) => {
             const span = document.createElement('span');
             span.className = warn && i === parts.length - 1 ? 'hn-summary-part hn-summary-warn' : 'hn-summary-part';
             span.textContent = part;
-            if (!i) return [span];
-            const comma = document.createElement('span');
-            comma.className = 'hn-visually-hidden';
-            comma.textContent = ', ';
-            return [comma, span];
+            if (i < parts.length - 1) {
+                const comma = document.createElement('span');
+                comma.className = 'hn-visually-hidden';
+                comma.textContent = ', ';
+                span.append(comma);
+            }
+            return span;
         }));
         // While the warning shows, Start looks and reads as unavailable. A
         // press still gets the game's own message about adding a human.
@@ -624,6 +628,31 @@ function mountRulesA11y() {
     const grid = byId('gameTypeGrid');
     if (grid) new MutationObserver(sync).observe(grid, { childList: true });
     document.addEventListener('homelayoutchange', sync);
+    // The page behind the popover is dimmed, so a tap there only closes the
+    // popover (focus goes back to its ⓘ) and never acts on what lies beneath.
+    // A swipe still scrolls; only a completed tap is taken.
+    let swallow = null;
+    const outside = target => {
+        const pop = byId('gameRulesPop');
+        if (!pop || !isNext() || !(target instanceof Element) || pop.contains(target)) return null;
+        return target.closest('[data-rules-toggle]')?.dataset.rulesToggle === pop.dataset.gameId ? null : pop.dataset.gameId;
+    };
+    window.addEventListener('pointerdown', event => {
+        swallow = event.isPrimary === false ? null : outside(event.target);
+        // No focus moves to the dimmed control under the press.
+        if (swallow) event.preventDefault();
+    }, true);
+    window.addEventListener('pointercancel', () => { swallow = null; }, true);
+    window.addEventListener('click', event => {
+        const id = swallow;
+        swallow = null;
+        if (!id || event.detail === 0) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        const pop = byId('gameRulesPop');
+        if (pop && pop.dataset.gameId === id) { pop.remove(); syncRulesExpanded(); }
+        [...document.querySelectorAll('#gameTypeGrid [data-rules-toggle]')].find(b => b.dataset.rulesToggle === id)?.focus({ preventScroll: true });
+    }, true);
     // Moving focus anywhere else closes the popover.
     document.addEventListener('focusin', event => {
         const pop = byId('gameRulesPop');
@@ -654,6 +683,7 @@ function mountGridFocus() {
     };
     grid.addEventListener('focusin', event => { last = keyOf(event.target); });
     document.addEventListener('focusin', event => { if (!grid.contains(event.target)) last = null; });
+    document.addEventListener('pointerdown', event => { if (!grid.contains(event.target)) last = null; }, true);
     new MutationObserver(() => {
         if (!last || !isNext()) return;
         const active = document.activeElement;
@@ -722,6 +752,8 @@ function mountRecentsFocus() {
     };
     row.addEventListener('focusin', event => { last = keyOf(event.target); });
     document.addEventListener('focusin', event => { if (!row.contains(event.target)) last = null; });
+    // A press elsewhere (even on blank page, which moves no focus) ends it.
+    document.addEventListener('pointerdown', event => { if (!row.contains(event.target)) last = null; }, true);
     new MutationObserver(() => {
         if (!last || !isNext()) return;
         const active = document.activeElement;
@@ -761,6 +793,32 @@ function mountTabsFit() {
 function mountTeamA11y() {
     const screen = byId('teamBuilderScreen');
     if (!screen) return;
+    // With a player chosen, Tab goes from "Put in Home" straight to "Put in
+    // Away" (the two choices), then on through Home's and Away's members.
+    const focusable = el => !el.disabled && el.getClientRects().length && !el.closest('[hidden], .hidden, [inert]');
+    const inZone = idx => [...(byId(`teamZone${idx}`)?.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') || [])].filter(focusable);
+    screen.addEventListener('keydown', event => {
+        if (event.key !== 'Tab' || event.altKey || event.ctrlKey || event.metaKey || !isNext()) return;
+        const puts = [0, 1].map(idx => byId(`teamZone${idx}`)?.querySelector(':scope > .hn-zone-put'));
+        if (!puts[0] || !puts[1] || !focusable(puts[0]) || !focusable(puts[1])) return;
+        const order = [puts[0], puts[1], ...inZone(0).filter(el => el !== puts[0]), ...inZone(1).filter(el => el !== puts[1])];
+        const away = byId('teamZone1');
+        const after = [...screen.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+            .find(el => focusable(el) && !away.contains(el) && (away.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING));
+        const at = order.indexOf(document.activeElement);
+        let to = null;
+        if (at < 0) {
+            // Back from whatever follows the Away team: to the last member.
+            if (event.shiftKey && after && document.activeElement === after) to = order[order.length - 1];
+        } else {
+            to = order[at + (event.shiftKey ? -1 : 1)];
+            // Past the last member: on to whatever follows the Away team.
+            if (!to && !event.shiftKey) to = after;
+        }
+        if (!to) return;
+        event.preventDefault();
+        to.focus();
+    });
     const live = document.createElement('div');
     live.id = 'homeNextTeamLive';
     live.className = 'hn-visually-hidden';
@@ -840,6 +898,7 @@ function mountTeamA11y() {
                     put.dataset.zone = String(idx);
                     const anchor = byId(`teamZone${idx}FirstBadge`) || byId(`teamZone${idx}Label`);
                     if (anchor?.parentElement === zone) anchor.after(put); else zone.prepend(put);
+                    putWatch?.observe(put);
                 }
                 if (put.getAttribute('aria-label') !== text) {
                     // A long name is cut short with an ellipsis so the team name stays on the button.
@@ -883,11 +942,28 @@ function mountTeamA11y() {
     // double gap before "in Home"; the button is marked so CSS can close it.
     const markCut = put => later(() => {
         const who = put.querySelector('.hn-put-name');
-        const cut = !!who && who.scrollWidth > who.clientWidth + 1;
+        if (!who) return;
+        // The name is shortened here, letter by letter, so the "…" is the last
+        // thing in its box and the gap before "in Home" is always the same.
+        // (The button's spoken name is its aria-label, with the whole name.)
+        const full = who.dataset.full ?? who.textContent;
+        who.dataset.full = full;
+        if (who.textContent !== full) who.textContent = full;
+        const room = who.clientWidth;
+        const cut = isNext() && !document.documentElement.hasAttribute('data-hn-tight') && who.scrollWidth > room + 1;
+        if (cut) {
+            const chars = [...full];
+            const fits = k => { who.textContent = chars.slice(0, k).join('').trimEnd() + '\u2026'; return who.scrollWidth <= room + 0.5; };
+            let lo = 1, hi = chars.length - 1;
+            while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (fits(mid)) lo = mid; else hi = mid - 1; }
+            fits(lo);
+        }
         if (cut !== put.hasAttribute('data-hn-cut')) put.toggleAttribute('data-hn-cut', cut);
-        if (who) closeEllipsisGaps([[who, who.nextElementSibling]]);
     });
     const markAllCut = () => screen.querySelectorAll('.hn-zone-put').forEach(markCut);
+    // A button that changes width (layout settling, the other team's button
+    // appearing) measures its cut name again.
+    const putWatch = window.ResizeObserver ? new ResizeObserver(entries => entries.forEach(entry => markCut(entry.target))) : null;
     window.addEventListener('resize', markAllCut, { passive: true });
     document.addEventListener('hntightchange', markAllCut);
     let lastPick = null;
@@ -1002,10 +1078,15 @@ function mountTeamA11y() {
         });
     }, true);
     const recentlyPressed = () => performance.now() - lastRealPress < 600;
+    let removedAt = -Infinity;
     screen.addEventListener('click', event => {
         if (!isNext()) return;
         const action = event.target.closest('[data-member-action]');
         if (action?.dataset.memberAction === 'hn-remove') {
+            // The rows move up after a removal, so a quick second tap would
+            // land on the next player's ✕. Pointer presses that soon are ignored.
+            if (event.detail !== 0 && performance.now() - removedAt < 450) return;
+            if (event.detail !== 0) removedAt = performance.now();
             const id = action.dataset.memberId;
             const name = nameIn(memberNode(id));
             const zone = zoneOf(id);
@@ -1569,6 +1650,7 @@ function mountQuickStartFirst() {
         row.removeAttribute('data-hn-stack');
         row.removeAttribute('data-hn-quiet');
         row.removeAttribute('data-hn-squeeze');
+        row.removeAttribute('data-hn-alone');
         chips.forEach(chip => chip.removeAttribute('data-hn-overflow'));
         if (!isNext() || !quick || !row.clientWidth) return;
         const lastShown = () => [...row.children].filter(child => child.getClientRects().length).pop();
@@ -1581,6 +1663,12 @@ function mountQuickStartFirst() {
             if (wraps()) row.setAttribute('data-hn-quiet', '');
             // Still too wide: the one game left shortens with an ellipsis.
             if (wraps()) row.setAttribute('data-hn-squeeze', '');
+            // A game cut to its icon and a "…" says nothing: Quick Start stays alone.
+            const last = chips.find(chip => !chip.hasAttribute('data-hn-overflow'));
+            if (row.hasAttribute('data-hn-squeeze') && last && last.clientWidth < parseFloat(getComputedStyle(last).fontSize) * 5.5) {
+                last.setAttribute('data-hn-overflow', '');
+                row.setAttribute('data-hn-alone', '');
+            }
             if (wraps()) { row.removeAttribute('data-hn-squeeze'); row.removeAttribute('data-hn-quiet'); }
         }
         if (wraps()) row.setAttribute('data-hn-stack', '');
@@ -1747,6 +1835,37 @@ function mountOrderA11y() {
     let before = null;
     let picked = null;
     const area = byId('playersSection');
+    // Throw-order tiles: the spoken name starts with the visible "1st", so
+    // voice control can say what it sees, and names the player being moved.
+    const relabel = () => {
+        if (!area) return;
+        const next = isNext();
+        const list = names();
+        const pickedRow = area.querySelector('.player-row--picked');
+        const pickedIndex = pickedRow ? Number(pickedRow.querySelector('[data-player-drag-index]')?.dataset.playerDragIndex) : null;
+        area.querySelectorAll('[data-player-drag-index]').forEach(handle => {
+            if (!next) {
+                if (handle.dataset.hnOrig != null) { handle.setAttribute('aria-label', handle.dataset.hnOrig); delete handle.dataset.hnOrig; delete handle.dataset.hnText; }
+                return;
+            }
+            const current = handle.getAttribute('aria-label') || '';
+            // setup.js rewrote it: keep its text for Classic.
+            if (current !== handle.dataset.hnText) handle.dataset.hnOrig = current;
+            const index = Number(handle.dataset.playerDragIndex);
+            const place = ord(index + 1);
+            const text = pickedIndex == null || Number.isNaN(pickedIndex) ? `${place}: ${nameOf(list, index)}. Move in throw order`
+                : pickedIndex === index ? `${place}: ${nameOf(list, index)}. Cancel moving`
+                : `${place}: Move ${nameOf(list, pickedIndex)} to throw ${place}`;
+            handle.dataset.hnText = text;
+            if (current !== text) handle.setAttribute('aria-label', text);
+        });
+    };
+    if (area) {
+        new MutationObserver(relabel).observe(area, { subtree: true, attributes: true, attributeFilter: ['aria-label', 'class'] });
+        area.addEventListener('input', relabel);
+        document.addEventListener('homelayoutchange', relabel);
+        relabel();
+    }
     // Escape puts a picked-up player back, and says so.
     // It speaks only once the player really was put back (a dialog or the
     // rules popover may take that Escape for itself).
@@ -1793,12 +1912,33 @@ function mountOrderA11y() {
             if (tile) later(() => tile.focus({ preventScroll: true }));
         } else if (handle) {
             const row = area.querySelector('.player-row--picked');
-            if (row) say(`${nameOf(was, Number(handle.dataset.playerDragIndex))} picked up. Tap where they should throw.`);
+            if (row) say(`${nameOf(was, Number(handle.dataset.playerDragIndex))} picked up. Press or tap where they should throw.`);
         } else if (shuffle) {
             const now = names();
             say(`New throw order: ${now.slice(0, count()).map((n, i) => n || `Player ${i + 1}`).join(', ')}`);
         }
     });
+}
+
+// --- Change Settings mid-game: focus starts on Back to Game -------------------
+// Opening the setup screen from a game's menu would leave focus on the page
+// itself; it goes to Back to Game, the way back to the game in progress.
+
+function mountBackFocus() {
+    const back = byId('backToGameBtn');
+    const screen = byId('setupScreen');
+    if (!back || !screen) return;
+    let shown = !back.classList.contains('hidden');
+    new MutationObserver(() => {
+        const now = !back.classList.contains('hidden');
+        if (now === shown) return;
+        shown = now;
+        if (!now || !isNext()) return;
+        later(() => {
+            const active = document.activeElement;
+            if (back.getClientRects().length && (!active || active === document.body || !active.getClientRects().length)) back.focus({ preventScroll: true });
+        });
+    }).observe(back, { attributes: true, attributeFilter: ['class'] });
 }
 
 // --- UI scale slider says its size -------------------------------------
@@ -1950,7 +2090,7 @@ function mountSwatchFit() {
             need = Math.max(need, label.getBoundingClientRect().width + border + 12);
         }
         const gap = parseFloat(getComputedStyle(picker).columnGap) || 0;
-        const cols = [6, 4, 3, 2].find(c => (width - gap * (c - 1)) / c >= need) || 2;
+        const cols = [6, 4, 3, 2, 1].find(c => (width - gap * (c - 1)) / c >= need) || 1;
         if (picker.style.getPropertyValue('--hn-swatch-cols') !== String(cols)) picker.style.setProperty('--hn-swatch-cols', String(cols));
     };
     let frame = 0;
@@ -2395,6 +2535,7 @@ export function initHomeNext() {
     run('rulesA11y', mountRulesA11y);
     run('gridFocus', mountGridFocus);
     run('favToggles', mountFavToggles);
+    run('backFocus', mountBackFocus);
     run('recentsFocus', mountRecentsFocus);
     run('tabsFit', mountTabsFit);
     run('teamA11y', mountTeamA11y);

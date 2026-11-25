@@ -875,7 +875,7 @@ html[data-home="next"] #setupScreen #startGameBtn {
     box-shadow: 0 6px 18px color-mix(in srgb, var(--color-success) 45%, transparent);
 }
 @media (hover: hover) { html[data-home="next"] #setupScreen #startGameBtn:hover { filter: brightness(1.08); } }
-html[data-home="next"] #setupScreen #startGameBtn:focus-visible { outline: 3px solid var(--color-text); outline-offset: 3px; }
+html[data-home="next"] #setupScreen #startGameBtn:focus-visible { outline: 3px solid var(--hn-focus); outline-offset: 3px; }
 html[data-home="next"] #setupScreen #resumeGameBtn {
     min-height: 44px;
     border-radius: 12px;
@@ -2591,12 +2591,14 @@ html[data-home="next"] #setupScreen .dev-app-nav[data-hn-wrap] { flex-wrap: wrap
 html[data-home="next"] #setupScreen .dev-app-nav[data-hn-wrap] :is(a, button) { flex: 1 1 auto; min-width: min-content; white-space: normal; }
 
 /* Round 20: one even gap round "vs" in the resume names, however a name is cut. */
-html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-vs { display: inline-block; white-space: normal; margin-inline: 0.3em; }
+html[data-home="next"] #setupScreen #resumeGameBtn .hn-resume-vs { display: inline-block; white-space: pre; }
 /* Round 20: the Quick Start bolt sits on a small dark disc, so it shows on every accent (Sunburst, Volt...). */
 html[data-home="next"] #setupScreen .picker-recent-chip.picker-quickstart > span[aria-hidden="true"] {
-    display: inline-grid; place-items: center; width: 1.45em; height: 1.45em; margin-inline-end: 0.15em;
-    border-radius: 50%; background: rgba(0, 0, 0, 0.55); font-size: 0.85em; line-height: 1; vertical-align: -0.2em;
+    display: inline-grid; place-items: center; flex: 0 0 auto; width: 1.45em; height: 1.45em; margin-inline-end: 0.4em;
+    border-radius: 50%; background: rgba(0, 0, 0, 0.55); font-size: 0.85em; line-height: 1;
 }
+/* The disc and the words share one centre line. */
+html[data-home="next"] #setupScreen .picker-recent-chip.picker-quickstart { display: inline-flex; align-items: center; }
 /* Round 20: a toggle right under a field gets the same gap as any other field. */
 html[data-home="next"] #setupScreen .form-group > :is(select, input:not([type="checkbox"])) + .checkbox-label { margin-top: 10px; }
 html[data-home="next"] #teamBuilderScreen :is(.team-builder-actions .btn, #teamBackBtn) { min-height: 48px; }
@@ -2614,4 +2616,60 @@ html[data-home="next"] #teamBuilderScreen :is(.team-builder-actions .btn, #teamB
     html[data-home="next"]:not([data-hn-tight]) #setupScreen .dev-app-nav:not([data-hn-wrap]) :is(a, button) {
         flex: 1 1 0; min-width: 0; padding: 2px 6px; white-space: normal; text-align: center; text-wrap: balance; line-height: 1.15;
     }
+}
+/* Round 21: Fable 5.2 and Neon style the Mark Color picker with two IDs, so
+   the caret rule needs the same weight (the :is() carries an ID). */
+html[data-home="next"]:is([data-menu-style="fable52"], [data-menu-style="neon"]) #settingsModal > .modal-content.hn-dialog select:is(#cricketMarkColor, select) {
+    -webkit-appearance: none; appearance: none; padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f6f2e7' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center; background-size: 12px 12px;
+}
+/* Round 21: at large text the ☆ and ⓘ keep their 44px boxes with a clear
+   gap between them and an 8px inset from the card's edge; their glyphs grow
+   only as far as the box allows. */
+html[data-home="next"][data-hn-tight] #setupScreen .game-card-info { right: 8px; font-size: min(1.125rem, 24px); }
+html[data-home="next"][data-hn-tight] #setupScreen .game-card-fav { right: 60px; }
+html[data-home="next"][data-hn-tight] #setupScreen .game-card-fav::before { font-size: min(1.375rem, 28px); }
+@container hn-card (min-width: calc(124px + 8.9rem)) {
+    html[data-home="next"][data-hn-tight] #setupScreen .game-card { padding-right: 116px; }
+}
+@container hn-card (max-width: calc(124px + 8.9rem)) {
+    html[data-home="next"][data-hn-tight] #setupScreen :is(.game-card-fav, .game-card-info) { bottom: 8px; }
+    html[data-home="next"][data-hn-tight] #setupScreen .game-card { padding-bottom: 60px; }
+}
+/* Round 21: Quick Start alone ("Jump back in" too narrow for any game): no "Recent" label either. */
+html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-alone] > :is(.picker-recents-label, .hn-recents-break) { display: none; }
+/* Round 21: the smallest phones with the "Add a human player" warning. The
+   other facts give way to the warning, and Start is a little narrower, so the
+   warning reads on one line. */
+@media (max-width: 360px) {
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen #playSection .home-next-match:has(.hn-summary-warn) .hn-summary-part:not(.hn-summary-warn) { display: none; }
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen #playSection:has(.hn-summary-warn) #startGameBtn { padding: 0 12px; font-size: 1rem; }
+}
+/* Round 21: every theme dot has a thin ring in the text colour, so a light dot
+   (Arctic) shows on a light tile and a dark one on a dark tile. */
+html[data-home="next"] #settingsModal .hn-dialog .theme-swatch-dot { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.15), 0 0 0 1px color-mix(in srgb, var(--color-text) 40%, transparent); }
+/* Round 21: landscape phones with a tall docked bar (large text) and a game
+   to resume: Resume and Start share one row, so the docked bar stays near a fifth of the window. */
+@media (max-height: 500px) and (orientation: landscape) {
+    html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection[data-hn-compact]:has(#resumeGameBtn:not(.hidden)) .setup-action-row {
+        display: grid !important; flex-direction: initial; grid-auto-flow: column; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); align-items: stretch; gap: 8px;
+    }
+    html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection[data-hn-compact]:has(#resumeGameBtn:not(.hidden)) :is(#resumeGameBtn, #startGameBtn) { min-height: 44px; margin: 0; }
+    html[data-home="next"] #setupScreen #playSection[data-hn-compact] #resumeGameBtn .hn-resume-names { flex-direction: row !important; flex-wrap: nowrap !important; min-width: 0; max-height: none; }
+    html[data-home="next"] #setupScreen #playSection[data-hn-compact] #resumeGameBtn .hn-resume-player { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: pre !important; overflow-wrap: normal; }
+}
+/* Round 21: while a search or type filter leaves the chosen game out of the
+   list, its description steps aside (it would read as a header for the results). */
+html[data-home="next"] #setupScreen #gamePickerSection:not(:has(#gameTypeGrid .game-card.active)) #gameDescription { display: none; }
+/* Round 21: with a game in progress (Change Settings), Back to Game is the one
+   green button; Start, which ends that game, is an outline button. */
+html[data-home="next"] #setupScreen:has(#backToGameBtn:not(.hidden)) #startGameBtn {
+    background: transparent; color: var(--color-text); box-shadow: none;
+    border: 2px solid color-mix(in srgb, var(--color-success) 70%, var(--color-text));
+}
+/* Round 21: the ☆ and ⓘ tap areas never overlap (4px apart, also on narrow cards). */
+html[data-home="next"]:not([data-hn-tight]) #setupScreen .game-card-fav { right: 52px; }
+@container hngrid (max-width: 760px) {
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen .game-card { padding-right: 100px; }
 }
