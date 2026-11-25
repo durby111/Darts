@@ -39,6 +39,7 @@ function applyLayout(value) {
     placePlayerControls(layout);
     markStepHeadings(layout);
     describeStart(layout);
+    labelRosterFields(layout);
     syncRulesExpanded();
     document.querySelectorAll('input[name="homeLayoutChoice"]').forEach(input => {
         input.checked = input.value === layout;
@@ -141,13 +142,25 @@ function markStepHeadings(layout) {
     }
 }
 
+// The Manage Players fields keep a name once their placeholder is gone.
+function labelRosterFields(layout) {
+    [['rosterAddName', 'Player name'], ['rosterAddEmail', 'Player email']].forEach(([id, name]) => {
+        const field = document.getElementById(id);
+        if (!field) return;
+        if (layout === 'next') field.setAttribute('aria-label', name);
+        else if (field.getAttribute('aria-label') === name) field.removeAttribute('aria-label');
+    });
+}
+
 // Screen readers hear the match summary with the Start button.
 function describeStart(layout) {
     const start = document.getElementById('startGameBtn');
     if (!start) return;
-    const ids = 'selectedGameTitle homeNextSummary';
-    if (layout === 'next' && document.getElementById('homeNextSummary')) start.setAttribute('aria-describedby', ids);
-    else if (['homeNextSummary', ids].includes(start.getAttribute('aria-describedby'))) start.removeAttribute('aria-describedby');
+    // One hidden sentence ("501, 2 players, Double Out"), so the browser
+    // computes the description with the commas where they belong.
+    const ids = 'homeNextStartDesc';
+    if (layout === 'next' && document.getElementById(ids)) start.setAttribute('aria-describedby', ids);
+    else if (['homeNextSummary', 'selectedGameTitle homeNextSummary', ids].includes(start.getAttribute('aria-describedby'))) start.removeAttribute('aria-describedby');
 }
 
 // Each ⓘ button says whether its rules are showing.
@@ -216,9 +229,9 @@ function summaryText() {
         const bots = [1, 2, 3, 4].slice(0, count)
             .filter(n => (byId(`player${n}Skill`)?.value || 'off') !== 'off').length;
         const short = document.documentElement.hasAttribute('data-hn-tight') || window.matchMedia?.('(max-width: 480px)').matches;
-        // "4 players · all BotBlake" reads better than "4 BotBlakes". Start
+        // "4 players · all BotBlakes" reads better than "4 BotBlakes". Start
         // refuses a match with no human, so the summary says what is missing.
-        if (bots && bots === count) parts.push(count > 1 ? (short ? 'all bots' : 'all BotBlake') : 'BotBlake', 'add a human');
+        if (bots && bots === count) parts.push(count > 1 ? (short ? 'all bots' : 'all BotBlakes') : 'BotBlake', 'add a human');
         else if (bots) parts.push(short ? (bots === 1 ? '1 bot' : `${bots} bots`) : (bots === 1 ? '1 BotBlake' : `${bots} BotBlakes`));
     }
     const finish = byId('finishType');
@@ -241,7 +254,6 @@ function mountSummary() {
     wrap.className = 'home-next-match';
     title.before(wrap);
     wrap.append(title, summary);
-    describeStart(document.documentElement.dataset.home);
     // With a game to resume, the summary gives way to Resume, so Start Game
     // carries the chosen game's name on a second line (drawn by CSS).
     const start = byId('startGameBtn');
@@ -258,7 +270,15 @@ function mountSummary() {
     // line); screen readers hear commas.
     const row = document.createElement('span');
     row.className = 'hn-summary-row';
-    summary.append(row);
+    row.setAttribute('aria-hidden', 'true');
+    const spoken = document.createElement('span');
+    spoken.className = 'hn-visually-hidden';
+    summary.append(row, spoken);
+    const desc = document.createElement('span');
+    desc.id = 'homeNextStartDesc';
+    desc.hidden = true;
+    document.body.append(desc);
+    describeStart(document.documentElement.dataset.home);
     const startLive = document.createElement('div');
     startLive.id = 'homeNextStartLive';
     startLive.className = 'hn-visually-hidden';
@@ -270,20 +290,18 @@ function mountSummary() {
         let parts = summaryText().split(' · ');
         const warn = parts.includes('add a human');
         if (warn) parts = [...parts.filter(part => part !== 'add a human'), 'Add a human player'];
-        // The spoken comma sits inside the part before it, so screen readers
-        // hear "2 players, Double Out" with no space before the comma.
+        // The parts are drawn for the eye; screen readers get the same words
+        // as one sentence with commas.
         row.replaceChildren(...parts.map((part, i) => {
             const span = document.createElement('span');
             span.className = warn && i === parts.length - 1 ? 'hn-summary-part hn-summary-warn' : 'hn-summary-part';
             span.textContent = part;
-            if (i < parts.length - 1) {
-                const comma = document.createElement('span');
-                comma.className = 'hn-visually-hidden';
-                comma.textContent = ', ';
-                span.append(comma);
-            }
             return span;
         }));
+        const sentence = parts.join(', ');
+        if (spoken.textContent !== sentence) spoken.textContent = sentence;
+        const full = [byId('selectedGameTitle')?.textContent.trim(), sentence].filter(Boolean).join(', ');
+        if (desc.textContent !== full) desc.textContent = full;
         // While the warning shows, Start looks and reads as unavailable. A
         // press still gets the game's own message about adding a human.
         if (start) {
@@ -771,9 +789,18 @@ function mountRecentsFocus() {
 function mountTabsFit() {
     const nav = document.querySelector('#setupScreen .dev-app-nav');
     if (!nav) return;
+    // A tab whose words don't fit beside its Sample badge puts the badge
+    // under the words (data-hn-stack); a row that still doesn't fit wraps.
+    const overflows = el => el.scrollWidth > el.clientWidth + 1 || [...el.children].some(child => {
+        const a = child.getBoundingClientRect(), b = el.getBoundingClientRect();
+        return a.width && (a.left < b.left - 0.5 || a.right > b.right + 0.5);
+    });
     const fit = () => {
         nav.removeAttribute('data-hn-wrap');
+        nav.removeAttribute('data-hn-stack');
         if (!isNext() || !nav.clientWidth) return;
+        const tabs = [...nav.querySelectorAll(':scope > :is(a, button)')].filter(tab => tab.querySelector('.feature-test-badge'));
+        if (tabs.some(overflows)) nav.setAttribute('data-hn-stack', '');
         if (nav.scrollWidth > nav.clientWidth + 1) nav.setAttribute('data-hn-wrap', '');
     };
     let width = -1;
@@ -793,6 +820,18 @@ function mountTabsFit() {
 function mountTeamA11y() {
     const screen = byId('teamBuilderScreen');
     if (!screen) return;
+    // teams.js stops the browser's own focus change on these taps, so a tap
+    // after typing a name would leave the phone keyboard up over the Put
+    // buttons. The tapped button takes focus instead, which closes it.
+    screen.addEventListener('pointerdown', event => {
+        if (!isNext() || event.pointerId === 31337) return;
+        const target = event.target.closest?.('.team-chip, .hn-zone-put, [data-member-action], [data-zone-member-id], .team-zone');
+        const active = document.activeElement;
+        if (!target || !active?.matches?.('input:not([type="checkbox"]):not([type="radio"]), textarea') || !screen.contains(active)) return;
+        active.blur();
+        const button = target.closest('button, .team-chip, [tabindex]');
+        if (button) button.focus({ preventScroll: true });
+    }, true);
     // With a player chosen, Tab goes from "Put in Home" straight to "Put in
     // Away" (the two choices), then on through Home's and Away's members.
     const focusable = el => !el.disabled && el.getClientRects().length && !el.closest('[hidden], .hidden, [inert]');
@@ -945,9 +984,16 @@ function mountTeamA11y() {
         const pickId = chosen?.dataset.chipId || null;
         if (pickId && pickId !== lastPick) {
             const away = byId('teamZone1')?.querySelector(':scope > .hn-zone-put');
+            const home = byId('teamZone0')?.querySelector(':scope > .hn-zone-put');
             const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
             // After any refocus of the chip, so nothing cancels the scroll.
-            if (away) later(() => later(() => away.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' })));
+            // When both buttons can't be in view at once (long names, large
+            // text), Home's button comes into view instead, with Away below it.
+            if (away) later(() => later(() => {
+                const top = home ? home.getBoundingClientRect().top : away.getBoundingClientRect().top;
+                const both = away.getBoundingClientRect().bottom - top <= (window.visualViewport?.height || innerHeight) - 16;
+                (both || !home ? away : home).scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+            }));
         }
         lastPick = pickId;
     };
@@ -961,42 +1007,54 @@ function mountTeamA11y() {
     // button never sets off another round of measuring.
     const measure = document.createElement('canvas').getContext('2d');
     const px = value => parseFloat(value) || 0;
-    const markCut = put => later(() => {
-        const who = put.querySelector('.hn-put-name');
-        if (!who || !put.isConnected) return;
-        const full = who.dataset.full ?? who.textContent;
-        if (who.dataset.full !== full) who.dataset.full = full;
-        let text = full;
-        if (isNext() && !document.documentElement.hasAttribute('data-hn-tight') && measure) {
-            const zone = put.parentElement;
-            const zcs = getComputedStyle(zone);
-            const pcs = getComputedStyle(put);
-            // The button is centred with auto side margins, so it may use the zone's whole width.
-            const avail = zone.clientWidth - px(zcs.paddingLeft) - px(zcs.paddingRight);
-            let room = avail - px(pcs.paddingLeft) - px(pcs.paddingRight) - px(pcs.borderLeftWidth) - px(pcs.borderRightWidth);
-            for (const el of put.children) {
-                if (el === who) continue;
-                const ecs = getComputedStyle(el);
-                room -= el.getBoundingClientRect().width + px(ecs.marginLeft) + px(ecs.marginRight);
-            }
-            const wcs = getComputedStyle(who);
-            room -= px(wcs.marginLeft) + px(wcs.marginRight) + px(wcs.paddingLeft) + px(wcs.paddingRight) + 1;
-            measure.font = `${wcs.fontStyle} ${wcs.fontWeight} ${wcs.fontSize} ${wcs.fontFamily}`;
-            const spacing = px(wcs.letterSpacing);
-            const width = str => measure.measureText(str).width + spacing * [...str].length;
-            if (width(full) > room) {
-                const chars = [...full];
-                const shortened = k => chars.slice(0, k).join('').trimEnd() + '\u2026';
-                let lo = 1, hi = chars.length - 1;
-                while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (width(shortened(mid)) <= room) lo = mid; else hi = mid - 1; }
-                text = shortened(lo);
-            }
+    // Both buttons show the same cut (the shorter one), so the name reads the
+    // same in "Put … in Home" and "Put … in Away".
+    const fitLength = (put, who, chars) => {
+        const zone = put.parentElement;
+        const zcs = getComputedStyle(zone);
+        const pcs = getComputedStyle(put);
+        // The button is centred with auto side margins, so it may use the zone's whole width.
+        const avail = zone.clientWidth - px(zcs.paddingLeft) - px(zcs.paddingRight);
+        let room = avail - px(pcs.paddingLeft) - px(pcs.paddingRight) - px(pcs.borderLeftWidth) - px(pcs.borderRightWidth);
+        for (const el of put.children) {
+            if (el === who) continue;
+            const ecs = getComputedStyle(el);
+            room -= el.getBoundingClientRect().width + px(ecs.marginLeft) + px(ecs.marginRight);
         }
-        if (who.textContent !== text) who.textContent = text;
-        const cut = text !== full;
-        if (cut !== put.hasAttribute('data-hn-cut')) put.toggleAttribute('data-hn-cut', cut);
-    });
-    const markAllCut = () => screen.querySelectorAll('.hn-zone-put').forEach(markCut);
+        const wcs = getComputedStyle(who);
+        room -= px(wcs.marginLeft) + px(wcs.marginRight) + px(wcs.paddingLeft) + px(wcs.paddingRight) + 1;
+        measure.font = `${wcs.fontStyle} ${wcs.fontWeight} ${wcs.fontSize} ${wcs.fontFamily}`;
+        const spacing = px(wcs.letterSpacing);
+        const width = str => measure.measureText(str).width + spacing * [...str].length;
+        if (width(chars.join('')) <= room) return chars.length;
+        let lo = 1, hi = chars.length - 1;
+        while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (width(shortened(chars, mid)) <= room) lo = mid; else hi = mid - 1; }
+        return lo;
+    };
+    const shortened = (chars, k) => chars.slice(0, k).join('').trimEnd() + '\u2026';
+    let cutPending = false;
+    const markAllCut = () => {
+        if (cutPending) return;
+        cutPending = true;
+        later(() => {
+            cutPending = false;
+            const puts = [...screen.querySelectorAll('.hn-zone-put')].map(put => ({ put, who: put.querySelector('.hn-put-name') })).filter(item => item.who && item.put.isConnected);
+            if (!puts.length) return;
+            puts.forEach(item => { item.full = item.who.dataset.full ?? item.who.textContent; if (item.who.dataset.full !== item.full) item.who.dataset.full = item.full; });
+            const chars = [...puts[0].full];
+            let k = chars.length;
+            if (isNext() && !document.documentElement.hasAttribute('data-hn-tight') && measure) {
+                puts.forEach(item => { if (item.full === puts[0].full) k = Math.min(k, fitLength(item.put, item.who, chars)); });
+            }
+            puts.forEach(({ put, who, full }) => {
+                const text = full === puts[0].full && k < chars.length ? shortened(chars, k) : full;
+                if (who.textContent !== text) who.textContent = text;
+                const cut = text !== full;
+                if (cut !== put.hasAttribute('data-hn-cut')) put.toggleAttribute('data-hn-cut', cut);
+            });
+        });
+    };
+    const markCut = () => markAllCut();
     // A button that changes width (layout settling, the other team's button
     // appearing) measures its cut name again.
     const putWatch = window.ResizeObserver ? new ResizeObserver(entries => entries.forEach(entry => markCut(entry.target))) : null;
@@ -2127,7 +2185,7 @@ function mountSwatchFit() {
     const picker = document.querySelector('#settingsModal .theme-picker');
     if (!picker) return;
     const fit = () => {
-        if (!isNext()) { picker.style.removeProperty('--hn-swatch-cols'); return; }
+        if (!isNext()) { picker.style.removeProperty('--hn-swatch-cols'); byId('wallpaperChoices')?.style.removeProperty('grid-template-columns'); return; }
         const swatches = [...picker.querySelectorAll('.theme-swatch')];
         const width = picker.clientWidth;
         if (!swatches.length || !width) return;
@@ -2143,6 +2201,17 @@ function mountSwatchFit() {
         const gap = parseFloat(getComputedStyle(picker).columnGap) || 0;
         const cols = [6, 4, 3, 2, 1].find(c => (width - gap * (c - 1)) / c >= need) || 1;
         if (picker.style.getPropertyValue('--hn-swatch-cols') !== String(cols)) picker.style.setProperty('--hn-swatch-cols', String(cols));
+        // The wallpapers fill whole rows too: the most columns (of 88px or
+        // more) that divide their number, so no tile is left on its own.
+        const walls = byId('wallpaperChoices');
+        if (walls) {
+            const count = walls.querySelectorAll('.wallpaper-choice').length;
+            const wallWidth = walls.clientWidth;
+            const wallGap = parseFloat(getComputedStyle(walls).columnGap) || 0;
+            const wallCols = count && wallWidth ? [6, 5, 4, 3, 2, 1].find(c => c <= count && count % c === 0 && (wallWidth - wallGap * (c - 1)) / c >= 88) : 0;
+            const value = wallCols ? `repeat(${wallCols}, minmax(0, 1fr))` : '';
+            if (walls.style.gridTemplateColumns !== value) walls.style.gridTemplateColumns = value;
+        }
     };
     let frame = 0;
     const queue = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(fit); };
@@ -2150,6 +2219,8 @@ function mountSwatchFit() {
     new ResizeObserver(() => { if (picker.clientWidth !== lastWidth) { lastWidth = picker.clientWidth; queue(); } }).observe(picker);
     new MutationObserver(queue).observe(document.documentElement, { attributes: true, attributeFilter: ['data-menu-style', 'data-theme', 'style'] });
     new MutationObserver(queue).observe(picker, { childList: true });
+    const wallGrid = byId('wallpaperChoices');
+    if (wallGrid) new MutationObserver(queue).observe(wallGrid, { childList: true });
     document.addEventListener('homelayoutchange', queue);
     document.addEventListener('hntightchange', queue);
     window.addEventListener('resize', queue);
@@ -2483,7 +2554,10 @@ function mountTeamRowFit() {
             const name = row.querySelector('.team-zone-member-name');
             return !name || name.clientWidth < 40 || getComputedStyle(row).gridTemplateColumns.split(' ').length !== 6 || name.scrollWidth > name.clientWidth + 1;
         }).map(row => row.closest('.team-zone')));
-        rows.forEach(row => { if (tooLong.has(row.closest('.team-zone'))) row.removeAttribute('data-hn-inline'); });
+        // Side by side, both teams share that choice, so their rows line up.
+        const [z0, z1] = [byId('teamZone0'), byId('teamZone1')];
+        const sideBySide = z0 && z1 && Math.abs(z0.getBoundingClientRect().top - z1.getBoundingClientRect().top) < 2;
+        rows.forEach(row => { if (tooLong.has(row.closest('.team-zone')) || (sideBySide && tooLong.size)) row.removeAttribute('data-hn-inline'); });
     };
     let queued = false;
     const soon = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; fit(); }); };

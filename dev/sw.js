@@ -1,4 +1,4 @@
-const CACHE_NAME = 'blakeout-dev-v123-home-next-20261125p';
+const CACHE_NAME = 'blakeout-dev-v124-home-next-20261125q';
 const APP_SCOPE_PATH = new URL('./', self.location.href).pathname;
 const IS_DEV_SCOPE = APP_SCOPE_PATH.endsWith('/dev/');
 const NESTED_DEV_PATH = new URL('./dev/', self.location.href).pathname;

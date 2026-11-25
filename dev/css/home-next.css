@@ -81,7 +81,9 @@ html[data-home="next"] #setupScreen .setup-card {
 }
 /* Every card gets a gap below; Start is last in the page on phones. */
 html[data-home="next"] #setupScreen .setup-card > :not(.hidden):not(#gamePickerSection):not(#playSection):not(:last-child) { margin-bottom: var(--hn-gap); }
-html[data-home="next"] #setupScreen .setup-card > .setup-qr { margin-bottom: var(--hn-gap); }
+/* The QR card ends the right column with no gap below it, so at the end of
+   the page its bottom edge lines up with the library's (round 23). */
+html[data-home="next"] #setupScreen .setup-card > .setup-qr { margin-bottom: 0; }
 html[data-home="next"] #setupScreen .setup-card > #backToGameBtn:not(.hidden) { margin-bottom: var(--hn-gap) !important; }
 html[data-home="next"] #setupScreen #rosterSection { grid-area: roster; }
 html[data-home="next"] #setupScreen #maintenanceSection { grid-area: maintenance; }
@@ -2247,6 +2249,12 @@ html[data-home="next"] #setupScreen .player-order-drag > span { touch-action: no
     html[data-home="next"] #setupScreen .dev-app-nav :is(a, button):has(.feature-test-badge) { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1.1; }
     html[data-home="next"] #setupScreen .dev-app-nav .feature-test-badge { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: 0.625rem; padding: 0 5px; }
 }
+/* Round 23: wider windows stack the badge too whenever the words don't fit
+   beside it (larger text). */
+@media (min-width: 450px) {
+    html[data-home="next"] #setupScreen .dev-app-nav[data-hn-stack] :is(a, button):has(.feature-test-badge) { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; line-height: 1.1; }
+    html[data-home="next"] #setupScreen .dev-app-nav[data-hn-stack] .feature-test-badge { position: static; width: auto; height: auto; overflow: visible; clip-path: none; font-size: 0.625rem; padding: 0 5px; }
+}
 
 /* Round 13: Resume's lines grow with the text size, so large text never
    cuts the second player's name. */
@@ -2628,15 +2636,19 @@ html[data-home="next"]:is([data-menu-style="fable52"], [data-menu-style="neon"])
 /* Round 21: at large text the ☆ and ⓘ keep their 44px boxes with a clear
    gap between them and an 8px inset from the card's edge; their glyphs grow
    only as far as the box allows. */
-html[data-home="next"][data-hn-tight] #setupScreen .game-card-info { right: 8px; font-size: min(1.125rem, 24px); }
-html[data-home="next"][data-hn-tight] #setupScreen .game-card-fav { right: 60px; }
-html[data-home="next"][data-hn-tight] #setupScreen .game-card-fav::before { font-size: min(1.375rem, 28px); }
-@container hn-card (min-width: calc(124px + 8.9rem)) {
-    html[data-home="next"][data-hn-tight] #setupScreen .game-card { padding-right: 116px; }
+/* Round 23: the boxes grow with the text too (up to 56px), so the glyphs
+   can grow with the card titles. */
+html[data-home="next"][data-hn-tight] #setupScreen .game-card-wrap { --hn-ib: min(max(44px, 2.75rem), 56px); }
+html[data-home="next"][data-hn-tight] #setupScreen :is(.game-card-fav, .game-card-info) { width: var(--hn-ib); height: var(--hn-ib); }
+html[data-home="next"][data-hn-tight] #setupScreen .game-card-info { right: 8px; font-size: min(1.125rem, 30px); }
+html[data-home="next"][data-hn-tight] #setupScreen .game-card-fav { right: calc(var(--hn-ib) + 16px); }
+html[data-home="next"][data-hn-tight] #setupScreen .game-card-fav::before { font-size: min(1.375rem, 36px); }
+@container hn-card (min-width: calc(148px + 8.9rem)) {
+    html[data-home="next"][data-hn-tight] #setupScreen .game-card { padding-right: calc(2 * var(--hn-ib) + 28px); }
 }
-@container hn-card (max-width: calc(124px + 8.9rem)) {
+@container hn-card (max-width: calc(148px + 8.9rem)) {
     html[data-home="next"][data-hn-tight] #setupScreen :is(.game-card-fav, .game-card-info) { bottom: 8px; }
-    html[data-home="next"][data-hn-tight] #setupScreen .game-card { padding-bottom: 60px; }
+    html[data-home="next"][data-hn-tight] #setupScreen .game-card { padding-bottom: calc(var(--hn-ib) + 16px); }
 }
 /* Round 21: Quick Start alone ("Jump back in" too narrow for any game): no "Recent" label either. */
 html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-alone] > :is(.picker-recents-label, .hn-recents-break) { display: none; }
@@ -2719,10 +2731,23 @@ html[data-home="next"]:not([data-hn-tight]) #setupScreen .game-card-fav { right:
    two short name lines sit as one block in the middle of the button, and
    the second line starts with "vs" flush, never with a blank. */
 @media (max-width: 720px) and (max-height: 500px), (min-width: 721px) and (max-width: 1000px) and (max-height: 560px) {
-    html[data-home="next"]:not([data-hn-tight]) #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:not([data-hn-compact]):has(#resumeGameBtn:not(.hidden)) #resumeGameBtn { justify-content: center; }
-    html[data-home="next"]:not([data-hn-tight]) #setupScreen #playSection:not([data-hn-compact]) #resumeGameBtn .hn-resume-names { display: grid !important; grid-template-columns: minmax(0, max-content); justify-content: start; justify-items: start; text-align: start; }
+    /* Round 23: two players only; three or four keep the one-line layout. */
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:not([data-hn-compact]):has(#resumeGameBtn:not(.hidden)) #resumeGameBtn:not(:has(.hn-resume-player ~ .hn-resume-player ~ .hn-resume-player)) { justify-content: center; }
+    html[data-home="next"]:not([data-hn-tight]) #setupScreen #playSection:not([data-hn-compact]) #resumeGameBtn .hn-resume-names:not(:has(.hn-resume-player ~ .hn-resume-player ~ .hn-resume-player)) { display: grid !important; grid-template-columns: minmax(0, max-content); justify-content: start; justify-items: start; text-align: start; }
 }
 /* The hover pad behind ☆ and ⓘ is round, like the favourite's disc. */
 html[data-home="next"] #setupScreen :is(.game-card-fav, .game-card-info) { border-radius: 50%; }
 /* The Put button's name is shortened in script, so the browser adds no "…" of its own. */
 html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .hn-zone-put .hn-put-name { text-overflow: clip; }
+/* Inside the card's column the fade above the docked Start card ends in the
+   panels' own colour, so a light panel passing behind stays light up to the
+   card; outside the column it ends in the page colour. */
+@media (min-width: 1001px), (min-width: 721px) and (min-height: 561px) {
+    @container scroll-state(stuck: bottom) {
+        html[data-home="next"] #setupScreen #playSection > .setup-action-row::before {
+            background:
+                linear-gradient(color-mix(in srgb, var(--hn-card) 0%, transparent), color-mix(in srgb, var(--hn-card) 80%, transparent) 25%, var(--hn-card) 45%) 16px 0 / calc(100% - 32px) 100% no-repeat,
+                linear-gradient(color-mix(in srgb, var(--color-bg) 0%, transparent), color-mix(in srgb, var(--color-bg) 80%, transparent) 25%, var(--color-bg) 45%);
+        }
+    }
+}
