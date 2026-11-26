@@ -2839,7 +2839,9 @@ html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-more
 html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-less] { -webkit-mask-image: linear-gradient(to right, transparent 1px, #000 28px); mask-image: linear-gradient(to right, transparent 1px, #000 28px); }
 html[data-home="next"] #setupScreen #gameRecentsRow[data-hn-scroll][data-hn-less][data-hn-more] { -webkit-mask-image: linear-gradient(to right, transparent 1px, #000 28px, #000 calc(100% - var(--hn-fade, 52px) - 14px), transparent calc(100% - var(--hn-fade, 52px))); mask-image: linear-gradient(to right, transparent 1px, #000 28px, #000 calc(100% - var(--hn-fade, 52px) - 14px), transparent calc(100% - var(--hn-fade, 52px))); }
 html[data-home="next"] #setupScreen [data-hn-clip] { clip-path: inset(0 -8px var(--hn-clip, 0px) -8px); }
-html:not([data-home="next"]) [data-hn-clip] { clip-path: none !important; }
+/* Round 27: the cut edge fades out over 14px instead of ending in a hard line. */
+html[data-home="next"] #setupScreen [data-hn-clip] { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--hn-clip, 0px) - 14px), transparent calc(100% - var(--hn-clip, 0px))); mask-image: linear-gradient(to bottom, #000 calc(100% - var(--hn-clip, 0px) - 14px), transparent calc(100% - var(--hn-clip, 0px))); }
+html:not([data-home="next"]) [data-hn-clip] { clip-path: none !important; -webkit-mask-image: none !important; mask-image: none !important; }
 /* Round 25: Start Game beside (or under) Resume keeps even room above its
    label and below the game name, at any text size. */
 html[data-home="next"] #setupScreen:not(:has(#backToGameBtn:not(.hidden))) #playSection:has(#resumeGameBtn:not(.hidden)) #startGameBtn[data-hn-game] { padding-top: 6px; padding-bottom: 6px; line-height: 1.15; }
@@ -2886,3 +2888,32 @@ html[data-home="next"] #setupScreen#setupScreen .dev-app-nav[data-hn-cols] :is(a
     html[data-home="next"][data-hn-tight] .setup-screen .setup-header-text { flex: 1 1 0; min-width: 0; }
     html[data-home="next"][data-hn-tight] .setup-screen .setup-header .setup-logo { align-self: flex-start; margin-top: 12px; }
 }
+/* Round 27: the bot row matches the name row below it: the field fills,
+   the button keeps its size, and the two buttons line up. */
+@media (min-width: 0) {
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .team-add-row { grid-template-columns: minmax(0, 1fr) auto; }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddBotBtn { grid-column: 2; }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddName { grid-column: 1; }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen #teamAddBtn { grid-column: 2; }
+    html[data-home="next"]:not([data-hn-tight]) #teamBuilderScreen .team-add-row > label:not(.hn-team-add-label) > select { width: 100%; }
+}
+/* Round 27: the X01 & Cricket style cards sit two to a row like the Home
+   screen choices, and an odd last card spans the row instead of sitting alone. */
+html[data-home="next"] #settingsModal .hn-dialog .score-skin-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html[data-home="next"] #settingsModal .hn-dialog .score-skin-row > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+html[data-home="next"][data-hn-tight] #settingsModal .hn-dialog .score-skin-row { grid-template-columns: minmax(0, 1fr); }
+/* Round 27: in short landscape the compact Start bar is one row: the game
+   name sits beside "Start Game" and the label stops at 24px, so the bar
+   stays about a sixth of the window even with big text. */
+@media (max-height: 500px) and (orientation: landscape) {
+    html[data-home="next"] #setupScreen #playSection[data-hn-compact] #startGameBtn[data-hn-game] { flex-direction: row; gap: 0.6em; font-size: min(1em, 24px); min-height: 48px; height: auto; padding-top: 4px; padding-bottom: 4px; }
+    html[data-home="next"] #setupScreen #playSection[data-hn-compact] #startGameBtn[data-hn-game]::after { font-size: 0.75em; min-width: 0; }
+    html[data-home="next"] #setupScreen #playSection[data-hn-compact]:has(#resumeGameBtn:not(.hidden)) :is(#resumeGameBtn, #startGameBtn) { font-size: min(1em, 22px); }
+}
+/* Round 27: a disabled ▲ or ▼ lets a tap through to its row, so tapping
+   anywhere in a team box still places the chosen player there. */
+html[data-home="next"] #teamBuilderScreen .team-zone-member :is(button, [data-member-action]):disabled { pointer-events: none; }
+/* Round 27: "Show all N games" keeps room inside its border at large text. */
+html[data-home="next"] #setupScreen #homeNextAllGames { padding-left: 12px; padding-right: 12px; height: auto; min-height: 48px; padding-top: 0.3em; padding-bottom: 0.3em; white-space: normal; text-wrap: balance; }
+/* Round 27: the pinned title never outgrows the heading it stands in for. */
+html[data-home="next"] #settingsModal .hn-dialog .hn-dialog-bar-title { font-size: min(1.0625rem, 22px); }
